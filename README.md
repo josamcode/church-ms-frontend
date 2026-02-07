@@ -1,70 +1,186 @@
-# Getting Started with Create React App
+# نظام إدارة الكنيسة - الواجهة الأمامية
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## نظرة عامة
 
-## Available Scripts
+الواجهة الأمامية لنظام إدارة كنيسة الملاك ميخائيل - قرية القطوشة - التابعة لإيبارشية مطاى.
 
-In the project directory, you can run:
+مبنية باستخدام:
 
-### `npm start`
+- **React 19** — المكتبة الأساسية
+- **React Router 7** — التوجيه
+- **TanStack Query** — إدارة حالة الخادم والتخزين المؤقت
+- **Tailwind CSS** — التنسيق
+- **Axios** — طلبات HTTP
+- **Lucide React** — الأيقونات
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+جميع النصوص والرسائل **بالعربية** مع دعم كامل لـ **RTL**.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## المتطلبات
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Node.js 18+
+- الخادم الخلفي يعمل على `http://localhost:5000`
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## التثبيت والتشغيل
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 1. تثبيت المكتبات
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+cd frontend
+npm install
+```
 
-### `npm run eject`
+### 2. إعداد متغيرات البيئة
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+cp .env.example .env
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+عدّل `REACT_APP_API_URL` إذا كان الخادم على عنوان مختلف.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### 3. تشغيل التطوير
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+npm start
+```
 
-## Learn More
+التطبيق يعمل على `http://localhost:3000`
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### 4. بناء الإنتاج
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```bash
+npm run build
+```
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## هيكل المشروع
 
-### Analyzing the Bundle Size
+```
+src/
+├── app/
+│   ├── App.js          # المكون الجذري
+│   ├── router.js       # خريطة المسارات
+│   └── providers.js    # مزودو السياق (Query, Auth, Theme, Toast)
+├── api/
+│   ├── client.js       # عميل Axios مع interceptors
+│   ├── endpoints.js    # دوال الاتصال بالخادم
+│   └── errors.js       # تطبيع الأخطاء
+├── auth/
+│   ├── auth.store.js   # تخزين الرموز والصلاحيات
+│   ├── auth.hooks.js   # AuthProvider + useAuth
+│   └── guards.js       # AuthGuard, PermissionGuard, GuestGuard
+├── components/
+│   ├── ui/             # مكونات واجهة قابلة لإعادة الاستخدام
+│   └── layout/         # التخطيطات (عام، مصادقة، لوحة التحكم)
+├── pages/
+│   ├── public/         # الصفحات العامة (الصفحة الرئيسية)
+│   ├── auth/           # صفحات المصادقة (تسجيل الدخول)
+│   ├── dashboard/      # صفحات لوحة التحكم
+│   └── shared/         # صفحات مشتركة (404، قيد التطوير)
+├── styles/
+│   ├── tokens.css      # متغيرات CSS للألوان والسمات
+│   └── globals.css     # الأنماط العامة
+└── utils/
+    └── formatters.js   # تنسيق التواريخ والهاتف والثوابت
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+---
 
-### Making a Progressive Web App
+## نظام السمات (Theming)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### تغيير الألوان
 
-### Advanced Configuration
+عدّل ملف `src/styles/tokens.css` لتغيير أي لون:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```css
+:root {
+  --color-primary: #1e3a5f; /* اللون الأساسي */
+  --color-secondary: #b8860b; /* اللون الثانوي */
+  --color-danger: #dc2626; /* لون الخطر */
+  /* ... */
+}
+```
 
-### Deployment
+### الوضع الداكن
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+يعمل بنظام `class` على عنصر `html`:
 
-### `npm run build` fails to minify
+- يحفظ التفضيل في `localStorage`
+- يمكن تبديله من القائمة الجانبية في لوحة التحكم
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+---
+
+## المسارات
+
+### عامة (بدون مصادقة)
+
+| المسار        | الصفحة          |
+| ------------- | --------------- |
+| `/`           | الصفحة الرئيسية |
+| `/auth/login` | تسجيل الدخول    |
+| `/404`        | صفحة غير موجودة |
+
+### محمية (تتطلب مصادقة)
+
+| المسار                         | الصلاحية المطلوبة | الصفحة           |
+| ------------------------------ | ----------------- | ---------------- |
+| `/dashboard`                   | -                 | لوحة التحكم      |
+| `/dashboard/profile`           | `AUTH_VIEW_SELF`  | الملف الشخصي     |
+| `/dashboard/users`             | `USERS_VIEW`      | قائمة المستخدمين |
+| `/dashboard/users/new`         | `USERS_CREATE`    | إضافة مستخدم     |
+| `/dashboard/users/:id`         | `USERS_VIEW`      | تفاصيل المستخدم  |
+| `/dashboard/users/:id/edit`    | `USERS_UPDATE`    | تعديل المستخدم   |
+| `/dashboard/under-development` | -                 | قيد التطوير      |
+
+---
+
+## التكامل مع الخادم
+
+### عميل API
+
+ملف `src/api/client.js` يحتوي على:
+
+- إضافة رمز المصادقة تلقائياً لكل طلب
+- تحديث الرمز تلقائياً عند الانتهاء (Silent Refresh)
+- معالجة الطلبات المعلقة أثناء التحديث (Queue)
+
+### معالجة الأخطاء
+
+- أخطاء التحقق تُعرض على مستوى الحقول
+- أخطاء الصلاحيات تعرض رسالة واضحة
+- أخطاء الشبكة تعرض إشعار مناسب
+- كل خطأ يحتوي على `requestId` للتتبع
+
+---
+
+## المكونات القابلة لإعادة الاستخدام
+
+| المكون          | الموقع             | الوصف                                 |
+| --------------- | ------------------ | ------------------------------------- |
+| `Button`        | `ui/Button`        | أزرار بأنواع ومقاسات متعددة           |
+| `Input`         | `ui/Input`         | حقل إدخال مع تسمية وأيقونة ورسالة خطأ |
+| `Select`        | `ui/Select`        | قائمة منسدلة                          |
+| `TextArea`      | `ui/TextArea`      | حقل نص متعدد الأسطر                   |
+| `Table`         | `ui/Table`         | جدول مع ترتيب وحالة فارغة وهيكل تحميل |
+| `Modal`         | `ui/Modal`         | نافذة منبثقة                          |
+| `Card`          | `ui/Card`          | بطاقة محتوى                           |
+| `Badge`         | `ui/Badge`         | شارة/وسم                              |
+| `Tabs`          | `ui/Tabs`          | تبويبات                               |
+| `Breadcrumbs`   | `ui/Breadcrumbs`   | مسار التنقل                           |
+| `Pagination`    | `ui/Pagination`    | ترقيم المؤشر                          |
+| `SearchInput`   | `ui/SearchInput`   | بحث مع تأخير                          |
+| `Skeleton`      | `ui/Skeleton`      | هياكل تحميل                           |
+| `EmptyState`    | `ui/EmptyState`    | حالة فارغة                            |
+| `Tooltip`       | `ui/Tooltip`       | تلميح                                 |
+| `Switch`        | `ui/Switch`        | مفتاح تبديل                           |
+| `ErrorBoundary` | `ui/ErrorBoundary` | معالج الأخطاء العام                   |
+
+---
+
+## الترخيص
+
+ISC
