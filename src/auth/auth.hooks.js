@@ -3,7 +3,7 @@ import { authApi } from '../api/endpoints';
 import {
   setTokens, setUser as storeUser, setPermissions as storePermissions,
   getUser, getPermissions, clearAuth, isAuthenticated,
-  computeEffectivePermissions, getRefreshToken,
+  computeEffectivePermissions, getRefreshToken, getAccessToken,
 } from './auth.store';
 import { normalizeApiError } from '../api/errors';
 import toast from 'react-hot-toast';
@@ -40,9 +40,31 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  /** Restore access token from refresh token when opening app in a new tab (sessionStorage is not shared) */
+  const restoreSessionIfNeeded = useCallback(async () => {
+    const refreshToken = getRefreshToken();
+    const accessToken = getAccessToken();
+    if (refreshToken && !accessToken) {
+      try {
+        const { data } = await authApi.refresh(refreshToken);
+        const { accessToken: newAccess, refreshToken: newRefresh } = data.data;
+        setTokens(newAccess, newRefresh);
+      } catch {
+        clearAuth();
+        setUser(null);
+        setPermissions([]);
+      }
+    }
+  }, []);
+
   useEffect(() => {
-    hydrateUser();
-  }, [hydrateUser]);
+    let cancelled = false;
+    (async () => {
+      await restoreSessionIfNeeded();
+      if (!cancelled) hydrateUser();
+    })();
+    return () => { cancelled = true; };
+  }, [restoreSessionIfNeeded, hydrateUser]);
 
   const login = useCallback(async (identifier, password) => {
     const { data } = await authApi.login({ identifier, password });

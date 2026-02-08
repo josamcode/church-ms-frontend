@@ -41,7 +41,7 @@ export default function DashboardLayout() {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center gap-2 p-4 border-b border-border">
+      <div className="flex items-center gap-2 p-4 border-b border-border cursor-pointer" onClick={() => navigate('/')}>
         <Church className="w-7 h-7 text-primary flex-shrink-0" />
         {!collapsed && (
           <span className="font-bold text-heading text-sm truncate">كنيسة الملاك ميخائيل</span>

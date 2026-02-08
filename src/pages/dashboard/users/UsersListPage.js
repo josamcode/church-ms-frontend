@@ -105,6 +105,9 @@ export default function UsersListPage() {
           <span className="font-medium text-heading">{row.fullName}</span>
         </div>
       ),
+      // onClick to navigate to user details page
+      onClick: (row) => navigate(`/dashboard/users/${row._id}`),
+      cellClassName: 'cursor-pointer',
     },
     {
       key: 'phonePrimary',

@@ -16,15 +16,24 @@ export const authApi = {
 export const usersApi = {
   list: (params) => apiClient.get('/users', { params }),
   getById: (id) => apiClient.get(`/users/${id}`),
+  getCustomDetailKeys: () => apiClient.get('/users/custom-detail-keys'),
+  getFamilyNames: () => apiClient.get('/users/family-names'),
+  getRelationRoles: () => apiClient.get('/users/relation-roles'),
+  createRelationRole: (label) => apiClient.post('/users/relation-roles', { label }),
   create: (data) => apiClient.post('/users', data),
   update: (id, data) => apiClient.patch(`/users/${id}`, data),
   remove: (id) => apiClient.delete(`/users/${id}`),
+  /** Upload image only (for new user). Returns { url, publicId }. */
+  uploadAvatarImage: (file) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    return apiClient.post('/users/upload-avatar', formData);
+  },
+  /** Upload and set avatar for existing user. */
   uploadAvatar: (id, file) => {
     const formData = new FormData();
     formData.append('avatar', file);
-    return apiClient.post(`/users/${id}/avatar`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    return apiClient.post(`/users/${id}/avatar`, formData);
   },
   lock: (id, lockReason) => apiClient.post(`/users/${id}/lock`, { lockReason }),
   unlock: (id) => apiClient.post(`/users/${id}/unlock`),
