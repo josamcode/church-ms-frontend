@@ -60,3 +60,13 @@ export const LOCK_REASONS = [
   'مشاكل في سلامة البيانات',
   'سبب آخر',
 ];
+
+/** تسميات صلة القرابة الافتراضية حسب الحقل (للعائلة المباشرة) */
+export const RELATION_LABELS = {
+  father: 'الأب',
+  mother: 'الأم',
+  spouse: 'الزوج',
+  sibling: 'الأخ',
+  child: 'الابن',
+  other: 'آخر',
+};

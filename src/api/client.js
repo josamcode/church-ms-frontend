@@ -29,13 +29,24 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Let the browser set Content-Type with boundary for FormData (e.g. file uploads)
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // In development, log API responses so you can see them in Console (DevTools)
+    if (process.env.NODE_ENV === 'development') {
+      const url = response.config.url || response.config.baseURL;
+      console.log(`[API] ${response.config.method?.toUpperCase()} ${url}`, response.data);
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 

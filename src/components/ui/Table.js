@@ -55,7 +55,14 @@ export default function Table({
                   className="border-b border-border last:border-b-0 hover:bg-surface-alt/50 transition-colors"
                 >
                   {columns.map((col) => (
-                    <td key={col.key} className={`p-3 ${col.cellClassName || ''}`}>
+                    <td
+                      key={col.key}
+                      className={`p-3 ${col.cellClassName || ''}`}
+                      onClick={col.onClick ? () => col.onClick(row) : undefined}
+                      onKeyDown={col.onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); col.onClick(row); } } : undefined}
+                      role={col.onClick ? 'button' : undefined}
+                      tabIndex={col.onClick ? 0 : undefined}
+                    >
                       {col.render ? col.render(row, i) : row[col.key] ?? '---'}
                     </td>
                   ))}

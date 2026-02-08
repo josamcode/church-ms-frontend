@@ -2,9 +2,9 @@ import { forwardRef } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 const Select = forwardRef(
-  ({ label, hint, error, required, options = [], placeholder, className = '', ...props }, ref) => {
+  ({ label, hint, error, required, options = [], placeholder, className = '', containerClassName = '', ...props }, ref) => {
     return (
-      <div className="mb-4">
+      <div className={`mb-4 ${containerClassName}`.trim()}>
         {label && (
           <label className="block text-sm font-medium text-base mb-1.5">
             {label}

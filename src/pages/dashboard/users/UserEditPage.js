@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../../../api/endpoints';
 import { normalizeApiError, mapFieldErrors } from '../../../api/errors';
 import Input from '../../../components/ui/Input';
@@ -10,8 +10,9 @@ import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Skeleton from '../../../components/ui/Skeleton';
+import UserSearchSelect from '../../../components/UserSearchSelect';
 import toast from 'react-hot-toast';
-import { Save, ArrowRight } from 'lucide-react';
+import { Save, ArrowRight, Upload, Plus, Trash2 } from 'lucide-react';
 
 const genderOptions = [
   { value: 'male', label: 'ذكر' },
@@ -31,6 +32,11 @@ export default function UserEditPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState({});
+  const [customDetailsRows, setCustomDetailsRows] = useState([{ id: 1, key: '', value: '' }]);
+  const fileInputRef = useRef(null);
+  const nextCustomDetailId = useRef(2);
+  const customDetailsInitializedFor = useRef(null);
+  const pendingLinkByPhoneRef = useRef([]);
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['users', id],
@@ -39,6 +45,74 @@ export default function UserEditPage() {
       return data.data;
     },
   });
+
+  const { data: savedKeysRes } = useQuery({
+    queryKey: ['users', 'custom-detail-keys'],
+    queryFn: async () => {
+      const { data } = await usersApi.getCustomDetailKeys();
+      return data.data;
+    },
+  });
+  const savedKeys = Array.isArray(savedKeysRes) ? savedKeysRes : [];
+
+  const { data: familyNamesRes } = useQuery({
+    queryKey: ['users', 'family-names'],
+    queryFn: async () => {
+      const res = await usersApi.getFamilyNames();
+      const data = res.data?.data ?? res.data;
+      return Array.isArray(data) ? data : [];
+    },
+  });
+  const familyNames = Array.isArray(familyNamesRes) ? familyNamesRes : [];
+  const [familyNameDropdownOpen, setFamilyNameDropdownOpen] = useState(false);
+  const familyNameInputRef = useRef(null);
+
+  const { data: relationRolesRes } = useQuery({
+    queryKey: ['users', 'relation-roles'],
+    queryFn: async () => {
+      const { data } = await usersApi.getRelationRoles();
+      return data?.data ?? data ?? [];
+    },
+  });
+  const relationRoles = Array.isArray(relationRolesRes) ? relationRolesRes : [];
+
+  const linkedUserIds = (form?.family || [])
+    .map((r) => r.userId)
+    .filter((uid) => uid);
+  const uniqueLinkedIds = [...new Set(linkedUserIds)];
+  const linkedUsersQueries = useQueries({
+    queries: uniqueLinkedIds.map((uid) => ({
+      queryKey: ['users', uid],
+      queryFn: async () => {
+        const { data } = await usersApi.getById(uid);
+        return data?.data ?? data;
+      },
+      enabled: !!uid && !!form,
+    })),
+  });
+  const linkedUsersMap = {};
+  uniqueLinkedIds.forEach((uid, idx) => {
+    const res = linkedUsersQueries[idx]?.data;
+    if (res) linkedUsersMap[uid] = res;
+  });
+
+  const SLOT_DEFAULT_ROLE = { father: 'الأب', mother: 'الأم', spouse: 'الزوج/ة', sibling: 'أخ/أخت', child: 'ابن/بنت' };
+  const flattenFamily = (u) => {
+    const list = [];
+    if (u?.father) list.push({ ...u.father, relationRole: u.father.relationRole?.trim() || SLOT_DEFAULT_ROLE.father });
+    if (u?.mother) list.push({ ...u.mother, relationRole: u.mother.relationRole?.trim() || SLOT_DEFAULT_ROLE.mother });
+    if (u?.spouse) list.push({ ...u.spouse, relationRole: u.spouse.relationRole?.trim() || SLOT_DEFAULT_ROLE.spouse });
+    (u?.siblings || []).forEach((s) => list.push({ ...s, relationRole: s.relationRole?.trim() || SLOT_DEFAULT_ROLE.sibling }));
+    (u?.children || []).forEach((c) => list.push({ ...c, relationRole: c.relationRole?.trim() || SLOT_DEFAULT_ROLE.child }));
+    (u?.familyMembers || []).forEach((m) => list.push({ ...m, relationRole: m.relationRole?.trim() || 'آخر' }));
+    return list.map((m) => ({
+      userId: m.userId ? String(m.userId) : null,
+      name: m.name || '',
+      relationRole: m.relationRole || '',
+      targetPhone: '',
+      notes: m.notes || '',
+    }));
+  };
 
   useEffect(() => {
     if (user && !form) {
@@ -58,16 +132,75 @@ export default function UserEditPage() {
         city: user.address?.city || '',
         street: user.address?.street || '',
         details: user.address?.details || '',
+        family: flattenFamily(user),
       });
     }
   }, [user, form]);
 
+  useEffect(() => {
+    const userId = user?._id ?? user?.id;
+    const idStr = userId != null ? String(userId) : null;
+    if (!user || idStr !== id) return;
+    if (customDetailsInitializedFor.current === id) return;
+    customDetailsInitializedFor.current = id;
+    const cd = user.customDetails;
+    if (cd && typeof cd === 'object' && Object.keys(cd).length > 0) {
+      const rows = Object.entries(cd).map(([key, value], i) => ({ id: i + 1, key, value: value ?? '' }));
+      setCustomDetailsRows(rows);
+      nextCustomDetailId.current = rows.length + 2;
+    } else {
+      setCustomDetailsRows([{ id: 1, key: '', value: '' }]);
+      nextCustomDetailId.current = 2;
+    }
+  }, [user, id]);
+
+  useEffect(() => {
+    customDetailsInitializedFor.current = null;
+  }, [id]);
+
+  const linkedUsersFetched = linkedUsersQueries.every((q) => !q.isLoading) && uniqueLinkedIds.length > 0;
+  useEffect(() => {
+    if (!form?.family || !linkedUsersFetched || uniqueLinkedIds.length === 0) return;
+    setForm((prev) => {
+      const family = [...(prev.family || [])];
+      let changed = false;
+      family.forEach((row, idx) => {
+        if (!row.userId) return;
+        const fetchedUser = linkedUsersMap[row.userId];
+        if (fetchedUser?.phonePrimary && !(row.targetPhone || '').trim()) {
+          family[idx] = { ...row, targetPhone: fetchedUser.phonePrimary };
+          changed = true;
+        }
+      });
+      return changed ? { ...prev, family } : prev;
+    });
+  }, [linkedUsersFetched, uniqueLinkedIds.length]);
+
   const mutation = useMutation({
     mutationFn: (data) => usersApi.update(id, data),
-    onSuccess: () => {
+    onSuccess: async () => {
+      const pending = pendingLinkByPhoneRef.current || [];
+      pendingLinkByPhoneRef.current = [];
+      if (pending.length > 0) {
+        for (const m of pending) {
+          try {
+            const relation = relationRoles.find((r) => r.label === (m.relationRole || '').trim())?.relation || 'other';
+            await usersApi.linkFamily(id, {
+              relation,
+              relationRole: (m.relationRole || '').trim(),
+              targetPhone: (m.targetPhone || '').trim(),
+              name: (m.name || '').trim() || undefined,
+              notes: (m.notes || '').trim() || undefined,
+            });
+          } catch (err) {
+            toast.error(normalizeApiError(err).message);
+          }
+        }
+      }
       toast.success('تم تحديث بيانات المستخدم بنجاح');
       queryClient.invalidateQueries({ queryKey: ['users', id] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'family-names'] });
       navigate(`/dashboard/users/${id}`);
     },
     onError: (err) => {
@@ -76,6 +209,18 @@ export default function UserEditPage() {
         setErrors(mapFieldErrors(normalized.details));
       }
       toast.error(normalized.message);
+    },
+  });
+
+  const avatarMutation = useMutation({
+    mutationFn: (file) => usersApi.uploadAvatar(id, file),
+    onSuccess: () => {
+      toast.success('تم رفع الصورة الشخصية بنجاح');
+      queryClient.invalidateQueries({ queryKey: ['users', id] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (err) => {
+      toast.error(normalizeApiError(err).message);
     },
   });
 
@@ -118,12 +263,134 @@ export default function UserEditPage() {
       payload.address = newAddress;
     }
 
+    const newCustomDetails = customDetailsRows
+      .filter((r) => r.key.trim())
+      .reduce((acc, r) => ({ ...acc, [r.key.trim()]: (r.value || '').trim() }), {});
+    const oldCustomDetails = user.customDetails && typeof user.customDetails === 'object' ? user.customDetails : {};
+    if (JSON.stringify(newCustomDetails) !== JSON.stringify(oldCustomDetails)) {
+      payload.customDetails = newCustomDetails;
+    }
+
+    const toPayloadMember = (m) => {
+      if (!m || (!m.name && !m.relationRole && !m.notes && !m.userId)) return null;
+      return {
+        userId: m.userId || undefined,
+        name: (m.name || '').trim() || undefined,
+        relationRole: (m.relationRole || '').trim() || undefined,
+        notes: (m.notes || '').trim() || undefined,
+      };
+    };
+    const unflattenFamily = (familyList) => {
+      const result = { father: null, mother: null, spouse: null, siblings: [], children: [], familyMembers: [] };
+      (familyList || []).forEach((m) => {
+        const member = toPayloadMember(m);
+        if (!member) return;
+        const role = relationRoles.find((r) => r.label === (m.relationRole || '').trim())?.relation || 'other';
+        if (role === 'father') result.father = member;
+        else if (role === 'mother') result.mother = member;
+        else if (role === 'spouse') result.spouse = member;
+        else if (role === 'sibling') result.siblings.push(member);
+        else if (role === 'child') result.children.push(member);
+        else result.familyMembers.push(member);
+      });
+      return result;
+    };
+    const oldFlat = flattenFamily(user);
+    const newFlat = (form.family || []).map((m) => ({
+      ...m,
+      relationRole: (m.relationRole || '').trim(),
+      name: (m.name || '').trim(),
+      notes: (m.notes || '').trim(),
+    }));
+    const familyChanged = JSON.stringify(newFlat.map((m) => ({ ...m, targetPhone: '' }))) !== JSON.stringify(oldFlat.map((m) => ({ ...m, targetPhone: '' })));
+    const membersToLinkByPhone = (form.family || []).filter((m) => (m.targetPhone || '').trim());
+    if (familyChanged || membersToLinkByPhone.length > 0) {
+      const familyForPayload = (form.family || []).filter((m) => !(m.targetPhone || '').trim());
+      const unflat = unflattenFamily(familyForPayload);
+      payload.father = unflat.father;
+      payload.mother = unflat.mother;
+      payload.spouse = unflat.spouse;
+      payload.siblings = unflat.siblings;
+      payload.children = unflat.children;
+      payload.familyMembers = unflat.familyMembers;
+    }
+    if (membersToLinkByPhone.length > 0) {
+      pendingLinkByPhoneRef.current = membersToLinkByPhone;
+    }
+
+    if (membersToLinkByPhone.length > 0 && Object.keys(payload).length === 0) {
+      (async () => {
+        for (const m of membersToLinkByPhone) {
+          try {
+            const relation = relationRoles.find((r) => r.label === (m.relationRole || '').trim())?.relation || 'other';
+            await usersApi.linkFamily(id, {
+              relation,
+              relationRole: (m.relationRole || '').trim(),
+              targetPhone: (m.targetPhone || '').trim(),
+              name: (m.name || '').trim() || undefined,
+              notes: (m.notes || '').trim() || undefined,
+            });
+          } catch (err) {
+            toast.error(normalizeApiError(err).message);
+            return;
+          }
+        }
+        toast.success('تم ربط أفراد العائلة بنجاح');
+        queryClient.invalidateQueries({ queryKey: ['users', id] });
+        queryClient.invalidateQueries({ queryKey: ['users'] });
+        navigate(`/dashboard/users/${id}`);
+      })();
+      return;
+    }
+
     if (Object.keys(payload).length === 0) {
       toast('لم يتم تغيير أي بيانات');
       return;
     }
 
     mutation.mutate(payload);
+  };
+
+  const addCustomDetailRow = () => {
+    setCustomDetailsRows((prev) => [...prev, { id: nextCustomDetailId.current++, key: '', value: '' }]);
+  };
+
+  const updateCustomDetailRow = (id, field, value) => {
+    setCustomDetailsRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
+    );
+  };
+
+  const removeCustomDetailRow = (id) => {
+    setCustomDetailsRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
+  };
+
+  const addFamilyMember = () => {
+    setForm((prev) => ({
+      ...prev,
+      family: [...(prev.family || []), { userId: null, name: '', relationRole: '', targetPhone: '', notes: '' }],
+    }));
+  };
+  const updateFamilyMember = (index, field, value) => {
+    setForm((prev) => {
+      const arr = [...(prev.family || [])];
+      arr[index] = { ...arr[index], [field]: value };
+      return { ...prev, family: arr };
+    });
+  };
+  const removeFamilyMember = (index) => {
+    setForm((prev) => ({ ...prev, family: (prev.family || []).filter((_, i) => i !== index) }));
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('يرجى اختيار صورة (JPEG، PNG، GIF أو WEBP)');
+      return;
+    }
+    avatarMutation.mutate(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   if (isLoading || !form) {
@@ -148,6 +415,44 @@ export default function UserEditPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader title="البيانات الأساسية" />
+            <div className="space-y-2 mb-4">
+              <label className="block text-sm font-medium text-body">الصورة الشخصية</label>
+              <div className="flex items-center gap-4 flex-wrap">
+                {user?.avatar?.url ? (
+                  <img
+                    src={user.avatar.url}
+                    alt={user.fullName}
+                    className="w-24 h-24 rounded-full object-cover border-2 border-border"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center">
+                    <Upload className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex flex-col gap-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleAvatarChange}
+                    disabled={avatarMutation.isPending}
+                    className="hidden"
+                    id="edit-user-avatar"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    icon={Upload}
+                    loading={avatarMutation.isPending}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {user?.avatar?.url ? 'تغيير الصورة' : 'رفع صورة'}
+                  </Button>
+                  <span className="text-xs text-muted-foreground">JPEG, PNG, GIF أو WEBP — حتى 5 ميجابايت</span>
+                </div>
+              </div>
+            </div>
             <Input label="الاسم الكامل" required value={form.fullName}
               onChange={(e) => update('fullName', e.target.value)} error={errors.fullName} />
             <Input label="رقم الهاتف الأساسي" required dir="ltr" className="text-left"
@@ -168,8 +473,47 @@ export default function UserEditPage() {
               value={form.phoneSecondary} onChange={(e) => update('phoneSecondary', e.target.value)} />
             <Input label="رقم الواتساب" dir="ltr" className="text-left"
               value={form.whatsappNumber} onChange={(e) => update('whatsappNumber', e.target.value)} />
-            <Input label="اسم العائلة" value={form.familyName}
-              onChange={(e) => update('familyName', e.target.value)} />
+            <div className="mb-4 relative">
+              <label className="block text-sm font-medium text-base mb-1.5">اسم العائلة</label>
+              <input
+                ref={familyNameInputRef}
+                type="text"
+                value={form.familyName}
+                onChange={(e) => {
+                  update('familyName', e.target.value);
+                  setFamilyNameDropdownOpen(true);
+                }}
+                onFocus={() => setFamilyNameDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setFamilyNameDropdownOpen(false), 200)}
+                placeholder="ابحث أو اكتب اسم العائلة"
+                className="input-base w-full"
+              />
+              {familyNameDropdownOpen && familyNames.length > 0 && (
+                <ul
+                  className="absolute z-20 mt-1 w-full max-h-48 overflow-auto rounded-md border border-border shadow-lg py-1"
+                  style={{ backgroundColor: 'var(--color-surface, #ffffff)' }}
+                  role="listbox"
+                >
+                  {familyNames
+                    .filter((name) => !form.familyName || name.toLowerCase().includes(form.familyName.trim().toLowerCase()))
+                    .slice(0, 20)
+                    .map((name) => (
+                      <li
+                        key={name}
+                        role="option"
+                        className="px-3 py-2 text-sm cursor-pointer hover:bg-muted focus:bg-muted"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          update('familyName', name);
+                          setFamilyNameDropdownOpen(false);
+                        }}
+                      >
+                        {name}
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
             <Select label="الدور" options={roleOptions} value={form.role}
               onChange={(e) => update('role', e.target.value)} />
             <TextArea label="ملاحظات" value={form.notes}
@@ -177,12 +521,153 @@ export default function UserEditPage() {
           </Card>
 
           <Card className="lg:col-span-2">
+            <CardHeader title="تفاصيل مخصصة" />
+            <p className="text-sm text-muted-foreground mb-3">أضف أو عدّل حقولاً مخصصة (مفتاح وقيمة). المفاتيح المستخدمة سابقاً تظهر كاقتراحات.</p>
+            <div className="space-y-3">
+              {customDetailsRows.map((row) => (
+                <div key={row.id} className="flex flex-wrap items-center gap-2">
+                  <input
+                    list="edit-custom-detail-keys-list"
+                    value={row.key}
+                    onChange={(e) => updateCustomDetailRow(row.id, 'key', e.target.value)}
+                    placeholder="المفتاح"
+                    className="flex-1 min-w-[120px] rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  />
+                  <datalist id="edit-custom-detail-keys-list">
+                    {savedKeys.map((k) => (
+                      <option key={k} value={k} />
+                    ))}
+                  </datalist>
+                  <input
+                    value={row.value}
+                    onChange={(e) => updateCustomDetailRow(row.id, 'value', e.target.value)}
+                    placeholder="القيمة"
+                    className="flex-1 min-w-[120px] rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeCustomDetailRow(row.id)}
+                    aria-label="حذف"
+                    className="shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addCustomDetailRow}>
+                إضافة حقل
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader
+              title="أفراد العائلة"
+              action={
+                <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addFamilyMember}>
+                  إضافة فرد
+                </Button>
+              }
+            />
+            <p className="text-sm text-muted-foreground mb-4">
+              اختر صلة القرابة ثم اربط بمستخدم مسجل (بالاسم أو رقم الهاتف) أو اكتب الاسم والهاتف يدوياً.
+            </p>
+            <div className="space-y-3">
+              {(form.family || []).map((row, i) => {
+                const roleLabels = relationRoles.map((r) => r.label);
+                const relationRoleOptions = [
+                  { value: '', label: '— اختر صلة القرابة —' },
+                  ...relationRoles.map((r) => ({ value: r.label, label: r.label })),
+                  ...(row.relationRole && !roleLabels.includes(row.relationRole)
+                    ? [{ value: row.relationRole, label: row.relationRole }]
+                    : []),
+                ];
+                const fetched = row.userId ? linkedUsersMap[row.userId] : null;
+                const linkedUser = row.userId
+                  ? {
+                      _id: row.userId,
+                      fullName: fetched?.fullName ?? row.name,
+                      phonePrimary: fetched?.phonePrimary ?? row.targetPhone ?? '',
+                    }
+                  : null;
+                return (
+                  <div key={i} className="flex flex-col gap-3 p-3 rounded-lg border border-border bg-surface-alt/30">
+                    <div className="flex flex-wrap items-end gap-2">
+                      <Select
+                        label="صلة القرابة"
+                        options={relationRoleOptions}
+                        value={row.relationRole}
+                        onChange={(e) => updateFamilyMember(i, 'relationRole', e.target.value)}
+                        containerClassName="mb-0 flex-1 min-w-[140px]"
+                      />
+                      <div className="flex-1 min-w-[200px]">
+                        <UserSearchSelect
+                          label="ربط بمستخدم مسجل"
+                          value={linkedUser}
+                          onChange={(u) => {
+                            setForm((prev) => {
+                              const arr = [...(prev.family || [])];
+                              arr[i] = {
+                                ...arr[i],
+                                userId: u ? u._id : null,
+                                name: u ? u.fullName : '',
+                                targetPhone: u ? (u.phonePrimary || '') : '',
+                              };
+                              return { ...prev, family: arr };
+                            });
+                          }}
+                          excludeUserId={id}
+                          className="mb-0"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <Input
+                        label="الاسم"
+                        value={row.name}
+                        onChange={(e) => updateFamilyMember(i, 'name', e.target.value)}
+                        containerClassName="mb-0 flex-1 min-w-[140px]"
+                      />
+                      <Input
+                        label="رقم الهاتف (لربط أو يدوياً)"
+                        dir="ltr"
+                        className="text-left"
+                        value={fetched?.phonePrimary ?? row.targetPhone}
+                        onChange={(e) => updateFamilyMember(i, 'targetPhone', e.target.value)}
+                        containerClassName="mb-0 flex-1 min-w-[140px]"
+                      />
+                      <TextArea
+                        label="ملاحظات"
+                        value={row.notes}
+                        onChange={(e) => updateFamilyMember(i, 'notes', e.target.value)}
+                        containerClassName="mb-0 flex-1 min-w-[120px]"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeFamilyMember(i)}
+                        aria-label="حذف"
+                        className="shrink-0 text-muted hover:text-danger mb-4"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card className="lg:col-span-2">
             <CardHeader title="العنوان" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
               <Input label="المحافظة" value={form.governorate}
-                onChange={(e) => update('governorate', e.target.value)} />
+                onChange={(e) => update('governorate', e.target.value)} placeholder="المحافظة" />
               <Input label="المدينة" value={form.city}
-                onChange={(e) => update('city', e.target.value)} />
+                onChange={(e) => update('city', e.target.value)} placeholder="المدينة"/>
               <Input label="الشارع" value={form.street}
                 onChange={(e) => update('street', e.target.value)} />
               <Input label="تفاصيل إضافية" value={form.details}
