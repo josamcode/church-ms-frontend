@@ -1,27 +1,42 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usersApi } from '../api/endpoints';
 import { UserCheck, X } from 'lucide-react';
+import { useI18n } from '../i18n/i18n';
 
-const SEARCH_TYPES = [
-  { value: 'name', label: 'بالاسم' },
-  { value: 'phone', label: 'برقم الهاتف' },
-];
-
-export default function UserSearchSelect({ label, value, onChange, placeholder, excludeUserId, className = '' }) {
+export default function UserSearchSelect({
+  label,
+  value,
+  onChange,
+  placeholder,
+  excludeUserId,
+  className = '',
+  searchApi,
+  queryKeyPrefix = 'users',
+}) {
+  const { t } = useI18n();
   const [searchType, setSearchType] = useState('name');
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const inputRef = useRef(null);
   const containerRef = useRef(null);
 
+  const searchTypes = useMemo(
+    () => [
+      { value: 'name', label: t('userSearch.byName') },
+      { value: 'phone', label: t('userSearch.byPhone') },
+    ],
+    [t]
+  );
+
   const { data: listRes, isFetching } = useQuery({
-    queryKey: ['users', 'search', searchType, query.trim()],
+    queryKey: [queryKeyPrefix, 'search', searchType, query.trim()],
     queryFn: async () => {
       const params = { limit: 15 };
       if (searchType === 'name') params.fullName = query.trim();
       else params.phonePrimary = query.trim();
-      const { data } = await usersApi.list(params);
+      const request = searchApi || usersApi.list;
+      const { data } = await request(params);
       return data?.data ?? data?.users ?? [];
     },
     enabled: query.trim().length >= 2,
@@ -53,9 +68,7 @@ export default function UserSearchSelect({ label, value, onChange, placeholder, 
 
   return (
     <div className={className} ref={containerRef}>
-      {label && (
-        <label className="block text-sm font-medium text-base mb-1.5">{label}</label>
-      )}
+      {label && <label className="block text-sm font-medium text-base mb-1.5">{label}</label>}
       {value ? (
         <div className="flex items-center gap-2 p-3 rounded-lg border border-border bg-surface-alt/50">
           <UserCheck className="w-4 h-4 text-primary flex-shrink-0" />
@@ -69,7 +82,7 @@ export default function UserSearchSelect({ label, value, onChange, placeholder, 
             type="button"
             onClick={handleClear}
             className="p-1 rounded text-muted hover:text-danger hover:bg-danger/10 transition-colors"
-            aria-label="إلغاء الربط"
+            aria-label={t('userSearch.clearLink')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -77,22 +90,22 @@ export default function UserSearchSelect({ label, value, onChange, placeholder, 
       ) : (
         <>
           <div className="flex gap-2 mb-2">
-            {SEARCH_TYPES.map((t) => (
+            {searchTypes.map((type) => (
               <button
-                key={t.value}
+                key={type.value}
                 type="button"
                 onClick={() => {
-                  setSearchType(t.value);
+                  setSearchType(type.value);
                   setQuery('');
                   setOpen(false);
                 }}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  searchType === t.value
+                  searchType === type.value
                     ? 'bg-primary text-white'
                     : 'bg-surface-alt text-muted hover:text-base'
                 }`}
               >
-                {t.label}
+                {type.label}
               </button>
             ))}
           </div>
@@ -107,9 +120,10 @@ export default function UserSearchSelect({ label, value, onChange, placeholder, 
               }}
               onFocus={() => query.trim().length >= 2 && setOpen(true)}
               placeholder={
-                searchType === 'name'
-                  ? 'ابحث بالاسم ثم اختر المستخدم...'
-                  : 'ابحث برقم الهاتف ثم اختر المستخدم...'
+                placeholder ||
+                (searchType === 'name'
+                  ? t('userSearch.placeholderByName')
+                  : t('userSearch.placeholderByPhone'))
               }
               className="input-base w-full"
               dir={searchType === 'phone' ? 'ltr' : 'auto'}
@@ -120,14 +134,15 @@ export default function UserSearchSelect({ label, value, onChange, placeholder, 
                 role="listbox"
               >
                 {isFetching ? (
-                  <li className="px-3 py-4 text-center text-sm text-muted">جاري البحث...</li>
+                  <li className="px-3 py-4 text-center text-sm text-muted">{t('common.search.loading')}</li>
                 ) : filtered.length === 0 ? (
-                  <li className="px-3 py-4 text-center text-sm text-muted">لا توجد نتائج</li>
+                  <li className="px-3 py-4 text-center text-sm text-muted">{t('common.search.noResults')}</li>
                 ) : (
                   filtered.map((u) => (
                     <li
                       key={u._id || u.id}
                       role="option"
+                      aria-selected={false}
                       className="px-3 py-2.5 text-sm cursor-pointer hover:bg-muted flex flex-col gap-0.5"
                       onMouseDown={(e) => {
                         e.preventDefault();

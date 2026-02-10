@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Home, SearchX } from 'lucide-react';
 import Button from '../../components/ui/Button';
+import { useI18n } from '../../i18n/i18n';
 
 export default function NotFoundPage() {
+  const { t } = useI18n();
+
   return (
     <div className="min-h-screen bg-page flex items-center justify-center p-4">
       <div className="text-center max-w-md">
@@ -10,12 +13,10 @@ export default function NotFoundPage() {
           <SearchX className="w-10 h-10 text-warning" />
         </div>
         <h1 className="text-6xl font-extrabold text-heading mb-2">404</h1>
-        <h2 className="text-xl font-bold text-heading mb-3">الصفحة غير موجودة</h2>
-        <p className="text-muted mb-8">
-          الصفحة التي تبحث عنها غير موجودة أو تم نقلها. تأكد من صحة الرابط.
-        </p>
+        <h2 className="text-xl font-bold text-heading mb-3">{t('shared.notFound.title')}</h2>
+        <p className="text-muted mb-8">{t('shared.notFound.description')}</p>
         <Link to="/">
-          <Button icon={Home}>العودة للرئيسية</Button>
+          <Button icon={Home}>{t('shared.notFound.backHome')}</Button>
         </Link>
       </div>
     </div>

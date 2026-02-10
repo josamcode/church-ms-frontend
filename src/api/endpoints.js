@@ -41,6 +41,25 @@ export const usersApi = {
   linkFamily: (id, data) => apiClient.post(`/users/${id}/family/link`, data),
 };
 
+/* â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ Confessions â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ */
+
+export const confessionsApi = {
+  listSessions: (params) => apiClient.get('/confessions/sessions', { params }),
+  createSession: (data) => apiClient.post('/confessions/sessions', data),
+
+  getSessionTypes: () => apiClient.get('/confessions/session-types'),
+  createSessionType: (name) => apiClient.post('/confessions/session-types', { name }),
+
+  searchUsers: (params) => apiClient.get('/confessions/users/search', { params }),
+
+  getAlertConfig: () => apiClient.get('/confessions/config'),
+  updateAlertConfig: (alertThresholdDays) =>
+    apiClient.patch('/confessions/config', { alertThresholdDays }),
+  getAlerts: (params) => apiClient.get('/confessions/alerts', { params }),
+
+  getAnalytics: (params) => apiClient.get('/confessions/analytics', { params }),
+};
+
 /* ══════════ Health ══════════ */
 
 export const healthApi = {

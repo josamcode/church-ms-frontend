@@ -2,6 +2,7 @@ import { ArrowUp, ArrowDown, MoreVertical } from 'lucide-react';
 import { SkeletonRow } from './Skeleton';
 import EmptyState from './EmptyState';
 import { useState, useRef, useEffect } from 'react';
+import { useI18n } from '../../i18n/i18n';
 
 export default function Table({
   columns = [],
@@ -15,6 +16,8 @@ export default function Table({
   sortOrder,
   onSort,
 }) {
+  const { isRTL, t } = useI18n();
+
   return (
     <div className="overflow-x-auto border border-border rounded-lg">
       <table className="w-full text-sm">
@@ -23,7 +26,9 @@ export default function Table({
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={`p-3 text-right font-semibold text-heading whitespace-nowrap ${col.className || ''}`}
+                className={`p-3 font-semibold text-heading whitespace-nowrap ${
+                  isRTL ? 'text-right' : 'text-left'
+                } ${col.className || ''}`}
               >
                 {col.sortable ? (
                   <button
@@ -31,9 +36,12 @@ export default function Table({
                     className="flex items-center gap-1 hover:text-primary transition-colors"
                   >
                     {col.label}
-                    {sortField === col.key && (
-                      sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
-                    )}
+                    {sortField === col.key &&
+                      (sortOrder === 'asc' ? (
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      ) : (
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      ))}
                   </button>
                 ) : (
                   col.label
@@ -44,12 +52,10 @@ export default function Table({
         </thead>
         <tbody>
           {loading
-            ? Array.from({ length: skeletonRows }).map((_, i) => (
-              <SkeletonRow key={i} cols={columns.length} />
-            ))
+            ? Array.from({ length: skeletonRows }).map((_, i) => <SkeletonRow key={i} cols={columns.length} />)
             : data.length === 0
-              ? null
-              : data.map((row, i) => (
+            ? null
+            : data.map((row, i) => (
                 <tr
                   key={row._id || row.id || i}
                   className="border-b border-border last:border-b-0 hover:bg-surface-alt/50 transition-colors"
@@ -59,11 +65,20 @@ export default function Table({
                       key={col.key}
                       className={`p-3 ${col.cellClassName || ''}`}
                       onClick={col.onClick ? () => col.onClick(row) : undefined}
-                      onKeyDown={col.onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); col.onClick(row); } } : undefined}
+                      onKeyDown={
+                        col.onClick
+                          ? (e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                col.onClick(row);
+                              }
+                            }
+                          : undefined
+                      }
                       role={col.onClick ? 'button' : undefined}
                       tabIndex={col.onClick ? 0 : undefined}
                     >
-                      {col.render ? col.render(row, i) : row[col.key] ?? '---'}
+                      {col.render ? col.render(row, i) : row[col.key] ?? t('common.placeholder.empty')}
                     </td>
                   ))}
                 </tr>
@@ -80,6 +95,7 @@ export default function Table({
 export function RowActions({ actions = [] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const { isRTL, t } = useI18n();
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -94,12 +110,16 @@ export function RowActions({ actions = [] }) {
       <button
         onClick={() => setOpen((v) => !v)}
         className="p-1 rounded hover:bg-surface-alt transition-colors"
-        aria-label="خيارات"
+        aria-label={t('common.table.actions')}
       >
         <MoreVertical className="w-4 h-4 text-muted" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 w-44 bg-surface border border-border rounded-lg shadow-dropdown z-30 py-1 animate-fade-in">
+        <div
+          className={`absolute top-full mt-1 w-44 bg-surface border border-border rounded-lg shadow-dropdown z-30 py-1 animate-fade-in ${
+            isRTL ? 'left-0' : 'right-0'
+          }`}
+        >
           {actions.map((action, i) =>
             action.divider ? (
               <hr key={i} className="my-1 border-border" />
@@ -112,7 +132,8 @@ export function RowActions({ actions = [] }) {
                 }}
                 disabled={action.disabled}
                 className={`
-                  w-full text-right px-3 py-2 text-sm flex items-center gap-2 transition-colors
+                  w-full px-3 py-2 text-sm flex items-center gap-2 transition-colors
+                  ${isRTL ? 'text-right' : 'text-left'}
                   ${action.danger ? 'text-danger hover:bg-danger-light' : 'text-base hover:bg-surface-alt'}
                   ${action.disabled ? 'opacity-50 cursor-not-allowed' : ''}
                 `}

@@ -1,30 +1,33 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Church, LogIn, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '../../auth/auth.hooks';
 import Button from '../ui/Button';
-
-const navLinks = [
-  { label: 'الرئيسية', href: '/' },
-  { label: 'عن النظام', href: '/#features' },
-  { label: 'الأسئلة الشائعة', href: '/#faq' },
-];
+import LanguageSwitcher from '../ui/LanguageSwitcher';
+import { useI18n } from '../../i18n/i18n';
 
 export default function PublicLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isAuthenticated } = useAuth();
   const location = useLocation();
+  const { t } = useI18n();
+
+  const navLinks = useMemo(
+    () => [
+      { label: t('publicLayout.home'), href: '/' },
+      { label: t('publicLayout.about'), href: '/#features' },
+      { label: t('publicLayout.faq'), href: '/#faq' },
+    ],
+    [t]
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-page">
-      {/* Header */}
       <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur border-b border-border">
         <div className="page-container flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2">
             <Church className="w-7 h-7 text-primary" />
-            <span className="font-bold text-heading text-base hidden sm:inline">
-              كنيسة الملاك ميخائيل
-            </span>
+            <span className="font-bold text-heading text-base hidden sm:inline">كنيسة الملاك ميخائيل</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
@@ -32,8 +35,9 @@ export default function PublicLayout() {
               <a
                 key={link.href}
                 href={link.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${location.pathname === link.href ? 'text-primary' : 'text-muted'
-                  }`}
+                className={`text-sm font-medium transition-colors hover:text-primary ${
+                  location.pathname === link.href ? 'text-primary' : 'text-muted'
+                }`}
               >
                 {link.label}
               </a>
@@ -41,29 +45,34 @@ export default function PublicLayout() {
           </nav>
 
           <div className="flex items-center gap-3">
+            <LanguageSwitcher className="hidden sm:inline-flex" />
             {isAuthenticated ? (
               <Link to="/dashboard">
-                <Button size="sm">لوحة التحكم</Button>
+                <Button size="sm">{t('publicLayout.dashboard')}</Button>
               </Link>
             ) : (
               <Link to="/auth/login">
-                <Button size="sm" icon={LogIn}>تسجيل الدخول</Button>
+                <Button size="sm" icon={LogIn}>
+                  {t('publicLayout.login')}
+                </Button>
               </Link>
             )}
             <button
               onClick={() => setMobileOpen((v) => !v)}
               className="md:hidden p-2 text-muted hover:text-base"
-              aria-label="القائمة"
+              aria-label={t('publicLayout.menu')}
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {mobileOpen && (
           <div className="md:hidden border-t border-border bg-surface animate-slide-up">
             <nav className="page-container py-4 space-y-2">
+              <div className="pb-2">
+                <LanguageSwitcher />
+              </div>
               {navLinks.map((link) => (
                 <a
                   key={link.href}
@@ -79,12 +88,10 @@ export default function PublicLayout() {
         )}
       </header>
 
-      {/* Main Content */}
       <main className="flex-1">
         <Outlet />
       </main>
 
-      {/* Footer */}
       <footer className="bg-surface border-t border-border">
         <div className="page-container py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -93,12 +100,10 @@ export default function PublicLayout() {
                 <Church className="w-6 h-6 text-primary" />
                 <span className="font-bold text-heading">كنيسة الملاك ميخائيل</span>
               </div>
-              <p className="text-sm text-muted">
-                قرية القطوشة - التابعة لإيبارشية مطاى
-              </p>
+              <p className="text-sm text-muted">{t('publicLayout.location')}</p>
             </div>
             <div>
-              <h4 className="font-semibold text-heading mb-3">روابط سريعة</h4>
+              <h4 className="font-semibold text-heading mb-3">{t('publicLayout.quickLinks')}</h4>
               <div className="space-y-2">
                 {navLinks.map((link) => (
                   <a
@@ -112,14 +117,12 @@ export default function PublicLayout() {
               </div>
             </div>
             <div>
-              <h4 className="font-semibold text-heading mb-3">تواصل معنا</h4>
-              <p className="text-sm text-muted">
-                للتواصل والاستفسارات يرجى التواصل مع إدارة الكنيسة
-              </p>
+              <h4 className="font-semibold text-heading mb-3">{t('publicLayout.contactUs')}</h4>
+              <p className="text-sm text-muted">{t('publicLayout.contactDesc')}</p>
             </div>
           </div>
           <div className="border-t border-border mt-8 pt-4 text-center text-xs text-muted">
-            جميع الحقوق محفوظة — كنيسة الملاك ميخائيل {new Date().getFullYear()}
+            {t('publicLayout.rightsReserved')} — كنيسة الملاك ميخائيل {new Date().getFullYear()}
           </div>
         </div>
       </footer>

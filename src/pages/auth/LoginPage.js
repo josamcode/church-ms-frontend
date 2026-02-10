@@ -6,8 +6,10 @@ import { normalizeApiError, mapFieldErrors } from '../../api/errors';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import toast from 'react-hot-toast';
+import { useI18n } from '../../i18n/i18n';
 
 export default function LoginPage() {
+  const { t } = useI18n();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
@@ -21,8 +23,8 @@ export default function LoginPage() {
 
   const validate = () => {
     const errs = {};
-    if (!identifier.trim()) errs.identifier = 'رقم الهاتف أو البريد الإلكتروني مطلوب';
-    if (!password) errs.password = 'كلمة المرور مطلوبة';
+    if (!identifier.trim()) errs.identifier = t('auth.identifierRequired');
+    if (!password) errs.password = t('auth.passwordRequired');
     return errs;
   };
 
@@ -40,7 +42,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(identifier, password);
-      toast.success('تم تسجيل الدخول بنجاح');
+      toast.success(t('auth.loginSuccess'));
       navigate(from, { replace: true });
     } catch (err) {
       const normalized = normalizeApiError(err);
@@ -60,21 +62,21 @@ export default function LoginPage() {
   return (
     <div>
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-heading">تسجيل الدخول</h2>
-        <p className="text-sm text-muted mt-1">أدخل بياناتك للوصول إلى لوحة التحكم</p>
+        <h2 className="text-xl font-bold text-heading">{t('auth.title')}</h2>
+        <p className="text-sm text-muted mt-1">{t('auth.subtitle')}</p>
       </div>
 
       {locked && (
         <div className="bg-danger-light border border-danger/20 rounded-lg p-4 mb-4 text-sm text-danger">
-          <p className="font-semibold mb-1">الحساب مغلق</p>
+          <p className="font-semibold mb-1">{t('auth.lockedTitle')}</p>
           <p>{locked}</p>
-          <p className="mt-2 text-xs">يرجى التواصل مع مسؤول النظام لإعادة تفعيل حسابك.</p>
+          <p className="mt-2 text-xs">{t('auth.lockedHint')}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} noValidate>
         <Input
-          label="رقم الهاتف أو البريد الإلكتروني"
+          label={t('auth.identifierLabel')}
           placeholder="01xxxxxxxxx"
           icon={Phone}
           value={identifier}
@@ -87,9 +89,9 @@ export default function LoginPage() {
         />
 
         <Input
-          label="كلمة المرور"
+          label={t('auth.passwordLabel')}
           type="password"
-          placeholder="كلمة المرور"
+          placeholder={t('auth.passwordLabel')}
           icon={Lock}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -100,7 +102,7 @@ export default function LoginPage() {
         />
 
         <Button type="submit" loading={loading} className="w-full mt-2" size="lg">
-          تسجيل الدخول
+          {t('auth.submit')}
         </Button>
       </form>
     </div>

@@ -1,12 +1,15 @@
 import { forwardRef } from 'react';
+import { useI18n } from '../../i18n/i18n';
 
 const TextArea = forwardRef(({ label, hint, error, required, className = '', ...props }, ref) => {
+  const { isRTL } = useI18n();
+
   return (
     <div className="mb-4">
       {label && (
         <label className="block text-sm font-medium text-base mb-1.5">
           {label}
-          {required && <span className="text-danger mr-1">*</span>}
+          {required && <span className={`text-danger ${isRTL ? 'mr-1' : 'ml-1'}`}>*</span>}
         </label>
       )}
       <textarea

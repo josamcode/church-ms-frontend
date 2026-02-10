@@ -24,6 +24,9 @@ const UsersListPage = lazy(() => import('../pages/dashboard/users/UsersListPage'
 const UserDetailsPage = lazy(() => import('../pages/dashboard/users/UserDetailsPage'));
 const UserCreatePage = lazy(() => import('../pages/dashboard/users/UserCreatePage'));
 const UserEditPage = lazy(() => import('../pages/dashboard/users/UserEditPage'));
+const ConfessionSessionsPage = lazy(() => import('../pages/dashboard/confessions/ConfessionSessionsPage'));
+const ConfessionAlertsPage = lazy(() => import('../pages/dashboard/confessions/ConfessionAlertsPage'));
+const ConfessionAnalyticsPage = lazy(() => import('../pages/dashboard/confessions/ConfessionAnalyticsPage'));
 const UnderDevelopmentPage = lazy(() => import('../pages/shared/UnderDevelopmentPage'));
 const NotFoundPage = lazy(() => import('../pages/shared/NotFoundPage'));
 
@@ -87,6 +90,30 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['USERS_UPDATE']}>
             <Lazy><UserEditPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'confessions',
+        element: (
+          <PermissionGuard required={['CONFESSIONS_VIEW']}>
+            <Lazy><ConfessionSessionsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'confessions/alerts',
+        element: (
+          <PermissionGuard required={['CONFESSIONS_ALERTS_VIEW']}>
+            <Lazy><ConfessionAlertsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'confessions/analytics',
+        element: (
+          <PermissionGuard required={['CONFESSIONS_ANALYTICS_VIEW']}>
+            <Lazy><ConfessionAnalyticsPage /></Lazy>
           </PermissionGuard>
         ),
       },
