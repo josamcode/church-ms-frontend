@@ -239,7 +239,7 @@ export default function UserDetailsPage() {
     <div className="ud-page">
       <style>{styles}</style>
 
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Breadcrumbs */}
         <Breadcrumbs items={[
           { label: 'لوحة التحكم', href: '/dashboard' },
@@ -680,6 +680,9 @@ function FamilyTab({ user, hasPermission, queryClient, invalidateUser }) {
           </div>
         }
       />
+
+      {user.familyName && <InfoRow icon={UsersIcon} label="اسم العائلة" value={user.familyName} />}
+
 
       <div className="py-2">
         <FamilyTree user={user} />
