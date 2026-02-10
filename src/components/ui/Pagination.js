@@ -1,5 +1,6 @@
 import Button from './Button';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { useI18n } from '../../i18n/i18n';
 
 export default function Pagination({
   meta,
@@ -8,6 +9,8 @@ export default function Pagination({
   loading = false,
   cursors = [],
 }) {
+  const { t, isRTL } = useI18n();
+
   if (!meta) return null;
 
   const canGoBack = cursors && cursors.length > 1;
@@ -15,9 +18,7 @@ export default function Pagination({
 
   return (
     <div className="flex items-center justify-between pt-4">
-      <p className="text-sm text-muted">
-        عرض {meta.count} نتيجة
-      </p>
+      <p className="text-sm text-muted">{t('common.pagination.showing', { count: meta.count })}</p>
       <div className="flex items-center gap-2">
         {onPrev && (
           <Button
@@ -25,9 +26,9 @@ export default function Pagination({
             size="sm"
             onClick={onPrev}
             disabled={!canGoBack || loading}
-            icon={ChevronRight}
+            icon={isRTL ? ChevronRight : ChevronLeft}
           >
-            السابق
+            {t('common.pagination.previous')}
           </Button>
         )}
         <Button
@@ -36,10 +37,10 @@ export default function Pagination({
           onClick={onLoadMore}
           disabled={!canLoadMore || loading}
           loading={loading}
-          icon={ChevronLeft}
+          icon={isRTL ? ChevronLeft : ChevronRight}
           iconPosition="end"
         >
-          التالي
+          {t('common.pagination.next')}
         </Button>
       </div>
     </div>

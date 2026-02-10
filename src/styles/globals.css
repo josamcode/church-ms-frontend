@@ -1,21 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap");
 @import "./tokens.css";
 
 @layer base {
   html {
-    direction: rtl;
-    font-family: "Cairo", sans-serif;
+    direction: ltr;
+    font-family: "Inter", sans-serif;
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
+  html[dir='rtl'] {
+    font-family: "Cairo", sans-serif;
+  }
+
+  html[dir='ltr'] {
+    font-family: "Inter", sans-serif;
+  }
+
   body {
     @apply bg-page text-base min-h-screen;
-    font-family: "Cairo", sans-serif;
+    font-family: inherit;
   }
 
   *,

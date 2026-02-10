@@ -1,7 +1,10 @@
 import { useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
+import { useI18n } from '../../i18n/i18n';
 
 export default function Modal({ isOpen, onClose, title, children, size = 'md', footer }) {
+  const { t } = useI18n();
+
   const handleEsc = useCallback(
     (e) => {
       if (e.key === 'Escape') onClose?.();
@@ -43,7 +46,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', f
           <button
             onClick={onClose}
             className="p-1 rounded-md text-muted hover:text-base hover:bg-surface-alt transition-colors"
-            aria-label="إغلاق"
+            aria-label={t('common.actions.close')}
           >
             <X className="w-5 h-5" />
           </button>
