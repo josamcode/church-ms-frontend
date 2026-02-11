@@ -267,6 +267,7 @@ export default function ConfessionSessionsPage() {
                     onChange={setSelectedAttendee}
                     searchApi={confessionsApi.searchUsers}
                     queryKeyPrefix="confessions-users"
+                    className='mb-4'
                   />
                   {errors.attendee && <p className="text-xs text-danger -mt-2 mb-3">{errors.attendee}</p>}
                 </div>
