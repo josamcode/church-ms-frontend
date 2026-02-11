@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, UserCheck, Shield, CalendarCheck2, BellRing, BarChart3, ArrowUpRight } from 'lucide-react';
+import { Users, UserCheck, CalendarCheck2, BellRing, BarChart3, ArrowUpRight } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
 import Card from '../../components/ui/Card';
 import { getRoleLabel } from '../../utils/formatters';
