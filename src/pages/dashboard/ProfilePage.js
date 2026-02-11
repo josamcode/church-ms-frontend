@@ -4,10 +4,13 @@ import Card, { CardHeader } from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Breadcrumbs from '../../components/ui/Breadcrumbs';
 import Skeleton from '../../components/ui/Skeleton';
-import { formatDate, GENDER_LABELS, ROLE_LABELS } from '../../utils/formatters';
-import { UserCircle, Phone, Mail, MapPin, Calendar, Tag } from 'lucide-react';
+import { formatDate, getGenderLabel, getRoleLabel } from '../../utils/formatters';
+import { useI18n } from '../../i18n/i18n';
+import { UserCircle, Phone, Mail, MapPin, Calendar, Tag, ShieldCheck, Clock3 } from 'lucide-react';
 
 export default function ProfilePage() {
+  const { t } = useI18n();
+
   const { data: user, isLoading } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
@@ -19,92 +22,143 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-64 w-full" />
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-56" />
+        <Skeleton className="h-52 w-full" />
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <Skeleton className="h-72 w-full xl:col-span-2" />
+          <Skeleton className="h-72 w-full xl:col-span-1" />
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="animate-fade-in">
-      <Breadcrumbs items={[{ label: 'لوحة التحكم', href: '/dashboard' }, { label: 'الملف الشخصي' }]} />
+  const empty = t('common.placeholder.empty');
+  const roleLabel = getRoleLabel(user?.role) || empty;
+  const statusLabel = user?.isLocked ? t('common.status.locked') : t('common.status.active');
+  const statusVariant = user?.isLocked ? 'danger' : 'success';
+  const primaryPhone = user?.phonePrimary || empty;
+  const secondaryPhone = user?.phoneSecondary || empty;
+  const email = user?.email || empty;
 
-      {/* Header Card */}
-      <Card className="mb-6">
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          {user?.avatar?.url ? (
-            <img src={user.avatar.url} alt="" className="w-20 h-20 rounded-full object-cover border-2 border-border" />
-          ) : (
-            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-              <UserCircle className="w-10 h-10 text-primary" />
+  const addressValue =
+    [user?.address?.governorate, user?.address?.city, user?.address?.street].filter(Boolean).join(', ') || empty;
+
+  return (
+    <div className="animate-fade-in space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: t('shared.dashboard'), href: '/dashboard' },
+          { label: t('dashboardLayout.menu.profile') },
+        ]}
+      />
+
+      <Card padding={false} className="relative overflow-hidden border-primary/20">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
+        <div className="relative flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            {user?.avatar?.url ? (
+              <img
+                src={user.avatar.url}
+                alt=""
+                className="h-20 w-20 rounded-2xl border border-border object-cover shadow-sm"
+              />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
+                <UserCircle className="h-11 w-11 text-primary" />
+              </div>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-heading">{user?.fullName || empty}</h1>
+              <p className="mt-1 text-sm text-muted direction-ltr text-left">{email}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Badge variant="primary">{roleLabel}</Badge>
+                <Badge variant={statusVariant}>{statusLabel}</Badge>
+                {user?.ageGroup && <Badge>{user.ageGroup}</Badge>}
+              </div>
             </div>
-          )}
-          <div className="text-center sm:text-right">
-            <h1 className="text-xl font-bold text-heading">{user?.fullName}</h1>
-            <div className="flex items-center gap-2 mt-1 justify-center sm:justify-start">
-              <Badge variant="primary">{ROLE_LABELS[user?.role]}</Badge>
-              {user?.ageGroup && <Badge>{user.ageGroup}</Badge>}
-            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:min-w-[220px]">
+            <MiniStat label="Primary phone" value={primaryPhone} ltr />
+            <MiniStat label="Birth date" value={formatDate(user?.birthDate) || empty} />
           </div>
         </div>
       </Card>
 
-      {/* Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader title="المعلومات الشخصية" />
-          <div className="space-y-3 text-sm">
-            <InfoRow icon={Calendar} label="تاريخ الميلاد" value={formatDate(user?.birthDate)} />
-            <InfoRow icon={UserCircle} label="الجنس" value={GENDER_LABELS[user?.gender] || '---'} />
-            <InfoRow icon={Phone} label="الهاتف الأساسي" value={user?.phonePrimary} dir="ltr" />
-            {user?.phoneSecondary && (
-              <InfoRow icon={Phone} label="الهاتف الثانوي" value={user.phoneSecondary} dir="ltr" />
-            )}
-            {user?.email && <InfoRow icon={Mail} label="البريد الإلكتروني" value={user.email} dir="ltr" />}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <Card className="xl:col-span-2">
+          <CardHeader title="Profile details" subtitle="Core personal and contact details" />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <InfoRow icon={Calendar} label="Birth date" value={formatDate(user?.birthDate)} />
+            <InfoRow icon={UserCircle} label="Gender" value={getGenderLabel(user?.gender)} />
+            <InfoRow icon={Phone} label="Primary phone" value={primaryPhone} dir="ltr" />
+            <InfoRow icon={Phone} label="Secondary phone" value={secondaryPhone} dir="ltr" />
+            <InfoRow icon={Mail} label="Email" value={email} dir="ltr" />
+            <InfoRow icon={ShieldCheck} label="Role" value={roleLabel} />
           </div>
         </Card>
 
-        <Card>
-          <CardHeader title="العنوان والوسوم" />
+        <Card className="xl:col-span-1">
+          <CardHeader title="Location and tags" subtitle="Address and labels" />
           <div className="space-y-3 text-sm">
-            {user?.address && (
-              <InfoRow
-                icon={MapPin}
-                label="العنوان"
-                value={[user.address.governorate, user.address.city, user.address.street].filter(Boolean).join('، ') || '---'}
-              />
-            )}
-            {user?.familyName && <InfoRow icon={UserCircle} label="اسم العائلة" value={user.familyName} />}
-            {user?.tags?.length > 0 && (
-              <div className="flex items-start gap-3">
-                <Tag className="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
-                <div>
-                  <span className="text-muted block mb-1">الوسوم</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {user.tags.map((tag) => (
-                      <Badge key={tag}>{tag}</Badge>
-                    ))}
-                  </div>
-                </div>
+            <InfoRow icon={MapPin} label="Address" value={addressValue} />
+            <InfoRow icon={UserCircle} label="Family name" value={user?.familyName || empty} />
+            <div className="rounded-xl border border-border bg-surface-alt/60 p-3">
+              <div className="mb-2 flex items-center gap-2 text-muted">
+                <Tag className="h-4 w-4" />
+                <span className="text-xs font-semibold uppercase tracking-wide">Tags</span>
               </div>
-            )}
+              {user?.tags?.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {user.tags.map((tag) => (
+                    <Badge key={tag}>{tag}</Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted">{empty}</p>
+              )}
+            </div>
           </div>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader title="Account snapshot" subtitle="Authentication and timeline data" />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <InfoRow icon={ShieldCheck} label="Account status" value={statusLabel} tone={statusVariant} />
+          <InfoRow icon={Clock3} label="Joined on" value={formatDate(user?.createdAt)} />
+          <InfoRow icon={Clock3} label="Last updated" value={formatDate(user?.updatedAt)} />
+        </div>
+      </Card>
     </div>
   );
 }
 
-function InfoRow({ icon: Icon, label, value, dir }) {
+function MiniStat({ label, value, ltr = false }) {
   return (
-    <div className="flex items-start gap-3">
-      <Icon className="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
-      <div>
-        <span className="text-muted">{label}</span>
-        <p className={`font-medium text-heading ${dir === 'ltr' ? 'direction-ltr text-left' : ''}`}>
-          {value || '---'}
-        </p>
+    <div className="rounded-xl border border-border/80 bg-surface/90 px-4 py-3">
+      <p className="text-xs text-muted">{label}</p>
+      <p className={`mt-1 text-sm font-semibold text-heading ${ltr ? 'direction-ltr text-left' : ''}`}>{value}</p>
+    </div>
+  );
+}
+
+function InfoRow({ icon: Icon, label, value, dir, tone = 'default' }) {
+  const toneClass = tone === 'success' ? 'text-success' : tone === 'danger' ? 'text-danger' : 'text-heading';
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-alt/60 p-3">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          <Icon className="h-4 w-4 text-primary" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
+          <p className={`mt-1 text-sm font-semibold ${toneClass} ${dir === 'ltr' ? 'direction-ltr text-left' : ''}`}>
+            {value || '---'}
+          </p>
+        </div>
       </div>
     </div>
   );
