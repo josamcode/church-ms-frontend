@@ -17,6 +17,7 @@ import { formatDateTime } from '../../../utils/formatters';
 import { localizeSessionTypeName } from '../../../utils/sessionTypeLocalization';
 import toast from 'react-hot-toast';
 import { useI18n } from '../../../i18n/i18n';
+import useNavigateToUser from '../../../hooks/useNavigateToUser';
 
 function toDateTimeInputValue(date = new Date()) {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -109,6 +110,8 @@ export default function ConfessionSessionsPage() {
     keepPreviousData: true,
     staleTime: 30000,
   });
+
+  const navigateToUser = useNavigateToUser();
 
   const sessions = sessionsRes?.data || [];
   const sessionsMeta = sessionsRes?.meta || null;
@@ -222,7 +225,7 @@ export default function ConfessionSessionsPage() {
       key: 'attendee',
       label: t('confessions.sessions.columns.attendee'),
       render: (row) => (
-        <div>
+        <div onClick={() => navigateToUser(row.attendee.id)} className='cursor-pointer'>
           <p className="font-medium text-heading">{row.attendee?.fullName || t('common.placeholder.empty')}</p>
           {row.attendee?.phonePrimary && (
             <p className="text-xs text-muted direction-ltr text-left">{row.attendee.phonePrimary}</p>
