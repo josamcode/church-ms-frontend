@@ -8,6 +8,7 @@ import Select from '../../../components/ui/Select';
 import Table from '../../../components/ui/Table';
 import Badge from '../../../components/ui/Badge';
 import { formatDateTime } from '../../../utils/formatters';
+import { localizeSessionTypeName } from '../../../utils/sessionTypeLocalization';
 import { useI18n } from '../../../i18n/i18n';
 
 export default function ConfessionAnalyticsPage() {
@@ -163,7 +164,9 @@ export default function ConfessionAnalyticsPage() {
                   key={item.sessionType}
                   className="flex items-center justify-between rounded-md border border-border p-3"
                 >
-                  <span className="font-medium text-heading">{item.sessionType}</span>
+                  <span className="font-medium text-heading">
+                    {localizeSessionTypeName(item.sessionType, t)}
+                  </span>
                   <Badge variant="primary">{item.count}</Badge>
                 </div>
               ))}

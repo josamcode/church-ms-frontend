@@ -459,7 +459,7 @@ export default function UserEditPage() {
               value={form.phonePrimary} onChange={(e) => update('phonePrimary', e.target.value)} error={errors.phonePrimary} />
             <Input label="البريد الإلكتروني" type="email" dir="ltr" className="text-left"
               value={form.email} onChange={(e) => update('email', e.target.value)} error={errors.email} />
-            <Input label="تاريخ الميلاد" type="date" required dir="ltr" className="text-left"
+            <Input label="تاريخ الميلاد" type="date" dir="ltr" className="text-left"
               value={form.birthDate} onChange={(e) => update('birthDate', e.target.value)} error={errors.birthDate} />
             <Select label="الجنس" options={genderOptions} value={form.gender}
               onChange={(e) => update('gender', e.target.value)} />
