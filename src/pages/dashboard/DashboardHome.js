@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Users, UserCheck, Shield, CalendarCheck2, BellRing, BarChart3 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, UserCheck, Shield, CalendarCheck2, BellRing, BarChart3, ArrowUpRight } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
 import Card from '../../components/ui/Card';
 import { getRoleLabel } from '../../utils/formatters';
@@ -9,7 +10,7 @@ export default function DashboardHome() {
   const { user, hasPermission } = useAuth();
   const { t, isRTL } = useI18n();
 
-  const quickStats = useMemo(
+  const quickActions = useMemo(
     () => [
       {
         label: t('dashboardHome.cards.userManagementTitle'),
@@ -17,6 +18,7 @@ export default function DashboardHome() {
         desc: t('dashboardHome.cards.userManagementDesc'),
         href: '/dashboard/users',
         perm: 'USERS_VIEW',
+        accent: 'from-primary to-accent',
       },
       {
         label: t('dashboardHome.cards.profileTitle'),
@@ -24,6 +26,7 @@ export default function DashboardHome() {
         desc: t('dashboardHome.cards.profileDesc'),
         href: '/dashboard/profile',
         perm: 'AUTH_VIEW_SELF',
+        accent: 'from-accent to-info',
       },
       {
         label: t('dashboardHome.cards.sessionsTitle'),
@@ -31,6 +34,7 @@ export default function DashboardHome() {
         desc: t('dashboardHome.cards.sessionsDesc'),
         href: '/dashboard/confessions',
         perm: 'CONFESSIONS_VIEW',
+        accent: 'from-secondary to-warning',
       },
       {
         label: t('dashboardHome.cards.alertsTitle'),
@@ -38,6 +42,7 @@ export default function DashboardHome() {
         desc: t('dashboardHome.cards.alertsDesc'),
         href: '/dashboard/confessions/alerts',
         perm: 'CONFESSIONS_ALERTS_VIEW',
+        accent: 'from-danger to-warning',
       },
       {
         label: t('dashboardHome.cards.analyticsTitle'),
@@ -45,68 +50,74 @@ export default function DashboardHome() {
         desc: t('dashboardHome.cards.analyticsDesc'),
         href: '/dashboard/confessions/analytics',
         perm: 'CONFESSIONS_ANALYTICS_VIEW',
+        accent: 'from-success to-primary',
       },
     ],
     [t]
   );
 
+  const visibleActions = quickActions.filter((item) => hasPermission(item.perm));
+  const accountStatusLabel = user?.isLocked ? t('common.status.locked') : t('common.status.active');
+  const accountStatusClass = user?.isLocked ? 'text-danger' : 'text-success';
+
   return (
-    <div className="animate-fade-in">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-heading mb-1">
-          {t('dashboardHome.welcome', { name: user?.fullName || '' })}
-        </h1>
-        <p className="text-muted">{t('dashboardHome.role', { role: getRoleLabel(user?.role) })}</p>
-      </div>
+    <div className="animate-fade-in space-y-6">
+      <Card padding={false} className="relative overflow-hidden border-primary/20">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
+        <div className="relative flex flex-col gap-6 p-6 lg:flex-row lg:items-center lg:justify-between lg:p-7">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              {t('dashboardLayout.menu.dashboard')}
+            </p>
+            <h1 className="mb-2 text-2xl font-bold text-heading lg:text-3xl">
+              {t('dashboardHome.welcome', { name: user?.fullName || '' })}
+            </h1>
+            <p className="text-muted">{t('dashboardHome.role', { role: getRoleLabel(user?.role) })}</p>
+          </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {quickStats.filter((item) => hasPermission(item.perm)).map((stat) => (
-          <a key={stat.href} href={stat.href}>
-            <Card className="hover:shadow-dropdown transition-shadow cursor-pointer group">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
-                  <stat.icon className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-heading">{stat.label}</h3>
-                  <p className="text-sm text-muted mt-0.5">{stat.desc}</p>
-                </div>
-              </div>
-            </Card>
-          </a>
-        ))}
-      </div>
-
-      <Card>
-        <div className="flex items-center gap-3 mb-4">
-          <Shield className="w-5 h-5 text-primary" />
-          <h2 className="font-bold text-heading">{t('dashboardHome.systemInfo')}</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-muted">{t('dashboardHome.userName')}</span>
-            <span className={`font-medium text-heading ${isRTL ? 'mr-2' : 'ml-2'}`}>{user?.fullName}</span>
-          </div>
-          <div>
-            <span className="text-muted">{t('dashboardHome.roleLabel')}</span>
-            <span className={`font-medium text-heading ${isRTL ? 'mr-2' : 'ml-2'}`}>
-              {getRoleLabel(user?.role)}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted">{t('dashboardHome.phone')}</span>
-            <span className={`font-medium text-heading direction-ltr ${isRTL ? 'mr-2' : 'ml-2'}`}>
-              {user?.phonePrimary}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted">{t('dashboardHome.accountStatus')}</span>
-            <span className={`font-medium ${isRTL ? 'mr-2' : 'ml-2'} ${user?.isLocked ? 'text-danger' : 'text-success'}`}>
-              {user?.isLocked ? t('common.status.locked') : t('common.status.active')}
-            </span>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-border/80 bg-surface/90 px-4 py-3">
+              <p className="text-xs text-muted">{t('dashboardHome.accountStatus')}</p>
+              <p className={`mt-1 text-sm font-semibold ${accountStatusClass}`}>{accountStatusLabel}</p>
+            </div>
+            <div className="rounded-xl border border-border/80 bg-surface/90 px-4 py-3">
+              <p className="text-xs text-muted">{t('dashboardHome.phone')}</p>
+              <p className="mt-1 text-sm font-semibold text-heading direction-ltr text-left">
+                {user?.phonePrimary || t('common.placeholder.empty')}
+              </p>
+            </div>
           </div>
         </div>
       </Card>
+
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{t('dashboardHome.systemInfo')}</h2>
+          <span className="text-sm text-muted">{visibleActions.length}</span>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {visibleActions.map((item) => (
+            <Link
+              key={item.href}
+              to={item.href}
+              className="group relative overflow-hidden rounded-xl border border-border bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-dropdown"
+            >
+              <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${item.accent}`} />
+              <div className="mb-4 flex items-start justify-between">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
+                  <item.icon className="h-5 w-5" />
+                </div>
+                <ArrowUpRight
+                  className={`h-4 w-4 text-muted transition-transform group-hover:text-primary ${isRTL ? 'group-hover:-translate-x-0.5' : 'group-hover:translate-x-0.5'
+                    }`}
+                />
+              </div>
+              <h3 className="text-base font-semibold text-heading">{item.label}</h3>
+              <p className="mt-1 text-sm text-muted">{item.desc}</p>
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
