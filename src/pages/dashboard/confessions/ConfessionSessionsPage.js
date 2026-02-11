@@ -14,6 +14,7 @@ import UserSearchSelect from '../../../components/UserSearchSelect';
 import Table from '../../../components/ui/Table';
 import Pagination from '../../../components/ui/Pagination';
 import { formatDateTime } from '../../../utils/formatters';
+import { localizeSessionTypeName } from '../../../utils/sessionTypeLocalization';
 import toast from 'react-hot-toast';
 import { useI18n } from '../../../i18n/i18n';
 
@@ -74,7 +75,14 @@ export default function ConfessionSessionsPage() {
     () => (Array.isArray(sessionTypesRes) ? sessionTypesRes : []),
     [sessionTypesRes]
   );
-  const sessionTypeOptions = sessionTypes.map((type) => ({ value: type.id, label: type.name }));
+  const sessionTypeOptions = useMemo(
+    () =>
+      sessionTypes.map((type) => ({
+        value: type.id,
+        label: localizeSessionTypeName(type.name, t),
+      })),
+    [sessionTypes, t]
+  );
 
   useEffect(() => {
     if (!form.sessionTypeId && sessionTypes.length > 0) {
@@ -225,7 +233,7 @@ export default function ConfessionSessionsPage() {
     {
       key: 'sessionType',
       label: t('confessions.sessions.columns.type'),
-      render: (row) => row.sessionType?.name || t('common.placeholder.empty'),
+      render: (row) => localizeSessionTypeName(row.sessionType?.name, t),
     },
     {
       key: 'scheduledAt',

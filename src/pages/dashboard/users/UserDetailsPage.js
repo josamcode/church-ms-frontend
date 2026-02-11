@@ -332,6 +332,7 @@ function PersonalInfoTab({ user }) {
       <Card>
         <CardHeader title="البيانات الأساسية" />
         <div className="space-y-0.5 -mx-1">
+        
           <InfoRow icon={Calendar} label="تاريخ الميلاد" value={formatDate(user.birthDate)} />
           <InfoRow icon={UserCircle} label="الجنس" value={GENDER_LABELS[user.gender]} />
           <InfoRow icon={UserCircle} label="الفئة العمرية" value={user.ageGroup} />

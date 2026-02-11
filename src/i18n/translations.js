@@ -181,6 +181,12 @@ export const translations = {
       accountStatus: 'Account Status:',
     },
     confessions: {
+      sessionTypeNames: {
+        followUp: 'Follow-up session',
+        counseling: 'Counseling session',
+        fullConfession: 'Full confession',
+        shortPrayer: 'Short prayer',
+      },
       sessions: {
         page: 'Confession Sessions',
         createTitle: 'Create Confession Session',
@@ -474,6 +480,12 @@ export const translations = {
       accountStatus: 'حالة الحساب:',
     },
     confessions: {
+      sessionTypeNames: {
+        followUp: 'جلسة متابعة',
+        counseling: 'جلسة إرشاد روحي',
+        fullConfession: 'اعتراف كامل',
+        shortPrayer: 'صلاة قصيرة',
+      },
       sessions: {
         page: 'جلسات الاعتراف',
         createTitle: 'إنشاء جلسة اعتراف',
