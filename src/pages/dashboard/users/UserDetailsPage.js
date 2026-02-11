@@ -1,183 +1,47 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Calendar,
+  Clock3,
+  Edit,
+  ExternalLink,
+  Lock,
+  Mail,
+  MapPin,
+  Phone,
+  Plus,
+  Shield,
+  Tag,
+  Unlock,
+  User,
+  UserCircle,
+  Users as UsersIcon,
+} from 'lucide-react';
 import { usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
-import Card, { CardHeader } from '../../../components/ui/Card';
+import { useI18n } from '../../../i18n/i18n';
+import { formatDate, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card, { CardHeader } from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
+import Input from '../../../components/ui/Input';
+import Modal from '../../../components/ui/Modal';
 import Skeleton from '../../../components/ui/Skeleton';
 import Tabs from '../../../components/ui/Tabs';
-import EmptyState from '../../../components/ui/EmptyState';
-import Modal from '../../../components/ui/Modal';
-import Input from '../../../components/ui/Input';
 import TextArea from '../../../components/ui/TextArea';
 import UserSearchSelect from '../../../components/UserSearchSelect';
-import {
-  Edit, Lock, Unlock, UserCircle, Phone, Mail, MapPin, Calendar,
-  Tag, Users as UsersIcon, Shield, Plus, ExternalLink, User,
-} from 'lucide-react';
-import { formatDate, GENDER_LABELS, ROLE_LABELS } from '../../../utils/formatters';
 import toast from 'react-hot-toast';
 
-/* ─────────────────────── inline styles ─────────────────────── */
-const styles = `
-  /* ── Animations ── */
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes fadeScale {
-    from { opacity: 0; transform: scale(0.97); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-  @keyframes shimmer {
-    0%   { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-  @keyframes pulseRing {
-    0%, 100% { box-shadow: 0 0 0 0 var(--color-primary, #6366f1)22; }
-    50%      { box-shadow: 0 0 0 6px var(--color-primary, #6366f1)00; }
-  }
-
-  .ud-page { animation: slideUp .35s ease-out both; }
-
-  /* stagger children */
-  .ud-stagger > * {
-    animation: fadeScale .3s ease-out both;
-  }
-  .ud-stagger > *:nth-child(1) { animation-delay: .04s; }
-  .ud-stagger > *:nth-child(2) { animation-delay: .08s; }
-  .ud-stagger > *:nth-child(3) { animation-delay: .12s; }
-  .ud-stagger > *:nth-child(4) { animation-delay: .16s; }
-  .ud-stagger > *:nth-child(5) { animation-delay: .20s; }
-  .ud-stagger > *:nth-child(6) { animation-delay: .24s; }
-  .ud-stagger > *:nth-child(7) { animation-delay: .28s; }
-  .ud-stagger > *:nth-child(8) { animation-delay: .32s; }
-
-  /* ── Header card ── */
-  .ud-header-card {
-    position: relative;
-    overflow: hidden;
-  }
-  .ud-header-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: .03;
-    pointer-events: none;
-    background:
-      radial-gradient(circle at 15% 50%, var(--color-primary, #6366f1), transparent 50%),
-      radial-gradient(circle at 85% 20%, var(--color-primary, #6366f1), transparent 40%);
-  }
-
-  /* avatar ring pulse for current user */
-  .ud-avatar-ring {
-    position: relative;
-  }
-  .ud-avatar-ring::after {
-    content: '';
-    position: absolute;
-    inset: -3px;
-    border-radius: 9999px;
-    border: 2px solid var(--color-primary, #6366f1);
-    opacity: .25;
-    animation: pulseRing 2.5s ease-in-out infinite;
-  }
-
-  /* ── Info rows ── */
-  .ud-info-row {
-    display: flex;
-    align-items: flex-start;
-    gap: .75rem;
-    padding: .625rem .75rem;
-    border-radius: .625rem;
-    transition: background .2s ease, transform .15s ease;
-  }
-  .ud-info-row:hover {
-    background: var(--color-muted, #94a3b8)08;
-    transform: translateX(-2px);
-  }
-
-  /* ── Family tree ── */
-  .ud-tree-connector {
-    width: 2px;
-    height: 1.75rem;
-    margin: .25rem auto;
-    background: linear-gradient(
-      to bottom,
-      var(--color-border, #e2e8f0),
-      var(--color-border, #e2e8f0) 60%,
-      transparent
-    );
-    border-radius: 1px;
-  }
-
-  .ud-family-node {
-    transition: transform .2s ease, box-shadow .2s ease;
-  }
-  .ud-family-node:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px -2px rgba(0,0,0,.08);
-  }
-
-  .ud-family-node-current {
-    position: relative;
-  }
-  .ud-family-node-current::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: .875rem;
-    border: 2px solid var(--color-primary, #6366f1);
-    opacity: .15;
-    pointer-events: none;
-  }
-
-  /* ── Section labels ── */
-  .ud-section-label {
-    display: inline-flex;
-    align-items: center;
-    gap: .375rem;
-    font-size: .6875rem;
-    font-weight: 600;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    padding: .25rem .75rem;
-    border-radius: 9999px;
-    background: var(--color-muted, #94a3b8)0d;
-    color: var(--color-muted, #94a3b8);
-    margin-bottom: .75rem;
-  }
-
-  /* ── Lock banner ── */
-  .ud-lock-banner {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    animation: fadeScale .3s ease-out .15s both;
-  }
-  .ud-lock-banner svg { flex-shrink: 0; }
-
-  /* ── Dropdown ── */
-  .ud-dropdown {
-    animation: fadeScale .15s ease-out;
-    backdrop-filter: blur(8px);
-  }
-
-  /* ── Skeleton loading ── */
-  .ud-skeleton-group {
-    animation: slideUp .3s ease-out both;
-  }
-`;
-
-/* ═══════════════════════ MAIN PAGE ═══════════════════════ */
+const EMPTY = '---';
 
 export default function UserDetailsPage() {
   const { id } = useParams();
   const { hasPermission } = useAuth();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const { data: user, isLoading } = useQuery({
@@ -189,205 +53,202 @@ export default function UserDetailsPage() {
     staleTime: 60000,
   });
 
+  const refreshUser = () => {
+    queryClient.invalidateQueries({ queryKey: ['users', id] });
+    queryClient.invalidateQueries({ queryKey: ['users'] });
+  };
+
   const unlockMutation = useMutation({
     mutationFn: () => usersApi.unlock(id),
     onSuccess: () => {
-      toast.success('تم فتح الحساب بنجاح');
-      queryClient.invalidateQueries({ queryKey: ['users', id] });
+      toast.success('User account unlocked successfully.');
+      refreshUser();
     },
     onError: (err) => toast.error(normalizeApiError(err).message),
   });
 
-  /* ── loading state ── */
   if (isLoading) {
+    return <UserDetailsSkeleton />;
+  }
+
+  if (!user) {
     return (
-      <div className="ud-skeleton-group space-y-5 max-w-5xl mx-auto">
-        <style>{styles}</style>
-        <Skeleton className="h-7 w-56 rounded-lg" />
-        <div className="rounded-2xl overflow-hidden">
-          <Skeleton className="h-36 w-full" />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <Skeleton className="h-64 w-full rounded-2xl" />
-          <Skeleton className="h-64 w-full rounded-2xl" />
-        </div>
-      </div>
+      <EmptyState
+        icon={UsersIcon}
+        title="User not found"
+        description="This profile could not be loaded or may have been removed."
+      />
     );
   }
 
-  if (!user) return null;
-
+  const familyCount = countFamilyMembers(user);
   const tabs = [
     {
-      label: 'المعلومات الشخصية',
-      content: <PersonalInfoTab user={user} />,
+      label: 'Profile',
+      content: <ProfileTab user={user} />,
     },
     {
-      label: 'العائلة',
+      label: 'Family',
       content: (
         <FamilyTab
           user={user}
           hasPermission={hasPermission}
           queryClient={queryClient}
-          invalidateUser={() => queryClient.invalidateQueries({ queryKey: ['users', id] })}
+          onRefresh={refreshUser}
         />
       ),
     },
   ];
 
   return (
-    <div className="ud-page">
-      <style>{styles}</style>
+    <div className="animate-fade-in space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: t('shared.dashboard'), href: '/dashboard' },
+          { label: t('shared.users'), href: '/dashboard/users' },
+          { label: user.fullName || EMPTY },
+        ]}
+      />
 
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Breadcrumbs */}
-        <Breadcrumbs items={[
-          { label: 'لوحة التحكم', href: '/dashboard' },
-          { label: 'المستخدمون', href: '/dashboard/users' },
-          { label: user.fullName },
-        ]} />
-
-        {/* ── Header Card ── */}
-        <Card className="ud-header-card">
-          <div className="p-5 sm:p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-              {/* Identity cluster */}
-              <div className="flex items-center gap-4">
-                <div className="ud-avatar-ring relative flex-shrink-0">
-                  {user.avatar?.url ? (
-                    <img
-                      src={user.avatar.url}
-                      alt=""
-                      className="w-[4.5rem] h-[4.5rem] rounded-full object-cover border-2 border-border"
-                    />
-                  ) : (
-                    <div className="w-[4.5rem] h-[4.5rem] rounded-full bg-primary/10 flex items-center justify-center">
-                      <UserCircle className="w-9 h-9 text-primary" />
-                    </div>
-                  )}
+      <Card padding={false} className="relative overflow-hidden border-primary/20">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
+        <div className="relative p-6 lg:p-7">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-center gap-4">
+              {user.avatar?.url ? (
+                <img
+                  src={user.avatar.url}
+                  alt=""
+                  className="h-20 w-20 rounded-2xl border border-border object-cover shadow-sm"
+                />
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
+                  <UserCircle className="h-11 w-11 text-primary" />
                 </div>
-                <div className="space-y-1.5">
-                  <h1 className="text-xl sm:text-2xl font-bold text-heading leading-tight tracking-tight">
-                    {user.fullName}
-                  </h1>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="primary">{ROLE_LABELS[user.role]}</Badge>
-                    <Badge variant={user.isLocked ? 'danger' : 'success'}>
-                      {user.isLocked ? 'مغلق' : 'نشط'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
+              )}
 
-              {/* Actions */}
-              <div className="flex gap-2 flex-wrap self-start sm:self-center">
-                {hasPermission('USERS_UPDATE') && (
-                  <Link to={`/dashboard/users/${id}/edit`}>
-                    <Button variant="outline" size="sm" icon={Edit}>تعديل</Button>
-                  </Link>
-                )}
-                {hasPermission('USERS_LOCK') && !user.isLocked && (
-                  <Link to={`/dashboard/users/${id}/lock`}>
-                    <Button variant="outline" size="sm" icon={Lock}>قفل</Button>
-                  </Link>
-                )}
-                {hasPermission('USERS_UNLOCK') && user.isLocked && (
-                  <Button
-                    variant="outline" size="sm" icon={Unlock}
-                    onClick={() => unlockMutation.mutate()}
-                    loading={unlockMutation.isPending}
-                  >
-                    فتح
-                  </Button>
-                )}
+              <div>
+                <h1 className="text-2xl font-bold text-heading">{user.fullName || EMPTY}</h1>
+                <p className="mt-1 text-sm text-muted direction-ltr text-left">{user.phonePrimary || EMPTY}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Badge variant="primary">{getRoleLabel(user.role)}</Badge>
+                  <Badge variant={user.isLocked ? 'danger' : 'success'}>
+                    {user.isLocked ? t('common.status.locked') : t('common.status.active')}
+                  </Badge>
+                </div>
               </div>
             </div>
 
-            {/* Lock banner */}
-            {user.isLocked && user.lockReason && (
-              <div className="ud-lock-banner mt-5 bg-danger-light border border-danger/20 rounded-xl p-3.5 text-sm text-danger">
-                <Lock className="w-4 h-4" />
-                <div>
-                  <strong className="font-semibold">سبب القفل:</strong>{' '}
-                  <span className="opacity-90">{user.lockReason}</span>
-                </div>
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {hasPermission('USERS_UPDATE') && (
+                <Link to={`/dashboard/users/${id}/edit`}>
+                  <Button variant="outline" size="sm" icon={Edit}>
+                    {t('common.actions.edit')}
+                  </Button>
+                </Link>
+              )}
+              {hasPermission('USERS_LOCK') && !user.isLocked && (
+                <Link to={`/dashboard/users/${id}/lock`}>
+                  <Button variant="outline" size="sm" icon={Lock}>
+                    {t('common.actions.lock')}
+                  </Button>
+                </Link>
+              )}
+              {hasPermission('USERS_UNLOCK') && user.isLocked && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={Unlock}
+                  onClick={() => unlockMutation.mutate()}
+                  loading={unlockMutation.isPending}
+                >
+                  {t('common.actions.unlock')}
+                </Button>
+              )}
+            </div>
           </div>
-        </Card>
 
-        {/* ── Tabs ── */}
-        <Tabs tabs={tabs} />
-      </div>
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <MiniStat label="Joined on" value={formatDate(user.createdAt)} icon={Clock3} />
+            <MiniStat label="Last updated" value={formatDate(user.updatedAt)} icon={Calendar} />
+            <MiniStat label="Family links" value={familyCount} icon={UsersIcon} />
+          </div>
+
+          {user.isLocked && user.lockReason && (
+            <div className="mt-5 rounded-xl border border-danger/20 bg-danger-light p-3 text-sm text-danger">
+              <span className="font-semibold">Lock reason:</span> {user.lockReason}
+            </div>
+          )}
+        </div>
+      </Card>
+
+      <Tabs tabs={tabs} />
     </div>
   );
 }
 
-/* ═══════════════════ PERSONAL INFO TAB ═══════════════════ */
+function ProfileTab({ user }) {
+  const tags = Array.isArray(user.tags) ? user.tags : [];
+  const customDetails =
+    user.customDetails && typeof user.customDetails === 'object' ? Object.entries(user.customDetails) : [];
 
-function PersonalInfoTab({ user }) {
+  const address =
+    [user.address?.governorate, user.address?.city, user.address?.street, user.address?.details]
+      .filter(Boolean)
+      .join(', ') || EMPTY;
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 ud-stagger">
-      {/* Basic data */}
-      <Card>
-        <CardHeader title="البيانات الأساسية" />
-        <div className="space-y-0.5 -mx-1">
-        
-          <InfoRow icon={Calendar} label="تاريخ الميلاد" value={formatDate(user.birthDate)} />
-          <InfoRow icon={UserCircle} label="الجنس" value={GENDER_LABELS[user.gender]} />
-          <InfoRow icon={UserCircle} label="الفئة العمرية" value={user.ageGroup} />
-          <InfoRow icon={Phone} label="الهاتف الأساسي" value={user.phonePrimary} dir="ltr" />
-          {user.phoneSecondary && (
-            <InfoRow icon={Phone} label="الهاتف الثانوي" value={user.phoneSecondary} dir="ltr" />
-          )}
-          {user.whatsappNumber && (
-            <InfoRow icon={Phone} label="واتساب" value={user.whatsappNumber} dir="ltr" />
-          )}
-          {user.email && (
-            <InfoRow icon={Mail} label="البريد الإلكتروني" value={user.email} dir="ltr" />
-          )}
-          {user.nationalId && (
-            <InfoRow icon={Shield} label="الرقم القومي" value={user.nationalId} dir="ltr" />
-          )}
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+      <Card className="xl:col-span-2">
+        <CardHeader title="Personal information" subtitle="Core identity and account details" />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <InfoItem icon={UserCircle} label="Full name" value={user.fullName} />
+          <InfoItem icon={Shield} label="Role" value={getRoleLabel(user.role)} />
+          <InfoItem icon={User} label="Gender" value={getGenderLabel(user.gender)} />
+          <InfoItem icon={Calendar} label="Birth date" value={formatDate(user.birthDate)} />
+          <InfoItem icon={User} label="Age group" value={user.ageGroup || EMPTY} />
+          <InfoItem icon={Shield} label="National ID" value={user.nationalId || EMPTY} ltr />
         </div>
       </Card>
 
-      {/* Address & extras */}
-      <Card>
-        <CardHeader title="العنوان والمعلومات الإضافية" />
-        <div className="space-y-0.5 -mx-1">
-          {user.address && (
-            <InfoRow
-              icon={MapPin}
-              label="العنوان"
-              value={[user.address.governorate, user.address.city, user.address.street, user.address.details]
-                .filter(Boolean)
-                .join('، ')}
-            />
-          )}
-          {user.familyName && <InfoRow icon={UsersIcon} label="اسم العائلة" value={user.familyName} />}
-          {user.notes && <InfoRow icon={UserCircle} label="ملاحظات" value={user.notes} />}
-          {user.tags?.length > 0 && (
-            <div className="ud-info-row">
-              <Tag className="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
-              <div>
-                <span className="text-xs text-muted block mb-1.5">الوسوم</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {user.tags.map((t) => <Badge key={t}>{t}</Badge>)}
-                </div>
-              </div>
-            </div>
-          )}
+      <Card className="xl:col-span-1">
+        <CardHeader title="Contact" subtitle="Primary communication channels" />
+        <div className="space-y-3">
+          <InfoItem icon={Phone} label="Primary phone" value={user.phonePrimary || EMPTY} ltr compact />
+          <InfoItem icon={Phone} label="Secondary phone" value={user.phoneSecondary || EMPTY} ltr compact />
+          <InfoItem icon={Phone} label="WhatsApp" value={user.whatsappNumber || EMPTY} ltr compact />
+          <InfoItem icon={Mail} label="Email" value={user.email || EMPTY} ltr compact />
         </div>
       </Card>
 
-      {/* Custom details */}
-      {user.customDetails && typeof user.customDetails === 'object' && Object.keys(user.customDetails).length > 0 && (
-        <Card className="lg:col-span-2">
-          <CardHeader title="تفاصيل مخصصة" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 -mx-1">
-            {Object.entries(user.customDetails).map(([key, value]) => (
-              <InfoRow key={key} icon={Tag} label={key} value={value || '—'} />
+      <Card className="xl:col-span-2">
+        <CardHeader title="Address and notes" subtitle="Location and internal notes" />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <InfoItem icon={MapPin} label="Address" value={address} />
+          <InfoItem icon={UsersIcon} label="Family name" value={user.familyName || EMPTY} />
+          <InfoItem icon={User} label="Notes" value={user.notes || EMPTY} className="md:col-span-2" />
+        </div>
+      </Card>
+
+      <Card className="xl:col-span-1">
+        <CardHeader title="Tags" subtitle="Classification labels" />
+        {tags.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {tags.map((tag) => (
+              <Badge key={tag}>{tag}</Badge>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted">{EMPTY}</p>
+        )}
+      </Card>
+
+      {customDetails.length > 0 && (
+        <Card className="xl:col-span-3">
+          <CardHeader title="Custom details" subtitle="Additional profile fields" />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {customDetails.map(([key, value]) => (
+              <InfoItem key={key} icon={Tag} label={key} value={value || EMPTY} compact />
             ))}
           </div>
         </Card>
@@ -396,198 +257,7 @@ function PersonalInfoTab({ user }) {
   );
 }
 
-/* ═══════════════════ FAMILY TREE NODE ═══════════════════ */
-
-function FamilyTreeNode({ member, isCurrentUser, isInverse, avatarUrl }) {
-  const uid = member?.userId != null
-    ? (typeof member.userId === 'object' ? (member.userId._id ?? member.userId?.id) : member.userId)
-    : null;
-  const profileId = uid != null ? String(uid) : null;
-  const name = member?.name || '—';
-
-  const nodeContent = (
-    <div
-      className={`
-        ud-family-node flex items-center gap-3 p-3.5 rounded-xl border min-w-0 w-[270px]
-        ${isCurrentUser
-          ? 'ud-family-node-current bg-primary/8 border-primary/30 shadow-sm'
-          : 'bg-surface-alt border-border hover:border-primary/40 hover:bg-surface'}
-      `}
-    >
-      {/* Avatar */}
-      <div className={`
-        flex-shrink-0 w-11 h-11 rounded-full overflow-hidden flex items-center justify-center
-        ${isCurrentUser ? 'bg-primary/15' : 'bg-muted/10'}
-      `}>
-        {avatarUrl && isCurrentUser ? (
-          <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <User className={`w-5 h-5 ${isCurrentUser ? 'text-primary' : 'text-muted'}`} />
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="min-w-0 flex-1">
-        <p className={`font-semibold text-sm truncate leading-tight ${isCurrentUser ? 'text-primary' : 'text-heading'}`}>
-          {name}
-        </p>
-        <div className="flex items-center gap-1.5 flex-wrap mt-1">
-          {member?.relationRole && (
-            <span className="text-xs text-muted leading-none">{member.relationRole}</span>
-          )}
-          {isInverse && (
-            <Badge variant="default" className="text-[10px] font-normal text-muted leading-none">
-              من الطرف الآخر
-            </Badge>
-          )}
-        </div>
-        {member?.notes && (
-          <p className="text-xs text-muted/70 mt-1 truncate leading-snug" title={member.notes}>
-            {member.notes}
-          </p>
-        )}
-      </div>
-
-      {/* Link icon */}
-      {profileId && !isCurrentUser && (
-        <Link
-          to={`/dashboard/users/${profileId}`}
-          className="flex-shrink-0 p-1.5 rounded-lg text-primary hover:bg-primary/10 transition-colors"
-          title="عرض الملف"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <ExternalLink className="w-4 h-4" />
-        </Link>
-      )}
-    </div>
-  );
-
-  if (profileId && !isCurrentUser) {
-    return <Link to={`/dashboard/users/${profileId}`} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-xl">{nodeContent}</Link>;
-  }
-  return nodeContent;
-}
-
-/* ═══════════════════ TREE SECTION ═══════════════════ */
-
-function TreeSection({ title, nodes, renderNode }) {
-  if (!nodes?.length) return null;
-  return (
-    <div>
-      {title && (
-        <div className="ud-section-label">{title}</div>
-      )}
-      <div className="flex flex-wrap gap-3 ud-stagger">
-        {nodes.map((node, i) => (
-          <div key={node._id || node.userId || i}>
-            {renderNode ? renderNode(node, i) : null}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════ FAMILY TREE ═══════════════════ */
-
-function FamilyTree({ user }) {
-  const hasParents = user.father || user.mother;
-  const hasSpouse = !!user.spouse;
-  const hasSiblings = user.siblings?.length > 0;
-  const hasChildren = user.children?.length > 0;
-  const hasOther = user.familyMembers?.length > 0;
-  const hasInverse = user.inverseFamily?.length > 0;
-  const hasAny = hasParents || hasSpouse || hasSiblings || hasChildren || hasOther || hasInverse;
-
-  if (!hasAny) {
-    return (
-      <EmptyState
-        icon={UsersIcon}
-        title="لا توجد بيانات عائلة مسجلة"
-        description="يمكنك إضافة أفراد العائلة باستخدام الزر أعلاه إذا كانت لديك الصلاحية."
-      />
-    );
-  }
-
-  return (
-    <div className="family-tree space-y-2" dir="rtl">
-      {/* Generation 1: Parents */}
-      {hasParents && (
-        <div className="flex flex-col items-center">
-          <TreeSection
-            title="الوالدان"
-            nodes={[user.father, user.mother].filter(Boolean)}
-            renderNode={(m) => <FamilyTreeNode key={m._id} member={m} />}
-          />
-          <div className="ud-tree-connector" aria-hidden />
-        </div>
-      )}
-
-      {/* Generation 2: Current user (focus) */}
-      <div className="flex flex-col items-center">
-        <FamilyTreeNode
-          member={{ name: user.fullName, relationRole: 'صاحب الملف' }}
-          isCurrentUser
-          avatarUrl={user.avatar?.url}
-        />
-        {(hasSpouse || hasSiblings || hasChildren) && (
-          <div className="ud-tree-connector" aria-hidden />
-        )}
-      </div>
-
-      {/* Same generation: Spouse + Siblings */}
-      {(hasSpouse || hasSiblings) && (
-        <div className="flex flex-col items-center">
-          <TreeSection
-            title={hasSpouse && hasSiblings ? 'الزوج/الزوجة والإخوة' : hasSpouse ? 'الزوج/الزوجة' : 'الإخوة'}
-            nodes={[user.spouse, ...(user.siblings || [])].filter(Boolean)}
-            renderNode={(m) => <FamilyTreeNode key={m._id} member={m} />}
-          />
-          {hasChildren && <div className="ud-tree-connector" aria-hidden />}
-        </div>
-      )}
-
-      {/* Generation 3: Children */}
-      {hasChildren && (
-        <div className="flex flex-col items-center">
-          <TreeSection
-            title="الأبناء"
-            nodes={user.children}
-            renderNode={(m) => <FamilyTreeNode key={m._id} member={m} />}
-          />
-        </div>
-      )}
-
-      {/* Extended family — visual separator */}
-      {(hasOther || hasInverse) && (
-        <div className="pt-4 mt-2 border-t border-border/50 space-y-6">
-          {hasOther && (
-            <div className="flex flex-col items-center">
-              <TreeSection
-                title="أقارب آخرون"
-                nodes={user.familyMembers}
-                renderNode={(m) => <FamilyTreeNode key={m._id} member={m} />}
-              />
-            </div>
-          )}
-          {hasInverse && (
-            <div className="flex flex-col items-center">
-              <TreeSection
-                title="مرتبط من جهة الطرف الآخر"
-                nodes={user.inverseFamily}
-                renderNode={(m) => <FamilyTreeNode key={m._id || m.userId} member={m} isInverse />}
-              />
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════ FAMILY TAB ═══════════════════ */
-
-function FamilyTab({ user, hasPermission, queryClient, invalidateUser }) {
+function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addForm, setAddForm] = useState({
     relationRole: '',
@@ -607,17 +277,29 @@ function FamilyTab({ user, hasPermission, queryClient, invalidateUser }) {
     },
     enabled: addModalOpen,
   });
+
   const relationRoles = Array.isArray(relationRolesRes) ? relationRolesRes : [];
+  const canAdd = hasPermission('USERS_FAMILY_LINK');
+  const canEdit = hasPermission('USERS_UPDATE');
+  const currentUserId = String(user._id || user.id || '');
+
+  const familyGroups = useMemo(() => buildFamilyGroups(user), [user]);
+  const hasAnyFamily = familyGroups.some((group) => group.members.length > 0);
+
+  const filteredRelationRoles = relationRoles
+    .filter((item) =>
+      !addForm.relationRole.trim()
+        ? true
+        : item.label.toLowerCase().includes(addForm.relationRole.trim().toLowerCase())
+    )
+    .slice(0, 20);
 
   const linkFamilyMutation = useMutation({
-    mutationFn: (data) => usersApi.linkFamily(user._id || user.id, data),
+    mutationFn: (payload) => usersApi.linkFamily(user._id || user.id, payload),
     onSuccess: () => {
-      toast.success('تم إضافة فرد العائلة بنجاح');
-      setAddModalOpen(false);
-      setAddForm({ relationRole: '', name: '', targetPhone: '', notes: '' });
-      setSelectedUser(null);
-      setAddErrors({});
-      invalidateUser();
+      toast.success('Family member linked successfully.');
+      handleCloseModal();
+      onRefresh();
     },
     onError: (err) => {
       const normalized = normalizeApiError(err);
@@ -628,19 +310,36 @@ function FamilyTab({ user, hasPermission, queryClient, invalidateUser }) {
     },
   });
 
-  const canAdd = hasPermission('USERS_FAMILY_LINK');
-  const canEdit = hasPermission('USERS_UPDATE');
+  const handleCloseModal = () => {
+    setAddModalOpen(false);
+    setAddErrors({});
+    setSelectedUser(null);
+    setAddForm({ relationRole: '', name: '', targetPhone: '', notes: '' });
+    setRelationRoleDropdownOpen(false);
+  };
 
   const handleAddFamilySubmit = async () => {
-    const relationRoleValue = addForm.relationRole?.trim();
+    const relationRoleValue = addForm.relationRole.trim();
+    const nameValue = selectedUser?.fullName || addForm.name.trim();
+    const phoneValue = selectedUser?.phonePrimary || addForm.targetPhone.trim();
+
     if (!relationRoleValue) {
-      setAddErrors({ relationRole: 'وصف صلة القرابة مطلوب' });
+      setAddErrors({ relationRole: 'Relation label is required.' });
       return;
     }
+
+    if (!nameValue && !phoneValue) {
+      setAddErrors({ targetPhone: 'Add a linked user, name, or phone number.' });
+      return;
+    }
+
     setAddErrors({});
-    const role = relationRoles.find((r) => r.label === relationRoleValue);
-    const relation = role ? role.relation : 'other';
-    if (!role && canEdit) {
+
+    const existingRole = relationRoles.find(
+      (role) => role.label.trim().toLowerCase() === relationRoleValue.toLowerCase()
+    );
+
+    if (!existingRole && canEdit) {
       try {
         await usersApi.createRelationRole(relationRoleValue);
         queryClient.invalidateQueries({ queryKey: ['users', 'relation-roles'] });
@@ -649,32 +348,34 @@ function FamilyTab({ user, hasPermission, queryClient, invalidateUser }) {
         return;
       }
     }
-    const nameToSend = selectedUser ? selectedUser.fullName : addForm.name.trim();
-    const phoneToSend = selectedUser ? selectedUser.phonePrimary : addForm.targetPhone.trim();
+
+    const relation = existingRole?.relation || 'other';
+
     linkFamilyMutation.mutate({
       relation,
       relationRole: relationRoleValue,
-      name: nameToSend || undefined,
-      targetPhone: phoneToSend || undefined,
+      name: nameValue || undefined,
+      targetPhone: phoneValue || undefined,
       notes: addForm.notes.trim() || undefined,
     });
   };
 
   return (
-    <Card>
+    <Card className="space-y-5">
       <CardHeader
-        title="أفراد العائلة"
+        title="Family network"
+        subtitle="Linked members and relationship map"
         action={
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-2">
             {canAdd && (
               <Button variant="outline" size="sm" icon={Plus} onClick={() => setAddModalOpen(true)}>
-                إضافة فرد عائلة
+                Add family member
               </Button>
             )}
             {canEdit && (
               <Link to={`/dashboard/users/${user._id || user.id}/edit`}>
                 <Button variant="outline" size="sm" icon={Edit}>
-                  تعديل بيانات العائلة
+                  Edit profile
                 </Button>
               </Link>
             )}
@@ -682,129 +383,133 @@ function FamilyTab({ user, hasPermission, queryClient, invalidateUser }) {
         }
       />
 
-      {user.familyName && <InfoRow icon={UsersIcon} label="اسم العائلة" value={user.familyName} />}
+      {user.familyName && (
+        <div className="rounded-xl border border-border bg-surface-alt/60 px-4 py-3 text-sm">
+          <span className="text-muted">Family name:</span>
+          <span className="ml-2 font-semibold text-heading">{user.familyName}</span>
+        </div>
+      )}
 
+      {hasAnyFamily ? (
+        <div className="space-y-5">
+          {familyGroups.map((group) =>
+            group.members.length > 0 ? (
+              <FamilyGroupSection
+                key={group.key}
+                title={group.title}
+                members={group.members}
+                currentUserId={currentUserId}
+                inverse={group.inverse}
+              />
+            ) : null
+          )}
+        </div>
+      ) : (
+        <EmptyState
+          icon={UsersIcon}
+          title="No family members linked"
+          description="Use the add action to attach relatives or linked profiles."
+        />
+      )}
 
-      <div className="py-2">
-        <FamilyTree user={user} />
-      </div>
-
-      {/* ── Add Modal ── */}
       <Modal
         isOpen={addModalOpen}
-        onClose={() => { setAddModalOpen(false); setAddErrors({}); }}
-        title="إضافة فرد عائلة"
+        onClose={handleCloseModal}
+        title="Add family member"
         size="md"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setAddModalOpen(false)}>إلغاء</Button>
+            <Button variant="ghost" onClick={handleCloseModal}>
+              Cancel
+            </Button>
             <Button loading={linkFamilyMutation.isPending} onClick={handleAddFamilySubmit}>
-              إضافة
+              Add
             </Button>
           </>
         }
       >
         <div className="space-y-4">
-          {/* Relation role combobox */}
           <div className="relative">
-            <label className="block text-sm font-medium text-heading mb-1.5">
-              وصف صلة القرابة <span className="text-danger mr-1">*</span>
+            <label className="mb-1.5 block text-sm font-medium text-base">
+              Relation label <span className="ml-1 text-danger">*</span>
             </label>
             <input
               type="text"
               value={addForm.relationRole}
               onChange={(e) => {
-                setAddForm((f) => ({ ...f, relationRole: e.target.value }));
+                setAddForm((prev) => ({ ...prev, relationRole: e.target.value }));
                 setRelationRoleDropdownOpen(true);
-                if (addErrors.relationRole) setAddErrors((err) => ({ ...err, relationRole: undefined }));
+                if (addErrors.relationRole) {
+                  setAddErrors((prev) => ({ ...prev, relationRole: undefined }));
+                }
               }}
               onFocus={() => setRelationRoleDropdownOpen(true)}
-              onBlur={() => setTimeout(() => setRelationRoleDropdownOpen(false), 200)}
-              placeholder="اختر من القائمة أو اكتب وصفاً جديداً (مثال: الأب، عم، خال...)"
-              className={`input-base w-full transition-colors ${addErrors.relationRole ? 'border-danger focus:border-danger' : ''}`}
+              onBlur={() => setTimeout(() => setRelationRoleDropdownOpen(false), 150)}
+              placeholder="Choose existing role or type a new one"
+              className={`input-base w-full ${addErrors.relationRole ? 'border-danger focus:border-danger' : ''}`}
             />
-            {addErrors.relationRole && (
-              <p className="text-xs text-danger mt-1.5 flex items-center gap-1">
-                <span className="inline-block w-1 h-1 rounded-full bg-danger" />
-                {addErrors.relationRole}
-              </p>
-            )}
-            {relationRoleDropdownOpen && relationRoles.length > 0 && (
-              <ul
-                className="ud-dropdown absolute z-20 mt-1.5 w-full max-h-48 overflow-auto rounded-xl border border-border shadow-xl py-1"
-                style={{ backgroundColor: 'var(--color-surface, #ffffff)' }}
-                role="listbox"
-              >
-                {relationRoles
-                  .filter(
-                    (r) =>
-                      !addForm.relationRole ||
-                      r.label.toLowerCase().includes(addForm.relationRole.trim().toLowerCase())
-                  )
-                  .slice(0, 20)
-                  .map((r) => (
-                    <li
-                      key={r.id || r.label}
-                      role="option"
-                      className="px-3.5 py-2.5 text-sm cursor-pointer rounded-lg mx-1 transition-colors hover:bg-muted/10 focus:bg-muted/10"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setAddForm((f) => ({ ...f, relationRole: r.label }));
-                        setRelationRoleDropdownOpen(false);
-                      }}
-                    >
-                      {r.label}
-                    </li>
-                  ))}
-                {addForm.relationRole?.trim() &&
-                  !relationRoles.some(
-                    (r) => r.label.trim().toLowerCase() === addForm.relationRole.trim().toLowerCase()
-                  ) && (
-                    <li
-                      role="option"
-                      className="px-3.5 py-2.5 text-sm text-muted border-t border-border/50 mx-1 mt-1"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setRelationRoleDropdownOpen(false);
-                      }}
-                    >
-                      إضافة «{addForm.relationRole.trim()}» للقائمة عند الحفظ
-                    </li>
-                  )}
-              </ul>
+            {addErrors.relationRole && <p className="mt-1 text-xs text-danger">{addErrors.relationRole}</p>}
+
+            {relationRoleDropdownOpen && filteredRelationRoles.length > 0 && (
+              <div className="absolute z-30 mt-1 max-h-52 w-full overflow-auto rounded-xl border border-border bg-surface p-1 shadow-lg">
+                {filteredRelationRoles.map((role) => (
+                  <button
+                    key={role.id || role.label}
+                    type="button"
+                    className="block w-full rounded-lg px-3 py-2 text-left text-sm text-base transition-colors hover:bg-surface-alt"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setAddForm((prev) => ({ ...prev, relationRole: role.label }));
+                      setRelationRoleDropdownOpen(false);
+                    }}
+                  >
+                    {role.label}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
           <UserSearchSelect
-            label="ربط بمستخدم مسجل (اختياري)"
+            label="Link to an existing user (optional)"
             value={selectedUser}
-            onChange={(u) => {
-              setSelectedUser(u);
-              setAddForm((f) => ({
-                ...f,
-                name: u ? u.fullName : '',
-                targetPhone: u ? (u.phonePrimary || '') : '',
+            onChange={(selected) => {
+              setSelectedUser(selected);
+              setAddForm((prev) => ({
+                ...prev,
+                name: selected ? selected.fullName : '',
+                targetPhone: selected ? selected.phonePrimary || '' : '',
               }));
             }}
             excludeUserId={user._id || user.id}
           />
 
           <Input
-            label="الاسم (أو اكتبه يدوياً إن لم تربط بمستخدم)"
+            label="Name (optional if linked)"
             value={addForm.name}
-            onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => setAddForm((prev) => ({ ...prev, name: e.target.value }))}
+            containerClassName="!mb-0"
           />
+
           <Input
-            label="رقم الهاتف (لربط أو اكتبه يدوياً)"
+            label="Phone number (optional if linked)"
+            value={addForm.targetPhone}
             dir="ltr"
             className="text-left"
-            value={addForm.targetPhone}
-            onChange={(e) => setAddForm((f) => ({ ...f, targetPhone: e.target.value }))}
+            onChange={(e) => {
+              setAddForm((prev) => ({ ...prev, targetPhone: e.target.value }));
+              if (addErrors.targetPhone) {
+                setAddErrors((prev) => ({ ...prev, targetPhone: undefined }));
+              }
+            }}
+            error={addErrors.targetPhone}
+            containerClassName="!mb-0"
           />
+
           <TextArea
-            label="ملاحظات"
+            label="Notes"
             value={addForm.notes}
-            onChange={(e) => setAddForm((f) => ({ ...f, notes: e.target.value }))}
+            onChange={(e) => setAddForm((prev) => ({ ...prev, notes: e.target.value }))}
           />
         </div>
       </Modal>
@@ -812,19 +517,175 @@ function FamilyTab({ user, hasPermission, queryClient, invalidateUser }) {
   );
 }
 
-/* ═══════════════════ INFO ROW ═══════════════════ */
+function buildFamilyGroups(user) {
+  return [
+    {
+      key: 'parents',
+      title: 'Parents',
+      members: [user.father, user.mother].filter(Boolean),
+      inverse: false,
+    },
+    {
+      key: 'spouse',
+      title: 'Spouse',
+      members: [user.spouse].filter(Boolean),
+      inverse: false,
+    },
+    {
+      key: 'siblings',
+      title: 'Siblings',
+      members: Array.isArray(user.siblings) ? user.siblings : [],
+      inverse: false,
+    },
+    {
+      key: 'children',
+      title: 'Children',
+      members: Array.isArray(user.children) ? user.children : [],
+      inverse: false,
+    },
+    {
+      key: 'other',
+      title: 'Extended family',
+      members: Array.isArray(user.familyMembers) ? user.familyMembers : [],
+      inverse: false,
+    },
+    {
+      key: 'inverse',
+      title: 'Linked from other profiles',
+      members: Array.isArray(user.inverseFamily) ? user.inverseFamily : [],
+      inverse: true,
+    },
+  ];
+}
 
-function InfoRow({ icon: Icon, label, value, dir }) {
+function FamilyGroupSection({ title, members, currentUserId, inverse = false }) {
   return (
-    <div className="ud-info-row">
-      <div className="w-8 h-8 rounded-lg bg-muted/8 flex items-center justify-center flex-shrink-0 mt-0.5">
-        <Icon className="w-4 h-4 text-muted" />
+    <div>
+      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{title}</div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {members.map((member, index) => (
+          <FamilyMemberCard
+            key={member._id || member.id || resolveMemberProfileId(member) || `${title}-${index}`}
+            member={member}
+            currentUserId={currentUserId}
+            inverse={inverse}
+          />
+        ))}
       </div>
-      <div className="min-w-0">
-        <span className="text-xs text-muted leading-none">{label}</span>
-        <p className={`text-sm font-medium text-heading mt-0.5 ${dir === 'ltr' ? 'direction-ltr text-left' : ''}`}>
-          {value || '---'}
-        </p>
+    </div>
+  );
+}
+
+function FamilyMemberCard({ member, currentUserId, inverse }) {
+  const profileId = resolveMemberProfileId(member);
+  const isCurrentUser = profileId && profileId === currentUserId;
+
+  const content = (
+    <div
+      className={`rounded-xl border p-3 transition-all ${
+        isCurrentUser
+          ? 'border-primary/40 bg-primary/10'
+          : 'border-border bg-surface-alt/40 hover:border-primary/30 hover:bg-surface'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
+          {member?.avatar?.url ? (
+            <img src={member.avatar.url} alt="" className="h-10 w-10 rounded-full object-cover" />
+          ) : (
+            <User className="h-5 w-5 text-primary" />
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold text-heading">{member?.name || EMPTY}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {member?.relationRole && <Badge>{member.relationRole}</Badge>}
+            {inverse && <Badge variant="secondary">Inverse link</Badge>}
+          </div>
+          {member?.notes && <p className="mt-1 line-clamp-2 text-xs text-muted">{member.notes}</p>}
+        </div>
+
+        {profileId && !isCurrentUser && (
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-primary">
+            <ExternalLink className="h-4 w-4" />
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
+  if (profileId && !isCurrentUser) {
+    return (
+      <Link
+        to={`/dashboard/users/${profileId}`}
+        className="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
+}
+
+function resolveMemberProfileId(member) {
+  if (!member) return null;
+
+  const raw =
+    member.userId != null
+      ? typeof member.userId === 'object'
+        ? member.userId._id ?? member.userId.id
+        : member.userId
+      : member._id || member.id;
+
+  return raw != null ? String(raw) : null;
+}
+
+function countFamilyMembers(user) {
+  const groups = buildFamilyGroups(user);
+  return groups.reduce((total, group) => total + group.members.length, 0);
+}
+
+function UserDetailsSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-7 w-64" />
+      <Skeleton className="h-52 w-full" />
+      <Skeleton className="h-14 w-full" />
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+        <Skeleton className="h-72 w-full xl:col-span-2" />
+        <Skeleton className="h-72 w-full xl:col-span-1" />
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value, icon: Icon }) {
+  return (
+    <div className="rounded-xl border border-border/80 bg-surface/90 px-4 py-3">
+      <div className="mb-1 flex items-center gap-2 text-muted">
+        {Icon && <Icon className="h-4 w-4" />}
+        <span className="text-xs font-semibold uppercase tracking-wide">{label}</span>
+      </div>
+      <p className="text-sm font-semibold text-heading">{value || EMPTY}</p>
+    </div>
+  );
+}
+
+function InfoItem({ icon: Icon, label, value, ltr = false, compact = false, className = '' }) {
+  return (
+    <div className={`rounded-xl border border-border bg-surface-alt/60 p-3 ${className}`}>
+      <div className={`flex items-start gap-3 ${compact ? 'items-center' : ''}`}>
+        <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          <Icon className="h-4 w-4 text-primary" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
+          <p className={`mt-1 text-sm font-semibold text-heading ${ltr ? 'direction-ltr text-left' : ''}`}>
+            {value || EMPTY}
+          </p>
+        </div>
       </div>
     </div>
   );
