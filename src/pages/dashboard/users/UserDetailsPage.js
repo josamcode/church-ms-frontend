@@ -9,6 +9,7 @@ import {
   Lock,
   Mail,
   MapPin,
+  MessageCircle,
   Phone,
   Plus,
   Shield,
@@ -81,6 +82,8 @@ export default function UserDetailsPage() {
     );
   }
 
+  const whatsappUrl = buildWhatsAppUrl(user.whatsappNumber || user.phonePrimary);
+  const callUrl = buildCallUrl(user.phonePrimary || user.whatsappNumber);
   const familyCount = countFamilyMembers(user);
   const tabs = [
     {
@@ -140,6 +143,29 @@ export default function UserDetailsPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
+              {whatsappUrl ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={MessageCircle}
+                  onClick={() => window.open(whatsappUrl, '_blank', 'noopener,noreferrer')}
+                >
+                  {t('userDetails.fields.whatsapp')}
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" icon={MessageCircle} disabled>
+                  {t('userDetails.fields.whatsapp')}
+                </Button>
+              )}
+              {callUrl ? (
+                <Button variant="outline" size="sm" icon={Phone} onClick={() => window.open(callUrl, '_self')}>
+                  Call
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" icon={Phone} disabled>
+                  Call
+                </Button>
+              )}
               {hasPermission('USERS_UPDATE') && (
                 <Link to={`/dashboard/users/${id}/edit`}>
                   <Button variant="outline" size="sm" icon={Edit}>
@@ -668,6 +694,47 @@ function countFamilyMembers(user) {
     (Array.isArray(user.familyMembers) ? user.familyMembers.length : 0) +
     (Array.isArray(user.inverseFamily) ? user.inverseFamily.length : 0)
   );
+}
+
+function buildWhatsAppUrl(rawPhone) {
+  const normalizedPhone = normalizePhoneNumber(rawPhone);
+  if (!normalizedPhone) return null;
+  return `https://wa.me/${normalizedPhone}`;
+}
+
+function buildCallUrl(rawPhone) {
+  const normalizedPhone = normalizePhoneNumber(rawPhone);
+  if (!normalizedPhone) return null;
+  return `tel:${normalizedPhone}`;
+}
+
+function normalizePhoneNumber(rawPhone) {
+  if (!rawPhone) return null;
+
+  const asciiPhone = toAsciiDigits(rawPhone);
+  const digitsOnly = asciiPhone.replace(/\D/g, '');
+  if (!digitsOnly) return null;
+
+  if (digitsOnly.startsWith('00')) return `+${digitsOnly.slice(2)}`;
+  if (digitsOnly.startsWith('201')) return `+${digitsOnly}`;
+  if (digitsOnly.startsWith('20')) return `+${digitsOnly}`;
+  if (digitsOnly.startsWith('0')) return `+2${digitsOnly}`;
+  if (digitsOnly.startsWith('1') && digitsOnly.length === 10) return `+20${digitsOnly}`;
+
+  return `+${digitsOnly}`;
+}
+
+function toAsciiDigits(value) {
+   return String(value)
+    .split('')
+    .map((char) => {
+      const code = char.charCodeAt(0);
+      if (code >= 0x0660 && code <= 0x0669) return String(code - 0x0660);
+      if (code >= 0x06f0 && code <= 0x06f9) return String(code - 0x06f0);
+      return char;
+    })
+    .join('')
+    .trim();
 }
 
 function UserDetailsSkeleton() {
