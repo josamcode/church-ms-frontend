@@ -61,7 +61,7 @@ export default function UserDetailsPage() {
   const unlockMutation = useMutation({
     mutationFn: () => usersApi.unlock(id),
     onSuccess: () => {
-      toast.success('User account unlocked successfully.');
+      toast.success(t('userDetails.messages.unlockedSuccess'));
       refreshUser();
     },
     onError: (err) => toast.error(normalizeApiError(err).message),
@@ -75,8 +75,8 @@ export default function UserDetailsPage() {
     return (
       <EmptyState
         icon={UsersIcon}
-        title="User not found"
-        description="This profile could not be loaded or may have been removed."
+        title={t('userDetails.notFound.title')}
+        description={t('userDetails.notFound.description')}
       />
     );
   }
@@ -84,11 +84,11 @@ export default function UserDetailsPage() {
   const familyCount = countFamilyMembers(user);
   const tabs = [
     {
-      label: 'Profile',
+      label: t('userDetails.tabs.profile'),
       content: <ProfileTab user={user} />,
     },
     {
-      label: 'Family',
+      label: t('userDetails.tabs.family'),
       content: (
         <FamilyTab
           user={user}
@@ -169,14 +169,14 @@ export default function UserDetailsPage() {
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <MiniStat label="Joined on" value={formatDate(user.createdAt)} icon={Clock3} />
-            <MiniStat label="Last updated" value={formatDate(user.updatedAt)} icon={Calendar} />
-            <MiniStat label="Family links" value={familyCount} icon={UsersIcon} />
+            <MiniStat label={t('userDetails.summary.joinedOn')} value={formatDate(user.createdAt)} icon={Clock3} />
+            <MiniStat label={t('userDetails.summary.lastUpdated')} value={formatDate(user.updatedAt)} icon={Calendar} />
+            <MiniStat label={t('userDetails.summary.familyLinks')} value={familyCount} icon={UsersIcon} />
           </div>
 
           {user.isLocked && user.lockReason && (
             <div className="mt-5 rounded-xl border border-danger/20 bg-danger-light p-3 text-sm text-danger">
-              <span className="font-semibold">Lock reason:</span> {user.lockReason}
+              <span className="font-semibold">{t('userDetails.summary.lockReasonLabel')}</span> {user.lockReason}
             </div>
           )}
         </div>
@@ -188,6 +188,7 @@ export default function UserDetailsPage() {
 }
 
 function ProfileTab({ user }) {
+  const { t } = useI18n();
   const tags = Array.isArray(user.tags) ? user.tags : [];
   const customDetails =
     user.customDetails && typeof user.customDetails === 'object' ? Object.entries(user.customDetails) : [];
@@ -200,38 +201,47 @@ function ProfileTab({ user }) {
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
       <Card className="xl:col-span-2">
-        <CardHeader title="Personal information" subtitle="Core identity and account details" />
+        <CardHeader
+          title={t('userDetails.profile.personalTitle')}
+          subtitle={t('userDetails.profile.personalSubtitle')}
+        />
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <InfoItem icon={UserCircle} label="Full name" value={user.fullName} />
-          <InfoItem icon={Shield} label="Role" value={getRoleLabel(user.role)} />
-          <InfoItem icon={User} label="Gender" value={getGenderLabel(user.gender)} />
-          <InfoItem icon={Calendar} label="Birth date" value={formatDate(user.birthDate)} />
-          <InfoItem icon={User} label="Age group" value={user.ageGroup || EMPTY} />
-          <InfoItem icon={Shield} label="National ID" value={user.nationalId || EMPTY} ltr />
+          <InfoItem icon={UserCircle} label={t('userDetails.fields.fullName')} value={user.fullName} />
+          <InfoItem icon={Shield} label={t('userDetails.fields.role')} value={getRoleLabel(user.role)} />
+          <InfoItem icon={User} label={t('userDetails.fields.gender')} value={getGenderLabel(user.gender)} />
+          <InfoItem icon={Calendar} label={t('userDetails.fields.birthDate')} value={formatDate(user.birthDate)} />
+          <InfoItem icon={User} label={t('userDetails.fields.ageGroup')} value={user.ageGroup || EMPTY} />
+          <InfoItem icon={Shield} label={t('userDetails.fields.nationalId')} value={user.nationalId || EMPTY} ltr />
         </div>
       </Card>
 
       <Card className="xl:col-span-1">
-        <CardHeader title="Contact" subtitle="Primary communication channels" />
+        <CardHeader
+          title={t('userDetails.profile.contactTitle')}
+          subtitle={t('userDetails.profile.contactSubtitle')}
+        />
         <div className="space-y-3">
-          <InfoItem icon={Phone} label="Primary phone" value={user.phonePrimary || EMPTY} ltr compact />
-          <InfoItem icon={Phone} label="Secondary phone" value={user.phoneSecondary || EMPTY} ltr compact />
-          <InfoItem icon={Phone} label="WhatsApp" value={user.whatsappNumber || EMPTY} ltr compact />
-          <InfoItem icon={Mail} label="Email" value={user.email || EMPTY} ltr compact />
+          <InfoItem icon={Phone} label={t('userDetails.fields.primaryPhone')} value={user.phonePrimary || EMPTY} ltr compact />
+          <InfoItem icon={Phone} label={t('userDetails.fields.secondaryPhone')} value={user.phoneSecondary || EMPTY} ltr compact />
+          <InfoItem icon={Phone} label={t('userDetails.fields.whatsapp')} value={user.whatsappNumber || EMPTY} ltr compact />
+          <InfoItem icon={Mail} label={t('userDetails.fields.email')} value={user.email || EMPTY} ltr compact />
         </div>
       </Card>
 
       <Card className="xl:col-span-2">
-        <CardHeader title="Address and notes" subtitle="Location and internal notes" />
+        <CardHeader
+          title={t('userDetails.profile.addressTitle')}
+          subtitle={t('userDetails.profile.addressSubtitle')}
+        />
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <InfoItem icon={MapPin} label="Address" value={address} />
-          <InfoItem icon={UsersIcon} label="Family name" value={user.familyName || EMPTY} />
-          <InfoItem icon={User} label="Notes" value={user.notes || EMPTY} className="md:col-span-2" />
+          <InfoItem icon={MapPin} label={t('userDetails.fields.address')} value={address} />
+          <InfoItem icon={UsersIcon} label={t('userDetails.fields.familyName')} value={user.familyName || EMPTY} />
+          <InfoItem icon={User} label={t('userDetails.fields.notes')} value={user.notes || EMPTY} className="md:col-span-2" />
         </div>
       </Card>
 
       <Card className="xl:col-span-1">
-        <CardHeader title="Tags" subtitle="Classification labels" />
+        <CardHeader title={t('userDetails.profile.tagsTitle')} subtitle={t('userDetails.profile.tagsSubtitle')} />
         {tags.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {tags.map((tag) => (
@@ -245,7 +255,10 @@ function ProfileTab({ user }) {
 
       {customDetails.length > 0 && (
         <Card className="xl:col-span-3">
-          <CardHeader title="Custom details" subtitle="Additional profile fields" />
+          <CardHeader
+            title={t('userDetails.profile.customDetailsTitle')}
+            subtitle={t('userDetails.profile.customDetailsSubtitle')}
+          />
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {customDetails.map(([key, value]) => (
               <InfoItem key={key} icon={Tag} label={key} value={value || EMPTY} compact />
@@ -258,6 +271,7 @@ function ProfileTab({ user }) {
 }
 
 function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
+  const { t, isRTL } = useI18n();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addForm, setAddForm] = useState({
     relationRole: '',
@@ -283,7 +297,7 @@ function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
   const canEdit = hasPermission('USERS_UPDATE');
   const currentUserId = String(user._id || user.id || '');
 
-  const familyGroups = useMemo(() => buildFamilyGroups(user), [user]);
+  const familyGroups = useMemo(() => buildFamilyGroups(user, t), [user, t]);
   const hasAnyFamily = familyGroups.some((group) => group.members.length > 0);
 
   const filteredRelationRoles = relationRoles
@@ -297,7 +311,7 @@ function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
   const linkFamilyMutation = useMutation({
     mutationFn: (payload) => usersApi.linkFamily(user._id || user.id, payload),
     onSuccess: () => {
-      toast.success('Family member linked successfully.');
+      toast.success(t('userDetails.messages.familyLinkedSuccess'));
       handleCloseModal();
       onRefresh();
     },
@@ -324,12 +338,12 @@ function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
     const phoneValue = selectedUser?.phonePrimary || addForm.targetPhone.trim();
 
     if (!relationRoleValue) {
-      setAddErrors({ relationRole: 'Relation label is required.' });
+      setAddErrors({ relationRole: t('userDetails.family.modal.relationRequired') });
       return;
     }
 
     if (!nameValue && !phoneValue) {
-      setAddErrors({ targetPhone: 'Add a linked user, name, or phone number.' });
+      setAddErrors({ targetPhone: t('userDetails.family.modal.nameOrPhoneRequired') });
       return;
     }
 
@@ -363,19 +377,19 @@ function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
   return (
     <Card className="space-y-5">
       <CardHeader
-        title="Family network"
-        subtitle="Linked members and relationship map"
+        title={t('userDetails.family.title')}
+        subtitle={t('userDetails.family.subtitle')}
         action={
           <div className="flex flex-wrap gap-2">
             {canAdd && (
               <Button variant="outline" size="sm" icon={Plus} onClick={() => setAddModalOpen(true)}>
-                Add family member
+                {t('userDetails.family.actions.addFamilyMember')}
               </Button>
             )}
             {canEdit && (
               <Link to={`/dashboard/users/${user._id || user.id}/edit`}>
                 <Button variant="outline" size="sm" icon={Edit}>
-                  Edit profile
+                  {t('userDetails.family.actions.editProfile')}
                 </Button>
               </Link>
             )}
@@ -385,8 +399,8 @@ function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
 
       {user.familyName && (
         <div className="rounded-xl border border-border bg-surface-alt/60 px-4 py-3 text-sm">
-          <span className="text-muted">Family name:</span>
-          <span className="ml-2 font-semibold text-heading">{user.familyName}</span>
+          <span className="text-muted">{t('userDetails.fields.familyName')}:</span>
+          <span className={`${isRTL ? 'mr-2' : 'ml-2'} font-semibold text-heading`}>{user.familyName}</span>
         </div>
       )}
 
@@ -407,23 +421,23 @@ function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
       ) : (
         <EmptyState
           icon={UsersIcon}
-          title="No family members linked"
-          description="Use the add action to attach relatives or linked profiles."
+          title={t('userDetails.family.empty.title')}
+          description={t('userDetails.family.empty.description')}
         />
       )}
 
       <Modal
         isOpen={addModalOpen}
         onClose={handleCloseModal}
-        title="Add family member"
+        title={t('userDetails.family.modal.title')}
         size="md"
         footer={
           <>
             <Button variant="ghost" onClick={handleCloseModal}>
-              Cancel
+              {t('common.actions.cancel')}
             </Button>
             <Button loading={linkFamilyMutation.isPending} onClick={handleAddFamilySubmit}>
-              Add
+              {t('common.actions.add')}
             </Button>
           </>
         }
@@ -431,7 +445,8 @@ function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
         <div className="space-y-4">
           <div className="relative">
             <label className="mb-1.5 block text-sm font-medium text-base">
-              Relation label <span className="ml-1 text-danger">*</span>
+              {t('userDetails.family.modal.relationLabel')}
+              <span className={`${isRTL ? 'mr-1' : 'ml-1'} text-danger`}>*</span>
             </label>
             <input
               type="text"
@@ -445,7 +460,7 @@ function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
               }}
               onFocus={() => setRelationRoleDropdownOpen(true)}
               onBlur={() => setTimeout(() => setRelationRoleDropdownOpen(false), 150)}
-              placeholder="Choose existing role or type a new one"
+              placeholder={t('userDetails.family.modal.relationPlaceholder')}
               className={`input-base w-full ${addErrors.relationRole ? 'border-danger focus:border-danger' : ''}`}
             />
             {addErrors.relationRole && <p className="mt-1 text-xs text-danger">{addErrors.relationRole}</p>}
@@ -471,7 +486,7 @@ function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
           </div>
 
           <UserSearchSelect
-            label="Link to an existing user (optional)"
+            label={t('userDetails.family.modal.linkExistingUser')}
             value={selectedUser}
             onChange={(selected) => {
               setSelectedUser(selected);
@@ -485,14 +500,14 @@ function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
           />
 
           <Input
-            label="Name (optional if linked)"
+            label={t('userDetails.family.modal.name')}
             value={addForm.name}
             onChange={(e) => setAddForm((prev) => ({ ...prev, name: e.target.value }))}
             containerClassName="!mb-0"
           />
 
           <Input
-            label="Phone number (optional if linked)"
+            label={t('userDetails.family.modal.phone')}
             value={addForm.targetPhone}
             dir="ltr"
             className="text-left"
@@ -507,7 +522,7 @@ function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
           />
 
           <TextArea
-            label="Notes"
+            label={t('userDetails.fields.notes')}
             value={addForm.notes}
             onChange={(e) => setAddForm((prev) => ({ ...prev, notes: e.target.value }))}
           />
@@ -517,41 +532,41 @@ function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
   );
 }
 
-function buildFamilyGroups(user) {
+function buildFamilyGroups(user, t) {
   return [
     {
       key: 'parents',
-      title: 'Parents',
+      title: t('userDetails.family.sections.parents'),
       members: [user.father, user.mother].filter(Boolean),
       inverse: false,
     },
     {
       key: 'spouse',
-      title: 'Spouse',
+      title: t('userDetails.family.sections.spouse'),
       members: [user.spouse].filter(Boolean),
       inverse: false,
     },
     {
       key: 'siblings',
-      title: 'Siblings',
+      title: t('userDetails.family.sections.siblings'),
       members: Array.isArray(user.siblings) ? user.siblings : [],
       inverse: false,
     },
     {
       key: 'children',
-      title: 'Children',
+      title: t('userDetails.family.sections.children'),
       members: Array.isArray(user.children) ? user.children : [],
       inverse: false,
     },
     {
       key: 'other',
-      title: 'Extended family',
+      title: t('userDetails.family.sections.extended'),
       members: Array.isArray(user.familyMembers) ? user.familyMembers : [],
       inverse: false,
     },
     {
       key: 'inverse',
-      title: 'Linked from other profiles',
+      title: t('userDetails.family.sections.inverse'),
       members: Array.isArray(user.inverseFamily) ? user.inverseFamily : [],
       inverse: true,
     },
@@ -577,6 +592,7 @@ function FamilyGroupSection({ title, members, currentUserId, inverse = false }) 
 }
 
 function FamilyMemberCard({ member, currentUserId, inverse }) {
+  const { t } = useI18n();
   const profileId = resolveMemberProfileId(member);
   const isCurrentUser = profileId && profileId === currentUserId;
 
@@ -601,7 +617,7 @@ function FamilyMemberCard({ member, currentUserId, inverse }) {
           <p className="truncate font-semibold text-heading">{member?.name || EMPTY}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             {member?.relationRole && <Badge>{member.relationRole}</Badge>}
-            {inverse && <Badge variant="secondary">Inverse link</Badge>}
+            {inverse && <Badge variant="secondary">{t('userDetails.family.inverseLink')}</Badge>}
           </div>
           {member?.notes && <p className="mt-1 line-clamp-2 text-xs text-muted">{member.notes}</p>}
         </div>
@@ -643,8 +659,15 @@ function resolveMemberProfileId(member) {
 }
 
 function countFamilyMembers(user) {
-  const groups = buildFamilyGroups(user);
-  return groups.reduce((total, group) => total + group.members.length, 0);
+  return (
+    (user.father ? 1 : 0) +
+    (user.mother ? 1 : 0) +
+    (user.spouse ? 1 : 0) +
+    (Array.isArray(user.siblings) ? user.siblings.length : 0) +
+    (Array.isArray(user.children) ? user.children.length : 0) +
+    (Array.isArray(user.familyMembers) ? user.familyMembers.length : 0) +
+    (Array.isArray(user.inverseFamily) ? user.inverseFamily.length : 0)
+  );
 }
 
 function UserDetailsSkeleton() {

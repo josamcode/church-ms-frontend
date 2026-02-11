@@ -97,7 +97,7 @@ export default function UsersListPage() {
     setDeleting(true);
     try {
       await usersApi.remove(deleteTarget._id || deleteTarget.id);
-      toast.success('User deleted successfully.');
+      toast.success(t('usersListPage.messages.deletedSuccess'));
       setDeleteTarget(null);
       refetch();
     } catch (err) {
@@ -126,7 +126,7 @@ export default function UsersListPage() {
     () => [
       {
         key: 'fullName',
-        label: 'Name',
+        label: t('usersListPage.columns.name'),
         render: (row) => (
           <div className="flex items-center gap-3">
             {row.avatar?.url ? (
@@ -147,32 +147,32 @@ export default function UsersListPage() {
       },
       {
         key: 'phonePrimary',
-        label: 'Phone',
+        label: t('usersListPage.columns.phone'),
         render: (row) => <span className="direction-ltr text-left">{row.phonePrimary || t('common.placeholder.empty')}</span>,
       },
       {
         key: 'role',
-        label: 'Role',
+        label: t('usersListPage.columns.role'),
         render: (row) => <Badge variant="primary">{getRoleLabel(row.role)}</Badge>,
       },
       {
         key: 'ageGroup',
-        label: 'Age group',
+        label: t('usersListPage.columns.ageGroup'),
         render: (row) => row.ageGroup || t('common.placeholder.empty'),
       },
       {
         key: 'gender',
-        label: 'Gender',
+        label: t('usersListPage.columns.gender'),
         render: (row) => getGenderLabel(row.gender),
       },
       {
         key: 'createdAt',
-        label: 'Joined',
+        label: t('usersListPage.columns.joined'),
         render: (row) => formatDate(row.createdAt),
       },
       {
         key: 'isLocked',
-        label: 'Status',
+        label: t('usersListPage.columns.status'),
         render: (row) => (
           <Badge variant={row.isLocked ? 'danger' : 'success'}>
             {row.isLocked ? t('common.status.locked') : t('common.status.active')}
@@ -217,19 +217,19 @@ export default function UsersListPage() {
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold text-heading">{t('shared.users')}</h1>
-              <p className="mt-1 text-sm text-muted">Manage accounts, permissions, and access from one place.</p>
+              <p className="mt-1 text-sm text-muted">{t('usersListPage.hero.description')}</p>
             </div>
             {hasPermission('USERS_CREATE') && (
               <Link to="/dashboard/users/new">
-                <Button icon={Plus}>Add User</Button>
+                <Button icon={Plus}>{t('usersListPage.actions.addUser')}</Button>
               </Link>
             )}
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <StatCard icon={Users} label="Users on this page" value={users.length} />
-            <StatCard icon={UserCheck} label="Active accounts" value={activeCount} tone="success" />
-            <StatCard icon={UserX} label="Locked accounts" value={lockedCount} tone="danger" />
+            <StatCard icon={Users} label={t('usersListPage.stats.usersOnPage')} value={users.length} />
+            <StatCard icon={UserCheck} label={t('usersListPage.stats.activeAccounts')} value={activeCount} tone="success" />
+            <StatCard icon={UserX} label={t('usersListPage.stats.lockedAccounts')} value={lockedCount} tone="danger" />
           </div>
         </div>
       </Card>
@@ -238,11 +238,11 @@ export default function UsersListPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Filters</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{t('usersListPage.filters.title')}</h2>
           </div>
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters}>
-              Clear filters
+              {t('usersListPage.filters.clear')}
             </Button>
           )}
         </div>
@@ -251,27 +251,27 @@ export default function UsersListPage() {
           <SearchInput
             value={filters.fullName}
             onChange={(v) => handleFilterChange('fullName', v)}
-            placeholder="Search by user name"
+            placeholder={t('usersListPage.filters.searchByName')}
           />
           <Select
             options={AGE_GROUPS.map((g) => ({ value: g, label: g }))}
             value={filters.ageGroup}
             onChange={(e) => handleFilterChange('ageGroup', e.target.value)}
-            placeholder="Age group"
+            placeholder={t('usersListPage.filters.ageGroup')}
             containerClassName="!mb-0"
           />
           <Select
             options={genderOptions}
             value={filters.gender}
             onChange={(e) => handleFilterChange('gender', e.target.value)}
-            placeholder="Gender"
+            placeholder={t('usersListPage.filters.gender')}
             containerClassName="!mb-0"
           />
           <Select
             options={roleOptions}
             value={filters.role}
             onChange={(e) => handleFilterChange('role', e.target.value)}
-            placeholder="Role"
+            placeholder={t('usersListPage.filters.role')}
             containerClassName="!mb-0"
           />
         </div>
@@ -280,8 +280,10 @@ export default function UsersListPage() {
       <Card padding={false} className="overflow-hidden">
         <div className="border-b border-border px-5 py-4 sm:px-6">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-heading">User Directory</h2>
-            <span className="text-sm text-muted">{meta?.count ?? users.length} results</span>
+            <h2 className="text-lg font-semibold text-heading">{t('usersListPage.table.title')}</h2>
+            <span className="text-sm text-muted">
+              {t('usersListPage.table.results', { count: meta?.count ?? users.length })}
+            </span>
           </div>
         </div>
 
@@ -290,8 +292,12 @@ export default function UsersListPage() {
             columns={columns}
             data={users}
             loading={isLoading}
-            emptyTitle="No users found"
-            emptyDescription={hasActiveFilters ? 'Try changing or clearing filters.' : 'Add your first user to get started.'}
+            emptyTitle={t('usersListPage.empty.title')}
+            emptyDescription={
+              hasActiveFilters
+                ? t('usersListPage.empty.descriptionFiltered')
+                : t('usersListPage.empty.descriptionDefault')
+            }
             emptyIcon={Users}
           />
         </div>
@@ -310,7 +316,7 @@ export default function UsersListPage() {
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        title="Delete user"
+        title={t('usersListPage.delete.title')}
         size="sm"
         footer={
           <>
@@ -324,8 +330,9 @@ export default function UsersListPage() {
         }
       >
         <p className="text-sm text-muted">
-          Are you sure you want to delete <strong className="text-heading">{deleteTarget?.fullName}</strong>? This
-          action cannot be undone.
+          {t('usersListPage.delete.confirmPrefix')}{' '}
+          <strong className="text-heading">{deleteTarget?.fullName}</strong>
+          {' '}{t('usersListPage.delete.confirmSuffix')}
         </p>
       </Modal>
     </div>
