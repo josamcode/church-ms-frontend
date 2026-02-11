@@ -6,7 +6,6 @@
 
 @layer base {
   html {
-    direction: ltr;
     font-family: "Inter", sans-serif;
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
@@ -14,16 +13,19 @@
   }
 
   html[dir='rtl'] {
+    direction: rtl;
     font-family: "Cairo", sans-serif;
   }
 
   html[dir='ltr'] {
+    direction: ltr;
     font-family: "Inter", sans-serif;
   }
 
   body {
     @apply bg-page text-base min-h-screen;
     font-family: inherit;
+    direction: inherit;
   }
 
   *,
