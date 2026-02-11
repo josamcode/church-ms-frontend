@@ -80,34 +80,40 @@ export default function ProfilePage() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:min-w-[220px]">
-            <MiniStat label="Primary phone" value={primaryPhone} ltr />
-            <MiniStat label="Birth date" value={formatDate(user?.birthDate) || empty} />
+            <MiniStat label={t('profilePage.fields.primaryPhone')} value={primaryPhone} ltr />
+            <MiniStat label={t('profilePage.fields.birthDate')} value={formatDate(user?.birthDate) || empty} />
           </div>
         </div>
       </Card>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
-          <CardHeader title="Profile details" subtitle="Core personal and contact details" />
+          <CardHeader
+            title={t('profilePage.sections.profileDetails.title')}
+            subtitle={t('profilePage.sections.profileDetails.subtitle')}
+          />
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <InfoRow icon={Calendar} label="Birth date" value={formatDate(user?.birthDate)} />
-            <InfoRow icon={UserCircle} label="Gender" value={getGenderLabel(user?.gender)} />
-            <InfoRow icon={Phone} label="Primary phone" value={primaryPhone} dir="ltr" />
-            <InfoRow icon={Phone} label="Secondary phone" value={secondaryPhone} dir="ltr" />
-            <InfoRow icon={Mail} label="Email" value={email} dir="ltr" />
-            <InfoRow icon={ShieldCheck} label="Role" value={roleLabel} />
+            <InfoRow icon={Calendar} label={t('profilePage.fields.birthDate')} value={formatDate(user?.birthDate)} />
+            <InfoRow icon={UserCircle} label={t('profilePage.fields.gender')} value={getGenderLabel(user?.gender)} />
+            <InfoRow icon={Phone} label={t('profilePage.fields.primaryPhone')} value={primaryPhone} dir="ltr" />
+            <InfoRow icon={Phone} label={t('profilePage.fields.secondaryPhone')} value={secondaryPhone} dir="ltr" />
+            <InfoRow icon={Mail} label={t('profilePage.fields.email')} value={email} dir="ltr" />
+            <InfoRow icon={ShieldCheck} label={t('profilePage.fields.role')} value={roleLabel} />
           </div>
         </Card>
 
         <Card className="xl:col-span-1">
-          <CardHeader title="Location and tags" subtitle="Address and labels" />
+          <CardHeader
+            title={t('profilePage.sections.locationAndTags.title')}
+            subtitle={t('profilePage.sections.locationAndTags.subtitle')}
+          />
           <div className="space-y-3 text-sm">
-            <InfoRow icon={MapPin} label="Address" value={addressValue} />
-            <InfoRow icon={UserCircle} label="Family name" value={user?.familyName || empty} />
+            <InfoRow icon={MapPin} label={t('profilePage.fields.address')} value={addressValue} />
+            <InfoRow icon={UserCircle} label={t('profilePage.fields.familyName')} value={user?.familyName || empty} />
             <div className="rounded-xl border border-border bg-surface-alt/60 p-3">
               <div className="mb-2 flex items-center gap-2 text-muted">
                 <Tag className="h-4 w-4" />
-                <span className="text-xs font-semibold uppercase tracking-wide">Tags</span>
+                <span className="text-xs font-semibold uppercase tracking-wide">{t('profilePage.fields.tags')}</span>
               </div>
               {user?.tags?.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
@@ -124,11 +130,14 @@ export default function ProfilePage() {
       </div>
 
       <Card>
-        <CardHeader title="Account snapshot" subtitle="Authentication and timeline data" />
+        <CardHeader
+          title={t('profilePage.sections.accountSnapshot.title')}
+          subtitle={t('profilePage.sections.accountSnapshot.subtitle')}
+        />
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <InfoRow icon={ShieldCheck} label="Account status" value={statusLabel} tone={statusVariant} />
-          <InfoRow icon={Clock3} label="Joined on" value={formatDate(user?.createdAt)} />
-          <InfoRow icon={Clock3} label="Last updated" value={formatDate(user?.updatedAt)} />
+          <InfoRow icon={ShieldCheck} label={t('profilePage.fields.accountStatus')} value={statusLabel} tone={statusVariant} />
+          <InfoRow icon={Clock3} label={t('profilePage.fields.joinedOn')} value={formatDate(user?.createdAt)} />
+          <InfoRow icon={Clock3} label={t('profilePage.fields.lastUpdated')} value={formatDate(user?.updatedAt)} />
         </div>
       </Card>
     </div>
@@ -136,15 +145,19 @@ export default function ProfilePage() {
 }
 
 function MiniStat({ label, value, ltr = false }) {
+  const { t } = useI18n();
   return (
     <div className="rounded-xl border border-border/80 bg-surface/90 px-4 py-3">
       <p className="text-xs text-muted">{label}</p>
-      <p className={`mt-1 text-sm font-semibold text-heading ${ltr ? 'direction-ltr text-left' : ''}`}>{value}</p>
+      <p className={`mt-1 text-sm font-semibold text-heading ${ltr ? 'direction-ltr text-left' : ''}`}>
+        {value || t('common.placeholder.empty')}
+      </p>
     </div>
   );
 }
 
 function InfoRow({ icon: Icon, label, value, dir, tone = 'default' }) {
+  const { t } = useI18n();
   const toneClass = tone === 'success' ? 'text-success' : tone === 'danger' ? 'text-danger' : 'text-heading';
 
   return (
@@ -156,7 +169,7 @@ function InfoRow({ icon: Icon, label, value, dir, tone = 'default' }) {
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
           <p className={`mt-1 text-sm font-semibold ${toneClass} ${dir === 'ltr' ? 'direction-ltr text-left' : ''}`}>
-            {value || '---'}
+            {value || t('common.placeholder.empty')}
           </p>
         </div>
       </div>
