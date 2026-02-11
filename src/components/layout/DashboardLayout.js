@@ -285,13 +285,9 @@ export default function DashboardLayout() {
                 />
               ) : (
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                  <UserCircle className="h-5 w-5 text-primary" />
+                  <UserCircle className="h-6 w-6 text-primary" />
                 </div>
               )}
-              <div className="hidden lg:block">
-                <p className="text-xs text-muted">{t('dashboardLayout.menu.profile')}</p>
-                <p className="max-w-[150px] truncate font-medium text-heading">{user?.fullName}</p>
-              </div>
             </Link>
           </div>
         </header>
