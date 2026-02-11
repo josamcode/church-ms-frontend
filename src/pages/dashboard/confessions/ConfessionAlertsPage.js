@@ -14,6 +14,7 @@ import Badge from '../../../components/ui/Badge';
 import { formatDateTime } from '../../../utils/formatters';
 import toast from 'react-hot-toast';
 import { useI18n } from '../../../i18n/i18n';
+import useNavigateToUser from '../../../hooks/useNavigateToUser';
 
 export default function ConfessionAlertsPage() {
   const { hasPermission } = useAuth();
@@ -77,13 +78,15 @@ export default function ConfessionAlertsPage() {
     updateThresholdMutation.mutate(parsed);
   };
 
+  const navigateToUser = useNavigateToUser();
+
   const columns = useMemo(
     () => [
       {
         key: 'fullName',
         label: t('confessions.alerts.columns.user'),
         render: (row) => (
-          <div>
+          <div onClick={() => navigateToUser(row.userId)} className='cursor-pointer'>
             <p className="font-medium text-heading">{row.fullName}</p>
             {row.phonePrimary && (
               <p className="text-xs text-muted direction-ltr text-left">{row.phonePrimary}</p>
