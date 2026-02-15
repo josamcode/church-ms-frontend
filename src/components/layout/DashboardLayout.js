@@ -154,10 +154,9 @@ export default function DashboardLayout() {
                 to={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all
-                  ${
-                    isItemActive(item)
-                      ? 'bg-primary text-white shadow-dropdown'
-                      : 'text-muted hover:bg-surface-alt hover:text-heading'
+                  ${isItemActive(item)
+                    ? 'bg-primary text-white shadow-dropdown'
+                    : 'text-muted hover:bg-surface-alt hover:text-heading'
                   }`}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -205,101 +204,97 @@ export default function DashboardLayout() {
       </div>
 
       <div className="flex">
-      <aside
-        className={`fixed top-0 z-30 hidden h-screen flex-col border-border bg-surface/95 shadow-lg backdrop-blur-sm transition-all duration-300 lg:flex
+        <aside
+          className={`fixed top-0 z-30 hidden h-screen flex-col border-border bg-surface/95 shadow-lg backdrop-blur-sm transition-all duration-300 lg:flex
           ${isRTL ? 'right-0 border-l' : 'left-0 border-r'} border-border
           ${collapsed ? 'w-[72px]' : 'w-[260px]'}
         `}
-      >
-        <SidebarContent />
-        <button
-          onClick={() => setCollapsed((v) => !v)}
-          className={`absolute top-20 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-sm hover:text-base ${isRTL ? '-left-3' : '-right-3'
-            }`}
-          aria-label={collapsed ? t('dashboardLayout.expandSidebar') : t('dashboardLayout.collapseSidebar')}
         >
-          <CollapseIcon className={`h-3.5 w-3.5 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
-        </button>
-      </aside>
-
-      {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-40">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-          <aside
-            className={`absolute top-0 h-full w-[260px] animate-slide-right border-border bg-surface z-10 ${isRTL ? 'right-0 border-l' : 'left-0 border-r'
+          <SidebarContent />
+          <button
+            onClick={() => setCollapsed((v) => !v)}
+            className={`absolute top-20 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-sm hover:text-base ${isRTL ? '-left-3' : '-right-3'
               }`}
+            aria-label={collapsed ? t('dashboardLayout.expandSidebar') : t('dashboardLayout.collapseSidebar')}
           >
-            <SidebarContent />
-          </aside>
-        </div>
-      )}
+            <CollapseIcon className={`h-3.5 w-3.5 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
+          </button>
+        </aside>
 
-      <div
-        className={`flex-1 transition-all duration-300 ${collapsed
+        {sidebarOpen && (
+          <div className="lg:hidden fixed inset-0 z-40">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
+            <aside
+              className={`absolute top-0 h-full w-[260px] animate-slide-right border-border bg-surface z-10 ${isRTL ? 'right-0 border-l' : 'left-0 border-r'
+                }`}
+            >
+              <SidebarContent />
+            </aside>
+          </div>
+        )}
+
+        <div
+          className={`flex-1 transition-all duration-300 ${collapsed
             ? isRTL
               ? 'lg:mr-[72px]'
               : 'lg:ml-[72px]'
             : isRTL
               ? 'lg:mr-[260px]'
               : 'lg:ml-[260px]'
-          }`}
-      >
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-border bg-surface/95 px-4 backdrop-blur lg:px-6">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="rounded-md p-2 text-muted hover:bg-surface-alt hover:text-base lg:hidden"
-            aria-label={t('common.actions.openMenu')}
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-
-          <div className="min-w-0">
-            <p className="truncate text-xs text-muted">{todayLabel}</p>
-            <h1 className="truncate text-base font-semibold text-heading md:text-lg">{activeItem?.label || t('dashboardLayout.menu.dashboard')}</h1>
-          </div>
-
-          <div className="flex-1" />
-
-          <div className="flex items-center gap-3">
-            <div className="hidden md:inline-flex">
-              <LanguageSwitcher />
-            </div>
-
+            }`}
+        >
+          <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-border bg-surface/95 px-4 backdrop-blur lg:px-6">
             <button
-              onClick={toggleDark}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted transition-colors hover:bg-surface-alt hover:text-heading"
-              aria-label={darkMode ? t('common.theme.light') : t('common.theme.dark')}
+              onClick={() => setSidebarOpen(true)}
+              className="rounded-md p-2 text-muted hover:bg-surface-alt hover:text-base lg:hidden"
+              aria-label={t('common.actions.openMenu')}
             >
-              {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              <Menu className="h-5 w-5" />
             </button>
 
-            <Link
-              to="/dashboard/profile"
-              className="flex items-center gap-2 rounded-xl border border-border bg-surface px-2 py-1.5 text-sm transition-colors hover:border-primary/30 hover:bg-surface-alt"
-            >
-              {user?.avatar?.url ? (
-                <img
-                  src={user.avatar.url}
-                  alt=""
-                  className="h-8 w-8 rounded-full border border-border object-cover"
-                />
-              ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                  <UserCircle className="h-6 w-6 text-primary" />
-                </div>
-              )}
-            </Link>
-          </div>
-        </header>
+            <div className="min-w-0">
+              <p className="truncate text-xs text-muted">{todayLabel}</p>
+              <h1 className="truncate text-base font-semibold text-heading md:text-lg">{activeItem?.label || t('dashboardLayout.menu.dashboard')}</h1>
+            </div>
 
-        <main className="mx-auto w-full max-w-[1240px] px-4 py-5 lg:px-8 lg:py-8">
-          <div className="mb-5 hidden items-center gap-2 rounded-xl border border-border/70 bg-surface/80 px-3 py-2 text-sm text-muted md:inline-flex">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span>{t('dashboardHome.role', { role: getRoleLabel(user?.role) })}</span>
-          </div>
-          <Outlet />
-        </main>
-      </div>
+            <div className="flex-1" />
+
+            <div className="flex items-center gap-3">
+              <div className="hidden md:inline-flex">
+                <LanguageSwitcher />
+              </div>
+
+              <button
+                onClick={toggleDark}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted transition-colors hover:bg-surface-alt hover:text-heading"
+                aria-label={darkMode ? t('common.theme.light') : t('common.theme.dark')}
+              >
+                {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+
+              <Link
+                to="/dashboard/profile"
+                className="flex items-center gap-2 rounded-xl border border-border bg-surface px-2 py-1.5 text-sm transition-colors hover:border-primary/30 hover:bg-surface-alt"
+              >
+                {user?.avatar?.url ? (
+                  <img
+                    src={user.avatar.url}
+                    alt=""
+                    className="h-8 w-8 rounded-full border border-border object-cover"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                    <UserCircle className="h-6 w-6 text-primary" />
+                  </div>
+                )}
+              </Link>
+            </div>
+          </header>
+
+          <main className="mx-auto w-full max-w-[1240px] px-4 py-5 lg:px-8 lg:py-8">
+            <Outlet />
+          </main>
+        </div>
       </div>
     </div>
   );
