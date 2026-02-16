@@ -234,6 +234,11 @@ export default function ConfessionSessionsPage() {
       ),
     },
     {
+      key: 'createdBy',
+      label: t('confessions.sessions.columns.createdBy'),
+      render: (row) => row.createdByUser?.fullName || t('common.placeholder.empty'),
+    },
+    {
       key: 'sessionType',
       label: t('confessions.sessions.columns.type'),
       render: (row) => localizeSessionTypeName(row.sessionType?.name, t),

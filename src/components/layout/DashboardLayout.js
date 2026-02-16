@@ -115,6 +115,7 @@ export default function DashboardLayout() {
     .filter((item) => item.href)
     .sort((a, b) => b.href.length - a.href.length)
     .find((item) => isItemActive(item));
+  const sidebarTooltipPosition = isRTL ? 'left' : 'right';
 
   const todayLabel = useMemo(
     () =>
@@ -126,73 +127,107 @@ export default function DashboardLayout() {
     [language]
   );
 
-  const SidebarContent = () => (
-    <div className="relative flex h-full flex-col">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-primary/10 to-transparent" />
-      <div
-        className="relative flex cursor-pointer items-center gap-3 border-b border-border p-4"
-        onClick={() => navigate('/')}
-      >
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Church className="h-5 w-5" />
+  const SidebarContent = ({ mobile = false } = {}) => {
+    const compact = collapsed && !mobile;
+
+    return (
+      <div className="relative flex h-full flex-col">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent" />
+
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <button
+            type="button"
+            className={`mx-3 mt-3 flex items-center gap-3 rounded-2xl border-b border-border/70 bg-surface-alt/50 px-3 py-3 text-left transition-colors hover:border-primary/30 hover:bg-surface-alt ${compact ? 'justify-center' : ''
+              }`}
+            onClick={() => navigate('/')}
+          >
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Church className="h-5 w-5" />
+            </div>
+            {!compact && (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-heading">{t('common.appName')}</p>
+              </div>
+            )}
+          </button>
+
+          <nav className={`relative flex-1 space-y-1.5 overflow-y-auto py-3 ${compact ? 'px-2' : 'px-3'}`}>
+            {filteredItems.map((item, i) => {
+              if (item.type === 'divider') {
+                return <hr key={i} className={`my-2 border-border ${compact ? 'mx-1' : ''}`} />;
+              }
+
+              const active = isItemActive(item);
+              return (
+                <Tooltip key={item.href} content={compact ? item.label : null} position={sidebarTooltipPosition} className="w-[calc(100%-20px)]">
+                  <Link
+                    to={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`group relative flex w-full items-center rounded-xl border py-2.5 text-sm font-medium transition-all
+                    ${compact ? 'justify-center px-2' : 'gap-3 px-3'}
+                    ${active
+                        ? 'border-primary/25 bg-primary/10 text-primary shadow-card'
+                        : 'border-transparent text-muted hover:border-border/60 hover:bg-surface-alt/80 hover:text-heading'
+                      }`}
+                  >
+                    {active && (
+                      <span
+                        className={`absolute inset-y-2 w-1 rounded-full bg-primary ${isRTL ? 'right-1' : 'left-1'}`}
+                        aria-hidden
+                      />
+                    )}
+                    <span
+                      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors
+                      ${active ? 'bg-primary/15 text-primary' : 'bg-surface-alt/70 text-muted group-hover:bg-surface-alt'}`}
+                    >
+                      <item.icon className="h-4 w-4" />
+                    </span>
+                    {!compact && <span className="truncate">{item.label}</span>}
+                    {!compact && active && (
+                      <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} inline-flex h-2 w-2 rounded-full bg-primary`} />
+                    )}
+                  </Link>
+                </Tooltip>);
+            })}
+          </nav>
         </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-heading">{t('common.appName')}</p>
-            <p className="truncate text-xs text-muted">{getRoleLabel(user?.role)}</p>
-          </div>
-        )}
-      </div>
 
-      <nav className="relative flex-1 space-y-1 overflow-y-auto p-3">
-        {filteredItems.map((item, i) =>
-          item.type === 'divider' ? (
-            <hr key={i} className="my-2 border-border" />
-          ) : (
-            <Tooltip key={item.href} content={collapsed ? item.label : null} position={isRTL ? 'left' : 'right'}>
-              <Link
-                to={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all
-                  ${isItemActive(item)
-                    ? 'bg-primary text-white shadow-dropdown'
-                    : 'text-muted hover:bg-surface-alt hover:text-heading'
-                  }`}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-                {!collapsed && isItemActive(item) && (
-                  <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} inline-flex h-2 w-2 rounded-full bg-white/90`} />
-                )}
-              </Link>
-            </Tooltip>
-          )
-        )}
-      </nav>
+        <div className={`space-y-2 border-t border-border/80 ${compact ? 'p-2' : 'p-3'}`}>
+          {!compact && (
+            <div className="rounded-xl border border-border/80 bg-surface-alt/60 p-2">
+              <LanguageSwitcher className="w-full justify-center" />
+            </div>
+          )}
 
-      <div className="space-y-2 border-t border-border p-3">
-        {!collapsed && (
-          <div className="rounded-lg border border-border bg-surface-alt/70 p-2">
-            <LanguageSwitcher className="w-full justify-center" />
-          </div>
-        )}
-        <button
-          onClick={toggleDark}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted transition-colors hover:bg-surface-alt hover:text-heading"
-        >
-          {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          {!collapsed && <span>{darkMode ? t('common.theme.light') : t('common.theme.dark')}</span>}
-        </button>
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-danger transition-colors hover:bg-danger-light"
-        >
-          <LogOut className="h-5 w-5" />
-          {!collapsed && <span>{t('common.actions.logout')}</span>}
-        </button>
+          <Tooltip content={compact ? (darkMode ? t('common.theme.light') : t('common.theme.dark')) : null} position={sidebarTooltipPosition}>
+            <button
+              onClick={toggleDark}
+              className={`group flex w-full items-center rounded-xl border border-transparent py-2.5 text-sm text-muted transition-all hover:border-border/70 hover:bg-surface-alt hover:text-heading ${compact ? 'justify-center px-2' : 'gap-3 px-3'
+                }`}
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-alt/80 text-muted transition-colors group-hover:text-heading">
+                {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </span>
+              {!compact && <span>{darkMode ? t('common.theme.light') : t('common.theme.dark')}</span>}
+            </button>
+          </Tooltip>
+
+          <Tooltip content={compact ? t('common.actions.logout') : null} position={sidebarTooltipPosition}>
+            <button
+              onClick={handleLogout}
+              className={`group flex w-full items-center rounded-xl border border-transparent py-2.5 text-sm text-danger transition-all hover:border-danger/20 hover:bg-danger-light ${compact ? 'justify-center px-2' : 'gap-3 px-3'
+                }`}
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-danger-light text-danger">
+                <LogOut className="h-4 w-4" />
+              </span>
+              {!compact && <span>{t('common.actions.logout')}</span>}
+            </button>
+          </Tooltip>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const CollapseIcon = isRTL ? ChevronLeft : ChevronRight;
 
@@ -205,15 +240,15 @@ export default function DashboardLayout() {
 
       <div className="flex">
         <aside
-          className={`fixed top-0 z-30 hidden h-screen flex-col border-border bg-surface/95 shadow-lg backdrop-blur-sm transition-all duration-300 lg:flex
-          ${isRTL ? 'right-0 border-l' : 'left-0 border-r'} border-border
-          ${collapsed ? 'w-[72px]' : 'w-[260px]'}
+          className={`fixed top-0 z-30 hidden h-screen flex-col bg-surface/95 shadow-lg backdrop-blur-sm transition-all duration-300 lg:flex
+          ${isRTL ? 'right-0 border-l' : 'left-0 border-r'} border-border/80
+          ${collapsed ? 'w-[76px]' : 'w-[280px]'}
         `}
         >
           <SidebarContent />
           <button
             onClick={() => setCollapsed((v) => !v)}
-            className={`absolute top-20 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-sm hover:text-base ${isRTL ? '-left-3' : '-right-3'
+            className={`absolute top-24 flex h-7 w-7 items-center justify-center rounded-full border border-border/80 bg-surface text-muted shadow-card transition-colors hover:text-heading ${isRTL ? '-left-3.5' : '-right-3.5'
               }`}
             aria-label={collapsed ? t('dashboardLayout.expandSidebar') : t('dashboardLayout.collapseSidebar')}
           >
@@ -223,12 +258,12 @@ export default function DashboardLayout() {
 
         {sidebarOpen && (
           <div className="lg:hidden fixed inset-0 z-40">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => setSidebarOpen(false)} />
             <aside
-              className={`absolute top-0 h-full w-[260px] animate-slide-right border-border bg-surface z-10 ${isRTL ? 'right-0 border-l' : 'left-0 border-r'
+              className={`absolute top-0 h-full w-[280px] animate-slide-right border-border/80 bg-surface z-10 ${isRTL ? 'right-0 border-l' : 'left-0 border-r'
                 }`}
             >
-              <SidebarContent />
+              <SidebarContent mobile />
             </aside>
           </div>
         )}
@@ -236,11 +271,11 @@ export default function DashboardLayout() {
         <div
           className={`flex-1 transition-all duration-300 ${collapsed
             ? isRTL
-              ? 'lg:mr-[72px]'
-              : 'lg:ml-[72px]'
+              ? 'lg:mr-[76px]'
+              : 'lg:ml-[76px]'
             : isRTL
-              ? 'lg:mr-[260px]'
-              : 'lg:ml-[260px]'
+              ? 'lg:mr-[280px]'
+              : 'lg:ml-[280px]'
             }`}
         >
           <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-border bg-surface/95 px-4 backdrop-blur lg:px-6">
