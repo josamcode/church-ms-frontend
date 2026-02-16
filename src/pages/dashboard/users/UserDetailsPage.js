@@ -262,6 +262,7 @@ function ProfileTab({ user }) {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <InfoItem icon={MapPin} label={t('userDetails.fields.address')} value={address} />
           <InfoItem icon={UsersIcon} label={t('userDetails.fields.familyName')} value={user.familyName || EMPTY} />
+          <InfoItem icon={UsersIcon} label={t('userDetails.fields.houseName')} value={user.houseName || EMPTY} />
           <InfoItem icon={User} label={t('userDetails.fields.notes')} value={user.notes || EMPTY} className="md:col-span-2" />
         </div>
       </Card>
@@ -423,10 +424,20 @@ function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
         }
       />
 
-      {user.familyName && (
-        <div className="rounded-xl border border-border bg-surface-alt/60 px-4 py-3 text-sm">
-          <span className="text-muted">{t('userDetails.fields.familyName')}:</span>
-          <span className={`${isRTL ? 'mr-2' : 'ml-2'} font-semibold text-heading`}>{user.familyName}</span>
+      {(user.familyName || user.houseName) && (
+        <div className="flex gap-3">
+          {user.familyName && (
+            <div className="rounded-xl border border-border bg-surface-alt/60 px-4 py-3 text-sm">
+              <span className="text-muted">{t('userDetails.fields.familyName')}:</span>
+              <span className={`${isRTL ? 'mr-2' : 'ml-2'} font-semibold text-heading`}>{user.familyName}</span>
+            </div>
+          )}
+          {user.houseName && (
+            <div className={user.familyName ? 'mt-1 rounded-xl border border-border bg-surface-alt/60 px-4 py-3 text-sm' : ''}>
+              <span className="text-muted">{t('userDetails.fields.houseName')}:</span>
+              <span className={`${isRTL ? 'mr-2' : 'ml-2'} font-semibold text-heading`}>{user.houseName}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -624,11 +635,10 @@ function FamilyMemberCard({ member, currentUserId, inverse }) {
 
   const content = (
     <div
-      className={`rounded-xl border p-3 transition-all ${
-        isCurrentUser
-          ? 'border-primary/40 bg-primary/10'
-          : 'border-border bg-surface-alt/40 hover:border-primary/30 hover:bg-surface'
-      }`}
+      className={`rounded-xl border p-3 transition-all ${isCurrentUser
+        ? 'border-primary/40 bg-primary/10'
+        : 'border-border bg-surface-alt/40 hover:border-primary/30 hover:bg-surface'
+        }`}
     >
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -725,7 +735,7 @@ function normalizePhoneNumber(rawPhone) {
 }
 
 function toAsciiDigits(value) {
-   return String(value)
+  return String(value)
     .split('')
     .map((char) => {
       const code = char.charCodeAt(0);

@@ -31,7 +31,7 @@ export default function UserCreatePage() {
   const [form, setForm] = useState({
     fullName: '', phonePrimary: '', email: '', birthDate: '',
     gender: 'male', nationalId: '', notes: '', phoneSecondary: '',
-    whatsappNumber: '', familyName: '', role: 'USER', password: '',
+    whatsappNumber: '', familyName: '', houseName: '', role: 'USER', password: '',
     governorate: '', city: '', street: '', details: '',
   });
   const [avatar, setAvatar] = useState(null);
@@ -63,6 +63,17 @@ export default function UserCreatePage() {
   const familyNames = Array.isArray(familyNamesRes) ? familyNamesRes : [];
   const [familyNameDropdownOpen, setFamilyNameDropdownOpen] = useState(false);
   const familyNameInputRef = useRef(null);
+  const { data: houseNamesRes } = useQuery({
+    queryKey: ['users', 'house-names'],
+    queryFn: async () => {
+      const res = await usersApi.getHouseNames();
+      const data = res.data?.data ?? res.data;
+      return Array.isArray(data) ? data : [];
+    },
+  });
+  const houseNames = Array.isArray(houseNamesRes) ? houseNamesRes : [];
+  const [houseNameDropdownOpen, setHouseNameDropdownOpen] = useState(false);
+  const houseNameInputRef = useRef(null);
 
   const mutation = useMutation({
     mutationFn: (data) => usersApi.create(data),
@@ -71,6 +82,7 @@ export default function UserCreatePage() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'custom-detail-keys'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'family-names'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'house-names'] });
       navigate('/dashboard/users');
     },
     onError: (err) => {
@@ -124,6 +136,7 @@ export default function UserCreatePage() {
     if (form.phoneSecondary) payload.phoneSecondary = form.phoneSecondary;
     if (form.whatsappNumber) payload.whatsappNumber = form.whatsappNumber;
     if (form.familyName) payload.familyName = form.familyName;
+    if (form.houseName) payload.houseName = form.houseName;
     if (form.password) payload.password = form.password;
     if (form.governorate || form.city || form.street || form.details) {
       payload.address = {};
@@ -291,11 +304,54 @@ export default function UserCreatePage() {
                       <li
                         key={name}
                         role="option"
+                        aria-selected={form.familyName === name}
                         className="px-3 py-2 text-sm cursor-pointer hover:bg-muted focus:bg-muted hover:text-white"
                         onMouseDown={(e) => {
                           e.preventDefault();
                           update('familyName', name);
                           setFamilyNameDropdownOpen(false);
+                        }}
+                      >
+                        {name}
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
+            <div className="mb-4 relative">
+              <label className="block text-sm font-medium text-base mb-1.5">اسم البيت</label>
+              <input
+                ref={houseNameInputRef}
+                type="text"
+                value={form.houseName}
+                onChange={(e) => {
+                  update('houseName', e.target.value);
+                  setHouseNameDropdownOpen(true);
+                }}
+                onFocus={() => setHouseNameDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setHouseNameDropdownOpen(false), 200)}
+                placeholder="ابحث أو اكتب اسم البيت"
+                className="input-base w-full"
+              />
+              {houseNameDropdownOpen && houseNames.length > 0 && (
+                <ul
+                  className="absolute z-20 mt-1 w-full max-h-48 overflow-auto rounded-md border border-border shadow-lg py-1"
+                  style={{ backgroundColor: 'var(--color-surface, #ffffff)' }}
+                  role="listbox"
+                >
+                  {houseNames
+                    .filter((name) => !form.houseName || name.toLowerCase().includes(form.houseName.trim().toLowerCase()))
+                    .slice(0, 20)
+                    .map((name) => (
+                      <li
+                        key={name}
+                        role="option"
+                        aria-selected={form.houseName === name}
+                        className="px-3 py-2 text-sm cursor-pointer hover:bg-muted focus:bg-muted hover:text-white"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          update('houseName', name);
+                          setHouseNameDropdownOpen(false);
                         }}
                       >
                         {name}

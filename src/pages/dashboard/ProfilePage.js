@@ -110,6 +110,7 @@ export default function ProfilePage() {
           <div className="space-y-3 text-sm">
             <InfoRow icon={MapPin} label={t('profilePage.fields.address')} value={addressValue} />
             <InfoRow icon={UserCircle} label={t('profilePage.fields.familyName')} value={user?.familyName || empty} />
+            <InfoRow icon={UserCircle} label={t('profilePage.fields.houseName')} value={user?.houseName || empty} />
             <div className="rounded-xl border border-border bg-surface-alt/60 p-3">
               <div className="mb-2 flex items-center gap-2 text-muted">
                 <Tag className="h-4 w-4" />

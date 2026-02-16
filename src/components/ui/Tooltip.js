@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function Tooltip({ content, children, position = 'top' }) {
+export default function Tooltip({ content, children, position = 'top', className = '' }) {
   const [visible, setVisible] = useState(false);
 
   const positions = {
@@ -12,7 +12,7 @@ export default function Tooltip({ content, children, position = 'top' }) {
 
   return (
     <div
-      className="relative inline-flex"
+      className={`relative inline-flex ${className}`}
       onMouseEnter={() => setVisible(true)}
       onMouseLeave={() => setVisible(false)}
       onFocus={() => setVisible(true)}

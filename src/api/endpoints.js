@@ -18,6 +18,7 @@ export const usersApi = {
   getById: (id) => apiClient.get(`/users/${id}`),
   getCustomDetailKeys: () => apiClient.get('/users/custom-detail-keys'),
   getFamilyNames: () => apiClient.get('/users/family-names'),
+  getHouseNames: () => apiClient.get('/users/house-names'),
   getRelationRoles: () => apiClient.get('/users/relation-roles'),
   createRelationRole: (label) => apiClient.post('/users/relation-roles', { label }),
   create: (data) => apiClient.post('/users', data),

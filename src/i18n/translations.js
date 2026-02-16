@@ -204,6 +204,7 @@ export const translations = {
         role: 'Role',
         address: 'Address',
         familyName: 'Family name',
+        houseName: 'House name',
         tags: 'Tags',
         accountStatus: 'Account status',
         joinedOn: 'Joined on',
@@ -301,6 +302,7 @@ export const translations = {
         email: 'Email',
         address: 'Address',
         familyName: 'Family name',
+        houseName: 'House name',
         notes: 'Notes',
       },
       family: {
@@ -374,6 +376,7 @@ export const translations = {
         },
         columns: {
           attendee: 'Attendee',
+          createdBy: 'Created By',
           type: 'Session Type',
           scheduledAt: 'Session Date/Time',
           nextSessionAt: 'Next Session',
@@ -658,6 +661,7 @@ export const translations = {
         role: 'الدور',
         address: 'العنوان',
         familyName: 'اسم العائلة',
+        houseName: 'اسم البيت',
         tags: 'الوسوم',
         accountStatus: 'حالة الحساب',
         joinedOn: 'تاريخ الانضمام',
@@ -755,6 +759,7 @@ export const translations = {
         email: 'البريد الإلكتروني',
         address: 'العنوان',
         familyName: 'اسم العائلة',
+        houseName: 'اسم البيت',
         notes: 'ملاحظات',
       },
       family: {
@@ -828,6 +833,7 @@ export const translations = {
         },
         columns: {
           attendee: 'المعترف',
+          createdBy: 'تمت بواسطة',
           type: 'نوع الجلسة',
           scheduledAt: 'تاريخ/وقت الجلسة',
           nextSessionAt: 'الجلسة التالية',
