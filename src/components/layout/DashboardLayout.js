@@ -253,7 +253,6 @@ export default function DashboardLayout() {
             </button>
 
             <div className="min-w-0">
-              <p className="truncate text-xs text-muted">{todayLabel}</p>
               <h1 className="truncate text-base font-semibold text-heading md:text-lg">{activeItem?.label || t('dashboardLayout.menu.dashboard')}</h1>
             </div>
 
