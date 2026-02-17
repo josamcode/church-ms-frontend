@@ -16,6 +16,7 @@ import {
   BellRing,
   BarChart3,
   Sparkles,
+  Building2,
 } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
 import Tooltip from '../ui/Tooltip';
@@ -54,6 +55,13 @@ export default function DashboardLayout() {
         icon: Users,
         permission: 'USERS_VIEW',
         matchChildren: true,
+      },
+      {
+        label: t('dashboardLayout.menu.familyHouseLookup'),
+        href: '/dashboard/users/family-house',
+        icon: Building2,
+        permission: 'USERS_VIEW',
+        matchChildren: false,
       },
       {
         label: t('dashboardLayout.menu.confessionSessions'),
