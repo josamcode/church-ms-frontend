@@ -159,11 +159,11 @@ export default function UserDetailsPage() {
               )}
               {callUrl ? (
                 <Button variant="outline" size="sm" icon={Phone} onClick={() => window.open(callUrl, '_self')}>
-                  Call
+                  {t('userDetails.fields.call')}
                 </Button>
               ) : (
                 <Button variant="outline" size="sm" icon={Phone} disabled>
-                  Call
+                  {t('userDetails.fields.call')}
                 </Button>
               )}
               {hasPermission('USERS_UPDATE') && (
