@@ -61,6 +61,13 @@ export const confessionsApi = {
   getAnalytics: (params) => apiClient.get('/confessions/analytics', { params }),
 };
 
+export const visitationsApi = {
+  list: (params) => apiClient.get('/visitations', { params }),
+  create: (data) => apiClient.post('/visitations', data),
+  getById: (id) => apiClient.get(`/visitations/${id}`),
+  getAnalytics: (params) => apiClient.get('/visitations/analytics', { params }),
+};
+
 /* ══════════ Health ══════════ */
 
 export const healthApi = {

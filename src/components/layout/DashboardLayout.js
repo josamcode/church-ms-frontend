@@ -76,6 +76,27 @@ export default function DashboardLayout() {
         permission: 'CONFESSIONS_ANALYTICS_VIEW',
         matchChildren: false,
       },
+      {
+        label: t('dashboardLayout.menu.pastoralVisitations'),
+        href: '/dashboard/visitations',
+        icon: CalendarCheck2,
+        permission: 'PASTORAL_VISITATIONS_VIEW',
+        matchChildren: true,
+      },
+      {
+        label: t('dashboardLayout.menu.pastoralVisitationsCreate'),
+        href: '/dashboard/visitations/new',
+        icon: Sparkles,
+        permission: 'PASTORAL_VISITATIONS_CREATE',
+        matchChildren: false,
+      },
+      {
+        label: t('dashboardLayout.menu.pastoralVisitationsAnalytics'),
+        href: '/dashboard/visitations/analytics',
+        icon: BarChart3,
+        permission: 'PASTORAL_VISITATIONS_ANALYTICS_VIEW',
+        matchChildren: false,
+      },
       { type: 'divider' },
       {
         label: t('dashboardLayout.menu.underDevelopment'),

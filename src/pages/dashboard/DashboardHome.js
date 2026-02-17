@@ -52,6 +52,22 @@ export default function DashboardHome() {
         perm: 'CONFESSIONS_ANALYTICS_VIEW',
         accent: 'from-success to-primary',
       },
+      {
+        label: t('dashboardHome.cards.pastoralVisitationsTitle'),
+        icon: CalendarCheck2,
+        desc: t('dashboardHome.cards.pastoralVisitationsDesc'),
+        href: '/dashboard/visitations',
+        perm: 'PASTORAL_VISITATIONS_VIEW',
+        accent: 'from-info to-primary',
+      },
+      {
+        label: t('dashboardHome.cards.pastoralVisitationsAnalyticsTitle'),
+        icon: BarChart3,
+        desc: t('dashboardHome.cards.pastoralVisitationsAnalyticsDesc'),
+        href: '/dashboard/visitations/analytics',
+        perm: 'PASTORAL_VISITATIONS_ANALYTICS_VIEW',
+        accent: 'from-secondary to-accent',
+      },
     ],
     [t]
   );
