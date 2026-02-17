@@ -895,7 +895,7 @@ export const translations = {
         membersCount: 'عدد الأفراد',
         lockedCount: 'الحسابات المغلقة',
         relatedOtherGroup: 'مرتبط بـ {group}',
-        relatedNamesLabel: 'الأسماء المرتبطة:',
+        relatedNamesLabel: 'العائلة المرتبطة:',
       },
       table: {
         title: 'الأفراد',
