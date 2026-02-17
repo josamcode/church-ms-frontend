@@ -46,7 +46,7 @@ export default function FamilyHouseLookupPage() {
     queryKey: ['users', 'family-house-lookup', lookupType, normalizedSubmittedName],
     queryFn: async () => {
       const { data } = await usersApi.list({
-        limit: 200,
+        limit: 100,
         sort: 'fullName',
         order: 'asc',
         ...(isFamilyLookup
@@ -146,46 +146,9 @@ export default function FamilyHouseLookupPage() {
         ),
       },
       {
-        key: 'role',
-        label: t('familyHouseLookup.columns.role'),
-        render: (row) => <Badge variant="primary">{getRoleLabel(row.role)}</Badge>,
-      },
-      {
-        key: 'gender',
-        label: t('familyHouseLookup.columns.gender'),
-        render: (row) => getGenderLabel(row.gender),
-      },
-      {
         key: 'ageGroup',
         label: t('familyHouseLookup.columns.ageGroup'),
         render: (row) => row.ageGroup || EMPTY,
-      },
-      {
-        key: 'familyName',
-        label: t('familyHouseLookup.columns.familyName'),
-        render: (row) => row.familyName || EMPTY,
-      },
-      {
-        key: 'houseName',
-        label: t('familyHouseLookup.columns.houseName'),
-        render: (row) => row.houseName || EMPTY,
-      },
-      {
-        key: 'address',
-        label: t('familyHouseLookup.columns.address'),
-        render: (row) => formatAddress(row.address),
-      },
-      {
-        key: 'familyLinks',
-        label: t('familyHouseLookup.columns.familyLinks'),
-        render: (row) => countFamilyLinks(row),
-      },
-      {
-        key: 'notes',
-        label: t('familyHouseLookup.columns.notes'),
-        render: (row) => (
-          <span className="line-clamp-2 text-xs text-muted">{row.notes || EMPTY}</span>
-        ),
       },
     ],
     [t]
