@@ -27,6 +27,10 @@ const UserEditPage = lazy(() => import('../pages/dashboard/users/UserEditPage'))
 const ConfessionSessionsPage = lazy(() => import('../pages/dashboard/confessions/ConfessionSessionsPage'));
 const ConfessionAlertsPage = lazy(() => import('../pages/dashboard/confessions/ConfessionAlertsPage'));
 const ConfessionAnalyticsPage = lazy(() => import('../pages/dashboard/confessions/ConfessionAnalyticsPage'));
+const PastoralVisitationListPage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationListPage'));
+const PastoralVisitationCreatePage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationCreatePage'));
+const PastoralVisitationDetailsPage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationDetailsPage'));
+const PastoralVisitationAnalyticsPage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationAnalyticsPage'));
 const UnderDevelopmentPage = lazy(() => import('../pages/shared/UnderDevelopmentPage'));
 const NotFoundPage = lazy(() => import('../pages/shared/NotFoundPage'));
 
@@ -114,6 +118,38 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['CONFESSIONS_ANALYTICS_VIEW']}>
             <Lazy><ConfessionAnalyticsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'visitations',
+        element: (
+          <PermissionGuard required={['PASTORAL_VISITATIONS_VIEW']}>
+            <Lazy><PastoralVisitationListPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'visitations/new',
+        element: (
+          <PermissionGuard required={['PASTORAL_VISITATIONS_CREATE']}>
+            <Lazy><PastoralVisitationCreatePage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'visitations/analytics',
+        element: (
+          <PermissionGuard required={['PASTORAL_VISITATIONS_ANALYTICS_VIEW']}>
+            <Lazy><PastoralVisitationAnalyticsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'visitations/:id',
+        element: (
+          <PermissionGuard required={['PASTORAL_VISITATIONS_VIEW']}>
+            <Lazy><PastoralVisitationDetailsPage /></Lazy>
           </PermissionGuard>
         ),
       },
