@@ -1,8 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../../../api/endpoints';
 import { normalizeApiError, mapFieldErrors } from '../../../api/errors';
+import { useAuth } from '../../../auth/auth.hooks';
+import {
+  PERMISSIONS,
+  ROLE_PERMISSIONS,
+  PERMISSION_GROUPS,
+  PERMISSION_LABELS,
+} from '../../../constants/permissions';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import TextArea from '../../../components/ui/TextArea';
@@ -26,10 +33,14 @@ const roleOptions = [
   { value: 'SUPER_ADMIN', label: 'مدير النظام' },
 ];
 
+const normalizePermissionArray = (value) =>
+  [...new Set((Array.isArray(value) ? value : []).filter(Boolean))];
+
 export default function UserEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState({});
   const [customDetailsRows, setCustomDetailsRows] = useState([{ id: 1, key: '', value: '' }]);
@@ -86,6 +97,38 @@ export default function UserEditPage() {
     },
   });
   const relationRoles = Array.isArray(relationRolesRes) ? relationRolesRes : [];
+  const canManagePermissionOverrides = currentUser?.role === 'SUPER_ADMIN';
+  const roleOptionsForEditor = useMemo(() => {
+    const base =
+      canManagePermissionOverrides
+        ? [...roleOptions]
+        : roleOptions.filter((option) => option.value !== 'SUPER_ADMIN');
+
+    if (form?.role === 'SUPER_ADMIN' && !base.some((option) => option.value === 'SUPER_ADMIN')) {
+      const superAdminOption = roleOptions.find((option) => option.value === 'SUPER_ADMIN');
+      if (superAdminOption) base.push(superAdminOption);
+    }
+
+    return base;
+  }, [canManagePermissionOverrides, form?.role]);
+
+  const selectedRolePermissions = useMemo(() => {
+    if (!form?.role) return [];
+    if (form.role === 'SUPER_ADMIN') return [...PERMISSIONS];
+    return ROLE_PERMISSIONS[form.role] || [];
+  }, [form?.role]);
+
+  const effectivePermissionsPreview = useMemo(() => {
+    if (!form?.role) return [];
+    if (form.role === 'SUPER_ADMIN') return [...PERMISSIONS];
+
+    const effectiveSet = new Set([
+      ...(ROLE_PERMISSIONS[form.role] || []),
+      ...(form.extraPermissions || []),
+    ]);
+    (form.deniedPermissions || []).forEach((permission) => effectiveSet.delete(permission));
+    return [...effectiveSet];
+  }, [form?.role, form?.extraPermissions, form?.deniedPermissions]);
 
   const linkedUserIds = (form?.family || [])
     .map((r) => r.userId)
@@ -140,6 +183,8 @@ export default function UserEditPage() {
         familyName: user.familyName || '',
         houseName: user.houseName || '',
         role: user.role || 'USER',
+        extraPermissions: normalizePermissionArray(user.extraPermissions),
+        deniedPermissions: normalizePermissionArray(user.deniedPermissions),
         governorate: user.address?.governorate || '',
         city: user.address?.city || '',
         street: user.address?.street || '',
@@ -238,13 +283,50 @@ export default function UserEditPage() {
   });
 
   const update = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === 'role' && value === 'SUPER_ADMIN') {
+        next.extraPermissions = [];
+        next.deniedPermissions = [];
+      }
+      return next;
+    });
     setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const setPermissionOverride = (permission, mode, checked) => {
+    setForm((prev) => {
+      if (!prev) return prev;
+
+      const currentExtra = normalizePermissionArray(prev.extraPermissions);
+      const currentDenied = normalizePermissionArray(prev.deniedPermissions);
+
+      const nextExtra = [...currentExtra];
+      const nextDenied = [...currentDenied];
+
+      const removeFrom = (arr) => arr.filter((item) => item !== permission);
+      const addTo = (arr) => (arr.includes(permission) ? arr : [...arr, permission]);
+
+      if (mode === 'extra') {
+        const updatedExtra = checked ? addTo(nextExtra) : removeFrom(nextExtra);
+        const updatedDenied = checked ? removeFrom(nextDenied) : nextDenied;
+        return { ...prev, extraPermissions: updatedExtra, deniedPermissions: updatedDenied };
+      }
+
+      const updatedDenied = checked ? addTo(nextDenied) : removeFrom(nextDenied);
+      const updatedExtra = checked ? removeFrom(nextExtra) : nextExtra;
+      return { ...prev, extraPermissions: updatedExtra, deniedPermissions: updatedDenied };
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setErrors({});
+
+    if (!canManagePermissionOverrides && user.role === 'SUPER_ADMIN') {
+      toast.error('فقط مدير النظام يمكنه تعديل حساب مدير النظام');
+      return;
+    }
 
     const payload = {};
     if (form.fullName !== user.fullName) payload.fullName = form.fullName;
@@ -259,6 +341,19 @@ export default function UserEditPage() {
     if (form.familyName !== (user.familyName || '')) payload.familyName = form.familyName;
     if (form.houseName !== (user.houseName || '')) payload.houseName = form.houseName;
     if (form.role !== user.role) payload.role = form.role;
+    if (canManagePermissionOverrides) {
+      const nextExtraPermissions = normalizePermissionArray(form.extraPermissions);
+      const nextDeniedPermissions = normalizePermissionArray(form.deniedPermissions);
+      const oldExtraPermissions = normalizePermissionArray(user.extraPermissions);
+      const oldDeniedPermissions = normalizePermissionArray(user.deniedPermissions);
+
+      if (JSON.stringify(nextExtraPermissions) !== JSON.stringify(oldExtraPermissions)) {
+        payload.extraPermissions = nextExtraPermissions;
+      }
+      if (JSON.stringify(nextDeniedPermissions) !== JSON.stringify(oldDeniedPermissions)) {
+        payload.deniedPermissions = nextDeniedPermissions;
+      }
+    }
 
     const newAddress = {
       governorate: form.governorate || '',
@@ -571,11 +666,87 @@ export default function UserEditPage() {
                 </ul>
               )}
             </div>
-            <Select label="الدور" options={roleOptions} value={form.role}
+            <Select label="الدور" options={roleOptionsForEditor} value={form.role}
               onChange={(e) => update('role', e.target.value)} />
             <TextArea label="ملاحظات" value={form.notes}
               onChange={(e) => update('notes', e.target.value)} />
           </Card>
+
+          {canManagePermissionOverrides && (
+            <Card className="lg:col-span-2">
+              <CardHeader
+                title="إدارة الصلاحيات"
+                subtitle="أضف صلاحيات إضافية أو اسحب صلاحيات محددة لهذا المستخدم"
+              />
+
+              {form.role === 'SUPER_ADMIN' ? (
+                <div className="mb-4 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-body">
+                  مدير النظام يمتلك جميع الصلاحيات دائمًا ولا يمكن تقييد صلاحياته.
+                </div>
+              ) : (
+                <div className="mb-4 rounded-md border border-border bg-surface-alt/30 px-3 py-2 text-sm text-body">
+                  الصلاحيات الأساسية للدور: <span className="font-semibold">{selectedRolePermissions.length}</span>
+                  {' - '}
+                  الصلاحيات الفعالة بعد التخصيص: <span className="font-semibold">{effectivePermissionsPreview.length}</span>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {PERMISSION_GROUPS.map((group) => (
+                  <div key={group.id} className="rounded-md border border-border p-3">
+                    <h4 className="mb-2 text-sm font-semibold text-heading">{group.label}</h4>
+                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                      {group.permissions.map((permission) => {
+                        const roleHasPermission =
+                          form.role === 'SUPER_ADMIN' || selectedRolePermissions.includes(permission);
+                        const isExtra = (form.extraPermissions || []).includes(permission);
+                        const isDenied = (form.deniedPermissions || []).includes(permission);
+
+                        return (
+                          <div key={permission} className="rounded-md border border-border/80 bg-surface px-3 py-2">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <span className="text-sm font-medium text-heading">
+                                {PERMISSION_LABELS[permission] || permission}
+                              </span>
+                              {roleHasPermission && !isDenied && (
+                                <span className="rounded bg-success/15 px-2 py-0.5 text-xs text-success">أساسي</span>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap gap-4 text-sm">
+                              <label className="inline-flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={isExtra}
+                                  disabled={form.role === 'SUPER_ADMIN'}
+                                  onChange={(e) => setPermissionOverride(permission, 'extra', e.target.checked)}
+                                />
+                                <span>إضافة</span>
+                              </label>
+
+                              <label className="inline-flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={isDenied}
+                                  disabled={form.role === 'SUPER_ADMIN'}
+                                  onChange={(e) => setPermissionOverride(permission, 'denied', e.target.checked)}
+                                />
+                                <span>سحب</span>
+                              </label>
+                            </div>
+
+                            <p className="mt-2 text-xs text-muted">
+                              <code>{permission}</code>
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
 
           <Card className="lg:col-span-2">
             <CardHeader title="تفاصيل مخصصة" />
