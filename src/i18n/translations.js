@@ -878,7 +878,7 @@ export const translations = {
           accessibleModules: 'الوحدات المتاحة',
           pendingAlerts: 'التنبيهات المعلقة',
           recentActivityVolume: 'حجم النشاط الأخير',
-          apiState: 'حالة API',
+          apiState: 'حالة النظام',
         },
         apiStateValues: {
           issue: 'يوجد مشكلة',
