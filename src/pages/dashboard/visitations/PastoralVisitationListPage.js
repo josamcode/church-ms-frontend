@@ -77,7 +77,24 @@ export default function PastoralVisitationListPage() {
     {
       key: 'houseName',
       label: t('visitations.list.columns.houseName'),
-      render: (row) => <span className="font-medium text-heading">{row.houseName}</span>,
+      render: (row) => {
+        const houseName = String(row.houseName || '').trim();
+        if (!houseName) return t('common.placeholder.empty');
+
+        const query = new URLSearchParams({
+          lookupType: 'houseName',
+          lookupName: houseName,
+        }).toString();
+
+        return (
+          <Link
+            to={`/dashboard/users/family-house?${query}`}
+            className="font-medium text-primary hover:underline"
+          >
+            {houseName}
+          </Link>
+        );
+      },
     },
     {
       key: 'visitedAt',

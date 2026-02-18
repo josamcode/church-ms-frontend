@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Church,
   LayoutDashboard,
@@ -9,6 +9,7 @@ import {
   Menu,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Sun,
   Moon,
   Construction,
@@ -27,13 +28,14 @@ import { getRoleLabel } from '../../utils/formatters';
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [openGroups, setOpenGroups] = useState({});
   const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const { user, logout, hasPermission } = useAuth();
-  const { t, isRTL, language } = useI18n();
+  const { t, isRTL } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const menuItems = useMemo(
+  const topItems = useMemo(
     () => [
       {
         label: t('dashboardLayout.menu.dashboard'),
@@ -49,63 +51,89 @@ export default function DashboardLayout() {
         permission: 'AUTH_VIEW_SELF',
         matchChildren: false,
       },
+    ],
+    [t]
+  );
+
+  const groupedItems = useMemo(
+    () => [
       {
-        label: t('dashboardLayout.menu.users'),
-        href: '/dashboard/users',
-        icon: Users,
-        permission: 'USERS_VIEW',
-        matchChildren: true,
+        key: 'users',
+        parent: {
+          label: t('dashboardLayout.menu.users'),
+          href: '/dashboard/users',
+          icon: Users,
+          permission: 'USERS_VIEW',
+          matchChildren: true,
+        },
+        children: [
+          {
+            label: t('dashboardLayout.menu.familyHouseLookup'),
+            href: '/dashboard/users/family-house',
+            icon: Building2,
+            permission: 'USERS_VIEW',
+            matchChildren: false,
+          },
+        ],
       },
       {
-        label: t('dashboardLayout.menu.familyHouseLookup'),
-        href: '/dashboard/users/family-house',
-        icon: Building2,
-        permission: 'USERS_VIEW',
-        matchChildren: false,
+        key: 'confessions',
+        parent: {
+          label: t('dashboardLayout.menu.confessionSessions'),
+          href: '/dashboard/confessions',
+          icon: CalendarCheck2,
+          permission: 'CONFESSIONS_VIEW',
+          matchChildren: false,
+        },
+        children: [
+          {
+            label: t('dashboardLayout.menu.confessionAlerts'),
+            href: '/dashboard/confessions/alerts',
+            icon: BellRing,
+            permission: 'CONFESSIONS_ALERTS_VIEW',
+            matchChildren: false,
+          },
+          {
+            label: t('dashboardLayout.menu.confessionAnalytics'),
+            href: '/dashboard/confessions/analytics',
+            icon: BarChart3,
+            permission: 'CONFESSIONS_ANALYTICS_VIEW',
+            matchChildren: false,
+          },
+        ],
       },
       {
-        label: t('dashboardLayout.menu.confessionSessions'),
-        href: '/dashboard/confessions',
-        icon: CalendarCheck2,
-        permission: 'CONFESSIONS_VIEW',
-        matchChildren: false,
+        key: 'visitations',
+        parent: {
+          label: t('dashboardLayout.menu.pastoralVisitations'),
+          href: '/dashboard/visitations',
+          icon: CalendarCheck2,
+          permission: 'PASTORAL_VISITATIONS_VIEW',
+          matchChildren: true,
+        },
+        children: [
+          {
+            label: t('dashboardLayout.menu.pastoralVisitationsCreate'),
+            href: '/dashboard/visitations/new',
+            icon: Sparkles,
+            permission: 'PASTORAL_VISITATIONS_CREATE',
+            matchChildren: false,
+          },
+          {
+            label: t('dashboardLayout.menu.pastoralVisitationsAnalytics'),
+            href: '/dashboard/visitations/analytics',
+            icon: BarChart3,
+            permission: 'PASTORAL_VISITATIONS_ANALYTICS_VIEW',
+            matchChildren: false,
+          },
+        ],
       },
-      {
-        label: t('dashboardLayout.menu.confessionAlerts'),
-        href: '/dashboard/confessions/alerts',
-        icon: BellRing,
-        permission: 'CONFESSIONS_ALERTS_VIEW',
-        matchChildren: false,
-      },
-      {
-        label: t('dashboardLayout.menu.confessionAnalytics'),
-        href: '/dashboard/confessions/analytics',
-        icon: BarChart3,
-        permission: 'CONFESSIONS_ANALYTICS_VIEW',
-        matchChildren: false,
-      },
-      {
-        label: t('dashboardLayout.menu.pastoralVisitations'),
-        href: '/dashboard/visitations',
-        icon: CalendarCheck2,
-        permission: 'PASTORAL_VISITATIONS_VIEW',
-        matchChildren: true,
-      },
-      {
-        label: t('dashboardLayout.menu.pastoralVisitationsCreate'),
-        href: '/dashboard/visitations/new',
-        icon: Sparkles,
-        permission: 'PASTORAL_VISITATIONS_CREATE',
-        matchChildren: false,
-      },
-      {
-        label: t('dashboardLayout.menu.pastoralVisitationsAnalytics'),
-        href: '/dashboard/visitations/analytics',
-        icon: BarChart3,
-        permission: 'PASTORAL_VISITATIONS_ANALYTICS_VIEW',
-        matchChildren: false,
-      },
-      { type: 'divider' },
+    ],
+    [t]
+  );
+
+  const bottomItems = useMemo(
+    () => [
       {
         label: t('dashboardLayout.menu.underDevelopment'),
         href: '/dashboard/under-development',
@@ -116,6 +144,58 @@ export default function DashboardLayout() {
     ],
     [t]
   );
+
+  const isItemAllowed = (item) => !item.permission || hasPermission(item.permission);
+
+  const isItemActive = (item) => {
+    if (!item?.href) return false;
+    if (location.pathname === item.href) return true;
+    if (!item.matchChildren) return false;
+    return location.pathname.startsWith(`${item.href}/`);
+  };
+
+  const visibleTopItems = topItems.filter(isItemAllowed);
+  const visibleGroups = groupedItems
+    .map((group) => {
+      const parentVisible = isItemAllowed(group.parent);
+      const children = group.children.filter(isItemAllowed);
+      if (!parentVisible && children.length === 0) return null;
+      return { ...group, parentVisible, children };
+    })
+    .filter(Boolean);
+  const visibleBottomItems = bottomItems.filter(isItemAllowed);
+
+  const flatMenuItems = [
+    ...visibleTopItems,
+    ...visibleGroups.flatMap((group) => [
+      ...(group.parentVisible ? [group.parent] : []),
+      ...group.children,
+    ]),
+    ...visibleBottomItems,
+  ];
+
+  useEffect(() => {
+    setOpenGroups((prev) => {
+      const next = {};
+      let changed = false;
+
+      visibleGroups.forEach((group) => {
+        const hasActiveRoute =
+          (group.parentVisible && isItemActive(group.parent)) ||
+          group.children.some((item) => isItemActive(item));
+        const previousValue = prev[group.key];
+        const nextValue = hasActiveRoute ? true : previousValue ?? false;
+        next[group.key] = nextValue;
+        if (nextValue !== previousValue) changed = true;
+      });
+
+      Object.keys(prev).forEach((key) => {
+        if (!(key in next)) changed = true;
+      });
+
+      return changed ? next : prev;
+    });
+  }, [location.pathname, visibleGroups]);
 
   const toggleDark = () => {
     const next = !darkMode;
@@ -129,35 +209,86 @@ export default function DashboardLayout() {
     navigate('/auth/login');
   };
 
-  const filteredItems = menuItems.filter(
-    (item) => item.type === 'divider' || !item.permission || hasPermission(item.permission)
-  );
-
-  const isItemActive = (item) => {
-    if (!item?.href) return false;
-    if (location.pathname === item.href) return true;
-    if (!item.matchChildren) return false;
-    return location.pathname.startsWith(`${item.href}/`);
-  };
-
-  const activeItem = [...filteredItems]
+  const activeItem = [...flatMenuItems]
     .filter((item) => item.href)
     .sort((a, b) => b.href.length - a.href.length)
     .find((item) => isItemActive(item));
   const sidebarTooltipPosition = isRTL ? 'left' : 'right';
 
-  const todayLabel = useMemo(
-    () =>
-      new Intl.DateTimeFormat(language === 'ar' ? 'ar-EG' : 'en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-      }).format(new Date()),
-    [language]
-  );
-
   const SidebarContent = ({ mobile = false } = {}) => {
     const compact = collapsed && !mobile;
+    const compactItems = [
+      ...visibleTopItems,
+      ...visibleGroups.flatMap((group) => [
+        ...(group.parentVisible ? [group.parent] : []),
+        ...group.children,
+      ]),
+      ...visibleBottomItems,
+    ];
+
+    const renderCompactLink = (item) => {
+      const active = isItemActive(item);
+      return (
+        <Tooltip key={item.href} content={item.label} position={sidebarTooltipPosition} className="w-[calc(100%-20px)]">
+          <Link
+            to={item.href}
+            onClick={() => setSidebarOpen(false)}
+            className={`group relative flex w-full items-center justify-center rounded-xl border px-2 py-2.5 text-sm font-medium transition-all
+              ${active
+                ? 'border-primary/25 bg-primary/10 text-primary shadow-card'
+                : 'border-transparent text-muted hover:border-border/60 hover:bg-surface-alt/80 hover:text-heading'
+              }`}
+          >
+            {active && (
+              <span
+                className={`absolute inset-y-2 w-1 rounded-full bg-primary ${isRTL ? 'right-1' : 'left-1'}`}
+                aria-hidden
+              />
+            )}
+            <span
+              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors
+                ${active ? 'bg-primary/15 text-primary' : 'bg-surface-alt/70 text-muted group-hover:bg-surface-alt'}`}
+            >
+              <item.icon className="h-4 w-4" />
+            </span>
+          </Link>
+        </Tooltip>
+      );
+    };
+
+    const renderStandardLink = (item, { nested = false } = {}) => {
+      const active = isItemActive(item);
+      return (
+        <Link
+          key={item.href}
+          to={item.href}
+          onClick={() => setSidebarOpen(false)}
+          className={`group relative flex w-full items-center rounded-xl border font-medium transition-all
+            ${nested ? 'gap-2.5 px-2.5 py-2 text-[13px]' : 'gap-3 px-3 py-2.5 text-sm'}
+            ${active
+              ? 'border-primary/25 bg-primary/10 text-primary shadow-card'
+              : 'border-transparent text-muted hover:border-border/60 hover:bg-surface-alt/80 hover:text-heading'
+            }`}
+        >
+          {active && (
+            <span
+              className={`absolute inset-y-2 w-1 rounded-full bg-primary ${isRTL ? 'right-1' : 'left-1'}`}
+              aria-hidden
+            />
+          )}
+          <span
+            className={`flex ${nested ? 'h-7 w-7' : 'h-8 w-8'} flex-shrink-0 items-center justify-center rounded-lg transition-colors
+              ${active ? 'bg-primary/15 text-primary' : 'bg-surface-alt/70 text-muted group-hover:bg-surface-alt'}`}
+          >
+            <item.icon className={nested ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
+          </span>
+          <span className="truncate">{item.label}</span>
+          {active && (
+            <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} inline-flex h-2 w-2 rounded-full bg-primary`} />
+          )}
+        </Link>
+      );
+    };
 
     return (
       <div className="relative flex h-full flex-col">
@@ -181,43 +312,77 @@ export default function DashboardLayout() {
           </button>
 
           <nav className={`relative flex-1 space-y-1.5 overflow-y-auto py-3 ${compact ? 'px-2' : 'px-3'}`}>
-            {filteredItems.map((item, i) => {
-              if (item.type === 'divider') {
-                return <hr key={i} className={`my-2 border-border ${compact ? 'mx-1' : ''}`} />;
-              }
+            {compact && compactItems.map((item) => renderCompactLink(item))}
 
-              const active = isItemActive(item);
-              return (
-                <Tooltip key={item.href} content={compact ? item.label : null} position={sidebarTooltipPosition} className="w-[calc(100%-20px)]">
-                  <Link
-                    to={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`group relative flex w-full items-center rounded-xl border py-2.5 text-sm font-medium transition-all
-                    ${compact ? 'justify-center px-2' : 'gap-3 px-3'}
-                    ${active
-                        ? 'border-primary/25 bg-primary/10 text-primary shadow-card'
-                        : 'border-transparent text-muted hover:border-border/60 hover:bg-surface-alt/80 hover:text-heading'
-                      }`}
-                  >
-                    {active && (
-                      <span
-                        className={`absolute inset-y-2 w-1 rounded-full bg-primary ${isRTL ? 'right-1' : 'left-1'}`}
-                        aria-hidden
-                      />
-                    )}
-                    <span
-                      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors
-                      ${active ? 'bg-primary/15 text-primary' : 'bg-surface-alt/70 text-muted group-hover:bg-surface-alt'}`}
-                    >
-                      <item.icon className="h-4 w-4" />
-                    </span>
-                    {!compact && <span className="truncate">{item.label}</span>}
-                    {!compact && active && (
-                      <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} inline-flex h-2 w-2 rounded-full bg-primary`} />
-                    )}
-                  </Link>
-                </Tooltip>);
-            })}
+            {!compact && (
+              <>
+                {visibleTopItems.map((item) => renderStandardLink(item))}
+
+                {visibleGroups.length > 0 && (visibleTopItems.length > 0 || visibleBottomItems.length > 0) && (
+                  <hr className="my-2 border-border" />
+                )}
+
+                {visibleGroups.map((group) => {
+                  const groupOpen = openGroups[group.key] || false;
+                  const groupActive =
+                    (group.parentVisible && isItemActive(group.parent)) ||
+                    group.children.some((item) => isItemActive(item));
+
+                  return (
+                    <div key={group.key} className="space-y-1">
+                      <div className="flex items-center gap-1">
+                        {group.parentVisible ? (
+                          <Link
+                            to={group.parent.href}
+                            onClick={() => setSidebarOpen(false)}
+                            className={`group relative flex flex-1 items-center rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all
+                              ${groupActive
+                                ? 'border-primary/20 bg-primary/10 text-primary'
+                                : 'border-transparent text-heading/90 hover:border-border/60 hover:bg-surface-alt/80'
+                              }`}
+                          >
+                            <span
+                              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors
+                                ${groupActive ? 'bg-primary/15 text-primary' : 'bg-surface-alt/70 text-muted group-hover:bg-surface-alt'}`}
+                            >
+                              <group.parent.icon className="h-4 w-4" />
+                            </span>
+                            <span className="truncate">{group.parent.label}</span>
+                          </Link>
+                        ) : (
+                          <div className="flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-heading/90">
+                            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-alt/70 text-muted">
+                              <group.parent.icon className="h-4 w-4" />
+                            </span>
+                            <span className="truncate">{group.parent.label}</span>
+                          </div>
+                        )}
+
+                        {group.children.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setOpenGroups((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-transparent text-muted transition-colors hover:border-border/60 hover:bg-surface-alt hover:text-heading"
+                            aria-label={groupOpen ? t('common.actions.close') : t('common.actions.openMenu')}
+                          >
+                            <ChevronDown className={`h-4 w-4 transition-transform ${groupOpen ? 'rotate-180' : ''}`} />
+                          </button>
+                        )}
+                      </div>
+
+                      {groupOpen && group.children.length > 0 && (
+                        <div className={`space-y-1 ${isRTL ? 'mr-5' : 'ml-5'}`}>
+                          {group.children.map((item) => renderStandardLink(item, { nested: true }))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {visibleBottomItems.length > 0 && <hr className="my-2 border-border" />}
+                {visibleBottomItems.map((item) => renderStandardLink(item))}
+              </>
+            )}
           </nav>
         </div>
 
