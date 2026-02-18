@@ -1,17 +1,15 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Building2, Search, Users as UsersIcon } from 'lucide-react';
 import { usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useI18n } from '../../../i18n/i18n';
-import { getGenderLabel, getRoleLabel } from '../../../utils/formatters';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
-import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Table from '../../../components/ui/Table';
 
@@ -19,11 +17,15 @@ const EMPTY = '---';
 
 export default function FamilyHouseLookupPage() {
   const { t, isRTL } = useI18n();
+  const [searchParams] = useSearchParams();
   const [lookupType, setLookupType] = useState('familyName');
   const [lookupName, setLookupName] = useState('');
   const [submittedLookupName, setSubmittedLookupName] = useState('');
+  const [lookupDropdownOpen, setLookupDropdownOpen] = useState(false);
+  const lookupInputRef = useRef(null);
 
   const isFamilyLookup = lookupType === 'familyName';
+  const normalizedLookupName = normalizeText(lookupName);
   const normalizedSubmittedName = normalizeText(submittedLookupName);
 
   const { data: lookupNamesResponse, isLoading: lookupNamesLoading } = useQuery({
@@ -64,6 +66,14 @@ export default function FamilyHouseLookupPage() {
     [lookupNamesResponse]
   );
 
+  const filteredLookupNames = useMemo(() => {
+    if (!normalizedLookupName) return lookupNames.slice(0, 20);
+
+    return lookupNames
+      .filter((name) => normalizeText(name).includes(normalizedLookupName))
+      .slice(0, 20);
+  }, [lookupNames, normalizedLookupName]);
+
   const members = useMemo(() => {
     const rawMembers = Array.isArray(membersResponse) ? membersResponse : [];
     if (!normalizedSubmittedName) return [];
@@ -92,6 +102,37 @@ export default function FamilyHouseLookupPage() {
       ),
     ];
   }, [isFamilyLookup, members]);
+
+  const summaryRelatedNames = useMemo(() => {
+    if (normalizedSubmittedName) return relatedOtherGroupNames;
+    return lookupNames.slice(0, 15);
+  }, [lookupNames, normalizedSubmittedName, relatedOtherGroupNames]);
+
+  useEffect(() => {
+    const urlLookupType = searchParams.get('lookupType');
+    const urlLookupName = String(searchParams.get('lookupName') || '').trim();
+
+    const nextLookupType =
+      urlLookupType === 'houseName' || urlLookupType === 'familyName'
+        ? urlLookupType
+        : null;
+
+    if (nextLookupType) setLookupType(nextLookupType);
+
+    if (urlLookupName) {
+      setLookupName(urlLookupName);
+      setSubmittedLookupName(urlLookupName);
+      setLookupDropdownOpen(false);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSubmittedLookupName(lookupName.trim());
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [lookupName]);
 
   const membersErrorMessage = membersError
     ? normalizeApiError(membersError).message
@@ -154,15 +195,10 @@ export default function FamilyHouseLookupPage() {
     [t]
   );
 
-  const handleSearch = () => {
-    const trimmedName = lookupName.trim();
-    if (!trimmedName) return;
-    setSubmittedLookupName(trimmedName);
-  };
-
   const handleClear = () => {
     setLookupName('');
     setSubmittedLookupName('');
+    setLookupDropdownOpen(false);
   };
 
   return (
@@ -200,6 +236,7 @@ export default function FamilyHouseLookupPage() {
               setLookupType(nextType);
               setLookupName('');
               setSubmittedLookupName('');
+              setLookupDropdownOpen(false);
             }}
             options={[
               {
@@ -214,34 +251,69 @@ export default function FamilyHouseLookupPage() {
             containerClassName="!mb-0"
           />
 
-          <div>
-            <Input
-              label={t('familyHouseLookup.filters.lookupName')}
-              value={lookupName}
-              onChange={(event) => setLookupName(event.target.value)}
-              placeholder={t(
-                isFamilyLookup
-                  ? 'familyHouseLookup.filters.familyNamePlaceholder'
-                  : 'familyHouseLookup.filters.houseNamePlaceholder'
-              )}
-              list={isFamilyLookup ? 'family-name-options' : 'house-name-options'}
-              icon={Search}
-              containerClassName="!mb-0"
-            />
-            <datalist id={isFamilyLookup ? 'family-name-options' : 'house-name-options'}>
-              {lookupNames.map((name) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
-            {lookupNamesLoading && (
-              <p className="mt-1 text-xs text-muted">{t('familyHouseLookup.filters.loadingNames')}</p>
+          <div className="relative">
+            <label className="block text-sm font-medium text-base mb-1.5">
+              {t('familyHouseLookup.filters.lookupName')}
+            </label>
+            <div className="relative">
+              <Search
+                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted pointer-events-none ${
+                  isRTL ? 'right-3' : 'left-3'
+                }`}
+              />
+              <input
+                ref={lookupInputRef}
+                type="text"
+                value={lookupName}
+                onChange={(event) => {
+                  setLookupName(event.target.value);
+                  setLookupDropdownOpen(true);
+                }}
+                onFocus={() => setLookupDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setLookupDropdownOpen(false), 150)}
+                placeholder={t(
+                  isFamilyLookup
+                    ? 'familyHouseLookup.filters.familyNamePlaceholder'
+                    : 'familyHouseLookup.filters.houseNamePlaceholder'
+                )}
+                className={`input-base w-full ${isRTL ? 'pr-10' : 'pl-10'}`}
+              />
+            </div>
+            {lookupDropdownOpen && (
+              <ul
+                className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-md border border-border shadow-lg py-1"
+                style={{ backgroundColor: 'var(--color-surface, #ffffff)' }}
+                role="listbox"
+              >
+                {lookupNamesLoading ? (
+                  <li className="px-3 py-2 text-sm text-muted">
+                    {t('familyHouseLookup.filters.loadingNames')}
+                  </li>
+                ) : filteredLookupNames.length === 0 ? (
+                  <li className="px-3 py-2 text-sm text-muted">{t('common.search.noResults')}</li>
+                ) : (
+                  filteredLookupNames.map((name) => (
+                    <li
+                      key={name}
+                      role="option"
+                      aria-selected={lookupName === name}
+                      className="px-3 py-2 text-sm cursor-pointer hover:bg-muted focus:bg-muted"
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        setLookupName(name);
+                        setSubmittedLookupName(name.trim());
+                        setLookupDropdownOpen(false);
+                      }}
+                    >
+                      {name}
+                    </li>
+                  ))
+                )}
+              </ul>
             )}
           </div>
 
           <div className={`flex items-end gap-2 ${isRTL ? 'lg:justify-start' : 'lg:justify-end'}`}>
-            <Button onClick={handleSearch} disabled={!lookupName.trim()}>
-              {t('familyHouseLookup.filters.search')}
-            </Button>
             {(lookupName || submittedLookupName) && (
               <Button variant="ghost" onClick={handleClear}>
                 {t('familyHouseLookup.filters.clear')}
@@ -251,100 +323,96 @@ export default function FamilyHouseLookupPage() {
         </div>
       </Card>
 
-      {!submittedLookupName ? (
-        <Card>
-          <EmptyState
-            icon={Search}
-            title={t('familyHouseLookup.empty.initialTitle')}
-            description={t('familyHouseLookup.empty.initialDescription')}
-          />
-        </Card>
-      ) : (
-        <>
-          <Card className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-heading">{t('familyHouseLookup.summary.title')}</h2>
-              <Badge variant="secondary">
-                {t(
-                  isFamilyLookup
-                    ? 'familyHouseLookup.filters.familyName'
-                    : 'familyHouseLookup.filters.houseName'
-                )}
-              </Badge>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <SummaryItem
-                label={t('familyHouseLookup.summary.selectedName')}
-                value={submittedLookupName}
-              />
-              <SummaryItem
-                label={t('familyHouseLookup.summary.membersCount')}
-                value={members.length}
-              />
-              <SummaryItem
-                label={t('familyHouseLookup.summary.lockedCount')}
-                value={lockedMembersCount}
-              />
-              <SummaryItem
-                label={t('familyHouseLookup.summary.relatedOtherGroup', {
-                  group: t(
-                    isFamilyLookup
-                      ? 'familyHouseLookup.filters.houseName'
-                      : 'familyHouseLookup.filters.familyName'
-                  ),
-                })}
-                value={relatedOtherGroupNames.length || 0}
-              />
-            </div>
-
-            <div className="rounded-xl border border-border bg-surface-alt/50 p-3 text-sm">
-              <span className="font-medium text-heading">
-                {t('familyHouseLookup.summary.relatedNamesLabel')}
-              </span>
-              <span className={`${isRTL ? 'mr-2' : 'ml-2'} text-muted`}>
-                {relatedOtherGroupNames.length > 0
-                  ? relatedOtherGroupNames.join(' - ')
-                  : EMPTY}
-              </span>
-            </div>
-          </Card>
-
-          <Card padding={false} className="overflow-hidden">
-            <div className="border-b border-border px-5 py-4 sm:px-6">
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-lg font-semibold text-heading">
-                  {t('familyHouseLookup.table.title')}
-                </h2>
-                <span className="text-sm text-muted">
-                  {t('familyHouseLookup.table.results', { count: members.length })}
-                </span>
-              </div>
-            </div>
-
-            {membersErrorMessage ? (
-              <div className="p-5">
-                <EmptyState
-                  icon={UsersIcon}
-                  title={t('familyHouseLookup.empty.errorTitle')}
-                  description={membersErrorMessage}
-                />
-              </div>
-            ) : (
-              <div className="p-2 sm:p-3">
-                <Table
-                  columns={columns}
-                  data={members}
-                  loading={membersLoading || membersFetching}
-                  emptyTitle={t('familyHouseLookup.empty.resultsTitle')}
-                  emptyDescription={t('familyHouseLookup.empty.resultsDescription')}
-                  emptyIcon={UsersIcon}
-                />
-              </div>
+      <Card className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-heading">{t('familyHouseLookup.summary.title')}</h2>
+          <Badge variant="secondary">
+            {t(
+              isFamilyLookup
+                ? 'familyHouseLookup.filters.familyName'
+                : 'familyHouseLookup.filters.houseName'
             )}
-          </Card>
-        </>
-      )}
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <SummaryItem
+            label={t('familyHouseLookup.summary.selectedName')}
+            value={submittedLookupName || EMPTY}
+          />
+          <SummaryItem
+            label={t('familyHouseLookup.summary.membersCount')}
+            value={members.length}
+          />
+          <SummaryItem
+            label={t('familyHouseLookup.summary.lockedCount')}
+            value={lockedMembersCount}
+          />
+          <SummaryItem
+            label={t('familyHouseLookup.summary.relatedOtherGroup', {
+              group: t(
+                isFamilyLookup
+                  ? 'familyHouseLookup.filters.houseName'
+                  : 'familyHouseLookup.filters.familyName'
+              ),
+            })}
+            value={summaryRelatedNames.length || 0}
+          />
+        </div>
+
+        <div className="rounded-xl border border-border bg-surface-alt/50 p-3 text-sm">
+          <span className="font-medium text-heading">
+            {t('familyHouseLookup.summary.relatedNamesLabel')}
+          </span>
+          <span className={`${isRTL ? 'mr-2' : 'ml-2'} text-muted`}>
+            {summaryRelatedNames.length > 0
+              ? summaryRelatedNames.join(' - ')
+              : EMPTY}
+          </span>
+        </div>
+      </Card>
+
+      <Card padding={false} className="overflow-hidden">
+        <div className="border-b border-border px-5 py-4 sm:px-6">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold text-heading">
+              {t('familyHouseLookup.table.title')}
+            </h2>
+            <span className="text-sm text-muted">
+              {t('familyHouseLookup.table.results', { count: members.length })}
+            </span>
+          </div>
+        </div>
+
+        {membersErrorMessage ? (
+          <div className="p-5">
+            <EmptyState
+              icon={UsersIcon}
+              title={t('familyHouseLookup.empty.errorTitle')}
+              description={membersErrorMessage}
+            />
+          </div>
+        ) : (
+          <div className="p-2 sm:p-3">
+            <Table
+              columns={columns}
+              data={members}
+              loading={membersLoading || membersFetching}
+              emptyTitle={t(
+                normalizedSubmittedName
+                  ? 'familyHouseLookup.empty.resultsTitle'
+                  : 'familyHouseLookup.empty.initialTitle'
+              )}
+              emptyDescription={t(
+                normalizedSubmittedName
+                  ? 'familyHouseLookup.empty.resultsDescription'
+                  : 'familyHouseLookup.empty.initialDescription'
+              )}
+              emptyIcon={UsersIcon}
+            />
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
@@ -355,30 +423,6 @@ function SummaryItem({ label, value }) {
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
       <p className="mt-1 text-lg font-semibold text-heading">{value || 0}</p>
     </div>
-  );
-}
-
-function formatAddress(address) {
-  if (!address || typeof address !== 'object') return EMPTY;
-
-  const value = [address.governorate, address.city, address.street, address.details]
-    .filter(Boolean)
-    .join(', ')
-    .trim();
-
-  return value || EMPTY;
-}
-
-function countFamilyLinks(user) {
-  if (!user) return 0;
-
-  return (
-    (user.father ? 1 : 0) +
-    (user.mother ? 1 : 0) +
-    (user.spouse ? 1 : 0) +
-    (Array.isArray(user.siblings) ? user.siblings.length : 0) +
-    (Array.isArray(user.children) ? user.children.length : 0) +
-    (Array.isArray(user.familyMembers) ? user.familyMembers.length : 0)
   );
 }
 
