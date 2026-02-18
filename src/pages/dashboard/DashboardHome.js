@@ -414,7 +414,7 @@ export default function DashboardHome() {
         <Card className="p-4">
           <p className="text-xs text-muted">{t('dashboardHome.control.kpis.apiState')}</p>
           <p
-            className={`mt-1 text-2xl font-bold ${
+            className={`mt-1 text-lg font-bold ${
               healthQuery.isError ? 'text-danger' : healthQuery.isLoading ? 'text-warning' : 'text-success'
             }`}
           >
