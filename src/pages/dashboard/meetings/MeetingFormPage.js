@@ -9,7 +9,7 @@ import { useAuth } from '../../../auth/auth.hooks';
 import UserSearchSelect from '../../../components/UserSearchSelect';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
+import Card from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import Select from '../../../components/ui/Select';
@@ -18,8 +18,9 @@ import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
 import {
   ACTIVITY_OPTIONS,
-  DAY_OPTIONS,
   buildMeetingPayload,
+  getDayLabel,
+  getDayOptions,
   mapMeetingToForm,
 } from './meetingsForm.utils';
 
@@ -51,6 +52,23 @@ function UserPill({ user, onRemove, disabled = false }) {
         <Trash2 className="h-3 w-3" />
       </button>
     </div>
+  );
+}
+
+function FormSection({ title, subtitle, action, children }) {
+  return (
+    <Card padding={false} className="overflow-hidden">
+      <div className="border-b border-border bg-surface-alt/40 px-5 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-heading">{title}</h3>
+            {subtitle && <p className="mt-1 text-xs text-muted">{subtitle}</p>}
+          </div>
+          {action && <div className="shrink-0">{action}</div>}
+        </div>
+      </div>
+      <div className="px-5 py-5">{children}</div>
+    </Card>
   );
 }
 
@@ -100,7 +118,20 @@ export default function MeetingFormPage() {
 
   const sectors = Array.isArray(sectorsQuery.data) ? sectorsQuery.data : [];
   const sectorOptions = sectors.map((sector) => ({ value: sector.id, label: sector.name }));
+  const selectedSectorName =
+    sectors.find((sector) => String(sector.id || sector._id) === String(form.sectorId))?.name ||
+    t('meetings.fields.selectSector');
+  const dayOptions = getDayOptions(t);
   const meetingGroupOptions = (form.groups || []).map((groupName) => ({ value: groupName, label: groupName }));
+  const hasValidationErrors = Object.values(errors || {}).some(Boolean);
+  const summaryItems = [
+    { label: t('meetings.fields.groups'), value: form.groups.length },
+    { label: t('meetings.fields.assistants'), value: form.assistantSecretaries.length },
+    { label: t('meetings.fields.servedUsers'), value: form.servedUsers.length },
+    canManageServants ? { label: t('meetings.sections.servants'), value: form.servants.length } : null,
+    canManageCommittees ? { label: t('meetings.sections.committees'), value: form.committees.length } : null,
+    canManageActivities ? { label: t('meetings.sections.activities'), value: form.activities.length } : null,
+  ].filter(Boolean);
 
   const saveMutation = useMutation({
     mutationFn: async (payload) => {
@@ -129,7 +160,7 @@ export default function MeetingFormPage() {
       toast.success(isEdit ? t('meetings.messages.meetingUpdated') : t('meetings.messages.meetingCreated'));
       queryClient.invalidateQueries({ queryKey: ['meetings', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['meetings', 'responsibilities'] });
-      navigate('/dashboard/meetings');
+      navigate('/dashboard/meetings/list');
     },
     onError: (error) => {
       const normalized = normalizeApiError(error);
@@ -263,20 +294,43 @@ export default function MeetingFormPage() {
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
-          { label: t('meetings.pageTitle'), href: '/dashboard/meetings' },
+          { label: t('meetings.meetingsPageTitle'), href: '/dashboard/meetings/list' },
           { label: isEdit ? t('meetings.actions.editMeetingPage') : t('meetings.actions.createMeetingPage') },
         ]}
       />
 
-      <Card>
-        <CardHeader
-          title={isEdit ? t('meetings.actions.editMeetingPage') : t('meetings.actions.createMeetingPage')}
-          subtitle={t('meetings.sections.meetingsSubtitle')}
-        />
+      <Card className="overflow-hidden">
+        <div className="border-b border-border bg-gradient-to-br from-surface to-surface-alt/60 px-6 py-5">
+          <h1 className="text-xl font-bold text-heading">
+            {isEdit ? t('meetings.actions.editMeetingPage') : t('meetings.actions.createMeetingPage')}
+          </h1>
+          <p className="mt-1 text-sm text-muted">{t('meetings.sections.meetingsSubtitle')}</p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="rounded-xl border border-border bg-surface p-4">
-            <CardHeader title={t('meetings.sections.basicInfo')} className="mb-3" />
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-lg border border-border bg-surface px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted">{t('meetings.fields.sector')}</p>
+              <p className="truncate text-sm font-semibold text-heading">{selectedSectorName}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-surface px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted">{t('meetings.columns.schedule')}</p>
+              <p className="text-sm font-semibold text-heading">
+                {getDayLabel(form.day, t)}
+                {form.time ? ` - ${form.time}` : ''}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-surface px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted">{t('meetings.fields.groups')}</p>
+              <p className="text-sm font-semibold text-heading">{form.groups.length}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-surface px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted">{t('meetings.fields.servedUsers')}</p>
+              <p className="text-sm font-semibold text-heading">{form.servedUsers.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6 px-6 py-6">
+          <FormSection title={t('meetings.sections.basicInfo')}>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <div className="rounded-xl border border-border bg-surface-alt/40 p-4">
@@ -380,7 +434,7 @@ export default function MeetingFormPage() {
                     required
                     value={form.day}
                     onChange={(event) => setForm((prev) => ({ ...prev, day: event.target.value }))}
-                    options={DAY_OPTIONS}
+                    options={dayOptions}
                     disabled={readonlyBasics}
                   />
 
@@ -398,72 +452,6 @@ export default function MeetingFormPage() {
                   />
                 </div>
 
-                <TagInput
-                  label={t('meetings.fields.groups')}
-                  values={form.groups}
-                  onChange={handleMeetingGroupsChange}
-                  placeholder="Type a group name and press Enter"
-                  disabled={readonlyBasics}
-                />
-
-                {(form.groups || []).length > 0 && (
-                  <div className="space-y-3 mb-4">
-                    {(form.groups || []).map((groupName) => (
-                      <div key={`meeting_group_${groupName}`} className="rounded-md border border-border bg-surface p-3">
-                        <p className="text-sm font-semibold text-heading mb-2">{groupName}</p>
-                        <UserSearchSelect
-                          label={t('meetings.actions.addServedUser')}
-                          value={form?.pendingGroupServedUserByGroup?.[groupName] || null}
-                          disabled={readonlyBasics}
-                          onChange={(value) => {
-                            setForm((prev) => ({
-                              ...prev,
-                              groupServedUsersByGroup: {
-                                ...(prev.groupServedUsersByGroup || {}),
-                                [groupName]:
-                                  value?._id &&
-                                    !(prev?.groupServedUsersByGroup?.[groupName] || []).some(
-                                      (entry) => entry._id === value._id
-                                    )
-                                    ? [...(prev?.groupServedUsersByGroup?.[groupName] || []), value]
-                                    : prev?.groupServedUsersByGroup?.[groupName] || [],
-                              },
-                              pendingGroupServedUserByGroup: {
-                                ...(prev.pendingGroupServedUserByGroup || {}),
-                                [groupName]: null,
-                              },
-                            }));
-                          }}
-                          className="mb-2"
-                        />
-                        <div className="flex flex-wrap gap-2">
-                          {(form?.groupServedUsersByGroup?.[groupName] || []).length === 0 && (
-                            <p className="text-sm text-muted">{t('meetings.empty.noServedUsersYet')}</p>
-                          )}
-                          {(form?.groupServedUsersByGroup?.[groupName] || []).map((user) => (
-                            <UserPill
-                              key={`${groupName}_${user._id}`}
-                              user={user}
-                              disabled={readonlyBasics}
-                              onRemove={() =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  groupServedUsersByGroup: {
-                                    ...(prev.groupServedUsersByGroup || {}),
-                                    [groupName]: (prev?.groupServedUsersByGroup?.[groupName] || []).filter(
-                                      (entry) => entry._id !== user._id
-                                    ),
-                                  },
-                                }))
-                              }
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
                 <TextArea
                   label={t('meetings.fields.notes')}
                   value={form.notes}
@@ -475,12 +463,13 @@ export default function MeetingFormPage() {
             </div>
 
             {readonlyBasics && (
-              <p className="text-sm text-muted mt-3">{t('meetings.messages.basicReadOnly')}</p>
+              <div className="mt-3 rounded-md border border-warning/30 bg-warning-light px-3 py-2 text-sm text-muted">
+                {t('meetings.messages.basicReadOnly')}
+              </div>
             )}
-          </div>
+          </FormSection>
 
-          <div className="rounded-xl border border-border bg-surface p-4">
-            <CardHeader title={t('meetings.sections.leadership')} className="mb-3" />
+          <FormSection title={t('meetings.sections.leadership')}>
             <UserSearchSelect
               label={t('meetings.fields.serviceSecretary')}
               value={form.serviceSecretaryUser}
@@ -492,7 +481,7 @@ export default function MeetingFormPage() {
                   serviceSecretaryName: value?.fullName || prev.serviceSecretaryName,
                 }))
               }
-              className='mb-2'
+              className="mb-2"
             />
             <Input
               label={t('meetings.fields.nameFallback')}
@@ -538,7 +527,7 @@ export default function MeetingFormPage() {
                           name: value?.fullName || assistant.name,
                         })
                       }
-                      className='mb-2'
+                      className="mb-2"
                     />
                     <Input
                       label={t('meetings.fields.nameFallback')}
@@ -564,9 +553,84 @@ export default function MeetingFormPage() {
                 ))}
               </div>
             </div>
+          </FormSection>
 
-            <div className="rounded-lg border border-border p-3 mt-3">
-              <h4 className="text-sm font-semibold text-heading mb-2">{t('meetings.fields.servedUsers')}</h4>
+          <FormSection title={t('meetings.fields.groups')}>
+            <div className="rounded-lg border border-border bg-surface-alt/20 p-4">
+              <TagInput
+                label={t('meetings.fields.groups')}
+                values={form.groups}
+                onChange={handleMeetingGroupsChange}
+                placeholder={t('meetings.fields.groupsPlaceholder')}
+                disabled={readonlyBasics}
+              />
+
+              {(form.groups || []).length > 0 && (
+                <div className="space-y-3 mb-1">
+                  {(form.groups || []).map((groupName) => (
+                    <div key={`meeting_group_${groupName}`} className="rounded-md border border-border bg-surface p-3">
+                      <p className="text-sm font-semibold text-heading mb-2">{groupName}</p>
+                      <UserSearchSelect
+                        label={t('meetings.actions.addServedUser')}
+                        value={form?.pendingGroupServedUserByGroup?.[groupName] || null}
+                        disabled={readonlyBasics}
+                        onChange={(value) => {
+                          setForm((prev) => ({
+                            ...prev,
+                            servedUsers:
+                              value?._id && !(prev.servedUsers || []).some((entry) => entry._id === value._id)
+                                ? [...(prev.servedUsers || []), value]
+                                : prev.servedUsers || [],
+                            groupServedUsersByGroup: {
+                              ...(prev.groupServedUsersByGroup || {}),
+                              [groupName]:
+                                value?._id &&
+                                  !(prev?.groupServedUsersByGroup?.[groupName] || []).some(
+                                    (entry) => entry._id === value._id
+                                  )
+                                  ? [...(prev?.groupServedUsersByGroup?.[groupName] || []), value]
+                                  : prev?.groupServedUsersByGroup?.[groupName] || [],
+                            },
+                            pendingGroupServedUserByGroup: {
+                              ...(prev.pendingGroupServedUserByGroup || {}),
+                              [groupName]: null,
+                            },
+                          }));
+                        }}
+                        className="mb-2"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        {(form?.groupServedUsersByGroup?.[groupName] || []).length === 0 && (
+                          <p className="text-sm text-muted">{t('meetings.empty.noServedUsersYet')}</p>
+                        )}
+                        {(form?.groupServedUsersByGroup?.[groupName] || []).map((user) => (
+                          <UserPill
+                            key={`${groupName}_${user._id}`}
+                            user={user}
+                            disabled={readonlyBasics}
+                            onRemove={() =>
+                              setForm((prev) => ({
+                                ...prev,
+                                groupServedUsersByGroup: {
+                                  ...(prev.groupServedUsersByGroup || {}),
+                                  [groupName]: (prev?.groupServedUsersByGroup?.[groupName] || []).filter(
+                                    (entry) => entry._id !== user._id
+                                  ),
+                                },
+                              }))
+                            }
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </FormSection>
+
+          <FormSection title={t('meetings.fields.servedUsers')}>
+            <div className="rounded-lg border border-border bg-surface-alt/20 p-4">
               <UserSearchSelect
                 label={t('meetings.actions.addServedUser')}
                 value={pendingServedUser}
@@ -599,39 +663,38 @@ export default function MeetingFormPage() {
                 ))}
               </div>
             </div>
-          </div>
+          </FormSection>
 
           {canManageServants && (
-            <div className="rounded-xl border border-border bg-surface p-4">
-              <CardHeader
-                title={t('meetings.sections.servants')}
-                action={
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    icon={Plus}
-                    onClick={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        servants: [
-                          ...prev.servants,
-                          {
-                            name: '',
-                            user: null,
-                            responsibility: '',
-                            groupsManaged: [],
-                            servedUsers: [],
-                            notes: '',
-                          },
-                        ],
-                      }))
-                    }
-                  >
-                    {t('meetings.actions.addServant')}
-                  </Button>
-                }
-              />
+            <FormSection
+              title={t('meetings.sections.servants')}
+              action={
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  icon={Plus}
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      servants: [
+                        ...prev.servants,
+                        {
+                          name: '',
+                          user: null,
+                          responsibility: '',
+                          groupsManaged: [],
+                          servedUsers: [],
+                          notes: '',
+                        },
+                      ],
+                    }))
+                  }
+                >
+                  {t('meetings.actions.addServant')}
+                </Button>
+              }
+            >
 
               <div className="space-y-4">
                 {form.servants.length === 0 && (
@@ -650,7 +713,7 @@ export default function MeetingFormPage() {
                         });
                         setErrors((prev) => ({ ...prev, [`servant_${index}`]: undefined }));
                       }}
-                      className='mb-2'
+                      className="mb-2"
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -701,33 +764,32 @@ export default function MeetingFormPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </FormSection>
           )}
 
           {canManageCommittees && (
-            <div className="rounded-xl border border-border bg-surface p-4">
-              <CardHeader
-                title={t('meetings.sections.committees')}
-                action={
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    icon={Plus}
-                    onClick={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        committees: [
-                          ...prev.committees,
-                          { name: '', memberNamesCsv: '', memberUserIdsCsv: '', detailsText: '', notes: '' },
-                        ],
-                      }))
-                    }
-                  >
-                    {t('meetings.actions.addCommittee')}
-                  </Button>
-                }
-              />
+            <FormSection
+              title={t('meetings.sections.committees')}
+              action={
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  icon={Plus}
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      committees: [
+                        ...prev.committees,
+                        { name: '', memberNamesCsv: '', memberUserIdsCsv: '', detailsText: '', notes: '' },
+                      ],
+                    }))
+                  }
+                >
+                  {t('meetings.actions.addCommittee')}
+                </Button>
+              }
+            >
 
               <div className="space-y-4">
                 {form.committees.length === 0 && <p className="text-sm text-muted">{t('meetings.empty.noCommitteesYet')}</p>}
@@ -782,29 +844,28 @@ export default function MeetingFormPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </FormSection>
           )}
           {canManageActivities && (
-            <div className="rounded-xl border border-border bg-surface p-4">
-              <CardHeader
-                title={t('meetings.sections.activities')}
-                action={
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    icon={Plus}
-                    onClick={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        activities: [...prev.activities, { name: '', type: 'activity', scheduledAt: '', notes: '' }],
-                      }))
-                    }
-                  >
-                    {t('meetings.actions.addActivity')}
-                  </Button>
-                }
-              />
+            <FormSection
+              title={t('meetings.sections.activities')}
+              action={
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  icon={Plus}
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      activities: [...prev.activities, { name: '', type: 'activity', scheduledAt: '', notes: '' }],
+                    }))
+                  }
+                >
+                  {t('meetings.actions.addActivity')}
+                </Button>
+              }
+            >
 
               <div className="space-y-4">
                 {form.activities.length === 0 && <p className="text-sm text-muted">{t('meetings.empty.noActivitiesYet')}</p>}
@@ -849,16 +910,33 @@ export default function MeetingFormPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </FormSection>
           )}
 
-          <div className="flex gap-2 mt-2">
-            <Button type="button" variant="ghost" onClick={() => navigate('/dashboard/meetings')}>
-              {t('common.actions.cancel')}
-            </Button>
-            <Button type="submit" icon={Save} loading={saveMutation.isPending}>
-              {t('common.actions.save')}
-            </Button>
+          <div className="rounded-xl border border-border bg-surface-alt/30 p-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+              {summaryItems.map((item) => (
+                <div key={item.label} className="rounded-md border border-border bg-surface px-3 py-2">
+                  <p className="text-[11px] text-muted">{item.label}</p>
+                  <p className="text-sm font-semibold text-heading">{item.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {hasValidationErrors && (
+              <p className="mt-3 rounded-md border border-danger/30 bg-danger-light px-3 py-2 text-xs text-danger">
+                {t('meetings.messages.fixValidationErrors')}
+              </p>
+            )}
+
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="ghost" onClick={() => navigate('/dashboard/meetings/list')}>
+                {t('common.actions.cancel')}
+              </Button>
+              <Button type="submit" icon={Save} loading={saveMutation.isPending}>
+                {t('common.actions.save')}
+              </Button>
+            </div>
           </div>
         </form>
       </Card>

@@ -32,7 +32,9 @@ const PastoralVisitationListPage = lazy(() => import('../pages/dashboard/visitat
 const PastoralVisitationCreatePage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationCreatePage'));
 const PastoralVisitationDetailsPage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationDetailsPage'));
 const PastoralVisitationAnalyticsPage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationAnalyticsPage'));
-const MeetingsPage = lazy(() => import('../pages/dashboard/meetings/MeetingsPage'));
+const MeetingsDashboardPage = lazy(() => import('../pages/dashboard/meetings/MeetingsDashboardPage'));
+const SectorsManagementPage = lazy(() => import('../pages/dashboard/meetings/SectorsManagementPage'));
+const MeetingsManagementPage = lazy(() => import('../pages/dashboard/meetings/MeetingsManagementPage'));
 const SectorFormPage = lazy(() => import('../pages/dashboard/meetings/SectorFormPage'));
 const MeetingFormPage = lazy(() => import('../pages/dashboard/meetings/MeetingFormPage'));
 const UnderDevelopmentPage = lazy(() => import('../pages/shared/UnderDevelopmentPage'));
@@ -168,8 +170,55 @@ const router = createBrowserRouter([
       {
         path: 'meetings',
         element: (
-          <PermissionGuard required={['SECTORS_VIEW', 'MEETINGS_VIEW']} mode="any">
-            <Lazy><MeetingsPage /></Lazy>
+          <PermissionGuard
+            required={[
+              'SECTORS_VIEW',
+              'SECTORS_CREATE',
+              'SECTORS_UPDATE',
+              'SECTORS_DELETE',
+              'MEETINGS_VIEW',
+              'MEETINGS_CREATE',
+              'MEETINGS_UPDATE',
+              'MEETINGS_DELETE',
+              'MEETINGS_SERVANTS_MANAGE',
+              'MEETINGS_COMMITTEES_MANAGE',
+              'MEETINGS_ACTIVITIES_MANAGE',
+              'MEETINGS_RESPONSIBILITIES_VIEW',
+              'MEETINGS_SERVANT_HISTORY_VIEW',
+            ]}
+            mode="any"
+          >
+            <Lazy><MeetingsDashboardPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'meetings/sectors',
+        element: (
+          <PermissionGuard
+            required={['SECTORS_VIEW', 'SECTORS_CREATE', 'SECTORS_UPDATE', 'SECTORS_DELETE']}
+            mode="any"
+          >
+            <Lazy><SectorsManagementPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'meetings/list',
+        element: (
+          <PermissionGuard
+            required={[
+              'MEETINGS_VIEW',
+              'MEETINGS_CREATE',
+              'MEETINGS_UPDATE',
+              'MEETINGS_DELETE',
+              'MEETINGS_SERVANTS_MANAGE',
+              'MEETINGS_COMMITTEES_MANAGE',
+              'MEETINGS_ACTIVITIES_MANAGE',
+            ]}
+            mode="any"
+          >
+            <Lazy><MeetingsManagementPage /></Lazy>
           </PermissionGuard>
         ),
       },

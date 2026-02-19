@@ -14,7 +14,7 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Table, { RowActions } from '../../../components/ui/Table';
 import { useI18n } from '../../../i18n/i18n';
-import { DAY_OPTIONS } from './meetingsForm.utils';
+import { getDayLabel, getDayOptions } from './meetingsForm.utils';
 
 export default function MeetingsPage() {
   const { t } = useI18n();
@@ -91,6 +91,7 @@ export default function MeetingsPage() {
   const meetings = Array.isArray(meetingsQuery.data) ? meetingsQuery.data : [];
 
   const sectorOptions = sectors.map((sector) => ({ value: sector.id, label: sector.name }));
+  const dayOptions = getDayOptions(t);
 
   const sectorColumns = [
     {
@@ -146,7 +147,7 @@ export default function MeetingsPage() {
     {
       key: 'schedule',
       label: t('meetings.columns.schedule'),
-      render: (row) => `${row.day} - ${row.time}`,
+      render: (row) => `${getDayLabel(row.day, t)} - ${row.time}`,
     },
     {
       key: 'servantsCount',
@@ -239,7 +240,7 @@ export default function MeetingsPage() {
               label={t('meetings.filters.day')}
               value={filters.day}
               onChange={(event) => setFilters((prev) => ({ ...prev, day: event.target.value }))}
-              options={[{ value: '', label: t('meetings.filters.allDays') }, ...DAY_OPTIONS]}
+              options={[{ value: '', label: t('meetings.filters.allDays') }, ...dayOptions]}
               containerClassName="!mb-0"
             />
             <Input

@@ -1,12 +1,18 @@
-export const DAY_OPTIONS = [
-  { value: 'Sunday', label: 'Sunday' },
-  { value: 'Monday', label: 'Monday' },
-  { value: 'Tuesday', label: 'Tuesday' },
-  { value: 'Wednesday', label: 'Wednesday' },
-  { value: 'Thursday', label: 'Thursday' },
-  { value: 'Friday', label: 'Friday' },
-  { value: 'Saturday', label: 'Saturday' },
-];
+export const DAY_VALUES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+export function getDayLabel(day, t) {
+  if (!day) return '';
+  const key = `meetings.days.${day}`;
+  const translated = t(key);
+  return translated === key ? day : translated;
+}
+
+export function getDayOptions(t) {
+  return DAY_VALUES.map((day) => ({
+    value: day,
+    label: getDayLabel(day, t),
+  }));
+}
 
 export const ACTIVITY_OPTIONS = [
   { value: 'trip', label: 'Trip' },

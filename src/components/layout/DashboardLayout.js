@@ -19,6 +19,7 @@ import {
   Sparkles,
   Building2,
   CalendarDays,
+  Layers3,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
@@ -288,10 +289,47 @@ export default function DashboardLayout() {
         label: t('dashboardLayout.menu.meetingsAndSectors'),
         href: '/dashboard/meetings',
         icon: CalendarDays,
-        permission: ['SECTORS_VIEW', 'MEETINGS_VIEW'],
-        matchChildren: false,
+        permission: [
+          'SECTORS_VIEW',
+          'SECTORS_CREATE',
+          'SECTORS_UPDATE',
+          'SECTORS_DELETE',
+          'MEETINGS_VIEW',
+          'MEETINGS_CREATE',
+          'MEETINGS_UPDATE',
+          'MEETINGS_DELETE',
+          'MEETINGS_SERVANTS_MANAGE',
+          'MEETINGS_COMMITTEES_MANAGE',
+          'MEETINGS_ACTIVITIES_MANAGE',
+          'MEETINGS_RESPONSIBILITIES_VIEW',
+          'MEETINGS_SERVANT_HISTORY_VIEW',
+        ],
+        matchChildren: true,
       },
-      children: [],
+      children: [
+        {
+          label: t('dashboardLayout.menu.sectorsManagement'),
+          href: '/dashboard/meetings/sectors',
+          icon: Layers3,
+          permission: ['SECTORS_VIEW', 'SECTORS_CREATE', 'SECTORS_UPDATE', 'SECTORS_DELETE'],
+          matchChildren: false,
+        },
+        {
+          label: t('dashboardLayout.menu.meetingsManagement'),
+          href: '/dashboard/meetings/list',
+          icon: CalendarDays,
+          permission: [
+            'MEETINGS_VIEW',
+            'MEETINGS_CREATE',
+            'MEETINGS_UPDATE',
+            'MEETINGS_DELETE',
+            'MEETINGS_SERVANTS_MANAGE',
+            'MEETINGS_COMMITTEES_MANAGE',
+            'MEETINGS_ACTIVITIES_MANAGE',
+          ],
+          matchChildren: false,
+        },
+      ],
     },
   ], [t]);
 
