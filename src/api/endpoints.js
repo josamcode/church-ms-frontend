@@ -68,6 +68,37 @@ export const visitationsApi = {
   getAnalytics: (params) => apiClient.get('/visitations/analytics', { params }),
 };
 
+export const meetingsApi = {
+  sectors: {
+    list: (params) => apiClient.get('/meetings/sectors', { params }),
+    create: (data) => apiClient.post('/meetings/sectors', data),
+    uploadAvatarImage: (file) => {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      return apiClient.post('/meetings/sectors/upload-avatar', formData);
+    },
+    getById: (id) => apiClient.get(`/meetings/sectors/${id}`),
+    update: (id, data) => apiClient.patch(`/meetings/sectors/${id}`, data),
+    remove: (id) => apiClient.delete(`/meetings/sectors/${id}`),
+  },
+  meetings: {
+    list: (params) => apiClient.get('/meetings', { params }),
+    create: (data) => apiClient.post('/meetings', data),
+    getById: (id) => apiClient.get(`/meetings/${id}`),
+    updateBasic: (id, data) => apiClient.patch(`/meetings/${id}/basic`, data),
+    updateServants: (id, servants) => apiClient.patch(`/meetings/${id}/servants`, { servants }),
+    updateCommittees: (id, committees) => apiClient.patch(`/meetings/${id}/committees`, { committees }),
+    updateActivities: (id, activities) => apiClient.patch(`/meetings/${id}/activities`, { activities }),
+    remove: (id) => apiClient.delete(`/meetings/${id}`),
+  },
+  responsibilities: {
+    list: (params) => apiClient.get('/meetings/responsibilities', { params }),
+  },
+  servants: {
+    history: (params) => apiClient.get('/meetings/servants/history', { params }),
+  },
+};
+
 /* ══════════ Health ══════════ */
 
 export const healthApi = {
