@@ -56,7 +56,7 @@ export default function SectorFormPage() {
     onSuccess: () => {
       toast.success(isEdit ? t('meetings.messages.sectorUpdated') : t('meetings.messages.sectorCreated'));
       queryClient.invalidateQueries({ queryKey: ['meetings', 'sectors'] });
-      navigate('/dashboard/meetings');
+      navigate('/dashboard/meetings/sectors');
     },
     onError: (error) => {
       const normalized = normalizeApiError(error);
@@ -143,7 +143,7 @@ export default function SectorFormPage() {
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
-          { label: t('meetings.pageTitle'), href: '/dashboard/meetings' },
+          { label: t('meetings.sectorsPageTitle'), href: '/dashboard/meetings/sectors' },
           { label: isEdit ? t('meetings.actions.editSectorPage') : t('meetings.actions.createSectorPage') },
         ]}
       />
@@ -324,7 +324,7 @@ export default function SectorFormPage() {
           </div>
 
           <div className="flex gap-2 pt-1">
-            <Button type="button" variant="ghost" onClick={() => navigate('/dashboard/meetings')}>
+            <Button type="button" variant="ghost" onClick={() => navigate('/dashboard/meetings/sectors')}>
               {t('common.actions.cancel')}
             </Button>
             <Button type="submit" icon={Save} loading={saveMutation.isPending}>
