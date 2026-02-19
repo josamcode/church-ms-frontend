@@ -34,6 +34,10 @@ export function uniqueCsv(value) {
   return [...new Set(String(value || '').split(',').map((entry) => entry.trim()).filter(Boolean))];
 }
 
+export function uniqueStringList(values = []) {
+  return [...new Set((values || []).map((entry) => String(entry || '').trim()).filter(Boolean))];
+}
+
 export function toSelectUser(userLike, fallbackName = '') {
   if (!userLike) return null;
   const id = userLike.id || userLike._id;
@@ -108,6 +112,13 @@ export function buildSectorPayload(form) {
 }
 
 export function mapMeetingToForm(meeting) {
+  const groupServedUsersByGroup = (meeting?.groupAssignments || []).reduce((acc, entry) => {
+    const groupName = String(entry?.group || '').trim();
+    if (!groupName) return acc;
+    acc[groupName] = (entry?.servedUsers || []).map((user) => toSelectUser(user)).filter(Boolean);
+    return acc;
+  }, {});
+
   return {
     sectorId: meeting?.sector?.id || '',
     name: meeting?.name || '',
@@ -127,14 +138,15 @@ export function mapMeetingToForm(meeting) {
       name: assistant?.name || '',
     })),
     servedUsers: (meeting?.servedUsers || []).map((user) => toSelectUser(user)).filter(Boolean),
-    groupsCsv: (meeting?.groups || []).join(', '),
+    groups: uniqueStringList(meeting?.groups || []),
+    groupServedUsersByGroup,
+    pendingGroupServedUserByGroup: {},
     servants: (meeting?.servants || []).map((servant) => ({
       user: toSelectUser(servant?.user, servant?.name),
       name: servant?.name || '',
       responsibility: servant?.responsibility || '',
-      groupsManagedCsv: (servant?.groupsManaged || []).join(', '),
+      groupsManaged: uniqueStringList(servant?.groupsManaged || []),
       servedUsers: (servant?.servedUsers || []).map((user) => toSelectUser(user)).filter(Boolean),
-      servedUserIdsCsv: (servant?.servedUsers || []).map((user) => user.id).join(', '),
       notes: servant?.notes || '',
     })),
     committees: (meeting?.committees || []).map((committee) => ({
@@ -166,6 +178,12 @@ export function buildMeetingPayload(form, options = {}) {
   const serviceSecretary = toPersonPayload(form.serviceSecretaryUser, form.serviceSecretaryName);
   const avatarUrl = String(form?.avatar?.url || form?.avatarUrl || '').trim();
   const avatarPublicId = String(form?.avatar?.publicId || form?.avatarPublicId || '').trim();
+  const groups = uniqueStringList(form.groups || []);
+  const groupAssignments = groups.map((groupName) => ({
+    group: groupName,
+    servedUserIds: (form?.groupServedUsersByGroup?.[groupName] || []).map((user) => user?._id).filter(Boolean),
+  }));
+  const groupedServedUserIds = [...new Set(groupAssignments.flatMap((entry) => entry.servedUserIds || []))];
 
   const payload = {
     sectorId: form.sectorId,
@@ -185,8 +203,11 @@ export function buildMeetingPayload(form, options = {}) {
     assistantSecretaries: (form.assistantSecretaries || [])
       .map((assistant) => toPersonPayload(assistant.user, assistant.name))
       .filter(Boolean),
-    servedUserIds: (form.servedUsers || []).map((user) => user?._id).filter(Boolean),
-    groups: uniqueCsv(form.groupsCsv),
+    servedUserIds: [
+      ...new Set([...(form.servedUsers || []).map((user) => user?._id).filter(Boolean), ...groupedServedUserIds]),
+    ],
+    groups,
+    groupAssignments,
     ...(String(form.notes || '').trim() && { notes: String(form.notes || '').trim() }),
   };
 
@@ -195,16 +216,25 @@ export function buildMeetingPayload(form, options = {}) {
       .map((servant) => {
         const person = toPersonPayload(servant.user, servant.name);
         if (!person) return null;
+
+        const groupsManaged = uniqueStringList(servant.groupsManaged || []);
+        const servantServedUserIdsFromGroups = [
+          ...new Set(
+            groupsManaged.flatMap((groupName) =>
+              (form?.groupServedUsersByGroup?.[groupName] || []).map((user) => user?._id).filter(Boolean)
+            )
+          ),
+        ];
+        const pickedServedUserIds = (servant.servedUsers || []).map((user) => user?._id).filter(Boolean);
+        const servedUserIds = [...new Set([...servantServedUserIdsFromGroups, ...pickedServedUserIds])];
+
         return {
           ...person,
           ...(String(servant.responsibility || '').trim() && {
             responsibility: String(servant.responsibility || '').trim(),
           }),
-          groupsManaged: uniqueCsv(servant.groupsManagedCsv),
-          servedUserIds:
-            (servant.servedUsers || []).length > 0
-              ? (servant.servedUsers || []).map((user) => user?._id).filter(Boolean)
-              : uniqueCsv(servant.servedUserIdsCsv),
+          groupsManaged,
+          servedUserIds,
           ...(String(servant.notes || '').trim() && { notes: String(servant.notes || '').trim() }),
         };
       })

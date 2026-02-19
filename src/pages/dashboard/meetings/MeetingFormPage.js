@@ -11,7 +11,9 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
+import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import Select from '../../../components/ui/Select';
+import TagInput from '../../../components/ui/TagInput';
 import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
 import {
@@ -32,7 +34,9 @@ const EMPTY_FORM = {
   serviceSecretaryName: '',
   assistantSecretaries: [],
   servedUsers: [],
-  groupsCsv: '',
+  groups: [],
+  groupServedUsersByGroup: {},
+  pendingGroupServedUserByGroup: {},
   servants: [],
   committees: [],
   activities: [],
@@ -63,7 +67,6 @@ export default function MeetingFormPage() {
   const canManageServants = hasPermission('MEETINGS_SERVANTS_MANAGE');
   const canManageCommittees = hasPermission('MEETINGS_COMMITTEES_MANAGE');
   const canManageActivities = hasPermission('MEETINGS_ACTIVITIES_MANAGE');
-  const canViewResponsibilities = hasPermission('MEETINGS_RESPONSIBILITIES_VIEW');
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
@@ -89,16 +92,6 @@ export default function MeetingFormPage() {
     },
   });
 
-  const responsibilitiesQuery = useQuery({
-    queryKey: ['meetings', 'responsibilities'],
-    enabled: canViewResponsibilities && canManageServants,
-    staleTime: 30000,
-    queryFn: async () => {
-      const { data } = await meetingsApi.responsibilities.list({ limit: 30 });
-      return data?.data || [];
-    },
-  });
-
   useEffect(() => {
     if (meetingQuery.data) {
       setForm(mapMeetingToForm(meetingQuery.data));
@@ -107,6 +100,7 @@ export default function MeetingFormPage() {
 
   const sectors = Array.isArray(sectorsQuery.data) ? sectorsQuery.data : [];
   const sectorOptions = sectors.map((sector) => ({ value: sector.id, label: sector.name }));
+  const meetingGroupOptions = (form.groups || []).map((groupName) => ({ value: groupName, label: groupName }));
 
   const saveMutation = useMutation({
     mutationFn: async (payload) => {
@@ -175,6 +169,31 @@ export default function MeetingFormPage() {
     setForm((prev) => ({
       ...prev,
       [key]: (prev[key] || []).filter((_, entryIndex) => entryIndex !== index),
+    }));
+  };
+
+  const handleMeetingGroupsChange = (nextGroups) => {
+    setForm((prev) => ({
+      ...prev,
+      groups: nextGroups,
+      groupServedUsersByGroup: Object.fromEntries(
+        Object.entries(prev.groupServedUsersByGroup || {}).filter(([groupName]) => nextGroups.includes(groupName))
+      ),
+      pendingGroupServedUserByGroup: Object.fromEntries(
+        Object.entries(prev.pendingGroupServedUserByGroup || {}).filter(([groupName]) =>
+          nextGroups.includes(groupName)
+        )
+      ),
+      servants: (prev.servants || []).map((servant) => {
+        const nextGroupsManaged = (servant.groupsManaged || []).filter((groupName) =>
+          nextGroups.includes(groupName)
+        );
+
+        return {
+          ...servant,
+          groupsManaged: nextGroupsManaged,
+        };
+      }),
     }));
   };
 
@@ -379,13 +398,71 @@ export default function MeetingFormPage() {
                   />
                 </div>
 
-                <Input
+                <TagInput
                   label={t('meetings.fields.groups')}
-                  value={form.groupsCsv}
-                  onChange={(event) => setForm((prev) => ({ ...prev, groupsCsv: event.target.value }))}
-                  placeholder={t('meetings.fields.groupsPlaceholder')}
+                  values={form.groups}
+                  onChange={handleMeetingGroupsChange}
+                  placeholder="Type a group name and press Enter"
                   disabled={readonlyBasics}
                 />
+
+                {(form.groups || []).length > 0 && (
+                  <div className="space-y-3 mb-4">
+                    {(form.groups || []).map((groupName) => (
+                      <div key={`meeting_group_${groupName}`} className="rounded-md border border-border bg-surface p-3">
+                        <p className="text-sm font-semibold text-heading mb-2">{groupName}</p>
+                        <UserSearchSelect
+                          label={t('meetings.actions.addServedUser')}
+                          value={form?.pendingGroupServedUserByGroup?.[groupName] || null}
+                          disabled={readonlyBasics}
+                          onChange={(value) => {
+                            setForm((prev) => ({
+                              ...prev,
+                              groupServedUsersByGroup: {
+                                ...(prev.groupServedUsersByGroup || {}),
+                                [groupName]:
+                                  value?._id &&
+                                    !(prev?.groupServedUsersByGroup?.[groupName] || []).some(
+                                      (entry) => entry._id === value._id
+                                    )
+                                    ? [...(prev?.groupServedUsersByGroup?.[groupName] || []), value]
+                                    : prev?.groupServedUsersByGroup?.[groupName] || [],
+                              },
+                              pendingGroupServedUserByGroup: {
+                                ...(prev.pendingGroupServedUserByGroup || {}),
+                                [groupName]: null,
+                              },
+                            }));
+                          }}
+                          className="mb-2"
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          {(form?.groupServedUsersByGroup?.[groupName] || []).length === 0 && (
+                            <p className="text-sm text-muted">{t('meetings.empty.noServedUsersYet')}</p>
+                          )}
+                          {(form?.groupServedUsersByGroup?.[groupName] || []).map((user) => (
+                            <UserPill
+                              key={`${groupName}_${user._id}`}
+                              user={user}
+                              disabled={readonlyBasics}
+                              onRemove={() =>
+                                setForm((prev) => ({
+                                  ...prev,
+                                  groupServedUsersByGroup: {
+                                    ...(prev.groupServedUsersByGroup || {}),
+                                    [groupName]: (prev?.groupServedUsersByGroup?.[groupName] || []).filter(
+                                      (entry) => entry._id !== user._id
+                                    ),
+                                  },
+                                }))
+                              }
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <TextArea
                   label={t('meetings.fields.notes')}
@@ -539,7 +616,14 @@ export default function MeetingFormPage() {
                         ...prev,
                         servants: [
                           ...prev.servants,
-                          { name: '', user: null, responsibility: '', groupsManagedCsv: '', servedUserIdsCsv: '', notes: '' },
+                          {
+                            name: '',
+                            user: null,
+                            responsibility: '',
+                            groupsManaged: [],
+                            servedUsers: [],
+                            notes: '',
+                          },
                         ],
                       }))
                     }
@@ -588,13 +672,12 @@ export default function MeetingFormPage() {
                           patchListItem('servants', index, { responsibility: event.target.value })
                         }
                       />
-                      <Input
+                      <MultiSelectChips
                         label={t('meetings.fields.groupsManaged')}
-                        value={servant.groupsManagedCsv}
-                        onChange={(event) =>
-                          patchListItem('servants', index, { groupsManagedCsv: event.target.value })
-                        }
-                        placeholder={t('meetings.fields.csvPlaceholder')}
+                        values={servant.groupsManaged || []}
+                        options={meetingGroupOptions}
+                        onChange={(nextGroupsManaged) => patchListItem('servants', index, { groupsManaged: nextGroupsManaged })}
+                        placeholder="Select one or more meeting groups"
                       />
                     </div>
 
