@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Church,
   LayoutDashboard,
@@ -18,6 +18,8 @@ import {
   BarChart3,
   Sparkles,
   Building2,
+  CalendarDays,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
 import Tooltip from '../ui/Tooltip';
@@ -25,505 +27,775 @@ import LanguageSwitcher from '../ui/LanguageSwitcher';
 import { useI18n } from '../../i18n/i18n';
 import { getRoleLabel } from '../../utils/formatters';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// NavItem
+// ─────────────────────────────────────────────────────────────────────────────
+function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick, nested = false }) {
+  if (collapsed) {
+    return (
+      <Tooltip content={item.label} position={tooltipSide}>
+        <Link
+          to={item.href}
+          onClick={onClick}
+          className={[
+            'relative mx-auto flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-150',
+            active
+              ? 'bg-primary text-white shadow-md shadow-primary/25'
+              : 'text-muted hover:bg-surface-alt hover:text-heading',
+          ].join(' ')}
+        >
+          <item.icon className="h-[18px] w-[18px]" />
+          {active && (
+            <span className={`absolute inset-y-2.5 w-0.5 rounded-full bg-white/50 ${isRTL ? 'right-0.5' : 'left-0.5'}`} />
+          )}
+        </Link>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Link
+      to={item.href}
+      onClick={onClick}
+      className={[
+        'group relative flex w-full items-center gap-3 rounded-xl font-medium transition-all duration-150 select-none',
+        nested ? 'py-2 px-3 text-[13px]' : 'px-3 py-2.5 text-sm',
+        active
+          ? 'bg-primary text-white shadow-md shadow-primary/20'
+          : 'text-muted hover:bg-surface-alt hover:text-heading',
+      ].join(' ')}
+    >
+      {active && (
+        <span className={`absolute inset-y-2.5 w-0.5 rounded-full bg-white/50 ${isRTL ? 'right-0' : 'left-0'}`} />
+      )}
+      <span className={[
+        'flex flex-shrink-0 items-center justify-center rounded-lg transition-colors',
+        nested ? 'h-6 w-6' : 'h-7 w-7',
+        active ? 'text-white' : 'text-muted group-hover:text-heading',
+      ].join(' ')}>
+        <item.icon className={nested ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
+      </span>
+      <span className="truncate">{item.label}</span>
+    </Link>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NavGroup — open state is CONTROLLED from outside (passed as props)
+// ─────────────────────────────────────────────────────────────────────────────
+function NavGroup({ group, open, onToggle, isRTL, tooltipSide, isItemActive, onLinkClick }) {
+  const groupActive =
+    (group.parentVisible && isItemActive(group.parent)) ||
+    group.children.some((c) => isItemActive(c));
+
+  const hasChildren = group.children.length > 0;
+
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center gap-1">
+        {group.parentVisible ? (
+          <Link
+            to={group.parent.href}
+            onClick={onLinkClick}
+            className={[
+              'group relative flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
+              groupActive
+                ? 'bg-primary text-white shadow-md shadow-primary/20'
+                : 'text-muted hover:bg-surface-alt hover:text-heading',
+            ].join(' ')}
+          >
+            {groupActive && (
+              <span className={`absolute inset-y-2.5 w-0.5 rounded-full bg-white/50 ${isRTL ? 'right-0' : 'left-0'}`} />
+            )}
+            <span className={[
+              'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg transition-colors',
+              groupActive ? 'text-white' : 'text-muted group-hover:text-heading',
+            ].join(' ')}>
+              <group.parent.icon className="h-4 w-4" />
+            </span>
+            <span className="truncate">{group.parent.label}</span>
+          </Link>
+        ) : (
+          <div className="flex flex-1 items-center gap-3 px-3 py-2.5 text-sm font-medium text-muted/50">
+            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center">
+              <group.parent.icon className="h-4 w-4" />
+            </span>
+            <span className="truncate">{group.parent.label}</span>
+          </div>
+        )}
+
+        {hasChildren && (
+          <button
+            type="button"
+            onClick={onToggle}
+            className={[
+              'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition-all duration-150 hover:bg-surface-alt hover:text-heading',
+              groupActive ? 'text-primary' : 'text-muted',
+            ].join(' ')}
+            aria-expanded={open}
+          >
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+          </button>
+        )}
+      </div>
+
+      {hasChildren && open && (
+        <div className={[
+          'space-y-0.5',
+          isRTL ? 'mr-[18px] border-r border-border/40 pr-2' : 'ml-[18px] border-l border-border/40 pl-2',
+        ].join(' ')}>
+          {group.children.map((child) => (
+            <NavItem
+              key={child.href}
+              item={child}
+              active={isItemActive(child)}
+              collapsed={false}
+              isRTL={isRTL}
+              tooltipSide={tooltipSide}
+              onClick={onLinkClick}
+              nested
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NavDivider({ collapsed }) {
+  return (
+    <div className={`my-1.5 ${collapsed ? 'flex justify-center' : ''}`}>
+      <div className={`h-px bg-border/50 ${collapsed ? 'w-8' : 'w-full'}`} />
+    </div>
+  );
+}
+
+function NavSectionLabel({ label }) {
+  return (
+    <p className="mb-1 mt-3 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted/40 first:mt-0">
+      {label}
+    </p>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DashboardLayout
+// ─────────────────────────────────────────────────────────────────────────────
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [openGroups, setOpenGroups] = useState({});
   const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
+
   const { user, logout, hasPermission } = useAuth();
   const { t, isRTL } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const topItems = useMemo(
-    () => [
-      {
-        label: t('dashboardLayout.menu.dashboard'),
-        href: '/dashboard',
-        icon: LayoutDashboard,
-        permission: null,
-        matchChildren: false,
-      },
-      {
-        label: t('dashboardLayout.menu.profile'),
-        href: '/dashboard/profile',
-        icon: UserCircle,
-        permission: 'AUTH_VIEW_SELF',
-        matchChildren: false,
-      },
-    ],
-    [t]
-  );
+  // ── Menu definitions ──────────────────────────────────────────────────────
 
-  const groupedItems = useMemo(
-    () => [
-      {
-        key: 'users',
-        parent: {
-          label: t('dashboardLayout.menu.users'),
-          href: '/dashboard/users',
-          icon: Users,
-          permission: 'USERS_VIEW',
-          matchChildren: true,
-        },
-        children: [
-          {
-            label: t('dashboardLayout.menu.familyHouseLookup'),
-            href: '/dashboard/users/family-house',
-            icon: Building2,
-            permission: 'USERS_VIEW',
-            matchChildren: false,
-          },
-        ],
+  const topItems = useMemo(() => [
+    {
+      label: t('dashboardLayout.menu.dashboard'),
+      href: '/dashboard',
+      icon: LayoutDashboard,
+      permission: null,
+      matchChildren: false,
+    },
+    {
+      label: t('dashboardLayout.menu.profile'),
+      href: '/dashboard/profile',
+      icon: UserCircle,
+      permission: 'AUTH_VIEW_SELF',
+      matchChildren: false,
+    },
+  ], [t]);
+
+  const groupedItems = useMemo(() => [
+    {
+      key: 'users',
+      parent: {
+        label: t('dashboardLayout.menu.users'),
+        href: '/dashboard/users',
+        icon: Users,
+        permission: 'USERS_VIEW',
+        matchChildren: true,
       },
-      {
-        key: 'confessions',
-        parent: {
-          label: t('dashboardLayout.menu.confessionSessions'),
-          href: '/dashboard/confessions',
-          icon: CalendarCheck2,
-          permission: 'CONFESSIONS_VIEW',
+      children: [
+        {
+          label: t('dashboardLayout.menu.familyHouseLookup'),
+          href: '/dashboard/users/family-house',
+          icon: Building2,
+          permission: 'USERS_VIEW',
           matchChildren: false,
         },
-        children: [
-          {
-            label: t('dashboardLayout.menu.confessionAlerts'),
-            href: '/dashboard/confessions/alerts',
-            icon: BellRing,
-            permission: 'CONFESSIONS_ALERTS_VIEW',
-            matchChildren: false,
-          },
-          {
-            label: t('dashboardLayout.menu.confessionAnalytics'),
-            href: '/dashboard/confessions/analytics',
-            icon: BarChart3,
-            permission: 'CONFESSIONS_ANALYTICS_VIEW',
-            matchChildren: false,
-          },
-        ],
-      },
-      {
-        key: 'visitations',
-        parent: {
-          label: t('dashboardLayout.menu.pastoralVisitations'),
-          href: '/dashboard/visitations',
-          icon: CalendarCheck2,
-          permission: 'PASTORAL_VISITATIONS_VIEW',
-          matchChildren: true,
-        },
-        children: [
-          {
-            label: t('dashboardLayout.menu.pastoralVisitationsCreate'),
-            href: '/dashboard/visitations/new',
-            icon: Sparkles,
-            permission: 'PASTORAL_VISITATIONS_CREATE',
-            matchChildren: false,
-          },
-          {
-            label: t('dashboardLayout.menu.pastoralVisitationsAnalytics'),
-            href: '/dashboard/visitations/analytics',
-            icon: BarChart3,
-            permission: 'PASTORAL_VISITATIONS_ANALYTICS_VIEW',
-            matchChildren: false,
-          },
-        ],
-      },
-    ],
-    [t]
-  );
-
-  const bottomItems = useMemo(
-    () => [
-      {
-        label: t('dashboardLayout.menu.underDevelopment'),
-        href: '/dashboard/under-development',
-        icon: Construction,
-        permission: null,
+      ],
+    },
+    {
+      key: 'confessions',
+      parent: {
+        label: t('dashboardLayout.menu.confessionSessions'),
+        href: '/dashboard/confessions',
+        icon: CalendarCheck2,
+        permission: 'CONFESSIONS_VIEW',
         matchChildren: false,
       },
-    ],
-    [t]
-  );
+      children: [
+        {
+          label: t('dashboardLayout.menu.confessionAlerts'),
+          href: '/dashboard/confessions/alerts',
+          icon: BellRing,
+          permission: 'CONFESSIONS_ALERTS_VIEW',
+          matchChildren: false,
+        },
+        {
+          label: t('dashboardLayout.menu.confessionAnalytics'),
+          href: '/dashboard/confessions/analytics',
+          icon: BarChart3,
+          permission: 'CONFESSIONS_ANALYTICS_VIEW',
+          matchChildren: false,
+        },
+      ],
+    },
+    {
+      key: 'visitations',
+      parent: {
+        label: t('dashboardLayout.menu.pastoralVisitations'),
+        href: '/dashboard/visitations',
+        icon: CalendarCheck2,
+        permission: 'PASTORAL_VISITATIONS_VIEW',
+        matchChildren: true,
+      },
+      children: [
+        {
+          label: t('dashboardLayout.menu.pastoralVisitationsCreate'),
+          href: '/dashboard/visitations/new',
+          icon: Sparkles,
+          permission: 'PASTORAL_VISITATIONS_CREATE',
+          matchChildren: false,
+        },
+        {
+          label: t('dashboardLayout.menu.pastoralVisitationsAnalytics'),
+          href: '/dashboard/visitations/analytics',
+          icon: BarChart3,
+          permission: 'PASTORAL_VISITATIONS_ANALYTICS_VIEW',
+          matchChildren: false,
+        },
+      ],
+    },
+    {
+      key: 'meetings',
+      parent: {
+        label: t('dashboardLayout.menu.meetingsAndSectors'),
+        href: '/dashboard/meetings',
+        icon: CalendarDays,
+        permission: ['SECTORS_VIEW', 'MEETINGS_VIEW'],
+        matchChildren: false,
+      },
+      children: [],
+    },
+  ], [t]);
 
-  const isItemAllowed = (item) => !item.permission || hasPermission(item.permission);
+  const bottomItems = useMemo(() => [
+    {
+      label: t('dashboardLayout.menu.underDevelopment'),
+      href: '/dashboard/under-development',
+      icon: Construction,
+      permission: null,
+      matchChildren: false,
+    },
+  ], [t]);
 
-  const isItemActive = (item) => {
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  const isItemAllowed = useCallback((item) => {
+    if (!item.permission) return true;
+    if (Array.isArray(item.permission)) return item.permission.some((p) => hasPermission(p));
+    return hasPermission(item.permission);
+  }, [hasPermission]);
+
+  const isItemActive = useCallback((item) => {
     if (!item?.href) return false;
     if (location.pathname === item.href) return true;
     if (!item.matchChildren) return false;
     return location.pathname.startsWith(`${item.href}/`);
-  };
+  }, [location.pathname]);
 
-  const visibleTopItems = topItems.filter(isItemAllowed);
-  const visibleGroups = groupedItems
-    .map((group) => {
-      const parentVisible = isItemAllowed(group.parent);
-      const children = group.children.filter(isItemAllowed);
-      if (!parentVisible && children.length === 0) return null;
-      return { ...group, parentVisible, children };
-    })
-    .filter(Boolean);
-  const visibleBottomItems = bottomItems.filter(isItemAllowed);
+  // ── Filtered menu ─────────────────────────────────────────────────────────
 
-  const flatMenuItems = [
-    ...visibleTopItems,
-    ...visibleGroups.flatMap((group) => [
-      ...(group.parentVisible ? [group.parent] : []),
-      ...group.children,
-    ]),
-    ...visibleBottomItems,
-  ];
+  const visibleTopItems = useMemo(() => topItems.filter(isItemAllowed), [topItems, isItemAllowed]);
 
+  const visibleGroups = useMemo(() =>
+    groupedItems
+      .map((group) => {
+        const parentVisible = isItemAllowed(group.parent);
+        const children = group.children.filter(isItemAllowed);
+        if (!parentVisible && children.length === 0) return null;
+        return { ...group, parentVisible, children };
+      })
+      .filter(Boolean),
+    [groupedItems, isItemAllowed]
+  );
+
+  const visibleBottomItems = useMemo(() => bottomItems.filter(isItemAllowed), [bottomItems, isItemAllowed]);
+
+  // ── Group open state — lives HERE, never inside NavGroup ─────────────────
+  // Initialise once; auto-open groups whose route is active.
+  const [openGroups, setOpenGroups] = useState(() => {
+    const init = {};
+    return init;
+  });
+
+  // Whenever the pathname changes, ensure groups with an active child are open.
   useEffect(() => {
     setOpenGroups((prev) => {
-      const next = {};
+      const next = { ...prev };
       let changed = false;
-
       visibleGroups.forEach((group) => {
-        const hasActiveRoute =
+        const isActive =
           (group.parentVisible && isItemActive(group.parent)) ||
-          group.children.some((item) => isItemActive(item));
-        const previousValue = prev[group.key];
-        const nextValue = hasActiveRoute ? true : previousValue ?? false;
-        next[group.key] = nextValue;
-        if (nextValue !== previousValue) changed = true;
+          group.children.some((c) => isItemActive(c));
+        if (isActive && !next[group.key]) {
+          next[group.key] = true;
+          changed = true;
+        }
       });
-
-      Object.keys(prev).forEach((key) => {
-        if (!(key in next)) changed = true;
-      });
-
       return changed ? next : prev;
     });
-  }, [location.pathname, visibleGroups]);
+  }, [location.pathname, visibleGroups, isItemActive]);
 
-  const toggleDark = () => {
+  const toggleGroup = useCallback((key) => {
+    setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  // ── Active item (for breadcrumb) ──────────────────────────────────────────
+
+  const activeItem = useMemo(() => {
+    const flat = [
+      ...visibleTopItems,
+      ...visibleGroups.flatMap((g) => [...(g.parentVisible ? [g.parent] : []), ...g.children]),
+      ...visibleBottomItems,
+    ];
+    return flat
+      .filter((item) => item.href)
+      .sort((a, b) => b.href.length - a.href.length)
+      .find((item) => isItemActive(item));
+  }, [visibleTopItems, visibleGroups, visibleBottomItems, isItemActive]);
+
+  // ── Theme / auth ──────────────────────────────────────────────────────────
+
+  const toggleDark = useCallback(() => {
     const next = !darkMode;
     setDarkMode(next);
     document.documentElement.classList.toggle('dark', next);
     localStorage.setItem('theme', next ? 'dark' : 'light');
-  };
+  }, [darkMode]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout();
     navigate('/auth/login');
-  };
+  }, [logout, navigate]);
 
-  const activeItem = [...flatMenuItems]
-    .filter((item) => item.href)
-    .sort((a, b) => b.href.length - a.href.length)
-    .find((item) => isItemActive(item));
-  const sidebarTooltipPosition = isRTL ? 'left' : 'right';
+  const tooltipSide = isRTL ? 'left' : 'right';
+  const CollapseIcon = isRTL
+    ? (collapsed ? ChevronLeft : ChevronRight)
+    : (collapsed ? ChevronRight : ChevronLeft);
 
-  const SidebarContent = ({ mobile = false } = {}) => {
-    const compact = collapsed && !mobile;
-    const compactItems = [
-      ...visibleTopItems,
-      ...visibleGroups.flatMap((group) => [
-        ...(group.parentVisible ? [group.parent] : []),
-        ...group.children,
-      ]),
-      ...visibleBottomItems,
-    ];
+  // ── Nav JSX helpers (pure JSX, not components — no state risk) ────────────
 
-    const renderCompactLink = (item) => {
-      const active = isItemActive(item);
-      return (
-        <Tooltip key={item.href} content={item.label} position={sidebarTooltipPosition} className="w-[calc(100%-20px)]">
-          <Link
-            to={item.href}
-            onClick={() => setSidebarOpen(false)}
-            className={`group relative flex w-full items-center justify-center rounded-xl border px-2 py-2.5 text-sm font-medium transition-all
-              ${active
-                ? 'border-primary/25 bg-primary/10 text-primary shadow-card'
-                : 'border-transparent text-muted hover:border-border/60 hover:bg-surface-alt/80 hover:text-heading'
-              }`}
-          >
-            {active && (
-              <span
-                className={`absolute inset-y-2 w-1 rounded-full bg-primary ${isRTL ? 'right-1' : 'left-1'}`}
-                aria-hidden
-              />
-            )}
-            <span
-              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors
-                ${active ? 'bg-primary/15 text-primary' : 'bg-surface-alt/70 text-muted group-hover:bg-surface-alt'}`}
-            >
-              <item.icon className="h-4 w-4" />
-            </span>
-          </Link>
-        </Tooltip>
-      );
-    };
+  const renderExpandedNav = (onLinkClick) => (
+    <>
+      <NavSectionLabel label={t('dashboardLayout.section.main')} />
 
-    const renderStandardLink = (item, { nested = false } = {}) => {
-      const active = isItemActive(item);
-      return (
-        <Link
+      {visibleTopItems.map((item) => (
+        <NavItem
           key={item.href}
-          to={item.href}
-          onClick={() => setSidebarOpen(false)}
-          className={`group relative flex w-full items-center rounded-xl border font-medium transition-all
-            ${nested ? 'gap-2.5 px-2.5 py-2 text-[13px]' : 'gap-3 px-3 py-2.5 text-sm'}
-            ${active
-              ? 'border-primary/25 bg-primary/10 text-primary shadow-card'
-              : 'border-transparent text-muted hover:border-border/60 hover:bg-surface-alt/80 hover:text-heading'
-            }`}
-        >
-          {active && (
-            <span
-              className={`absolute inset-y-2 w-1 rounded-full bg-primary ${isRTL ? 'right-1' : 'left-1'}`}
-              aria-hidden
+          item={item}
+          active={isItemActive(item)}
+          collapsed={false}
+          isRTL={isRTL}
+          tooltipSide={tooltipSide}
+          onClick={onLinkClick}
+        />
+      ))}
+
+      {visibleGroups.length > 0 && (
+        <>
+          <NavDivider collapsed={false} />
+          <NavSectionLabel label={t('dashboardLayout.section.manage')} />
+          {visibleGroups.map((group) => (
+            <NavGroup
+              key={group.key}
+              group={group}
+              open={!!openGroups[group.key]}
+              onToggle={() => toggleGroup(group.key)}
+              isRTL={isRTL}
+              tooltipSide={tooltipSide}
+              isItemActive={isItemActive}
+              onLinkClick={onLinkClick}
             />
-          )}
-          <span
-            className={`flex ${nested ? 'h-7 w-7' : 'h-8 w-8'} flex-shrink-0 items-center justify-center rounded-lg transition-colors
-              ${active ? 'bg-primary/15 text-primary' : 'bg-surface-alt/70 text-muted group-hover:bg-surface-alt'}`}
-          >
-            <item.icon className={nested ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
-          </span>
-          <span className="truncate">{item.label}</span>
-          {active && (
-            <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} inline-flex h-2 w-2 rounded-full bg-primary`} />
-          )}
-        </Link>
-      );
-    };
+          ))}
+        </>
+      )}
 
-    return (
-      <div className="relative flex h-full flex-col">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent" />
+      {visibleBottomItems.length > 0 && (
+        <>
+          <NavDivider collapsed={false} />
+          <NavSectionLabel label={t('dashboardLayout.section.other')} />
+          {visibleBottomItems.map((item) => (
+            <NavItem
+              key={item.href}
+              item={item}
+              active={isItemActive(item)}
+              collapsed={false}
+              isRTL={isRTL}
+              tooltipSide={tooltipSide}
+              onClick={onLinkClick}
+            />
+          ))}
+        </>
+      )}
+    </>
+  );
 
-        <div className="relative flex min-h-0 flex-1 flex-col">
-          <button
-            type="button"
-            className={`mx-3 mt-3 flex items-center gap-3 rounded-2xl border-b border-border/70 bg-surface-alt/50 px-3 py-3 text-left transition-colors hover:border-primary/30 hover:bg-surface-alt ${compact ? 'justify-center' : ''
-              }`}
-            onClick={() => navigate('/')}
-          >
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Church className="h-5 w-5" />
-            </div>
-            {!compact && (
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-heading">{t('common.appName')}</p>
-              </div>
-            )}
-          </button>
+  const renderCollapsedNav = () => (
+    <>
+      {visibleTopItems.map((item) => (
+        <NavItem
+          key={item.href}
+          item={item}
+          active={isItemActive(item)}
+          collapsed
+          isRTL={isRTL}
+          tooltipSide={tooltipSide}
+          onClick={() => { }}
+        />
+      ))}
 
-          <nav className={`relative flex-1 space-y-1.5 overflow-y-auto py-3 ${compact ? 'px-2' : 'px-3'}`}>
-            {compact && compactItems.map((item) => renderCompactLink(item))}
+      {visibleGroups.length > 0 && <NavDivider collapsed />}
 
-            {!compact && (
-              <>
-                {visibleTopItems.map((item) => renderStandardLink(item))}
+      {visibleGroups.map((group) =>
+        group.parentVisible ? (
+          <NavItem
+            key={group.parent.href}
+            item={group.parent}
+            active={isItemActive(group.parent) || group.children.some((c) => isItemActive(c))}
+            collapsed
+            isRTL={isRTL}
+            tooltipSide={tooltipSide}
+            onClick={() => { }}
+          />
+        ) : null
+      )}
 
-                {visibleGroups.length > 0 && (visibleTopItems.length > 0 || visibleBottomItems.length > 0) && (
-                  <hr className="my-2 border-border" />
-                )}
+      {visibleBottomItems.length > 0 && <NavDivider collapsed />}
 
-                {visibleGroups.map((group) => {
-                  const groupOpen = openGroups[group.key] || false;
-                  const groupActive =
-                    (group.parentVisible && isItemActive(group.parent)) ||
-                    group.children.some((item) => isItemActive(item));
+      {visibleBottomItems.map((item) => (
+        <NavItem
+          key={item.href}
+          item={item}
+          active={isItemActive(item)}
+          collapsed
+          isRTL={isRTL}
+          tooltipSide={tooltipSide}
+          onClick={() => { }}
+        />
+      ))}
+    </>
+  );
 
-                  return (
-                    <div key={group.key} className="space-y-1">
-                      <div className="flex items-center gap-1">
-                        {group.parentVisible ? (
-                          <Link
-                            to={group.parent.href}
-                            onClick={() => setSidebarOpen(false)}
-                            className={`group relative flex flex-1 items-center rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all
-                              ${groupActive
-                                ? 'border-primary/20 bg-primary/10 text-primary'
-                                : 'border-transparent text-heading/90 hover:border-border/60 hover:bg-surface-alt/80'
-                              }`}
-                          >
-                            <span
-                              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors
-                                ${groupActive ? 'bg-primary/15 text-primary' : 'bg-surface-alt/70 text-muted group-hover:bg-surface-alt'}`}
-                            >
-                              <group.parent.icon className="h-4 w-4" />
-                            </span>
-                            <span className="truncate">{group.parent.label}</span>
-                          </Link>
-                        ) : (
-                          <div className="flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-heading/90">
-                            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-alt/70 text-muted">
-                              <group.parent.icon className="h-4 w-4" />
-                            </span>
-                            <span className="truncate">{group.parent.label}</span>
-                          </div>
-                        )}
+  // ── Sidebar footer (shared between desktop & mobile) ─────────────────────
+  // Defined as a real component OUTSIDE render so it never remounts.
+  // We pass all dependencies as props.
 
-                        {group.children.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setOpenGroups((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-transparent text-muted transition-colors hover:border-border/60 hover:bg-surface-alt hover:text-heading"
-                            aria-label={groupOpen ? t('common.actions.close') : t('common.actions.openMenu')}
-                          >
-                            <ChevronDown className={`h-4 w-4 transition-transform ${groupOpen ? 'rotate-180' : ''}`} />
-                          </button>
-                        )}
-                      </div>
-
-                      {groupOpen && group.children.length > 0 && (
-                        <div className={`space-y-1 ${isRTL ? 'mr-5' : 'ml-5'}`}>
-                          {group.children.map((item) => renderStandardLink(item, { nested: true }))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {visibleBottomItems.length > 0 && <hr className="my-2 border-border" />}
-                {visibleBottomItems.map((item) => renderStandardLink(item))}
-              </>
-            )}
-          </nav>
-        </div>
-
-        <div className={`space-y-2 border-t border-border/80 ${compact ? 'p-2' : 'p-3'}`}>
-          {!compact && (
-            <div className="rounded-xl border border-border/80 bg-surface-alt/60 p-2">
-              <LanguageSwitcher className="w-full justify-center" />
-            </div>
-          )}
-
-          <Tooltip content={compact ? (darkMode ? t('common.theme.light') : t('common.theme.dark')) : null} position={sidebarTooltipPosition}>
-            <button
-              onClick={toggleDark}
-              className={`group flex w-full items-center rounded-xl border border-transparent py-2.5 text-sm text-muted transition-all hover:border-border/70 hover:bg-surface-alt hover:text-heading ${compact ? 'justify-center px-2' : 'gap-3 px-3'
-                }`}
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-alt/80 text-muted transition-colors group-hover:text-heading">
-                {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </span>
-              {!compact && <span>{darkMode ? t('common.theme.light') : t('common.theme.dark')}</span>}
-            </button>
-          </Tooltip>
-
-          <Tooltip content={compact ? t('common.actions.logout') : null} position={sidebarTooltipPosition}>
-            <button
-              onClick={handleLogout}
-              className={`group flex w-full items-center rounded-xl border border-transparent py-2.5 text-sm text-danger transition-all hover:border-danger/20 hover:bg-danger-light ${compact ? 'justify-center px-2' : 'gap-3 px-3'
-                }`}
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-danger-light text-danger">
-                <LogOut className="h-4 w-4" />
-              </span>
-              {!compact && <span>{t('common.actions.logout')}</span>}
-            </button>
-          </Tooltip>
-        </div>
-      </div>
-    );
+  const footerProps = {
+    collapsed,
+    darkMode,
+    toggleDark,
+    handleLogout,
+    tooltipSide,
+    user,
+    t,
+    isRTL,
   };
 
-  const CollapseIcon = isRTL ? ChevronLeft : ChevronRight;
+  // ─────────────────────────────────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-page">
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-20 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-accent/10 blur-3xl" />
+      {/* Ambient blobs */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
+        <div className="absolute -top-24 left-1/4 h-80 w-80 rounded-full bg-primary/8 blur-[80px]" />
+        <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-accent/8 blur-[60px]" />
       </div>
 
       <div className="flex">
+
+        {/* ── Desktop Sidebar ───────────────────────────────────────────── */}
         <aside
-          className={`fixed top-0 z-30 hidden h-screen flex-col bg-surface/95 shadow-lg backdrop-blur-sm transition-all duration-300 lg:flex
-          ${isRTL ? 'right-0 border-l' : 'left-0 border-r'} border-border/80
-          ${collapsed ? 'w-[76px]' : 'w-[280px]'}
-        `}
+          className={[
+            'fixed top-0 z-30 hidden h-screen flex-col bg-surface transition-[width] duration-300 ease-in-out lg:flex',
+            isRTL ? 'right-0 border-l border-border/70' : 'left-0 border-r border-border/70',
+            collapsed ? 'w-[68px]' : 'w-[260px]',
+          ].join(' ')}
         >
-          <SidebarContent />
+          {/* Brand */}
+          <div className={[
+            'flex flex-shrink-0 items-center gap-3 border-b border-border/60',
+            collapsed ? 'justify-center px-2 py-[14px]' : 'px-4 py-[14px]',
+          ].join(' ')}>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/30 transition-all hover:scale-105 active:scale-95"
+            >
+              <Church className="h-[18px] w-[18px]" />
+            </button>
+            {!collapsed && (
+              <div className="min-w-0">
+                <p className="truncate text-[14px] font-bold leading-tight tracking-tight text-heading">
+                  {t('common.appName')}
+                </p>
+                <p className="truncate text-[11px] leading-tight text-muted/60">
+                  {user?.role ? getRoleLabel(user.role) : ''}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Nav */}
+          <nav className={[
+            'flex-1 overflow-y-auto overflow-x-hidden py-3',
+            collapsed ? 'flex flex-col items-center gap-1 px-2' : 'space-y-0.5 px-3',
+          ].join(' ')}>
+            {collapsed ? renderCollapsedNav() : renderExpandedNav(() => { })}
+          </nav>
+
+          {/* Footer */}
+          <SidebarFooter {...footerProps} onLinkClick={() => { }} />
+
+          {/* Collapse toggle */}
           <button
             onClick={() => setCollapsed((v) => !v)}
-            className={`absolute top-24 flex h-7 w-7 items-center justify-center rounded-full border border-border/80 bg-surface text-muted shadow-card transition-colors hover:text-heading ${isRTL ? '-left-3.5' : '-right-3.5'
-              }`}
+            className={[
+              'absolute top-[52px] flex h-5 w-5 items-center justify-center rounded-full border border-border/80 bg-surface text-muted shadow-sm transition-all hover:border-primary/40 hover:text-primary',
+              isRTL ? '-left-2.5' : '-right-2.5',
+            ].join(' ')}
             aria-label={collapsed ? t('dashboardLayout.expandSidebar') : t('dashboardLayout.collapseSidebar')}
           >
-            <CollapseIcon className={`h-3.5 w-3.5 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
+            <CollapseIcon className="h-2.5 w-2.5" />
           </button>
         </aside>
 
+        {/* ── Mobile Drawer ──────────────────────────────────────────────── */}
         {sidebarOpen && (
-          <div className="lg:hidden fixed inset-0 z-40">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => setSidebarOpen(false)} />
-            <aside
-              className={`absolute top-0 h-full w-[280px] animate-slide-right border-border/80 bg-surface z-10 ${isRTL ? 'right-0 border-l' : 'left-0 border-r'
-                }`}
-            >
-              <SidebarContent mobile />
+          <div className="fixed inset-0 z-40 lg:hidden">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={() => setSidebarOpen(false)} />
+            <aside className={[
+              'absolute top-0 flex h-full w-[260px] flex-col bg-surface shadow-2xl',
+              isRTL ? 'right-0 border-l border-border/70' : 'left-0 border-r border-border/70',
+            ].join(' ')}>
+              {/* Header + close */}
+              <div className="flex flex-shrink-0 items-center gap-3 border-b border-border/60 px-4 py-[14px]">
+                <button
+                  type="button"
+                  onClick={() => navigate('/')}
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/30"
+                >
+                  <Church className="h-[18px] w-[18px]" />
+                </button>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[14px] font-bold leading-tight tracking-tight text-heading">
+                    {t('common.appName')}
+                  </p>
+                  <p className="truncate text-[11px] leading-tight text-muted/60">
+                    {user?.role ? getRoleLabel(user.role) : ''}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-alt hover:text-heading"
+                  aria-label={t('common.actions.close')}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Nav */}
+              <nav className="flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden px-3 py-3">
+                {renderExpandedNav(() => setSidebarOpen(false))}
+              </nav>
+
+              {/* Footer */}
+              <SidebarFooter {...footerProps} onLinkClick={() => setSidebarOpen(false)} />
             </aside>
           </div>
         )}
 
-        <div
-          className={`flex-1 transition-all duration-300 ${collapsed
-            ? isRTL
-              ? 'lg:mr-[76px]'
-              : 'lg:ml-[76px]'
-            : isRTL
-              ? 'lg:mr-[280px]'
-              : 'lg:ml-[280px]'
-            }`}
-        >
-          <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-border bg-surface/95 px-4 backdrop-blur lg:px-6">
+        {/* ── Main area ─────────────────────────────────────────────────── */}
+        <div className={[
+          'flex min-h-screen flex-1 flex-col transition-[margin] duration-300 ease-in-out',
+          collapsed
+            ? isRTL ? 'lg:mr-[68px]' : 'lg:ml-[68px]'
+            : isRTL ? 'lg:mr-[260px]' : 'lg:ml-[260px]',
+        ].join(' ')}>
+
+          {/* Topbar */}
+          <header className="sticky top-0 z-20 flex h-[56px] flex-shrink-0 items-center gap-3 border-b border-border/70 bg-surface/95 px-4 backdrop-blur-sm lg:px-6">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="rounded-md p-2 text-muted hover:bg-surface-alt hover:text-base lg:hidden"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 text-muted transition-colors hover:bg-surface-alt hover:text-heading lg:hidden"
               aria-label={t('common.actions.openMenu')}
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-4 w-4" />
             </button>
 
-            <div className="min-w-0">
-              <h1 className="truncate text-base font-semibold text-heading md:text-lg">{activeItem?.label || t('dashboardLayout.menu.dashboard')}</h1>
+            {/* Breadcrumb */}
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className="hidden text-[13px] text-muted/50 lg:inline">{t('common.appName')}</span>
+              {activeItem ? (
+                <>
+                  <ChevronRight className="hidden h-3 w-3 flex-shrink-0 text-muted/30 lg:block" />
+                  <h1 className="truncate text-[13px] font-semibold text-heading">{activeItem.label}</h1>
+                </>
+              ) : (
+                <h1 className="truncate text-[13px] font-semibold text-heading">
+                  {t('dashboardLayout.menu.dashboard')}
+                </h1>
+              )}
             </div>
 
             <div className="flex-1" />
 
-            <div className="flex items-center gap-3">
-              <div className="hidden md:inline-flex">
+            <div className="flex items-center gap-2">
+              <div className="hidden md:block">
                 <LanguageSwitcher />
               </div>
 
               <button
                 onClick={toggleDark}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted transition-colors hover:bg-surface-alt hover:text-heading"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 text-muted transition-colors hover:bg-surface-alt hover:text-heading"
                 aria-label={darkMode ? t('common.theme.light') : t('common.theme.dark')}
               >
-                {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {darkMode ? <Sun className="h-[15px] w-[15px]" /> : <Moon className="h-[15px] w-[15px]" />}
               </button>
 
               <Link
                 to="/dashboard/profile"
-                className="flex items-center gap-2 rounded-xl border border-border bg-surface px-2 py-1.5 text-sm transition-colors hover:border-primary/30 hover:bg-surface-alt"
+                className="flex items-center gap-2 rounded-xl border border-border/60 bg-surface-alt/40 px-2 py-1.5 transition-colors hover:border-primary/25 hover:bg-surface-alt"
               >
                 {user?.avatar?.url ? (
-                  <img
-                    src={user.avatar.url}
-                    alt=""
-                    className="h-8 w-8 rounded-full border border-border object-cover"
-                  />
+                  <img src={user.avatar.url} alt="" className="h-7 w-7 rounded-full border border-border/60 object-cover" />
                 ) : (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                    <UserCircle className="h-6 w-6 text-primary" />
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
+                    <UserCircle className="h-[16px] w-[16px] text-primary" />
                   </div>
                 )}
+                <span className="hidden max-w-[140px] truncate text-[13px] font-medium text-heading md:inline">
+                  {user?.name || '—'}
+                </span>
               </Link>
             </div>
           </header>
 
-          <main className="mx-auto w-full max-w-[1240px] px-4 py-5 lg:px-8 lg:py-8">
+          {/* Page content */}
+          <main className="mx-auto w-full max-w-[1240px] flex-1 px-4 py-6 lg:px-8 lg:py-8">
             <Outlet />
           </main>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SidebarFooter — defined at module level so it NEVER remounts
+// ─────────────────────────────────────────────────────────────────────────────
+function SidebarFooter({ collapsed, darkMode, toggleDark, handleLogout, tooltipSide, user, t, isRTL, onLinkClick }) {
+  return (
+    <div className={[
+      'border-t border-border/60',
+      collapsed ? 'flex flex-col items-center gap-1 p-2' : 'space-y-1 p-3',
+    ].join(' ')}>
+
+      {!collapsed && (
+        <div className="rounded-xl bg-surface-alt/50 p-1">
+          <LanguageSwitcher className="w-full justify-center" />
+        </div>
+      )}
+
+      <Tooltip
+        content={collapsed ? (darkMode ? t('common.theme.light') : t('common.theme.dark')) : null}
+        position={tooltipSide}
+      >
+        <button
+          onClick={toggleDark}
+          className={[
+            'flex items-center rounded-xl text-sm text-muted transition-colors hover:bg-surface-alt hover:text-heading',
+            collapsed ? 'h-10 w-10 justify-center' : 'w-full gap-3 px-3 py-2.5',
+          ].join(' ')}
+        >
+          <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center">
+            {darkMode ? <Sun className="h-[15px] w-[15px]" /> : <Moon className="h-[15px] w-[15px]" />}
+          </span>
+          {!collapsed && (
+            <span className="font-medium">
+              {darkMode ? t('common.theme.light') : t('common.theme.dark')}
+            </span>
+          )}
+        </button>
+      </Tooltip>
+
+      <Tooltip content={collapsed ? t('common.actions.logout') : null} position={tooltipSide}>
+        <button
+          onClick={handleLogout}
+          className={[
+            'flex items-center rounded-xl text-sm font-medium text-danger transition-colors hover:bg-danger-light',
+            collapsed ? 'h-10 w-10 justify-center' : 'w-full gap-3 px-3 py-2.5',
+          ].join(' ')}
+        >
+          <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center">
+            <LogOut className="h-[15px] w-[15px]" />
+          </span>
+          {!collapsed && <span>{t('common.actions.logout')}</span>}
+        </button>
+      </Tooltip>
+
+      {!collapsed ? (
+        <Link
+          to="/dashboard/profile"
+          onClick={onLinkClick}
+          className="mt-1 flex items-center gap-2.5 rounded-xl border border-border/60 bg-surface-alt/40 px-3 py-2.5 transition-colors hover:border-primary/25 hover:bg-surface-alt"
+        >
+          {user?.avatar?.url ? (
+            <img src={user.avatar.url} alt="" className="h-8 w-8 flex-shrink-0 rounded-full border border-border/60 object-cover" />
+          ) : (
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <UserCircle className="h-[18px] w-[18px] text-primary" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-semibold leading-tight text-heading">{user?.name || '—'}</p>
+            <p className="truncate text-[11px] leading-tight text-muted/60">
+              {user?.role ? getRoleLabel(user.role) : ''}
+            </p>
+          </div>
+        </Link>
+      ) : (
+        <Tooltip content={user?.name || ''} position={tooltipSide}>
+          <Link
+            to="/dashboard/profile"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/60 bg-surface-alt/40 transition-colors hover:border-primary/25 hover:bg-surface-alt"
+          >
+            {user?.avatar?.url ? (
+              <img src={user.avatar.url} alt="" className="h-7 w-7 rounded-full object-cover" />
+            ) : (
+              <UserCircle className="h-[18px] w-[18px] text-muted" />
+            )}
+          </Link>
+        </Tooltip>
+      )}
     </div>
   );
 }

@@ -32,6 +32,9 @@ const PastoralVisitationListPage = lazy(() => import('../pages/dashboard/visitat
 const PastoralVisitationCreatePage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationCreatePage'));
 const PastoralVisitationDetailsPage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationDetailsPage'));
 const PastoralVisitationAnalyticsPage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationAnalyticsPage'));
+const MeetingsPage = lazy(() => import('../pages/dashboard/meetings/MeetingsPage'));
+const SectorFormPage = lazy(() => import('../pages/dashboard/meetings/SectorFormPage'));
+const MeetingFormPage = lazy(() => import('../pages/dashboard/meetings/MeetingFormPage'));
 const UnderDevelopmentPage = lazy(() => import('../pages/shared/UnderDevelopmentPage'));
 const NotFoundPage = lazy(() => import('../pages/shared/NotFoundPage'));
 
@@ -159,6 +162,54 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['PASTORAL_VISITATIONS_VIEW']}>
             <Lazy><PastoralVisitationDetailsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'meetings',
+        element: (
+          <PermissionGuard required={['SECTORS_VIEW', 'MEETINGS_VIEW']} mode="any">
+            <Lazy><MeetingsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'meetings/sectors/new',
+        element: (
+          <PermissionGuard required={['SECTORS_CREATE']}>
+            <Lazy><SectorFormPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'meetings/sectors/:id/edit',
+        element: (
+          <PermissionGuard required={['SECTORS_UPDATE']}>
+            <Lazy><SectorFormPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'meetings/new',
+        element: (
+          <PermissionGuard required={['MEETINGS_CREATE']}>
+            <Lazy><MeetingFormPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'meetings/:id/edit',
+        element: (
+          <PermissionGuard
+            required={[
+              'MEETINGS_UPDATE',
+              'MEETINGS_SERVANTS_MANAGE',
+              'MEETINGS_COMMITTEES_MANAGE',
+              'MEETINGS_ACTIVITIES_MANAGE',
+            ]}
+            mode="any"
+          >
+            <Lazy><MeetingFormPage /></Lazy>
           </PermissionGuard>
         ),
       },
