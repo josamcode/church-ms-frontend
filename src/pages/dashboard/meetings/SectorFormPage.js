@@ -226,6 +226,7 @@ export default function SectorFormPage() {
                 label={t('meetings.fields.name')}
                 required
                 value={form.name}
+                placeholder={t('meetings.fields.namePlaceholder')}
                 onChange={(event) => {
                   setForm((prev) => ({ ...prev, name: event.target.value }));
                   setErrors((prev) => ({ ...prev, name: undefined }));
@@ -236,6 +237,7 @@ export default function SectorFormPage() {
               <TextArea
                 label={t('meetings.fields.notes')}
                 value={form.notes}
+                placeholder={t('meetings.fields.sectorNotesPlaceholder')}
                 onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
               />
             </div>
@@ -278,16 +280,18 @@ export default function SectorFormPage() {
                     }
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
                     <Input
                       label={t('meetings.fields.nameFallback')}
                       value={official.name}
+                      placeholder={t('meetings.fields.officialNamePlaceholder')}
                       onChange={(event) => updateOfficial(index, { name: event.target.value })}
                       error={errors[`officials_${index}`]}
                     />
                     <Input
                       label={t('meetings.fields.title')}
                       value={official.title}
+                      placeholder={t('meetings.fields.officialTitlePlaceholder')}
                       onChange={(event) => updateOfficial(index, { title: event.target.value })}
                     />
                   </div>
@@ -295,6 +299,7 @@ export default function SectorFormPage() {
                   <TextArea
                     label={t('meetings.fields.notes')}
                     value={official.notes}
+                    placeholder={t('meetings.fields.officialNotesPlaceholder')}
                     onChange={(event) => updateOfficial(index, { notes: event.target.value })}
                   />
 

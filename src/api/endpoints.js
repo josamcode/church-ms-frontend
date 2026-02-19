@@ -84,6 +84,11 @@ export const meetingsApi = {
   meetings: {
     list: (params) => apiClient.get('/meetings', { params }),
     create: (data) => apiClient.post('/meetings', data),
+    uploadAvatarImage: (file) => {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      return apiClient.post('/meetings/upload-avatar', formData);
+    },
     getById: (id) => apiClient.get(`/meetings/${id}`),
     updateBasic: (id, data) => apiClient.patch(`/meetings/${id}/basic`, data),
     updateServants: (id, servants) => apiClient.patch(`/meetings/${id}/servants`, { servants }),

@@ -33,9 +33,8 @@ const Input = forwardRef(
         <div className="relative">
           {Icon && (
             <span
-              className={`absolute top-1/2 -translate-y-1/2 text-muted pointer-events-none ${
-                isRTL ? 'right-3' : 'left-3'
-              }`}
+              className={`absolute top-1/2 -translate-y-1/2 text-muted pointer-events-none ${isRTL ? 'right-3' : 'left-3'
+                }`}
             >
               <Icon className="w-4 h-4" />
             </span>
@@ -58,9 +57,8 @@ const Input = forwardRef(
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
-              className={`absolute top-1/2 -translate-y-1/2 text-muted hover:text-base transition-colors ${
-                isRTL ? 'left-3' : 'right-3'
-              }`}
+              className={`absolute top-1/2 -translate-y-1/2 text-muted hover:text-base transition-colors ${isRTL ? 'left-3' : 'right-3'
+                }`}
               tabIndex={-1}
               aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
             >
