@@ -183,6 +183,7 @@ export default function UserEditPage() {
         familyName: user.familyName || '',
         houseName: user.houseName || '',
         role: user.role || 'USER',
+        password: '',
         extraPermissions: normalizePermissionArray(user.extraPermissions),
         deniedPermissions: normalizePermissionArray(user.deniedPermissions),
         governorate: user.address?.governorate || '',
@@ -341,6 +342,7 @@ export default function UserEditPage() {
     if (form.familyName !== (user.familyName || '')) payload.familyName = form.familyName;
     if (form.houseName !== (user.houseName || '')) payload.houseName = form.houseName;
     if (form.role !== user.role) payload.role = form.role;
+    if ((form.password || '').trim()) payload.password = form.password.trim();
     if (canManagePermissionOverrides) {
       const nextExtraPermissions = normalizePermissionArray(form.extraPermissions);
       const nextDeniedPermissions = normalizePermissionArray(form.deniedPermissions);
@@ -668,6 +670,9 @@ export default function UserEditPage() {
             </div>
             <Select label="الدور" options={roleOptionsForEditor} value={form.role}
               onChange={(e) => update('role', e.target.value)} />
+            <Input label="كلمة المرور" type="password" dir="ltr" className="text-left"
+              hint="اتركها فارغة إذا لا تريد تغييرها. إدخال كلمة مرور هنا يفعّل تسجيل الدخول لهذا المستخدم."
+              value={form.password} onChange={(e) => update('password', e.target.value)} error={errors.password} />
             <TextArea label="ملاحظات" value={form.notes}
               onChange={(e) => update('notes', e.target.value)} />
           </Card>
