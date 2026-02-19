@@ -57,7 +57,7 @@ export default function MeetingsManagementPage() {
     enabled: canViewMeetings || canCreateMeetings || canUpdateMeetings || canViewSectors,
     staleTime: 30000,
     queryFn: async () => {
-      const { data } = await meetingsApi.sectors.list({ limit: 250, order: 'asc' });
+      const { data } = await meetingsApi.sectors.list({ limit: 200, order: 'asc' });
       return Array.isArray(data?.data) ? data.data : [];
     },
   });
@@ -68,7 +68,7 @@ export default function MeetingsManagementPage() {
     staleTime: 30000,
     queryFn: async () => {
       const { data } = await meetingsApi.meetings.list({
-        limit: 400,
+        limit: 100,
         order: 'desc',
         ...(filters.sectorId && { sectorId: filters.sectorId }),
         ...(filters.day && { day: filters.day }),
