@@ -40,7 +40,7 @@ export default function SectorsManagementPage() {
     staleTime: 30000,
     queryFn: async () => {
       const { data } = await meetingsApi.sectors.list({
-        limit: 250,
+        limit: 200,
         order: 'asc',
         ...(search.trim() && { search: search.trim() }),
       });
