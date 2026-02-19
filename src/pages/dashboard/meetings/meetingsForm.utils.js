@@ -113,8 +113,13 @@ export function mapMeetingToForm(meeting) {
     name: meeting?.name || '',
     day: meeting?.day || 'Sunday',
     time: meeting?.time || '18:00',
-    avatarUrl: meeting?.avatar?.url || '',
-    avatarPublicId: meeting?.avatar?.publicId || '',
+    avatar: meeting?.avatar?.url
+      ? {
+          url: meeting.avatar.url,
+          publicId: meeting?.avatar?.publicId || '',
+        }
+      : null,
+    avatarRemoved: false,
     serviceSecretaryUser: toSelectUser(meeting?.serviceSecretary?.user, meeting?.serviceSecretary?.name),
     serviceSecretaryName: meeting?.serviceSecretary?.name || '',
     assistantSecretaries: (meeting?.assistantSecretaries || []).map((assistant) => ({
@@ -159,17 +164,20 @@ export function buildMeetingPayload(form, options = {}) {
   const includeActivities = options.includeActivities !== false;
 
   const serviceSecretary = toPersonPayload(form.serviceSecretaryUser, form.serviceSecretaryName);
+  const avatarUrl = String(form?.avatar?.url || form?.avatarUrl || '').trim();
+  const avatarPublicId = String(form?.avatar?.publicId || form?.avatarPublicId || '').trim();
 
   const payload = {
     sectorId: form.sectorId,
     name: String(form.name || '').trim(),
     day: form.day,
     time: form.time,
-    ...(String(form.avatarUrl || '').trim() && {
+    ...(form.avatarRemoved ? { avatar: null } : {}),
+    ...(avatarUrl && {
       avatar: {
-        url: String(form.avatarUrl || '').trim(),
-        ...(String(form.avatarPublicId || '').trim() && {
-          publicId: String(form.avatarPublicId || '').trim(),
+        url: avatarUrl,
+        ...(avatarPublicId && {
+          publicId: avatarPublicId,
         }),
       },
     }),

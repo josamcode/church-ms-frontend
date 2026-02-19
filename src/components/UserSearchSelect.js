@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usersApi } from '../api/endpoints';
 import { UserCheck, X } from 'lucide-react';
@@ -10,31 +10,23 @@ export default function UserSearchSelect({
   onChange,
   placeholder,
   excludeUserId,
+  disabled = false,
   className = '',
   searchApi,
   queryKeyPrefix = 'users',
 }) {
-  const { t } = useI18n();
-  const [searchType, setSearchType] = useState('name');
+  const { t, isRTL } = useI18n();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const inputRef = useRef(null);
   const containerRef = useRef(null);
 
-  const searchTypes = useMemo(
-    () => [
-      { value: 'name', label: t('userSearch.byName') },
-      { value: 'phone', label: t('userSearch.byPhone') },
-    ],
-    [t]
-  );
-
   const { data: listRes, isFetching } = useQuery({
-    queryKey: [queryKeyPrefix, 'search', searchType, query.trim()],
+    queryKey: [queryKeyPrefix, 'search', query.trim()],
     queryFn: async () => {
       const params = { limit: 15 };
-      if (searchType === 'name') params.fullName = query.trim();
-      else params.phonePrimary = query.trim();
+      params.fullName = query.trim();
+      params.phonePrimary = query.trim();
       const request = searchApi || usersApi.list;
       const { data } = await request(params);
       return data?.data ?? data?.users ?? [];
@@ -54,6 +46,7 @@ export default function UserSearchSelect({
   }, []);
 
   const handleSelect = (u) => {
+    if (disabled) return;
     onChange?.({ _id: u._id || u.id, fullName: u.fullName, phonePrimary: u.phonePrimary });
     setQuery('');
     setOpen(false);
@@ -61,6 +54,7 @@ export default function UserSearchSelect({
   };
 
   const handleClear = () => {
+    if (disabled) return;
     onChange?.(null);
     setQuery('');
     inputRef.current?.focus();
@@ -81,52 +75,33 @@ export default function UserSearchSelect({
           <button
             type="button"
             onClick={handleClear}
-            className="p-1 rounded text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+            className="p-1 rounded text-muted hover:text-danger hover:bg-danger/10 transition-colors disabled:opacity-50"
             aria-label={t('userSearch.clearLink')}
+            disabled={disabled}
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       ) : (
         <>
-          <div className="flex gap-2 mb-2">
-            {searchTypes.map((type) => (
-              <button
-                key={type.value}
-                type="button"
-                onClick={() => {
-                  setSearchType(type.value);
-                  setQuery('');
-                  setOpen(false);
-                }}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  searchType === type.value
-                    ? 'bg-primary text-white'
-                    : 'bg-surface-alt text-muted hover:text-base'
-                }`}
-              >
-                {type.label}
-              </button>
-            ))}
-          </div>
           <div className="relative">
             <input
               ref={inputRef}
               type="text"
+              disabled={disabled}
               value={query}
               onChange={(e) => {
+                if (disabled) return;
                 setQuery(e.target.value);
                 setOpen(true);
               }}
-              onFocus={() => query.trim().length >= 2 && setOpen(true)}
+              onFocus={() => !disabled && query.trim().length >= 2 && setOpen(true)}
               placeholder={
                 placeholder ||
-                (searchType === 'name'
-                  ? t('userSearch.placeholderByName')
-                  : t('userSearch.placeholderByPhone'))
+                `${t('userSearch.searchUsing')} ${t('userSearch.byName')} / ${t('userSearch.byPhone')}...`
               }
               className="input-base w-full"
-              dir={searchType === 'phone' ? 'ltr' : 'auto'}
+              dir={isRTL ? 'rtl' : 'ltr'}
             />
             {open && query.trim().length >= 2 && (
               <ul
