@@ -26,6 +26,7 @@ const UserDetailsPage = lazy(() => import('../pages/dashboard/users/UserDetailsP
 const UserCreatePage = lazy(() => import('../pages/dashboard/users/UserCreatePage'));
 const UserEditPage = lazy(() => import('../pages/dashboard/users/UserEditPage'));
 const ConfessionSessionsPage = lazy(() => import('../pages/dashboard/confessions/ConfessionSessionsPage'));
+const ConfessionSessionCreatePage = lazy(() => import('../pages/dashboard/confessions/ConfessionSessionCreatePage'));
 const ConfessionAlertsPage = lazy(() => import('../pages/dashboard/confessions/ConfessionAlertsPage'));
 const ConfessionAnalyticsPage = lazy(() => import('../pages/dashboard/confessions/ConfessionAnalyticsPage'));
 const PastoralVisitationListPage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationListPage'));
@@ -35,6 +36,8 @@ const PastoralVisitationAnalyticsPage = lazy(() => import('../pages/dashboard/vi
 const MeetingsDashboardPage = lazy(() => import('../pages/dashboard/meetings/MeetingsDashboardPage'));
 const SectorsManagementPage = lazy(() => import('../pages/dashboard/meetings/SectorsManagementPage'));
 const MeetingsManagementPage = lazy(() => import('../pages/dashboard/meetings/MeetingsManagementPage'));
+const SectorDetailsPage = lazy(() => import('../pages/dashboard/meetings/SectorDetailsPage'));
+const MeetingDetailsPage = lazy(() => import('../pages/dashboard/meetings/MeetingDetailsPage'));
 const SectorFormPage = lazy(() => import('../pages/dashboard/meetings/SectorFormPage'));
 const MeetingFormPage = lazy(() => import('../pages/dashboard/meetings/MeetingFormPage'));
 const UnderDevelopmentPage = lazy(() => import('../pages/shared/UnderDevelopmentPage'));
@@ -116,6 +119,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['CONFESSIONS_VIEW']}>
             <Lazy><ConfessionSessionsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'confessions/new',
+        element: (
+          <PermissionGuard required={['CONFESSIONS_CREATE']}>
+            <Lazy><ConfessionSessionCreatePage /></Lazy>
           </PermissionGuard>
         ),
       },
@@ -223,6 +234,14 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: 'meetings/list/:id',
+        element: (
+          <PermissionGuard required={['MEETINGS_VIEW']}>
+            <Lazy><MeetingDetailsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
         path: 'meetings/sectors/new',
         element: (
           <PermissionGuard required={['SECTORS_CREATE']}>
@@ -235,6 +254,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['SECTORS_UPDATE']}>
             <Lazy><SectorFormPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'meetings/sectors/:id',
+        element: (
+          <PermissionGuard required={['SECTORS_VIEW']}>
+            <Lazy><SectorDetailsPage /></Lazy>
           </PermissionGuard>
         ),
       },

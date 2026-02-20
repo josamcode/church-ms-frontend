@@ -14,12 +14,16 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import TextArea from '../../../components/ui/TextArea';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Skeleton from '../../../components/ui/Skeleton';
 import UserSearchSelect from '../../../components/UserSearchSelect';
 import toast from 'react-hot-toast';
-import { Save, ArrowRight, Upload, Plus, Trash2 } from 'lucide-react';
+import {
+  ArrowRight, CheckCircle2, MinusCircle, Plus,
+  Save, ShieldAlert, ShieldCheck, ShieldOff, Trash2, Upload, Users,
+} from 'lucide-react';
+
+/* ── constants ───────────────────────────────────────────────────────────── */
 
 const genderOptions = [
   { value: 'male', label: 'ذكر' },
@@ -36,11 +40,290 @@ const roleOptions = [
 const normalizePermissionArray = (value) =>
   [...new Set((Array.isArray(value) ? value : []).filter(Boolean))];
 
+/* ── primitives ──────────────────────────────────────────────────────────── */
+
+function SectionLabel({ children, count }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+        {children}
+      </span>
+      <div className="h-px flex-1 bg-border/60" />
+      {count != null && (
+        <span className="text-[11px] tabular-nums text-muted">{count}</span>
+      )}
+    </div>
+  );
+}
+
+function StepBadge({ n }) {
+  return (
+    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+      {n}
+    </div>
+  );
+}
+
+function NameCombobox({ label, value, onChange, options, placeholder }) {
+  const [open, setOpen] = useState(false);
+  const filtered = options
+    .filter((n) => !value || n.toLowerCase().includes(value.toLowerCase().trim()))
+    .slice(0, 20);
+
+  return (
+    <div className="relative">
+      <label className="mb-1.5 block text-sm font-medium text-base">{label}</label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder}
+        className="input-base w-full"
+      />
+      {open && filtered.length > 0 && (
+        <ul
+          role="listbox"
+          className="absolute z-30 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-border bg-surface py-1 shadow-lg"
+        >
+          {filtered.map((name) => (
+            <li
+              key={name}
+              role="option"
+              aria-selected={value === name}
+              onMouseDown={(e) => { e.preventDefault(); onChange(name); setOpen(false); }}
+              className={`cursor-pointer px-3 py-2 text-sm transition-colors
+                ${value === name
+                  ? 'bg-primary/8 font-semibold text-primary'
+                  : 'text-heading hover:bg-primary/8 hover:text-primary'
+                }`}
+            >
+              {name}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ── PermissionRow ──────────────────────────────────────────────────────── */
+
+function PermissionRow({ permission, roleHasPermission, isExtra, isDenied, disabled, onChange }) {
+  const label = PERMISSION_LABELS[permission] || permission;
+
+  /* derive status */
+  let status = 'inherited';   // role grants it, no override
+  if (isDenied) status = 'denied';
+  else if (isExtra) status = 'extra';
+  else if (!roleHasPermission) status = 'missing'; // role doesn't have it, no extra
+
+  const effective = (roleHasPermission && !isDenied) || isExtra;
+
+  return (
+    <div className={`flex items-center justify-between gap-4 rounded-xl border px-4 py-3 transition-colors
+      ${isDenied
+        ? 'border-danger/25 bg-danger-light'
+        : isExtra
+          ? 'border-success/25 bg-success-light'
+          : effective
+            ? 'border-border bg-surface'
+            : 'border-border/50 bg-surface-alt/40'
+      }`}
+    >
+      {/* left: label + code */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          {/* effective indicator */}
+          {effective
+            ? <CheckCircle2 className={`h-3.5 w-3.5 shrink-0 ${isExtra ? 'text-success' : 'text-primary/40'}`} />
+            : <MinusCircle className="h-3.5 w-3.5 shrink-0 text-muted/40" />
+          }
+          <p className="truncate text-sm font-medium text-heading">{label}</p>
+        </div>
+        <p className="mt-0.5 ps-5 text-[11px] font-mono text-muted">{permission}</p>
+      </div>
+
+      {/* right: tag + toggle buttons */}
+      <div className="flex shrink-0 items-center gap-2">
+        {/* role-source tag */}
+        {roleHasPermission && !isDenied && !isExtra && (
+          <span className="rounded-full border border-primary/20 bg-primary/8 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+            أساسي
+          </span>
+        )}
+        {isDenied && (
+          <span className="rounded-full border border-danger/20 bg-danger-light px-2.5 py-0.5 text-[11px] font-semibold text-danger">
+            محسوب
+          </span>
+        )}
+        {isExtra && (
+          <span className="rounded-full border border-success/20 bg-success-light px-2.5 py-0.5 text-[11px] font-semibold text-success">
+            مضاف
+          </span>
+        )}
+
+        {/* grant / revoke toggle */}
+        {!disabled && (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              title="إضافة صلاحية"
+              onClick={() => onChange(permission, 'extra', !isExtra)}
+              className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-all
+                ${isExtra
+                  ? 'border-success/30 bg-success-light text-success'
+                  : 'border-border text-muted hover:border-success/30 hover:bg-success-light hover:text-success'
+                }`}
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              title="سحب الصلاحية"
+              onClick={() => onChange(permission, 'denied', !isDenied)}
+              className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-all
+                ${isDenied
+                  ? 'border-danger/30 bg-danger-light text-danger'
+                  : 'border-border text-muted hover:border-danger/30 hover:bg-danger-light hover:text-danger'
+                }`}
+            >
+              <ShieldOff className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── PermissionsPanel ───────────────────────────────────────────────────── */
+
+function PermissionsPanel({ form, selectedRolePermissions, effectivePermissionsPreview, onPermissionChange }) {
+  const [expandedGroups, setExpandedGroups] = useState(() =>
+    Object.fromEntries(PERMISSION_GROUPS.map((g) => [g.id, true]))
+  );
+
+  const toggleGroup = (id) =>
+    setExpandedGroups((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const isSuperAdmin = form.role === 'SUPER_ADMIN';
+
+  /* stats */
+  const extraCount = (form.extraPermissions || []).length;
+  const deniedCount = (form.deniedPermissions || []).length;
+
+  return (
+    <div className="space-y-5">
+
+      {/* summary strip */}
+      <div className={`flex flex-wrap items-center gap-3 rounded-xl border px-5 py-4
+        ${isSuperAdmin ? 'border-primary/20 bg-primary/8' : 'border-border bg-surface-alt/50'}`}>
+        <ShieldAlert className={`h-5 w-5 shrink-0 ${isSuperAdmin ? 'text-primary' : 'text-muted'}`} />
+        {isSuperAdmin ? (
+          <p className="text-sm font-medium text-primary">
+            مدير النظام يمتلك جميع الصلاحيات دائمًا — لا يمكن تقييد صلاحياته.
+          </p>
+        ) : (
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            <span className="text-muted">
+              صلاحيات الدور الأساسية:
+              <span className="ms-1 font-bold text-heading">{selectedRolePermissions.length}</span>
+            </span>
+            {extraCount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-success/25 bg-success-light px-2.5 py-0.5 text-xs font-semibold text-success">
+                <ShieldCheck className="h-3 w-3" />
+                {extraCount} مضافة
+              </span>
+            )}
+            {deniedCount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-danger/25 bg-danger-light px-2.5 py-0.5 text-xs font-semibold text-danger">
+                <ShieldOff className="h-3 w-3" />
+                {deniedCount} مسحوبة
+              </span>
+            )}
+            <span className="text-muted">
+              الفعالة النهائية:
+              <span className="ms-1 font-bold text-heading">{effectivePermissionsPreview.length}</span>
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* groups */}
+      {PERMISSION_GROUPS.map((group) => {
+        const isOpen = expandedGroups[group.id];
+        const groupExtra = group.permissions.filter((p) => (form.extraPermissions || []).includes(p)).length;
+        const groupDenied = group.permissions.filter((p) => (form.deniedPermissions || []).includes(p)).length;
+
+        return (
+          <div key={group.id} className="rounded-2xl border border-border bg-surface overflow-hidden">
+            {/* group header */}
+            <button
+              type="button"
+              onClick={() => toggleGroup(group.id)}
+              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-start hover:bg-surface-alt/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <p className="text-sm font-semibold text-heading">{group.label}</p>
+                <span className="text-[11px] text-muted">{group.permissions.length} صلاحية</span>
+                {groupExtra > 0 && (
+                  <span className="rounded-full border border-success/25 bg-success-light px-2 py-0.5 text-[11px] font-semibold text-success">
+                    +{groupExtra}
+                  </span>
+                )}
+                {groupDenied > 0 && (
+                  <span className="rounded-full border border-danger/25 bg-danger-light px-2 py-0.5 text-[11px] font-semibold text-danger">
+                    −{groupDenied}
+                  </span>
+                )}
+              </div>
+              <span className={`text-[11px] font-semibold uppercase tracking-widest text-muted transition-transform duration-200 ${isOpen ? '' : 'rotate-180'}`}>
+                ▲
+              </span>
+            </button>
+
+            {/* permission rows */}
+            {isOpen && (
+              <div className="border-t border-border/60 px-5 py-4">
+                <div className="grid grid-cols-1 gap-2 xl:grid-cols-3">
+                  {group.permissions.map((permission) => {
+                    const roleHasPermission =
+                      isSuperAdmin || selectedRolePermissions.includes(permission);
+                    const isExtra = (form.extraPermissions || []).includes(permission);
+                    const isDenied = (form.deniedPermissions || []).includes(permission);
+
+                    return (
+                      <PermissionRow
+                        key={permission}
+                        permission={permission}
+                        roleHasPermission={roleHasPermission}
+                        isExtra={isExtra}
+                        isDenied={isDenied}
+                        disabled={isSuperAdmin}
+                        onChange={onPermissionChange}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── page ────────────────────────────────────────────────────────────────── */
+
 export default function UserEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
+
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState({});
   const [customDetailsRows, setCustomDetailsRows] = useState([{ id: 1, key: '', value: '' }]);
@@ -49,66 +332,47 @@ export default function UserEditPage() {
   const customDetailsInitializedFor = useRef(null);
   const pendingLinkByPhoneRef = useRef([]);
 
+  /* ── queries ── */
   const { data: user, isLoading } = useQuery({
     queryKey: ['users', id],
-    queryFn: async () => {
-      const { data } = await usersApi.getById(id);
-      return data.data;
-    },
+    queryFn: async () => { const { data } = await usersApi.getById(id); return data.data; },
   });
 
   const { data: savedKeysRes } = useQuery({
     queryKey: ['users', 'custom-detail-keys'],
-    queryFn: async () => {
-      const { data } = await usersApi.getCustomDetailKeys();
-      return data.data;
-    },
+    queryFn: async () => { const { data } = await usersApi.getCustomDetailKeys(); return data.data; },
   });
   const savedKeys = Array.isArray(savedKeysRes) ? savedKeysRes : [];
 
   const { data: familyNamesRes } = useQuery({
     queryKey: ['users', 'family-names'],
-    queryFn: async () => {
-      const res = await usersApi.getFamilyNames();
-      const data = res.data?.data ?? res.data;
-      return Array.isArray(data) ? data : [];
-    },
+    queryFn: async () => { const res = await usersApi.getFamilyNames(); const data = res.data?.data ?? res.data; return Array.isArray(data) ? data : []; },
   });
   const familyNames = Array.isArray(familyNamesRes) ? familyNamesRes : [];
-  const [familyNameDropdownOpen, setFamilyNameDropdownOpen] = useState(false);
-  const familyNameInputRef = useRef(null);
+
   const { data: houseNamesRes } = useQuery({
     queryKey: ['users', 'house-names'],
-    queryFn: async () => {
-      const res = await usersApi.getHouseNames();
-      const data = res.data?.data ?? res.data;
-      return Array.isArray(data) ? data : [];
-    },
+    queryFn: async () => { const res = await usersApi.getHouseNames(); const data = res.data?.data ?? res.data; return Array.isArray(data) ? data : []; },
   });
   const houseNames = Array.isArray(houseNamesRes) ? houseNamesRes : [];
-  const [houseNameDropdownOpen, setHouseNameDropdownOpen] = useState(false);
-  const houseNameInputRef = useRef(null);
 
   const { data: relationRolesRes } = useQuery({
     queryKey: ['users', 'relation-roles'],
-    queryFn: async () => {
-      const { data } = await usersApi.getRelationRoles();
-      return data?.data ?? data ?? [];
-    },
+    queryFn: async () => { const { data } = await usersApi.getRelationRoles(); return data?.data ?? data ?? []; },
   });
   const relationRoles = Array.isArray(relationRolesRes) ? relationRolesRes : [];
+
+  /* ── derived ── */
   const canManagePermissionOverrides = currentUser?.role === 'SUPER_ADMIN';
+
   const roleOptionsForEditor = useMemo(() => {
-    const base =
-      canManagePermissionOverrides
-        ? [...roleOptions]
-        : roleOptions.filter((option) => option.value !== 'SUPER_ADMIN');
-
-    if (form?.role === 'SUPER_ADMIN' && !base.some((option) => option.value === 'SUPER_ADMIN')) {
-      const superAdminOption = roleOptions.find((option) => option.value === 'SUPER_ADMIN');
-      if (superAdminOption) base.push(superAdminOption);
+    const base = canManagePermissionOverrides
+      ? [...roleOptions]
+      : roleOptions.filter((o) => o.value !== 'SUPER_ADMIN');
+    if (form?.role === 'SUPER_ADMIN' && !base.some((o) => o.value === 'SUPER_ADMIN')) {
+      const sa = roleOptions.find((o) => o.value === 'SUPER_ADMIN');
+      if (sa) base.push(sa);
     }
-
     return base;
   }, [canManagePermissionOverrides, form?.role]);
 
@@ -121,26 +385,18 @@ export default function UserEditPage() {
   const effectivePermissionsPreview = useMemo(() => {
     if (!form?.role) return [];
     if (form.role === 'SUPER_ADMIN') return [...PERMISSIONS];
-
-    const effectiveSet = new Set([
-      ...(ROLE_PERMISSIONS[form.role] || []),
-      ...(form.extraPermissions || []),
-    ]);
-    (form.deniedPermissions || []).forEach((permission) => effectiveSet.delete(permission));
-    return [...effectiveSet];
+    const set = new Set([...(ROLE_PERMISSIONS[form.role] || []), ...(form.extraPermissions || [])]);
+    (form.deniedPermissions || []).forEach((p) => set.delete(p));
+    return [...set];
   }, [form?.role, form?.extraPermissions, form?.deniedPermissions]);
 
-  const linkedUserIds = (form?.family || [])
-    .map((r) => r.userId)
-    .filter((uid) => uid);
+  /* linked users */
+  const linkedUserIds = (form?.family || []).map((r) => r.userId).filter(Boolean);
   const uniqueLinkedIds = [...new Set(linkedUserIds)];
   const linkedUsersQueries = useQueries({
     queries: uniqueLinkedIds.map((uid) => ({
       queryKey: ['users', uid],
-      queryFn: async () => {
-        const { data } = await usersApi.getById(uid);
-        return data?.data ?? data;
-      },
+      queryFn: async () => { const { data } = await usersApi.getById(uid); return data?.data ?? data; },
       enabled: !!uid && !!form,
     })),
   });
@@ -168,6 +424,7 @@ export default function UserEditPage() {
     }));
   };
 
+  /* ── effects ── */
   useEffect(() => {
     if (user && !form) {
       setForm({
@@ -212,9 +469,7 @@ export default function UserEditPage() {
     }
   }, [user, id]);
 
-  useEffect(() => {
-    customDetailsInitializedFor.current = null;
-  }, [id]);
+  useEffect(() => { customDetailsInitializedFor.current = null; }, [id]);
 
   const linkedUsersFetched = linkedUsersQueries.every((q) => !q.isLoading) && uniqueLinkedIds.length > 0;
   useEffect(() => {
@@ -224,9 +479,9 @@ export default function UserEditPage() {
       let changed = false;
       family.forEach((row, idx) => {
         if (!row.userId) return;
-        const fetchedUser = linkedUsersMap[row.userId];
-        if (fetchedUser?.phonePrimary && !(row.targetPhone || '').trim()) {
-          family[idx] = { ...row, targetPhone: fetchedUser.phonePrimary };
+        const fetched = linkedUsersMap[row.userId];
+        if (fetched?.phonePrimary && !(row.targetPhone || '').trim()) {
+          family[idx] = { ...row, targetPhone: fetched.phonePrimary };
           changed = true;
         }
       });
@@ -234,26 +489,23 @@ export default function UserEditPage() {
     });
   }, [linkedUsersFetched, uniqueLinkedIds.length]);
 
+  /* ── mutations ── */
   const mutation = useMutation({
     mutationFn: (data) => usersApi.update(id, data),
     onSuccess: async () => {
       const pending = pendingLinkByPhoneRef.current || [];
       pendingLinkByPhoneRef.current = [];
-      if (pending.length > 0) {
-        for (const m of pending) {
-          try {
-            const relation = relationRoles.find((r) => r.label === (m.relationRole || '').trim())?.relation || 'other';
-            await usersApi.linkFamily(id, {
-              relation,
-              relationRole: (m.relationRole || '').trim(),
-              targetPhone: (m.targetPhone || '').trim(),
-              name: (m.name || '').trim() || undefined,
-              notes: (m.notes || '').trim() || undefined,
-            });
-          } catch (err) {
-            toast.error(normalizeApiError(err).message);
-          }
-        }
+      for (const m of pending) {
+        try {
+          const relation = relationRoles.find((r) => r.label === (m.relationRole || '').trim())?.relation || 'other';
+          await usersApi.linkFamily(id, {
+            relation,
+            relationRole: (m.relationRole || '').trim(),
+            targetPhone: (m.targetPhone || '').trim(),
+            name: (m.name || '').trim() || undefined,
+            notes: (m.notes || '').trim() || undefined,
+          });
+        } catch (err) { toast.error(normalizeApiError(err).message); }
       }
       toast.success('تم تحديث بيانات المستخدم بنجاح');
       queryClient.invalidateQueries({ queryKey: ['users', id] });
@@ -264,9 +516,7 @@ export default function UserEditPage() {
     },
     onError: (err) => {
       const normalized = normalizeApiError(err);
-      if (normalized.code === 'VALIDATION_ERROR') {
-        setErrors(mapFieldErrors(normalized.details));
-      }
+      if (normalized.code === 'VALIDATION_ERROR') setErrors(mapFieldErrors(normalized.details));
       toast.error(normalized.message);
     },
   });
@@ -278,11 +528,10 @@ export default function UserEditPage() {
       queryClient.invalidateQueries({ queryKey: ['users', id] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
-    onError: (err) => {
-      toast.error(normalizeApiError(err).message);
-    },
+    onError: (err) => toast.error(normalizeApiError(err).message),
   });
 
+  /* ── handlers ── */
   const update = (field, value) => {
     setForm((prev) => {
       const next = { ...prev, [field]: value };
@@ -298,25 +547,23 @@ export default function UserEditPage() {
   const setPermissionOverride = (permission, mode, checked) => {
     setForm((prev) => {
       if (!prev) return prev;
-
       const currentExtra = normalizePermissionArray(prev.extraPermissions);
       const currentDenied = normalizePermissionArray(prev.deniedPermissions);
-
-      const nextExtra = [...currentExtra];
-      const nextDenied = [...currentDenied];
-
       const removeFrom = (arr) => arr.filter((item) => item !== permission);
-      const addTo = (arr) => (arr.includes(permission) ? arr : [...arr, permission]);
+      const addTo = (arr) => arr.includes(permission) ? arr : [...arr, permission];
 
       if (mode === 'extra') {
-        const updatedExtra = checked ? addTo(nextExtra) : removeFrom(nextExtra);
-        const updatedDenied = checked ? removeFrom(nextDenied) : nextDenied;
-        return { ...prev, extraPermissions: updatedExtra, deniedPermissions: updatedDenied };
+        return {
+          ...prev,
+          extraPermissions: checked ? addTo(currentExtra) : removeFrom(currentExtra),
+          deniedPermissions: checked ? removeFrom(currentDenied) : currentDenied,
+        };
       }
-
-      const updatedDenied = checked ? addTo(nextDenied) : removeFrom(nextDenied);
-      const updatedExtra = checked ? removeFrom(nextExtra) : nextExtra;
-      return { ...prev, extraPermissions: updatedExtra, deniedPermissions: updatedDenied };
+      return {
+        ...prev,
+        deniedPermissions: checked ? addTo(currentDenied) : removeFrom(currentDenied),
+        extraPermissions: checked ? removeFrom(currentExtra) : currentExtra,
+      };
     });
   };
 
@@ -343,53 +590,30 @@ export default function UserEditPage() {
     if (form.houseName !== (user.houseName || '')) payload.houseName = form.houseName;
     if (form.role !== user.role) payload.role = form.role;
     if ((form.password || '').trim()) payload.password = form.password.trim();
+
     if (canManagePermissionOverrides) {
-      const nextExtraPermissions = normalizePermissionArray(form.extraPermissions);
-      const nextDeniedPermissions = normalizePermissionArray(form.deniedPermissions);
-      const oldExtraPermissions = normalizePermissionArray(user.extraPermissions);
-      const oldDeniedPermissions = normalizePermissionArray(user.deniedPermissions);
-
-      if (JSON.stringify(nextExtraPermissions) !== JSON.stringify(oldExtraPermissions)) {
-        payload.extraPermissions = nextExtraPermissions;
-      }
-      if (JSON.stringify(nextDeniedPermissions) !== JSON.stringify(oldDeniedPermissions)) {
-        payload.deniedPermissions = nextDeniedPermissions;
-      }
+      const nextExtra = normalizePermissionArray(form.extraPermissions);
+      const nextDenied = normalizePermissionArray(form.deniedPermissions);
+      const oldExtra = normalizePermissionArray(user.extraPermissions);
+      const oldDenied = normalizePermissionArray(user.deniedPermissions);
+      if (JSON.stringify(nextExtra) !== JSON.stringify(oldExtra)) payload.extraPermissions = nextExtra;
+      if (JSON.stringify(nextDenied) !== JSON.stringify(oldDenied)) payload.deniedPermissions = nextDenied;
     }
 
-    const newAddress = {
-      governorate: form.governorate || '',
-      city: form.city || '',
-      street: form.street || '',
-      details: form.details || '',
-    };
+    const newAddress = { governorate: form.governorate || '', city: form.city || '', street: form.street || '', details: form.details || '' };
     const oldAddr = user.address || {};
-    const oldAddrNormalized = {
-      governorate: oldAddr.governorate || '',
-      city: oldAddr.city || '',
-      street: oldAddr.street || '',
-      details: oldAddr.details || '',
-    };
-    if (JSON.stringify(newAddress) !== JSON.stringify(oldAddrNormalized)) {
-      payload.address = newAddress;
-    }
+    const oldNorm = { governorate: oldAddr.governorate || '', city: oldAddr.city || '', street: oldAddr.street || '', details: oldAddr.details || '' };
+    if (JSON.stringify(newAddress) !== JSON.stringify(oldNorm)) payload.address = newAddress;
 
     const newCustomDetails = customDetailsRows
       .filter((r) => r.key.trim())
       .reduce((acc, r) => ({ ...acc, [r.key.trim()]: (r.value || '').trim() }), {});
     const oldCustomDetails = user.customDetails && typeof user.customDetails === 'object' ? user.customDetails : {};
-    if (JSON.stringify(newCustomDetails) !== JSON.stringify(oldCustomDetails)) {
-      payload.customDetails = newCustomDetails;
-    }
+    if (JSON.stringify(newCustomDetails) !== JSON.stringify(oldCustomDetails)) payload.customDetails = newCustomDetails;
 
     const toPayloadMember = (m) => {
       if (!m || (!m.name && !m.relationRole && !m.notes && !m.userId)) return null;
-      return {
-        userId: m.userId || undefined,
-        name: (m.name || '').trim() || undefined,
-        relationRole: (m.relationRole || '').trim() || undefined,
-        notes: (m.notes || '').trim() || undefined,
-      };
+      return { userId: m.userId || undefined, name: (m.name || '').trim() || undefined, relationRole: (m.relationRole || '').trim() || undefined, notes: (m.notes || '').trim() || undefined };
     };
     const unflattenFamily = (familyList) => {
       const result = { father: null, mother: null, spouse: null, siblings: [], children: [], familyMembers: [] };
@@ -406,45 +630,28 @@ export default function UserEditPage() {
       });
       return result;
     };
+
     const oldFlat = flattenFamily(user);
     const newFlat = (form.family || []).map((m) => ({
-      ...m,
-      relationRole: (m.relationRole || '').trim(),
-      name: (m.name || '').trim(),
-      notes: (m.notes || '').trim(),
+      ...m, relationRole: (m.relationRole || '').trim(), name: (m.name || '').trim(), notes: (m.notes || '').trim(),
     }));
     const familyChanged = JSON.stringify(newFlat.map((m) => ({ ...m, targetPhone: '' }))) !== JSON.stringify(oldFlat.map((m) => ({ ...m, targetPhone: '' })));
     const membersToLinkByPhone = (form.family || []).filter((m) => (m.targetPhone || '').trim());
+
     if (familyChanged || membersToLinkByPhone.length > 0) {
-      const familyForPayload = (form.family || []).filter((m) => !(m.targetPhone || '').trim());
-      const unflat = unflattenFamily(familyForPayload);
-      payload.father = unflat.father;
-      payload.mother = unflat.mother;
-      payload.spouse = unflat.spouse;
-      payload.siblings = unflat.siblings;
-      payload.children = unflat.children;
-      payload.familyMembers = unflat.familyMembers;
+      const forPayload = (form.family || []).filter((m) => !(m.targetPhone || '').trim());
+      const unflat = unflattenFamily(forPayload);
+      Object.assign(payload, unflat);
     }
-    if (membersToLinkByPhone.length > 0) {
-      pendingLinkByPhoneRef.current = membersToLinkByPhone;
-    }
+    if (membersToLinkByPhone.length > 0) pendingLinkByPhoneRef.current = membersToLinkByPhone;
 
     if (membersToLinkByPhone.length > 0 && Object.keys(payload).length === 0) {
       (async () => {
         for (const m of membersToLinkByPhone) {
           try {
             const relation = relationRoles.find((r) => r.label === (m.relationRole || '').trim())?.relation || 'other';
-            await usersApi.linkFamily(id, {
-              relation,
-              relationRole: (m.relationRole || '').trim(),
-              targetPhone: (m.targetPhone || '').trim(),
-              name: (m.name || '').trim() || undefined,
-              notes: (m.notes || '').trim() || undefined,
-            });
-          } catch (err) {
-            toast.error(normalizeApiError(err).message);
-            return;
-          }
+            await usersApi.linkFamily(id, { relation, relationRole: (m.relationRole || '').trim(), targetPhone: (m.targetPhone || '').trim(), name: (m.name || '').trim() || undefined, notes: (m.notes || '').trim() || undefined });
+          } catch (err) { toast.error(normalizeApiError(err).message); return; }
         }
         toast.success('تم ربط أفراد العائلة بنجاح');
         queryClient.invalidateQueries({ queryKey: ['users', id] });
@@ -454,62 +661,43 @@ export default function UserEditPage() {
       return;
     }
 
-    if (Object.keys(payload).length === 0) {
-      toast('لم يتم تغيير أي بيانات');
-      return;
-    }
-
+    if (Object.keys(payload).length === 0) { toast('لم يتم تغيير أي بيانات'); return; }
     mutation.mutate(payload);
   };
 
-  const addCustomDetailRow = () => {
-    setCustomDetailsRows((prev) => [...prev, { id: nextCustomDetailId.current++, key: '', value: '' }]);
-  };
+  /* custom details */
+  const addCustomDetailRow = () => setCustomDetailsRows((prev) => [...prev, { id: nextCustomDetailId.current++, key: '', value: '' }]);
+  const updateCustomDetailRow = (rowId, field, value) => setCustomDetailsRows((prev) => prev.map((r) => r.id === rowId ? { ...r, [field]: value } : r));
+  const removeCustomDetailRow = (rowId) => setCustomDetailsRows((prev) => prev.length > 1 ? prev.filter((r) => r.id !== rowId) : prev);
 
-  const updateCustomDetailRow = (id, field, value) => {
-    setCustomDetailsRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
-    );
-  };
-
-  const removeCustomDetailRow = (id) => {
-    setCustomDetailsRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
-  };
-
-  const addFamilyMember = () => {
-    setForm((prev) => ({
-      ...prev,
-      family: [...(prev.family || []), { userId: null, name: '', relationRole: '', targetPhone: '', notes: '' }],
-    }));
-  };
-  const updateFamilyMember = (index, field, value) => {
-    setForm((prev) => {
-      const arr = [...(prev.family || [])];
-      arr[index] = { ...arr[index], [field]: value };
-      return { ...prev, family: arr };
-    });
-  };
-  const removeFamilyMember = (index) => {
-    setForm((prev) => ({ ...prev, family: (prev.family || []).filter((_, i) => i !== index) }));
-  };
+  /* family */
+  const addFamilyMember = () => setForm((prev) => ({ ...prev, family: [...(prev.family || []), { userId: null, name: '', relationRole: '', targetPhone: '', notes: '' }] }));
+  const updateFamilyMember = (index, field, value) => setForm((prev) => { const arr = [...(prev.family || [])]; arr[index] = { ...arr[index], [field]: value }; return { ...prev, family: arr }; });
+  const removeFamilyMember = (index) => setForm((prev) => ({ ...prev, family: (prev.family || []).filter((_, i) => i !== index) }));
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast.error('يرجى اختيار صورة (JPEG، PNG، GIF أو WEBP)');
-      return;
-    }
+    if (!file.type.startsWith('image/')) { toast.error('يرجى اختيار صورة'); return; }
     avatarMutation.mutate(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  /* ── loading ── */
   if (isLoading || !form) {
-    return <div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full" /></div>;
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-7 w-64" />
+        <Skeleton className="h-52 w-full" />
+        <Skeleton className="h-72 w-full" />
+      </div>
+    );
   }
 
+  const initial = String(user?.fullName || '?').trim().charAt(0).toUpperCase();
+
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs items={[
         { label: 'لوحة التحكم', href: '/dashboard' },
         { label: 'المستخدمون', href: '/dashboard/users' },
@@ -517,403 +705,231 @@ export default function UserEditPage() {
         { label: 'تعديل' },
       ]} />
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-heading">تعديل المستخدم</h1>
+      {/* ══ HEADER ══════════════════════════════════════════════════════ */}
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
+        <div className="flex items-center gap-4">
+          {user?.avatar?.url ? (
+            <img src={user.avatar.url} alt="" className="h-14 w-14 rounded-2xl border-2 border-primary/20 object-cover" />
+          ) : (
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-primary/20 bg-primary/10 text-xl font-bold text-primary">
+              {initial}
+            </div>
+          )}
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">تعديل بيانات المستخدم</p>
+            <h1 className="mt-0.5 text-3xl font-bold tracking-tight text-heading">{user?.fullName}</h1>
+          </div>
+        </div>
         <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => navigate(-1)}>رجوع</Button>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader title="البيانات الأساسية" />
-            <div className="space-y-2 mb-4">
-              <label className="block text-sm font-medium text-body">الصورة الشخصية</label>
-              <div className="flex items-center gap-4 flex-wrap">
-                {user?.avatar?.url ? (
-                  <img
-                    src={user.avatar.url}
-                    alt={user.fullName}
-                    className="w-24 h-24 rounded-full object-cover border-2 border-border"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center">
-                    <Upload className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                )}
-                <div className="flex flex-col gap-1">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    onChange={handleAvatarChange}
-                    disabled={avatarMutation.isPending}
-                    className="hidden"
-                    id="edit-user-avatar"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    icon={Upload}
-                    loading={avatarMutation.isPending}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {user?.avatar?.url ? 'تغيير الصورة' : 'رفع صورة'}
-                  </Button>
-                  <span className="text-xs text-muted-foreground">JPEG, PNG, GIF أو WEBP — حتى 5 ميجابايت</span>
-                </div>
-              </div>
-            </div>
-            <Input label="الاسم الكامل" required value={form.fullName}
-              onChange={(e) => update('fullName', e.target.value)} error={errors.fullName} />
-            <Input label="رقم الهاتف الأساسي" required dir="ltr" className="text-left"
-              value={form.phonePrimary} onChange={(e) => update('phonePrimary', e.target.value)} error={errors.phonePrimary} />
-            <Input label="البريد الإلكتروني" type="email" dir="ltr" className="text-left"
-              value={form.email} onChange={(e) => update('email', e.target.value)} error={errors.email} />
-            <Input label="تاريخ الميلاد" type="date" dir="ltr" className="text-left"
-              value={form.birthDate} onChange={(e) => update('birthDate', e.target.value)} error={errors.birthDate} />
-            <Select label="الجنس" options={genderOptions} value={form.gender}
-              onChange={(e) => update('gender', e.target.value)} />
-            <Input label="الرقم القومي" dir="ltr" className="text-left"
-              value={form.nationalId} onChange={(e) => update('nationalId', e.target.value)} error={errors.nationalId} />
-          </Card>
+      {/* ══ FORM ════════════════════════════════════════════════════════ */}
+      <form onSubmit={handleSubmit} noValidate>
+        <div className="mx-auto max-w-7xl space-y-8">
 
-          <Card>
-            <CardHeader title="معلومات إضافية" />
-            <Input label="الهاتف الثانوي" dir="ltr" className="text-left"
-              value={form.phoneSecondary} onChange={(e) => update('phoneSecondary', e.target.value)} />
-            <Input label="رقم الواتساب" dir="ltr" className="text-left"
-              value={form.whatsappNumber} onChange={(e) => update('whatsappNumber', e.target.value)} />
-            <div className="mb-4 relative">
-              <label className="block text-sm font-medium text-base mb-1.5">اسم العائلة</label>
-              <input
-                ref={familyNameInputRef}
-                type="text"
-                value={form.familyName}
-                onChange={(e) => {
-                  update('familyName', e.target.value);
-                  setFamilyNameDropdownOpen(true);
-                }}
-                onFocus={() => setFamilyNameDropdownOpen(true)}
-                onBlur={() => setTimeout(() => setFamilyNameDropdownOpen(false), 200)}
-                placeholder="ابحث أو اكتب اسم العائلة"
-                className="input-base w-full"
-              />
-              {familyNameDropdownOpen && familyNames.length > 0 && (
-                <ul
-                  className="absolute z-20 mt-1 w-full max-h-48 overflow-auto rounded-md border border-border shadow-lg py-1"
-                  style={{ backgroundColor: 'var(--color-surface, #ffffff)' }}
-                  role="listbox"
-                >
-                  {familyNames
-                    .filter((name) => !form.familyName || name.toLowerCase().includes(form.familyName.trim().toLowerCase()))
-                    .slice(0, 20)
-                    .map((name) => (
-                      <li
-                        key={name}
-                        role="option"
-                        aria-selected={form.familyName === name}
-                        className="px-3 py-2 text-sm cursor-pointer hover:bg-muted focus:bg-muted"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          update('familyName', name);
-                          setFamilyNameDropdownOpen(false);
-                        }}
-                      >
-                        {name}
-                      </li>
-                    ))}
-                </ul>
-              )}
-            </div>
-            <div className="mb-4 relative">
-              <label className="block text-sm font-medium text-base mb-1.5">اسم البيت</label>
-              <input
-                ref={houseNameInputRef}
-                type="text"
-                value={form.houseName}
-                onChange={(e) => {
-                  update('houseName', e.target.value);
-                  setHouseNameDropdownOpen(true);
-                }}
-                onFocus={() => setHouseNameDropdownOpen(true)}
-                onBlur={() => setTimeout(() => setHouseNameDropdownOpen(false), 200)}
-                placeholder="ابحث أو اكتب اسم البيت"
-                className="input-base w-full"
-              />
-              {houseNameDropdownOpen && houseNames.length > 0 && (
-                <ul
-                  className="absolute z-20 mt-1 w-full max-h-48 overflow-auto rounded-md border border-border shadow-lg py-1"
-                  style={{ backgroundColor: 'var(--color-surface, #ffffff)' }}
-                  role="listbox"
-                >
-                  {houseNames
-                    .filter((name) => !form.houseName || name.toLowerCase().includes(form.houseName.trim().toLowerCase()))
-                    .slice(0, 20)
-                    .map((name) => (
-                      <li
-                        key={name}
-                        role="option"
-                        aria-selected={form.houseName === name}
-                        className="px-3 py-2 text-sm cursor-pointer hover:bg-muted focus:bg-muted"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          update('houseName', name);
-                          setHouseNameDropdownOpen(false);
-                        }}
-                      >
-                        {name}
-                      </li>
-                    ))}
-                </ul>
-              )}
-            </div>
-            <Select label="الدور" options={roleOptionsForEditor} value={form.role}
-              onChange={(e) => update('role', e.target.value)} />
-            <Input label="كلمة المرور" type="password" dir="ltr" className="text-left"
-              hint="اتركها فارغة إذا لا تريد تغييرها. إدخال كلمة مرور هنا يفعّل تسجيل الدخول لهذا المستخدم."
-              value={form.password} onChange={(e) => update('password', e.target.value)} error={errors.password} />
-            <TextArea label="ملاحظات" value={form.notes}
-              onChange={(e) => update('notes', e.target.value)} />
-          </Card>
+          {/* ── STEP 1 · البيانات الأساسية ────────────────────────────── */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2"><StepBadge n={1} /><SectionLabel>البيانات الأساسية</SectionLabel></div>
+            <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
 
-          {canManagePermissionOverrides && (
-            <Card className="lg:col-span-2">
-              <CardHeader
-                title="إدارة الصلاحيات"
-                subtitle="أضف صلاحيات إضافية أو اسحب صلاحيات محددة لهذا المستخدم"
-              />
-
-              {form.role === 'SUPER_ADMIN' ? (
-                <div className="mb-4 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-body">
-                  مدير النظام يمتلك جميع الصلاحيات دائمًا ولا يمكن تقييد صلاحياته.
-                </div>
-              ) : (
-                <div className="mb-4 rounded-md border border-border bg-surface-alt/30 px-3 py-2 text-sm text-body">
-                  الصلاحيات الأساسية للدور: <span className="font-semibold">{selectedRolePermissions.length}</span>
-                  {' - '}
-                  الصلاحيات الفعالة بعد التخصيص: <span className="font-semibold">{effectivePermissionsPreview.length}</span>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                {PERMISSION_GROUPS.map((group) => (
-                  <div key={group.id} className="rounded-md border border-border p-3">
-                    <h4 className="mb-2 text-sm font-semibold text-heading">{group.label}</h4>
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                      {group.permissions.map((permission) => {
-                        const roleHasPermission =
-                          form.role === 'SUPER_ADMIN' || selectedRolePermissions.includes(permission);
-                        const isExtra = (form.extraPermissions || []).includes(permission);
-                        const isDenied = (form.deniedPermissions || []).includes(permission);
-
-                        return (
-                          <div key={permission} className="rounded-md border border-border/80 bg-surface px-3 py-2">
-                            <div className="mb-2 flex items-center justify-between gap-2">
-                              <span className="text-sm font-medium text-heading">
-                                {PERMISSION_LABELS[permission] || permission}
-                              </span>
-                              {roleHasPermission && !isDenied && (
-                                <span className="rounded bg-success/15 px-2 py-0.5 text-xs text-success">أساسي</span>
-                              )}
-                            </div>
-
-                            <div className="flex flex-wrap gap-4 text-sm">
-                              <label className="inline-flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={isExtra}
-                                  disabled={form.role === 'SUPER_ADMIN'}
-                                  onChange={(e) => setPermissionOverride(permission, 'extra', e.target.checked)}
-                                />
-                                <span>إضافة</span>
-                              </label>
-
-                              <label className="inline-flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={isDenied}
-                                  disabled={form.role === 'SUPER_ADMIN'}
-                                  onChange={(e) => setPermissionOverride(permission, 'denied', e.target.checked)}
-                                />
-                                <span>سحب</span>
-                              </label>
-                            </div>
-
-                            <p className="mt-2 text-xs text-muted">
-                              <code>{permission}</code>
-                            </p>
-                          </div>
-                        );
-                      })}
+              {/* avatar */}
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted">الصورة الشخصية</p>
+                <div className="flex items-center gap-4 flex-wrap">
+                  {user?.avatar?.url ? (
+                    <img src={user.avatar.url} alt="" className="h-20 w-20 rounded-2xl border-2 border-primary/20 object-cover shadow-sm" />
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface-alt">
+                      <Users className="h-8 w-8 text-muted" />
                     </div>
+                  )}
+                  <div className="flex flex-col gap-1">
+                    <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleAvatarChange} disabled={avatarMutation.isPending} className="hidden" />
+                    <Button type="button" variant="outline" size="sm" icon={Upload} loading={avatarMutation.isPending} onClick={() => fileInputRef.current?.click()}>
+                      {user?.avatar?.url ? 'تغيير الصورة' : 'رفع صورة'}
+                    </Button>
+                    <span className="text-xs text-muted">JPEG, PNG, GIF أو WEBP — حتى 5 ميجابايت</span>
                   </div>
-                ))}
+                </div>
               </div>
-            </Card>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input label="الاسم الكامل" required value={form.fullName} onChange={(e) => update('fullName', e.target.value)} error={errors.fullName} containerClassName="!mb-0" />
+                <Input label="تاريخ الميلاد" type="date" dir="ltr" className="text-left" value={form.birthDate} onChange={(e) => update('birthDate', e.target.value)} error={errors.birthDate} containerClassName="!mb-0" />
+                <Input label="رقم الهاتف الأساسي" required dir="ltr" className="text-left" value={form.phonePrimary} onChange={(e) => update('phonePrimary', e.target.value)} error={errors.phonePrimary} containerClassName="!mb-0" />
+                <Select label="الجنس" options={genderOptions} value={form.gender} onChange={(e) => update('gender', e.target.value)} containerClassName="!mb-0" />
+                <Input label="البريد الإلكتروني" type="email" dir="ltr" className="text-left" value={form.email} onChange={(e) => update('email', e.target.value)} error={errors.email} containerClassName="!mb-0" />
+                <Input label="الرقم القومي" dir="ltr" className="text-left" value={form.nationalId} onChange={(e) => update('nationalId', e.target.value)} error={errors.nationalId} containerClassName="!mb-0" />
+              </div>
+            </div>
+          </section>
+
+          {/* ── STEP 2 · معلومات إضافية ──────────────────────────────── */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2"><StepBadge n={2} /><SectionLabel>معلومات إضافية</SectionLabel></div>
+            <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input label="الهاتف الثانوي" dir="ltr" className="text-left" value={form.phoneSecondary} onChange={(e) => update('phoneSecondary', e.target.value)} containerClassName="!mb-0" />
+                <Input label="رقم الواتساب" dir="ltr" className="text-left" value={form.whatsappNumber} onChange={(e) => update('whatsappNumber', e.target.value)} containerClassName="!mb-0" />
+                <NameCombobox label="اسم العائلة" value={form.familyName} onChange={(v) => update('familyName', v)} options={familyNames} placeholder="ابحث أو اكتب اسم العائلة" />
+                <NameCombobox label="اسم البيت" value={form.houseName} onChange={(v) => update('houseName', v)} options={houseNames} placeholder="ابحث أو اكتب اسم البيت" />
+                <Select label="الدور" options={roleOptionsForEditor} value={form.role} onChange={(e) => update('role', e.target.value)} containerClassName="!mb-0" />
+                <Input label="كلمة المرور" type="password" dir="ltr" className="text-left" hint="اتركها فارغة إذا لا تريد تغييرها" value={form.password} onChange={(e) => update('password', e.target.value)} error={errors.password} containerClassName="!mb-0" />
+              </div>
+              <TextArea label="ملاحظات" value={form.notes} onChange={(e) => update('notes', e.target.value)} containerClassName="!mb-0" />
+            </div>
+          </section>
+
+          {/* ── STEP 3 · الصلاحيات ───────────────────────────────────── */}
+          {canManagePermissionOverrides && (
+            <section className="space-y-4">
+              <div className="flex items-center gap-2"><StepBadge n={3} /><SectionLabel>إدارة الصلاحيات</SectionLabel></div>
+              <PermissionsPanel
+                form={form}
+                selectedRolePermissions={selectedRolePermissions}
+                effectivePermissionsPreview={effectivePermissionsPreview}
+                onPermissionChange={setPermissionOverride}
+              />
+            </section>
           )}
 
-          <Card className="lg:col-span-2">
-            <CardHeader title="تفاصيل مخصصة" />
-            <p className="text-sm text-muted-foreground mb-3">أضف أو عدّل حقولاً مخصصة (مفتاح وقيمة). المفاتيح المستخدمة سابقاً تظهر كاقتراحات.</p>
-            <div className="space-y-3">
-              {customDetailsRows.map((row) => (
-                <div key={row.id} className="flex flex-wrap items-center gap-2">
-                  <input
-                    list="edit-custom-detail-keys-list"
-                    value={row.key}
-                    onChange={(e) => updateCustomDetailRow(row.id, 'key', e.target.value)}
-                    placeholder="المفتاح"
-                    className="flex-1 min-w-[120px] rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  />
-                  <datalist id="edit-custom-detail-keys-list">
-                    {savedKeys.map((k) => (
-                      <option key={k} value={k} />
-                    ))}
-                  </datalist>
-                  <input
-                    value={row.value}
-                    onChange={(e) => updateCustomDetailRow(row.id, 'value', e.target.value)}
-                    placeholder="القيمة"
-                    className="flex-1 min-w-[120px] rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeCustomDetailRow(row.id)}
-                    aria-label="حذف"
-                    className="shrink-0"
-                  >
-                    <Trash2 className="w-4 h-4 text-muted-foreground" />
-                  </Button>
-                </div>
-              ))}
-              <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addCustomDetailRow}>
-                إضافة حقل
-              </Button>
+          {/* ── STEP 4 · أفراد العائلة ───────────────────────────────── */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <StepBadge n={canManagePermissionOverrides ? 4 : 3} />
+                <SectionLabel count={(form.family || []).length}>أفراد العائلة</SectionLabel>
+              </div>
+              <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addFamilyMember}>إضافة فرد</Button>
             </div>
-          </Card>
 
-          <Card className="lg:col-span-2">
-            <CardHeader
-              title="أفراد العائلة"
-              action={
-                <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addFamilyMember}>
-                  إضافة فرد
-                </Button>
-              }
-            />
-            <p className="text-sm text-muted-foreground mb-4">
-              اختر صلة القرابة ثم اربط بمستخدم مسجل (بالاسم أو رقم الهاتف) أو اكتب الاسم والهاتف يدوياً.
-            </p>
             <div className="space-y-3">
+              {(form.family || []).length === 0 && (
+                <p className="rounded-2xl border border-dashed border-border px-5 py-6 text-center text-sm text-muted">
+                  لا يوجد أفراد عائلة مضافون بعد.
+                </p>
+              )}
               {(form.family || []).map((row, i) => {
                 const roleLabels = relationRoles.map((r) => r.label);
                 const relationRoleOptions = [
                   { value: '', label: '— اختر صلة القرابة —' },
                   ...relationRoles.map((r) => ({ value: r.label, label: r.label })),
-                  ...(row.relationRole && !roleLabels.includes(row.relationRole)
-                    ? [{ value: row.relationRole, label: row.relationRole }]
-                    : []),
+                  ...(row.relationRole && !roleLabels.includes(row.relationRole) ? [{ value: row.relationRole, label: row.relationRole }] : []),
                 ];
                 const fetched = row.userId ? linkedUsersMap[row.userId] : null;
-                const linkedUser = row.userId
-                  ? {
-                      _id: row.userId,
-                      fullName: fetched?.fullName ?? row.name,
-                      phonePrimary: fetched?.phonePrimary ?? row.targetPhone ?? '',
-                    }
-                  : null;
+                const linkedUser = row.userId ? { _id: row.userId, fullName: fetched?.fullName ?? row.name, phonePrimary: fetched?.phonePrimary ?? row.targetPhone ?? '' } : null;
+
                 return (
-                  <div key={i} className="flex flex-col gap-3 p-3 rounded-lg border border-border bg-surface-alt/30">
-                    <div className="flex flex-wrap items-end gap-2">
+                  <div key={i} className="rounded-2xl border border-border bg-surface p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">فرد {i + 1}</p>
+                      <button
+                        type="button"
+                        onClick={() => removeFamilyMember(i)}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted transition-colors hover:border-danger/30 hover:bg-danger-light hover:text-danger"
+                        aria-label="حذف"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Select
                         label="صلة القرابة"
                         options={relationRoleOptions}
                         value={row.relationRole}
                         onChange={(e) => updateFamilyMember(i, 'relationRole', e.target.value)}
-                        containerClassName="mb-0 flex-1 min-w-[140px]"
+                        containerClassName="mb-0"
                       />
-                      <div className="flex-1 min-w-[200px]">
-                        <UserSearchSelect
-                          label="ربط بمستخدم مسجل"
-                          value={linkedUser}
-                          onChange={(u) => {
-                            setForm((prev) => {
-                              const arr = [...(prev.family || [])];
-                              arr[i] = {
-                                ...arr[i],
-                                userId: u ? u._id : null,
-                                name: u ? u.fullName : '',
-                                targetPhone: u ? (u.phonePrimary || '') : '',
-                              };
-                              return { ...prev, family: arr };
-                            });
-                          }}
-                          excludeUserId={id}
-                          className="mb-0"
-                        />
-                      </div>
+                      <UserSearchSelect
+                        label="ربط بمستخدم مسجل"
+                        value={linkedUser}
+                        onChange={(u) => {
+                          setForm((prev) => {
+                            const arr = [...(prev.family || [])];
+                            arr[i] = { ...arr[i], userId: u ? u._id : null, name: u ? u.fullName : '', targetPhone: u ? (u.phonePrimary || '') : '' };
+                            return { ...prev, family: arr };
+                          });
+                        }}
+                        excludeUserId={id}
+                        className="mb-0"
+                      />
+                      <Input label="الاسم" value={row.name} onChange={(e) => updateFamilyMember(i, 'name', e.target.value)} containerClassName="mb-0" />
+                      <Input label="رقم الهاتف" dir="ltr" className="text-left" value={fetched?.phonePrimary ?? row.targetPhone} onChange={(e) => updateFamilyMember(i, 'targetPhone', e.target.value)} containerClassName="mb-0" />
                     </div>
-                    <div className="flex flex-wrap items-end gap-2">
-                      <Input
-                        label="الاسم"
-                        value={row.name}
-                        onChange={(e) => updateFamilyMember(i, 'name', e.target.value)}
-                        containerClassName="mb-0 flex-1 min-w-[140px]"
-                      />
-                      <Input
-                        label="رقم الهاتف (لربط أو يدوياً)"
-                        dir="ltr"
-                        className="text-left"
-                        value={fetched?.phonePrimary ?? row.targetPhone}
-                        onChange={(e) => updateFamilyMember(i, 'targetPhone', e.target.value)}
-                        containerClassName="mb-0 flex-1 min-w-[140px]"
-                      />
-                      <TextArea
-                        label="ملاحظات"
-                        value={row.notes}
-                        onChange={(e) => updateFamilyMember(i, 'notes', e.target.value)}
-                        containerClassName="mb-0 flex-1 min-w-[120px]"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeFamilyMember(i)}
-                        aria-label="حذف"
-                        className="shrink-0 text-muted hover:text-danger mb-4"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    <TextArea label="ملاحظات" value={row.notes} onChange={(e) => updateFamilyMember(i, 'notes', e.target.value)} containerClassName="mb-0" />
                   </div>
                 );
               })}
             </div>
-          </Card>
+          </section>
 
-          <Card className="lg:col-span-2">
-            <CardHeader title="العنوان" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-              <Input label="المحافظة" value={form.governorate}
-                onChange={(e) => update('governorate', e.target.value)} placeholder="المحافظة" />
-              <Input label="المدينة" value={form.city}
-                onChange={(e) => update('city', e.target.value)} placeholder="المدينة"/>
-              <Input label="الشارع" value={form.street}
-                onChange={(e) => update('street', e.target.value)} />
-              <Input label="تفاصيل إضافية" value={form.details}
-                onChange={(e) => update('details', e.target.value)} />
+          {/* ── STEP 5 · العنوان ─────────────────────────────────────── */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <StepBadge n={canManagePermissionOverrides ? 5 : 4} />
+              <SectionLabel>العنوان</SectionLabel>
             </div>
-          </Card>
-        </div>
+            <div className="rounded-2xl border border-border bg-surface p-5">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input label="المحافظة" value={form.governorate} onChange={(e) => update('governorate', e.target.value)} placeholder="المحافظة" containerClassName="!mb-0" />
+                <Input label="المدينة" value={form.city} onChange={(e) => update('city', e.target.value)} placeholder="المدينة" containerClassName="!mb-0" />
+                <Input label="الشارع" value={form.street} onChange={(e) => update('street', e.target.value)} placeholder="الشارع" containerClassName="!mb-0" />
+                <Input label="تفاصيل إضافية" value={form.details} onChange={(e) => update('details', e.target.value)} placeholder="اي تفاصيل إضافية" containerClassName="!mb-0" />
+              </div>
+            </div>
+          </section>
 
-        <div className="flex justify-end gap-3 mt-6">
-          <Button variant="ghost" type="button" onClick={() => navigate(-1)}>إلغاء</Button>
-          <Button type="submit" icon={Save} loading={mutation.isPending}>حفظ التعديلات</Button>
+          {/* ── STEP 6 · تفاصيل مخصصة ───────────────────────────────── */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <StepBadge n={canManagePermissionOverrides ? 6 : 5} />
+              <SectionLabel>تفاصيل مخصصة</SectionLabel>
+            </div>
+            <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+              <p className="text-xs text-muted">أضف أو عدّل حقولاً مخصصة. المفاتيح المستخدمة سابقاً تظهر كاقتراحات.</p>
+              <div className="space-y-2.5">
+                {customDetailsRows.map((row) => (
+                  <div key={row.id} className="flex flex-wrap items-center gap-2">
+                    <input
+                      list="edit-custom-detail-keys-list"
+                      value={row.key}
+                      onChange={(e) => updateCustomDetailRow(row.id, 'key', e.target.value)}
+                      placeholder="المفتاح"
+                      className="input-base flex-1 min-w-[120px]"
+                    />
+                    <datalist id="edit-custom-detail-keys-list">
+                      {savedKeys.map((k) => <option key={k} value={k} />)}
+                    </datalist>
+                    <input
+                      value={row.value}
+                      onChange={(e) => updateCustomDetailRow(row.id, 'value', e.target.value)}
+                      placeholder="القيمة"
+                      className="input-base flex-1 min-w-[120px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeCustomDetailRow(row.id)}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border text-muted transition-colors hover:border-danger/30 hover:bg-danger-light hover:text-danger"
+                      aria-label="حذف"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addCustomDetailRow}>إضافة حقل</Button>
+            </div>
+          </section>
+
+          {/* ── ACTIONS ───────────────────────────────────────────────── */}
+          <div className="flex gap-2">
+            <Button variant="ghost" type="button" onClick={() => navigate(-1)}>إلغاء</Button>
+            <Button type="submit" icon={Save} loading={mutation.isPending}>حفظ التعديلات</Button>
+          </div>
+
         </div>
       </form>
     </div>
   );
-}
+} 

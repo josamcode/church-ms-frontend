@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ListChecks, Plus, Eye } from 'lucide-react';
+import { ArrowUpRight, Eye, Plus } from 'lucide-react';
 import { visitationsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import Pagination from '../../../components/ui/Pagination';
 import Table from '../../../components/ui/Table';
@@ -14,37 +13,49 @@ import { useI18n } from '../../../i18n/i18n';
 import useNavigateToUser from '../../../hooks/useNavigateToUser';
 import { formatDateTime } from '../../../utils/formatters';
 
+/* ── primitives ──────────────────────────────────────────────────────────── */
+
+function SectionLabel({ children }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+        {children}
+      </span>
+      <div className="h-px flex-1 bg-border/60" />
+    </div>
+  );
+}
+
+/* ── page ────────────────────────────────────────────────────────────────── */
+
 export default function PastoralVisitationListPage() {
   const { t } = useI18n();
   const { hasPermission } = useAuth();
   const navigateToUser = useNavigateToUser();
   const canCreate = hasPermission('PASTORAL_VISITATIONS_CREATE');
 
-  const [filters, setFilters] = useState({
-    houseName: '',
-    dateFrom: '',
-    dateTo: '',
-  });
+  const [filters, setFilters] = useState({ houseName: '', dateFrom: '', dateTo: '' });
   const [cursor, setCursor] = useState(null);
   const [cursorStack, setCursorStack] = useState([null]);
   const [limit] = useState(20);
 
+  const setFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
+  const hasActiveFilters = Object.values(filters).some(Boolean);
+
+  /* reset pagination when filters change */
   useEffect(() => {
     setCursor(null);
     setCursorStack([null]);
   }, [filters.houseName, filters.dateFrom, filters.dateTo]);
 
-  const listParams = useMemo(
-    () => ({
-      limit,
-      order: 'desc',
-      ...(cursor && { cursor }),
-      ...(filters.houseName.trim() && { houseName: filters.houseName.trim() }),
-      ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
-      ...(filters.dateTo && { dateTo: filters.dateTo }),
-    }),
-    [cursor, filters.dateFrom, filters.dateTo, filters.houseName, limit]
-  );
+  const listParams = useMemo(() => ({
+    limit,
+    order: 'desc',
+    ...(cursor && { cursor }),
+    ...(filters.houseName.trim() && { houseName: filters.houseName.trim() }),
+    ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
+    ...(filters.dateTo && { dateTo: filters.dateTo }),
+  }), [cursor, filters, limit]);
 
   const { data: listRes, isLoading } = useQuery({
     queryKey: ['visitations', 'list', listParams],
@@ -73,25 +84,23 @@ export default function PastoralVisitationListPage() {
     });
   };
 
-  const columns = [
+  /* ── columns ── */
+  const columns = useMemo(() => [
     {
       key: 'houseName',
       label: t('visitations.list.columns.houseName'),
       render: (row) => {
         const houseName = String(row.houseName || '').trim();
-        if (!houseName) return t('common.placeholder.empty');
+        if (!houseName) return <span className="text-muted text-sm">{t('common.placeholder.empty')}</span>;
 
-        const query = new URLSearchParams({
-          lookupType: 'houseName',
-          lookupName: houseName,
-        }).toString();
-
+        const query = new URLSearchParams({ lookupType: 'houseName', lookupName: houseName }).toString();
         return (
           <Link
             to={`/dashboard/users/family-house?${query}`}
-            className="font-medium text-primary hover:underline"
+            className="group inline-flex items-center gap-1 font-medium text-heading transition-colors hover:text-primary"
           >
             {houseName}
+            <ArrowUpRight className="h-3 w-3 text-border transition-colors group-hover:text-primary" />
           </Link>
         );
       },
@@ -99,12 +108,17 @@ export default function PastoralVisitationListPage() {
     {
       key: 'visitedAt',
       label: t('visitations.list.columns.visitedAt'),
-      render: (row) => formatDateTime(row.visitedAt),
+      render: (row) => <span className="text-sm text-heading">{formatDateTime(row.visitedAt)}</span>,
     },
     {
       key: 'durationMinutes',
       label: t('visitations.list.columns.durationMinutes'),
-      render: (row) => `${row.durationMinutes || 10} ${t('visitations.shared.minutes')}`,
+      render: (row) => (
+        <span className="text-sm text-heading">
+          {row.durationMinutes || 10}{' '}
+          <span className="text-muted">{t('visitations.shared.minutes')}</span>
+        </span>
+      ),
     },
     {
       key: 'recordedBy',
@@ -113,35 +127,40 @@ export default function PastoralVisitationListPage() {
         row.recordedBy?.id ? (
           <button
             type="button"
-            className="font-medium text-primary hover:underline"
             onClick={() => navigateToUser(row.recordedBy.id)}
+            className="group text-start"
           >
-            {row.recordedBy.fullName || t('common.placeholder.empty')}
+            <p className="font-medium text-heading transition-colors group-hover:text-primary">
+              {row.recordedBy.fullName || t('common.placeholder.empty')}
+            </p>
           </button>
         ) : (
-          t('common.placeholder.empty')
+          <span className="text-sm text-muted">{t('common.placeholder.empty')}</span>
         ),
     },
     {
       key: 'recordedAt',
       label: t('visitations.list.columns.recordedAt'),
-      render: (row) => formatDateTime(row.recordedAt || row.createdAt),
+      render: (row) => <span className="text-xs text-muted">{formatDateTime(row.recordedAt || row.createdAt)}</span>,
     },
     {
       key: 'details',
-      label: t('visitations.list.columns.details'),
+      label: '',
+      cellClassName: 'w-10',
       render: (row) => (
         <Link to={`/dashboard/visitations/${row.id}`}>
-          <Button type="button" variant="outline" size="sm" icon={Eye}>
+          <Button type="button" variant="ghost" size="sm" icon={Eye}>
             {t('visitations.list.viewDetails')}
           </Button>
         </Link>
       ),
     },
-  ];
+  ], [navigateToUser, t]);
 
+  /* ── render ── */
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in space-y-8 pb-10">
+
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
@@ -149,67 +168,92 @@ export default function PastoralVisitationListPage() {
         ]}
       />
 
-      <Card className="mb-6">
-        <div className="flex items-end justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="text-xl font-bold text-heading">{t('visitations.list.title')}</h1>
-            <p className="text-sm text-muted">{t('visitations.list.subtitle')}</p>
-          </div>
-          {canCreate && (
-            <Link to="/dashboard/visitations/new">
-              <Button icon={Plus}>{t('visitations.list.createAction')}</Button>
-            </Link>
+      {/* ══ HEADER ══════════════════════════════════════════════════════ */}
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+            {t('shared.dashboard')}
+          </p>
+          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
+            {t('visitations.list.title')}
+          </h1>
+          <p className="mt-1 text-sm text-muted">{t('visitations.list.subtitle')}</p>
+        </div>
+        {canCreate && (
+          <Link to="/dashboard/visitations/new">
+            <Button icon={Plus}>{t('visitations.list.createAction')}</Button>
+          </Link>
+        )}
+      </div>
+
+      {/* ══ FILTERS ═════════════════════════════════════════════════════ */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <SectionLabel>{t('visitations.list.filtersTitle')}</SectionLabel>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={() => setFilters({ houseName: '', dateFrom: '', dateTo: '' })}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              {t('usersListPage.filters.clear')}
+            </button>
           )}
         </div>
-      </Card>
 
-      <Card className="mb-6">
-        <CardHeader
-          title={t('visitations.list.filtersTitle')}
-          action={<ListChecks className="w-5 h-5 text-primary" />}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <Input
-            label={t('visitations.list.houseNameFilter')}
             value={filters.houseName}
-            onChange={(e) => setFilters((prev) => ({ ...prev, houseName: e.target.value }))}
+            onChange={(e) => setFilter('houseName', e.target.value)}
             placeholder={t('visitations.list.houseNameFilterPlaceholder')}
             containerClassName="!mb-0"
           />
           <Input
-            label={t('visitations.list.dateFrom')}
             type="date"
+            dir="ltr"
             value={filters.dateFrom}
-            onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
+            onChange={(e) => setFilter('dateFrom', e.target.value)}
             containerClassName="!mb-0"
           />
           <Input
-            label={t('visitations.list.dateTo')}
             type="date"
+            dir="ltr"
             value={filters.dateTo}
-            onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
+            onChange={(e) => setFilter('dateTo', e.target.value)}
             containerClassName="!mb-0"
           />
         </div>
-      </Card>
+      </section>
 
-      <Card>
-        <Table
-          columns={columns}
-          data={visitations}
-          loading={isLoading}
-          emptyTitle={t('visitations.list.emptyTitle')}
-          emptyDescription={t('visitations.list.emptyDescription')}
-        />
+      {/* ══ TABLE ═══════════════════════════════════════════════════════ */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <SectionLabel>{t('visitations.list.page')}</SectionLabel>
+          {meta?.count != null && (
+            <span className="text-xs text-muted">{meta.count}</span>
+          )}
+        </div>
 
-        <Pagination
-          meta={meta}
-          onLoadMore={handleNext}
-          onPrev={handlePrev}
-          cursors={cursorStack}
-          loading={isLoading}
-        />
-      </Card>
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+          <Table
+            columns={columns}
+            data={visitations}
+            loading={isLoading}
+            emptyTitle={t('visitations.list.emptyTitle')}
+            emptyDescription={t('visitations.list.emptyDescription')}
+          />
+          <div className="border-t border-border px-4 pb-4 pt-2">
+            <Pagination
+              meta={meta}
+              onLoadMore={handleNext}
+              onPrev={handlePrev}
+              cursors={cursorStack}
+              loading={isLoading}
+            />
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }

@@ -2,16 +2,8 @@ import { useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Plus,
-  Eye,
-  Edit,
-  Lock,
-  Unlock,
-  Trash2,
-  Users,
-  UserCheck,
-  UserX,
-  ShieldCheck,
+  Plus, Eye, Edit, Lock, Unlock, Trash2,
+  Users, UserCheck, UserX,
 } from 'lucide-react';
 import { usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
@@ -29,6 +21,29 @@ import Modal from '../../../components/ui/Modal';
 import toast from 'react-hot-toast';
 import { AGE_GROUPS, formatDate, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Helpers
+───────────────────────────────────────────────────────────────────────────── */
+
+function getInitial(name) {
+  if (!name) return 'U';
+  return String(name).trim().charAt(0).toUpperCase();
+}
+
+/** Thin overline section label — shared pattern across redesigned pages */
+function SectionLabel({ children }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{children}</span>
+      <div className="h-px flex-1 bg-border/60" />
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Page
+───────────────────────────────────────────────────────────────────────────── */
+
 export default function UsersListPage() {
   const { hasPermission } = useAuth();
   const { t } = useI18n();
@@ -42,9 +57,7 @@ export default function UsersListPage() {
   const [deleting, setDeleting] = useState(false);
 
   const queryParams = {
-    limit,
-    sort: 'createdAt',
-    order: 'desc',
+    limit, sort: 'createdAt', order: 'desc',
     ...(cursor && { cursor }),
     ...(filters.fullName && { fullName: filters.fullName }),
     ...(filters.ageGroup && { ageGroup: filters.ageGroup }),
@@ -86,9 +99,9 @@ export default function UsersListPage() {
 
   const handlePrev = useCallback(() => {
     setCursorStack((prev) => {
-      const newStack = prev.slice(0, -1);
-      setCursor(newStack[newStack.length - 1] || null);
-      return newStack;
+      const next = prev.slice(0, -1);
+      setCursor(next[next.length - 1] || null);
+      return next;
     });
   }, []);
 
@@ -108,7 +121,7 @@ export default function UsersListPage() {
   };
 
   const hasActiveFilters = useMemo(() => Object.values(filters).some(Boolean), [filters]);
-  const lockedCount = useMemo(() => users.filter((row) => row.isLocked).length, [users]);
+  const lockedCount = useMemo(() => users.filter((r) => r.isLocked).length, [users]);
   const activeCount = users.length - lockedCount;
 
   const roleOptions = [
@@ -122,128 +135,177 @@ export default function UsersListPage() {
     { value: 'female', label: getGenderLabel('female') },
   ];
 
-  const columns = useMemo(
-    () => [
-      {
-        key: 'fullName',
-        label: t('usersListPage.columns.name'),
-        render: (row) => (
-          <div className="flex items-center gap-3">
-            {row.avatar?.url ? (
-              <img src={row.avatar.url} alt="" className="h-9 w-9 rounded-full border border-border object-cover" />
-            ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
-                {getInitial(row.fullName)}
-              </div>
-            )}
-            <div>
-              <p className="font-medium text-heading">{row.fullName || t('common.placeholder.empty')}</p>
-              <p className="text-xs text-muted direction-ltr text-left">{row.phonePrimary || t('common.placeholder.empty')}</p>
+  const columns = useMemo(() => [
+    {
+      key: 'fullName',
+      label: t('usersListPage.columns.name'),
+      render: (row) => (
+        <div className="flex items-center gap-3">
+          {row.avatar?.url ? (
+            <img
+              src={row.avatar.url}
+              alt=""
+              className="h-8 w-8 rounded-full border border-border object-cover"
+            />
+          ) : (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              {getInitial(row.fullName)}
             </div>
-          </div>
-        ),
-        onClick: (row) => navigate(`/dashboard/users/${row._id}`),
-        cellClassName: 'cursor-pointer',
-      },
-      {
-        key: 'phonePrimary',
-        label: t('usersListPage.columns.phone'),
-        render: (row) => <span className="direction-ltr text-left">{row.phonePrimary || t('common.placeholder.empty')}</span>,
-      },
-      {
-        key: 'role',
-        label: t('usersListPage.columns.role'),
-        render: (row) => <Badge variant="primary">{getRoleLabel(row.role)}</Badge>,
-      },
-      {
-        key: 'ageGroup',
-        label: t('usersListPage.columns.ageGroup'),
-        render: (row) => row.ageGroup || t('common.placeholder.empty'),
-      },
-      {
-        key: 'gender',
-        label: t('usersListPage.columns.gender'),
-        render: (row) => getGenderLabel(row.gender),
-      },
-      {
-        key: 'createdAt',
-        label: t('usersListPage.columns.joined'),
-        render: (row) => formatDate(row.createdAt),
-      },
-      {
-        key: 'isLocked',
-        label: t('usersListPage.columns.status'),
-        render: (row) => (
-          <Badge variant={row.isLocked ? 'danger' : 'success'}>
-            {row.isLocked ? t('common.status.locked') : t('common.status.active')}
-          </Badge>
-        ),
-      },
-      {
-        key: 'actions',
-        label: '',
-        cellClassName: 'w-10',
-        render: (row) => (
-          <RowActions
-            actions={[
-              { label: t('common.actions.view'), icon: Eye, onClick: () => navigate(`/dashboard/users/${row._id}`) },
-              ...(hasPermission('USERS_UPDATE')
-                ? [{ label: t('common.actions.edit'), icon: Edit, onClick: () => navigate(`/dashboard/users/${row._id}/edit`) }]
-                : []),
-              ...(hasPermission('USERS_LOCK') && !row.isLocked
-                ? [{ label: t('common.actions.lock'), icon: Lock, onClick: () => navigate(`/dashboard/users/${row._id}/lock`) }]
-                : []),
-              ...(hasPermission('USERS_UNLOCK') && row.isLocked
-                ? [{ label: t('common.actions.unlock'), icon: Unlock, onClick: () => navigate(`/dashboard/users/${row._id}/unlock`) }]
-                : []),
-              ...(hasPermission('USERS_DELETE')
-                ? [{ divider: true }, { label: t('common.actions.delete'), icon: Trash2, danger: true, onClick: () => setDeleteTarget(row) }]
-                : []),
-            ]}
-          />
-        ),
-      },
-    ],
-    [hasPermission, navigate, t]
-  );
-
-  return (
-    <div className="animate-fade-in space-y-6">
-      <Breadcrumbs items={[{ label: t('shared.dashboard'), href: '/dashboard' }, { label: t('shared.users') }]} />
-
-      <Card padding={false} className="relative overflow-hidden border-primary/20">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
-        <div className="relative p-6 lg:p-7">
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-heading">{t('shared.users')}</h1>
-              <p className="mt-1 text-sm text-muted">{t('usersListPage.hero.description')}</p>
-            </div>
-            {hasPermission('USERS_CREATE') && (
-              <Link to="/dashboard/users/new">
-                <Button icon={Plus}>{t('usersListPage.actions.addUser')}</Button>
-              </Link>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <StatCard icon={Users} label={t('usersListPage.stats.usersOnPage')} value={users.length} />
-            <StatCard icon={UserCheck} label={t('usersListPage.stats.activeAccounts')} value={activeCount} tone="success" />
-            <StatCard icon={UserX} label={t('usersListPage.stats.lockedAccounts')} value={lockedCount} tone="danger" />
+          )}
+          <div className="min-w-0">
+            <p className="truncate font-medium text-heading">
+              {row.fullName || t('common.placeholder.empty')}
+            </p>
+            <p className="truncate text-xs text-muted direction-ltr text-left">
+              {row.phonePrimary || t('common.placeholder.empty')}
+            </p>
           </div>
         </div>
-      </Card>
+      ),
+      onClick: (row) => navigate(`/dashboard/users/${row._id}`),
+      cellClassName: 'cursor-pointer',
+    },
+    {
+      key: 'role',
+      label: t('usersListPage.columns.role'),
+      render: (row) => <Badge variant="primary">{getRoleLabel(row.role)}</Badge>,
+    },
+    {
+      key: 'ageGroup',
+      label: t('usersListPage.columns.ageGroup'),
+      render: (row) => row.ageGroup || t('common.placeholder.empty'),
+    },
+    {
+      key: 'gender',
+      label: t('usersListPage.columns.gender'),
+      render: (row) => getGenderLabel(row.gender),
+    },
+    {
+      key: 'createdAt',
+      label: t('usersListPage.columns.joined'),
+      render: (row) => formatDate(row.createdAt),
+    },
+    {
+      key: 'isLocked',
+      label: t('usersListPage.columns.status'),
+      render: (row) => (
+        <Badge variant={row.isLocked ? 'danger' : 'success'}>
+          {row.isLocked ? t('common.status.locked') : t('common.status.active')}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      label: '',
+      cellClassName: 'w-10',
+      render: (row) => (
+        <RowActions
+          actions={[
+            { label: t('common.actions.view'), icon: Eye, onClick: () => navigate(`/dashboard/users/${row._id}`) },
+            ...(hasPermission('USERS_UPDATE')
+              ? [{ label: t('common.actions.edit'), icon: Edit, onClick: () => navigate(`/dashboard/users/${row._id}/edit`) }]
+              : []),
+            ...(hasPermission('USERS_LOCK') && !row.isLocked
+              ? [{ label: t('common.actions.lock'), icon: Lock, onClick: () => navigate(`/dashboard/users/${row._id}/lock`) }]
+              : []),
+            ...(hasPermission('USERS_UNLOCK') && row.isLocked
+              ? [{ label: t('common.actions.unlock'), icon: Unlock, onClick: () => navigate(`/dashboard/users/${row._id}/unlock`) }]
+              : []),
+            ...(hasPermission('USERS_DELETE')
+              ? [{ divider: true }, { label: t('common.actions.delete'), icon: Trash2, danger: true, onClick: () => setDeleteTarget(row) }]
+              : []),
+          ]}
+        />
+      ),
+    },
+  ], [hasPermission, navigate, t]);
 
-      <Card className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{t('usersListPage.filters.title')}</h2>
+  /* ── render ── */
+  return (
+    <div className="animate-fade-in space-y-8 pb-10">
+
+      {/* ── Breadcrumbs ── */}
+      <Breadcrumbs
+        items={[
+          { label: t('shared.dashboard'), href: '/dashboard' },
+          { label: t('shared.users') },
+        ]}
+      />
+
+      {/* ══ PAGE HEADER ═══════════════════════════════════════════════════ */}
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
+            {t('shared.users')}
+          </h1>
+          <p className="mt-1 text-sm text-muted">{t('usersListPage.hero.description')}</p>
+        </div>
+
+        {hasPermission('USERS_CREATE') && (
+          <Link to="/dashboard/users/new">
+            <Button icon={Plus}>{t('usersListPage.actions.addUser')}</Button>
+          </Link>
+        )}
+      </div>
+
+      {/* ══ KPI TILES ═════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {/* total on page */}
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+              {t('usersListPage.stats.usersOnPage')}
+            </p>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-alt text-muted">
+              <Users className="h-4 w-4" />
+            </span>
           </div>
+          <p className="mt-4 text-4xl font-bold tracking-tight text-heading">{users.length}</p>
+          <div className="mt-4 h-0.5 w-10 rounded-full bg-border" />
+        </div>
+
+        {/* active */}
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+              {t('usersListPage.stats.activeAccounts')}
+            </p>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-success-light text-success">
+              <UserCheck className="h-4 w-4" />
+            </span>
+          </div>
+          <p className="mt-4 text-4xl font-bold tracking-tight text-success">{activeCount}</p>
+          <div className="mt-4 h-0.5 w-10 rounded-full bg-success/40" />
+        </div>
+
+        {/* locked */}
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+              {t('usersListPage.stats.lockedAccounts')}
+            </p>
+            <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${lockedCount > 0 ? 'bg-danger-light text-danger' : 'bg-surface-alt text-muted'}`}>
+              <UserX className="h-4 w-4" />
+            </span>
+          </div>
+          <p className={`mt-4 text-4xl font-bold tracking-tight ${lockedCount > 0 ? 'text-danger' : 'text-heading'}`}>
+            {lockedCount}
+          </p>
+          <div className={`mt-4 h-0.5 w-10 rounded-full ${lockedCount > 0 ? 'bg-danger/40' : 'bg-border'}`} />
+        </div>
+      </div>
+
+      {/* ══ FILTERS ═══════════════════════════════════════════════════════ */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <SectionLabel>{t('usersListPage.filters.title')}</SectionLabel>
           {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <button
+              onClick={clearFilters}
+              className="text-xs font-medium text-primary hover:underline"
+            >
               {t('usersListPage.filters.clear')}
-            </Button>
+            </button>
           )}
         </div>
 
@@ -275,19 +337,18 @@ export default function UsersListPage() {
             containerClassName="!mb-0"
           />
         </div>
-      </Card>
+      </section>
 
-      <Card padding={false} className="overflow-hidden">
-        <div className="border-b border-border px-5 py-4 sm:px-6">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-heading">{t('usersListPage.table.title')}</h2>
-            <span className="text-sm text-muted">
-              {t('usersListPage.table.results', { count: meta?.count ?? users.length })}
-            </span>
-          </div>
+      {/* ══ TABLE ═════════════════════════════════════════════════════════ */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <SectionLabel>{t('usersListPage.table.title')}</SectionLabel>
+          <span className="text-xs text-muted">
+            {t('usersListPage.table.results', { count: meta?.count ?? users.length })}
+          </span>
         </div>
 
-        <div className="p-2 sm:p-3">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface">
           <Table
             columns={columns}
             data={users}
@@ -300,19 +361,20 @@ export default function UsersListPage() {
             }
             emptyIcon={Users}
           />
-        </div>
 
-        <div className="border-t border-border px-4 pb-4">
-          <Pagination
-            meta={meta}
-            onLoadMore={handleNext}
-            onPrev={handlePrev}
-            cursors={cursorStack}
-            loading={isLoading}
-          />
+          <div className="border-t border-border px-4 pb-4 pt-2">
+            <Pagination
+              meta={meta}
+              onLoadMore={handleNext}
+              onPrev={handlePrev}
+              cursors={cursorStack}
+              loading={isLoading}
+            />
+          </div>
         </div>
-      </Card>
+      </section>
 
+      {/* ══ DELETE MODAL ══════════════════════════════════════════════════ */}
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
@@ -331,29 +393,10 @@ export default function UsersListPage() {
       >
         <p className="text-sm text-muted">
           {t('usersListPage.delete.confirmPrefix')}{' '}
-          <strong className="text-heading">{deleteTarget?.fullName}</strong>
-          {' '}{t('usersListPage.delete.confirmSuffix')}
+          <strong className="text-heading">{deleteTarget?.fullName}</strong>{' '}
+          {t('usersListPage.delete.confirmSuffix')}
         </p>
       </Modal>
-    </div>
-  );
-}
-
-function getInitial(name) {
-  if (!name) return 'U';
-  return String(name).trim().charAt(0).toUpperCase();
-}
-
-function StatCard({ icon: Icon, label, value, tone = 'default' }) {
-  const toneClass = tone === 'success' ? 'text-success' : tone === 'danger' ? 'text-danger' : 'text-heading';
-
-  return (
-    <div className="rounded-xl border border-border/80 bg-surface/90 px-4 py-3">
-      <div className="mb-2 flex items-center gap-2 text-muted">
-        <Icon className="h-4 w-4" />
-        <span className="text-xs font-semibold uppercase tracking-wide">{label}</span>
-      </div>
-      <p className={`text-2xl font-bold ${toneClass}`}>{value}</p>
     </div>
   );
 }

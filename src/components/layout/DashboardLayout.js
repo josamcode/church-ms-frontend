@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import {
   Church,
   LayoutDashboard,
@@ -9,7 +9,6 @@ import {
   Menu,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   Sun,
   Moon,
   Construction,
@@ -31,7 +30,7 @@ import { getRoleLabel } from '../../utils/formatters';
 // ─────────────────────────────────────────────────────────────────────────────
 // NavItem
 // ─────────────────────────────────────────────────────────────────────────────
-function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick, nested = false }) {
+function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick }) {
   if (collapsed) {
     return (
       <Tooltip content={item.label} position={tooltipSide}>
@@ -60,9 +59,9 @@ function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick, nested 
       onClick={onClick}
       className={[
         'group relative flex w-full items-center gap-3 rounded-xl font-medium transition-all duration-150 select-none',
-        nested ? 'py-2 px-3 text-[13px]' : 'px-3 py-2.5 text-sm',
+        'px-3 py-2.5 text-sm',
         active
-          ? 'bg-primary text-white shadow-md shadow-primary/20'
+          ? 'bg-primary text-white shadow-md rounded-sm shadow-primary/20'
           : 'text-muted hover:bg-surface-alt hover:text-heading',
       ].join(' ')}
     >
@@ -71,10 +70,10 @@ function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick, nested 
       )}
       <span className={[
         'flex flex-shrink-0 items-center justify-center rounded-lg transition-colors',
-        nested ? 'h-6 w-6' : 'h-7 w-7',
+        'h-7 w-7',
         active ? 'text-white' : 'text-muted group-hover:text-heading',
       ].join(' ')}>
-        <item.icon className={nested ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
+        <item.icon className="h-4 w-4" />
       </span>
       <span className="truncate">{item.label}</span>
     </Link>
@@ -82,87 +81,7 @@ function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick, nested 
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NavGroup — open state is CONTROLLED from outside (passed as props)
 // ─────────────────────────────────────────────────────────────────────────────
-function NavGroup({ group, open, onToggle, isRTL, tooltipSide, isItemActive, onLinkClick }) {
-  const groupActive =
-    (group.parentVisible && isItemActive(group.parent)) ||
-    group.children.some((c) => isItemActive(c));
-
-  const hasChildren = group.children.length > 0;
-
-  return (
-    <div className="space-y-0.5">
-      <div className="flex items-center gap-1">
-        {group.parentVisible ? (
-          <Link
-            to={group.parent.href}
-            onClick={onLinkClick}
-            className={[
-              'group relative flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
-              groupActive
-                ? 'bg-primary text-white shadow-md shadow-primary/20'
-                : 'text-muted hover:bg-surface-alt hover:text-heading',
-            ].join(' ')}
-          >
-            {groupActive && (
-              <span className={`absolute inset-y-2.5 w-0.5 rounded-full bg-white/50 ${isRTL ? 'right-0' : 'left-0'}`} />
-            )}
-            <span className={[
-              'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg transition-colors',
-              groupActive ? 'text-white' : 'text-muted group-hover:text-heading',
-            ].join(' ')}>
-              <group.parent.icon className="h-4 w-4" />
-            </span>
-            <span className="truncate">{group.parent.label}</span>
-          </Link>
-        ) : (
-          <div className="flex flex-1 items-center gap-3 px-3 py-2.5 text-sm font-medium text-muted/50">
-            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center">
-              <group.parent.icon className="h-4 w-4" />
-            </span>
-            <span className="truncate">{group.parent.label}</span>
-          </div>
-        )}
-
-        {hasChildren && (
-          <button
-            type="button"
-            onClick={onToggle}
-            className={[
-              'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition-all duration-150 hover:bg-surface-alt hover:text-heading',
-              groupActive ? 'text-primary' : 'text-muted',
-            ].join(' ')}
-            aria-expanded={open}
-          >
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-          </button>
-        )}
-      </div>
-
-      {hasChildren && open && (
-        <div className={[
-          'space-y-0.5',
-          isRTL ? 'mr-[18px] border-r border-border/40 pr-2' : 'ml-[18px] border-l border-border/40 pl-2',
-        ].join(' ')}>
-          {group.children.map((child) => (
-            <NavItem
-              key={child.href}
-              item={child}
-              active={isItemActive(child)}
-              collapsed={false}
-              isRTL={isRTL}
-              tooltipSide={tooltipSide}
-              onClick={onLinkClick}
-              nested
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function NavDivider({ collapsed }) {
   return (
     <div className={`my-1.5 ${collapsed ? 'flex justify-center' : ''}`}>
@@ -238,9 +157,16 @@ export default function DashboardLayout() {
         href: '/dashboard/confessions',
         icon: CalendarCheck2,
         permission: 'CONFESSIONS_VIEW',
-        matchChildren: false,
+        matchChildren: true,
       },
       children: [
+        {
+          label: t('confessions.sessions.createAction'),
+          href: '/dashboard/confessions/new',
+          icon: Sparkles,
+          permission: 'CONFESSIONS_CREATE',
+          matchChildren: false,
+        },
         {
           label: t('dashboardLayout.menu.confessionAlerts'),
           href: '/dashboard/confessions/alerts',
@@ -312,7 +238,7 @@ export default function DashboardLayout() {
           href: '/dashboard/meetings/sectors',
           icon: Layers3,
           permission: ['SECTORS_VIEW', 'SECTORS_CREATE', 'SECTORS_UPDATE', 'SECTORS_DELETE'],
-          matchChildren: false,
+          matchChildren: true,
         },
         {
           label: t('dashboardLayout.menu.meetingsManagement'),
@@ -327,7 +253,7 @@ export default function DashboardLayout() {
             'MEETINGS_COMMITTEES_MANAGE',
             'MEETINGS_ACTIVITIES_MANAGE',
           ],
-          matchChildren: false,
+          matchChildren: true,
         },
       ],
     },
@@ -351,73 +277,50 @@ export default function DashboardLayout() {
     return hasPermission(item.permission);
   }, [hasPermission]);
 
-  const isItemActive = useCallback((item) => {
+  const doesItemMatchPath = useCallback((item, pathname) => {
     if (!item?.href) return false;
-    if (location.pathname === item.href) return true;
+    if (pathname === item.href) return true;
     if (!item.matchChildren) return false;
-    return location.pathname.startsWith(`${item.href}/`);
-  }, [location.pathname]);
+    return pathname.startsWith(`${item.href}/`);
+  }, []);
 
   // ── Filtered menu ─────────────────────────────────────────────────────────
 
   const visibleTopItems = useMemo(() => topItems.filter(isItemAllowed), [topItems, isItemAllowed]);
 
-  const visibleGroups = useMemo(() =>
-    groupedItems
-      .map((group) => {
-        const parentVisible = isItemAllowed(group.parent);
-        const children = group.children.filter(isItemAllowed);
-        if (!parentVisible && children.length === 0) return null;
-        return { ...group, parentVisible, children };
-      })
-      .filter(Boolean),
+  const visibleManageItems = useMemo(
+    () =>
+      groupedItems
+        .flatMap((group) => [group.parent, ...group.children])
+        .filter(isItemAllowed),
     [groupedItems, isItemAllowed]
   );
 
   const visibleBottomItems = useMemo(() => bottomItems.filter(isItemAllowed), [bottomItems, isItemAllowed]);
 
-  // ── Group open state — lives HERE, never inside NavGroup ─────────────────
-  // Initialise once; auto-open groups whose route is active.
-  const [openGroups, setOpenGroups] = useState(() => {
-    const init = {};
-    return init;
-  });
-
-  // Whenever the pathname changes, ensure groups with an active child are open.
-  useEffect(() => {
-    setOpenGroups((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      visibleGroups.forEach((group) => {
-        const isActive =
-          (group.parentVisible && isItemActive(group.parent)) ||
-          group.children.some((c) => isItemActive(c));
-        if (isActive && !next[group.key]) {
-          next[group.key] = true;
-          changed = true;
-        }
-      });
-      return changed ? next : prev;
-    });
-  }, [location.pathname, visibleGroups, isItemActive]);
-
-  const toggleGroup = useCallback((key) => {
-    setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
-  }, []);
-
   // ── Active item (for breadcrumb) ──────────────────────────────────────────
 
-  const activeItem = useMemo(() => {
-    const flat = [
-      ...visibleTopItems,
-      ...visibleGroups.flatMap((g) => [...(g.parentVisible ? [g.parent] : []), ...g.children]),
-      ...visibleBottomItems,
-    ];
-    return flat
-      .filter((item) => item.href)
-      .sort((a, b) => b.href.length - a.href.length)
-      .find((item) => isItemActive(item));
-  }, [visibleTopItems, visibleGroups, visibleBottomItems, isItemActive]);
+  const visibleNavItems = useMemo(
+    () => [...visibleTopItems, ...visibleManageItems, ...visibleBottomItems].filter((item) => item.href),
+    [visibleTopItems, visibleManageItems, visibleBottomItems]
+  );
+
+  const activeHref = useMemo(() => {
+    const matches = visibleNavItems
+      .filter((item) => doesItemMatchPath(item, location.pathname))
+      .sort((a, b) => b.href.length - a.href.length);
+    return matches[0]?.href ?? null;
+  }, [visibleNavItems, doesItemMatchPath, location.pathname]);
+
+  const isItemActive = useCallback(
+    (item) => Boolean(item?.href && item.href === activeHref),
+    [activeHref]
+  );
+
+  const activeItem = useMemo(
+    () => visibleNavItems.find((item) => item.href === activeHref),
+    [visibleNavItems, activeHref]
+  );
 
   // ── Theme / auth ──────────────────────────────────────────────────────────
 
@@ -456,20 +359,19 @@ export default function DashboardLayout() {
         />
       ))}
 
-      {visibleGroups.length > 0 && (
+      {visibleManageItems.length > 0 && (
         <>
           <NavDivider collapsed={false} />
           <NavSectionLabel label={t('dashboardLayout.section.manage')} />
-          {visibleGroups.map((group) => (
-            <NavGroup
-              key={group.key}
-              group={group}
-              open={!!openGroups[group.key]}
-              onToggle={() => toggleGroup(group.key)}
+          {visibleManageItems.map((item) => (
+            <NavItem
+              key={item.href}
+              item={item}
+              active={isItemActive(item)}
+              collapsed={false}
               isRTL={isRTL}
               tooltipSide={tooltipSide}
-              isItemActive={isItemActive}
-              onLinkClick={onLinkClick}
+              onClick={onLinkClick}
             />
           ))}
         </>
@@ -509,21 +411,19 @@ export default function DashboardLayout() {
         />
       ))}
 
-      {visibleGroups.length > 0 && <NavDivider collapsed />}
+      {visibleManageItems.length > 0 && <NavDivider collapsed />}
 
-      {visibleGroups.map((group) =>
-        group.parentVisible ? (
-          <NavItem
-            key={group.parent.href}
-            item={group.parent}
-            active={isItemActive(group.parent) || group.children.some((c) => isItemActive(c))}
-            collapsed
-            isRTL={isRTL}
-            tooltipSide={tooltipSide}
-            onClick={() => { }}
-          />
-        ) : null
-      )}
+      {visibleManageItems.map((item) => (
+        <NavItem
+          key={item.href}
+          item={item}
+          active={isItemActive(item)}
+          collapsed
+          isRTL={isRTL}
+          tooltipSide={tooltipSide}
+          onClick={() => { }}
+        />
+      ))}
 
       {visibleBottomItems.length > 0 && <NavDivider collapsed />}
 
