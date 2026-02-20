@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BarChart3, CalendarPlus } from 'lucide-react';
+import { BarChart3, CalendarPlus, Users, Layers3, ListChecks, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { normalizeApiError } from '../../../api/errors';
 import { meetingsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
+import Badge from '../../../components/ui/Badge';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
@@ -18,14 +18,18 @@ import { formatDateTime } from '../../../utils/formatters';
 import { getDayLabel, getDayOptions } from './meetingsForm.utils';
 
 const MEETING_PERMISSIONS = [
-  'MEETINGS_VIEW',
-  'MEETINGS_CREATE',
-  'MEETINGS_UPDATE',
-  'MEETINGS_DELETE',
-  'MEETINGS_SERVANTS_MANAGE',
-  'MEETINGS_COMMITTEES_MANAGE',
-  'MEETINGS_ACTIVITIES_MANAGE',
+  'MEETINGS_VIEW', 'MEETINGS_CREATE', 'MEETINGS_UPDATE', 'MEETINGS_DELETE',
+  'MEETINGS_SERVANTS_MANAGE', 'MEETINGS_COMMITTEES_MANAGE', 'MEETINGS_ACTIVITIES_MANAGE',
 ];
+
+function SectionLabel({ children }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{children}</span>
+      <div className="h-px flex-1 bg-border/60" />
+    </div>
+  );
+}
 
 export default function MeetingsManagementPage() {
   const { t } = useI18n();
@@ -41,17 +45,16 @@ export default function MeetingsManagementPage() {
     hasPermission('MEETINGS_COMMITTEES_MANAGE') ||
     hasPermission('MEETINGS_ACTIVITIES_MANAGE');
   const canDeleteMeetings = hasPermission('MEETINGS_DELETE');
-  const canManageMeetingRows = canUpdateMeetings || canUpdateMeetingsSections || canDeleteMeetings;
-
+  const canManageMeetingRows = canViewMeetings || canUpdateMeetings || canUpdateMeetingsSections || canDeleteMeetings;
   const canAccessMeetingsModule = hasAnyPermission(MEETING_PERMISSIONS);
   const canViewSectors = hasPermission('SECTORS_VIEW');
 
-  const [filters, setFilters] = useState({
-    sectorId: '',
-    day: '',
-    search: '',
-  });
+  const [filters, setFilters] = useState({ sectorId: '', day: '', search: '' });
 
+  const setFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
+  const hasActiveFilters = Object.values(filters).some(Boolean);
+
+  /* ── queries ── */
   const sectorsQuery = useQuery({
     queryKey: ['meetings', 'list', 'sectors'],
     enabled: canViewMeetings || canCreateMeetings || canUpdateMeetings || canViewSectors,
@@ -87,134 +90,128 @@ export default function MeetingsManagementPage() {
     onError: (error) => toast.error(normalizeApiError(error).message),
   });
 
-  const sectors = useMemo(
-    () => (Array.isArray(sectorsQuery.data) ? sectorsQuery.data : []),
-    [sectorsQuery.data]
-  );
-  const meetings = useMemo(
-    () => (Array.isArray(meetingsQuery.data) ? meetingsQuery.data : []),
-    [meetingsQuery.data]
-  );
+  const sectors = useMemo(() => (Array.isArray(sectorsQuery.data) ? sectorsQuery.data : []), [sectorsQuery.data]);
+  const meetings = useMemo(() => (Array.isArray(meetingsQuery.data) ? meetingsQuery.data : []), [meetingsQuery.data]);
 
-  const sectorOptions = sectors.map((sector) => ({ value: sector.id, label: sector.name }));
+  const sectorOptions = sectors.map((s) => ({ value: s.id, label: s.name }));
   const dayOptions = getDayOptions(t);
 
+  /* ── stats ── */
   const stats = useMemo(() => {
-    const result = {
-      totalMeetings: meetings.length,
-      totalServants: 0,
-      totalCommittees: 0,
-      totalActivities: 0,
-      totalGroups: 0,
-      meetingsWithoutServants: 0,
-    };
-
-    meetings.forEach((meeting) => {
-      const servantsCount = (meeting.servants || []).length;
-      const committeesCount = (meeting.committees || []).length;
-      const activitiesCount = (meeting.activities || []).length;
-      const groupsCount = (meeting.groups || []).length;
-
-      result.totalServants += servantsCount;
-      result.totalCommittees += committeesCount;
-      result.totalActivities += activitiesCount;
-      result.totalGroups += groupsCount;
-      if (!servantsCount) result.meetingsWithoutServants += 1;
+    const r = { totalMeetings: meetings.length, totalServants: 0, totalCommittees: 0, totalActivities: 0, totalGroups: 0, meetingsWithoutServants: 0 };
+    meetings.forEach((m) => {
+      const sc = (m.servants || []).length;
+      const cc = (m.committees || []).length;
+      const ac = (m.activities || []).length;
+      const gc = (m.groups || []).length;
+      r.totalServants += sc;
+      r.totalCommittees += cc;
+      r.totalActivities += ac;
+      r.totalGroups += gc;
+      if (!sc) r.meetingsWithoutServants += 1;
     });
-
-    return result;
+    return r;
   }, [meetings]);
 
-  const meetingColumns = [
+  /* ── columns ── */
+  const meetingColumns = useMemo(() => [
     {
       key: 'name',
       label: t('meetings.columns.meeting'),
-      render: (row) => <span className="font-medium text-heading">{row.name}</span>,
+      render: (row) => (
+        <button
+          type="button"
+          onClick={() => navigate(`/dashboard/meetings/list/${row.id}`)}
+          className="group text-start"
+        >
+          <p className="font-medium text-heading transition-colors group-hover:text-primary">
+            {row.name}
+          </p>
+        </button>
+      ),
     },
     {
       key: 'sector',
       label: t('meetings.columns.sector'),
-      render: (row) => row.sector?.name || t('common.placeholder.empty'),
+      render: (row) => row.sector?.name
+        ? <Badge variant="default">{row.sector.name}</Badge>
+        : <span className="text-muted text-sm">{t('common.placeholder.empty')}</span>,
     },
     {
       key: 'schedule',
       label: t('meetings.columns.schedule'),
-      render: (row) => `${getDayLabel(row.day, t)} - ${row.time}`,
+      render: (row) => (
+        <span className="text-sm text-heading">
+          {getDayLabel(row.day, t)} · {row.time}
+        </span>
+      ),
     },
     {
       key: 'groupsCount',
       label: t('meetings.columns.groupsCount'),
-      render: (row) => (row.groups || []).length,
+      render: (row) => <span className="text-sm text-heading">{(row.groups || []).length}</span>,
     },
     {
       key: 'servantsCount',
       label: t('meetings.columns.servantsCount'),
-      render: (row) => (row.servants || []).length,
+      render: (row) => {
+        const count = (row.servants || []).length;
+        return <span className={`text-sm font-medium ${count === 0 ? 'text-warning' : 'text-heading'}`}>{count}</span>;
+      },
     },
     {
       key: 'committeesCount',
       label: t('meetings.columns.committeesCount'),
-      render: (row) => (row.committees || []).length,
-    },
-    {
-      key: 'activitiesCount',
-      label: t('meetings.columns.activitiesCount'),
-      render: (row) => (row.activities || []).length,
+      render: (row) => <span className="text-sm text-heading">{(row.committees || []).length}</span>,
     },
     {
       key: 'updatedAt',
       label: t('meetings.columns.updatedAt'),
-      render: (row) => formatDateTime(row.updatedAt),
+      render: (row) => <span className="text-xs text-muted">{formatDateTime(row.updatedAt)}</span>,
     },
-    ...(canManageMeetingRows
-      ? [
-          {
-            key: 'actions',
-            label: t('common.table.actions'),
-            render: (row) => (
-              <RowActions
-                actions={[
-                  ...((canUpdateMeetings || canUpdateMeetingsSections)
-                    ? [{ label: t('common.actions.edit'), onClick: () => navigate(`/dashboard/meetings/${row.id}/edit`) }]
-                    : []),
-                  ...(canDeleteMeetings
-                    ? [{
-                        label: t('common.actions.delete'),
-                        danger: true,
-                        onClick: () => {
-                          if (window.confirm(t('meetings.messages.confirmDeleteMeeting'))) {
-                            deleteMeetingMutation.mutate(row.id);
-                          }
-                        },
-                      }]
-                    : []),
-                ]}
-              />
-            ),
-          },
-        ]
-      : []),
-  ];
+    ...(canManageMeetingRows ? [{
+      key: 'actions',
+      label: '',
+      cellClassName: 'w-10',
+      render: (row) => (
+        <RowActions
+          actions={[
+            ...(canViewMeetings
+              ? [{ label: t('common.actions.view'), onClick: () => navigate(`/dashboard/meetings/list/${row.id}`) }]
+              : []),
+            ...((canUpdateMeetings || canUpdateMeetingsSections)
+              ? [{ label: t('common.actions.edit'), onClick: () => navigate(`/dashboard/meetings/${row.id}/edit`) }]
+              : []),
+            ...(canDeleteMeetings
+              ? [{ divider: true }, {
+                label: t('common.actions.delete'),
+                danger: true,
+                onClick: () => {
+                  if (window.confirm(t('meetings.messages.confirmDeleteMeeting'))) {
+                    deleteMeetingMutation.mutate(row.id);
+                  }
+                },
+              }]
+              : []),
+          ]}
+        />
+      ),
+    }] : []),
+  ], [canDeleteMeetings, canManageMeetingRows, canUpdateMeetings, canUpdateMeetingsSections, canViewMeetings, deleteMeetingMutation, navigate, t]);
 
+  /* ── guard ── */
   if (!canAccessMeetingsModule) {
     return (
       <div className="animate-fade-in space-y-6">
-        <Breadcrumbs
-          items={[
-            { label: t('shared.dashboard'), href: '/dashboard' },
-            { label: t('meetings.meetingsPageTitle') },
-          ]}
-        />
-        <EmptyState
-          title={t('meetings.empty.noMeetingsPermissionTitle')}
-          description={t('meetings.empty.noMeetingsPermissionDescription')}
-        />
+        <Breadcrumbs items={[{ label: t('shared.dashboard'), href: '/dashboard' }, { label: t('meetings.meetingsPageTitle') }]} />
+        <EmptyState title={t('meetings.empty.noMeetingsPermissionTitle')} description={t('meetings.empty.noMeetingsPermissionDescription')} />
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="animate-fade-in space-y-8 pb-10">
+
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
@@ -222,83 +219,119 @@ export default function MeetingsManagementPage() {
         ]}
       />
 
-      <Card className="relative overflow-hidden border-primary/20">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
-        <div className="relative flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="text-xl font-bold text-heading">{t('meetings.meetingsPageTitle')}</h1>
-            <p className="text-sm text-muted">{t('meetings.meetingsPageSubtitle')}</p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" icon={BarChart3} onClick={() => navigate('/dashboard/meetings')}>
-              {t('meetings.actions.openDashboard')}
-            </Button>
-            {canCreateMeetings && (
-              <Button icon={CalendarPlus} onClick={() => navigate('/dashboard/meetings/new')}>
-                {t('meetings.actions.addMeeting')}
-              </Button>
-            )}
-          </div>
+      {/* ══ HEADER ════════════════════════════════════════════════════════ */}
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+            {t('shared.dashboard')}
+          </p>
+          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
+            {t('meetings.meetingsPageTitle')}
+          </h1>
+          <p className="mt-1 text-sm text-muted">{t('meetings.meetingsPageSubtitle')}</p>
         </div>
-      </Card>
 
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" icon={BarChart3} onClick={() => navigate('/dashboard/meetings')}>
+            {t('meetings.actions.openDashboard')}
+          </Button>
+          {canCreateMeetings && (
+            <Button icon={CalendarPlus} onClick={() => navigate('/dashboard/meetings/new')}>
+              {t('meetings.actions.addMeeting')}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* ══ KPI TILES ═════════════════════════════════════════════════════ */}
       {canViewMeetings && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          <Card className="p-4">
-            <p className="text-xs text-muted">{t('meetings.dashboard.cards.totalMeetings')}</p>
-            <p className="mt-1 text-2xl font-bold text-heading">{stats.totalMeetings}</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs text-muted">{t('meetings.dashboard.cards.totalServants')}</p>
-            <p className="mt-1 text-2xl font-bold text-heading">{stats.totalServants}</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs text-muted">{t('meetings.columns.groupsCount')}</p>
-            <p className="mt-1 text-2xl font-bold text-heading">{stats.totalGroups}</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs text-muted">{t('meetings.columns.committeesCount')}</p>
-            <p className="mt-1 text-2xl font-bold text-heading">{stats.totalCommittees}</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs text-muted">{t('meetings.dashboard.cards.meetingsWithoutServants')}</p>
-            <p className="mt-1 text-2xl font-bold text-warning">{stats.meetingsWithoutServants}</p>
-          </Card>
+
+          {[
+            { label: t('meetings.dashboard.cards.totalMeetings'), value: stats.totalMeetings, icon: ListChecks, variant: 'default' },
+            { label: t('meetings.dashboard.cards.totalServants'), value: stats.totalServants, icon: Users, variant: 'primary' },
+            { label: t('meetings.columns.groupsCount'), value: stats.totalGroups, icon: Layers3, variant: 'default' },
+            { label: t('meetings.columns.committeesCount'), value: stats.totalCommittees, icon: Layers3, variant: 'default' },
+            { label: t('meetings.dashboard.cards.meetingsWithoutServants'), value: stats.meetingsWithoutServants, icon: AlertTriangle, variant: stats.meetingsWithoutServants > 0 ? 'warning' : 'success' },
+          ].map(({ label, value, icon: Icon, variant }) => (
+            <div key={label} className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{label}</p>
+                <span className={`flex h-8 w-8 items-center justify-center rounded-xl
+                  ${variant === 'primary' ? 'bg-primary/10 text-primary' :
+                    variant === 'warning' ? 'bg-warning-light text-warning' :
+                      variant === 'success' ? 'bg-success-light text-success' :
+                        'bg-surface-alt text-muted'}`}>
+                  <Icon className="h-4 w-4" />
+                </span>
+              </div>
+              <p className={`mt-4 text-4xl font-bold tracking-tight
+                ${variant === 'primary' ? 'text-heading' :
+                  variant === 'warning' ? 'text-warning' :
+                    variant === 'success' ? 'text-success' :
+                      'text-heading'}`}>
+                {value}
+              </p>
+              <div className={`mt-4 h-0.5 w-10 rounded-full
+                ${variant === 'primary' ? 'bg-primary' :
+                  variant === 'warning' ? 'bg-warning' :
+                    variant === 'success' ? 'bg-success' :
+                      'bg-border'}`}
+              />
+            </div>
+          ))}
         </div>
       )}
 
-      {canViewMeetings ? (
-        <Card>
-          <CardHeader
-            title={t('meetings.sections.meetings')}
-            subtitle={t('meetings.sections.meetingsSubtitle')}
-          />
+      {/* ══ FILTERS ═══════════════════════════════════════════════════════ */}
+      {canViewMeetings && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <SectionLabel>{t('meetings.filters.sector')}</SectionLabel>
+            {hasActiveFilters && (
+              <button
+                onClick={() => setFilters({ sectorId: '', day: '', search: '' })}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                {t('usersListPage.filters.clear')}
+              </button>
+            )}
+          </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <Select
-              label={t('meetings.filters.sector')}
               value={filters.sectorId}
-              onChange={(event) => setFilters((prev) => ({ ...prev, sectorId: event.target.value }))}
+              onChange={(e) => setFilter('sectorId', e.target.value)}
               options={[{ value: '', label: t('meetings.filters.allSectors') }, ...sectorOptions]}
+              placeholder={t('meetings.filters.allSectors')}
               containerClassName="!mb-0"
             />
             <Select
-              label={t('meetings.filters.day')}
               value={filters.day}
-              onChange={(event) => setFilters((prev) => ({ ...prev, day: event.target.value }))}
+              onChange={(e) => setFilter('day', e.target.value)}
               options={[{ value: '', label: t('meetings.filters.allDays') }, ...dayOptions]}
+              placeholder={t('meetings.filters.allDays')}
               containerClassName="!mb-0"
             />
             <Input
-              label={t('meetings.filters.search')}
               value={filters.search}
-              onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
+              onChange={(e) => setFilter('search', e.target.value)}
               placeholder={t('meetings.filters.searchPlaceholder')}
               containerClassName="!mb-0"
             />
           </div>
+        </section>
+      )}
 
-          <div className="mt-4">
+      {/* ══ TABLE ═════════════════════════════════════════════════════════ */}
+      {canViewMeetings ? (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <SectionLabel>{t('meetings.sections.meetings')}</SectionLabel>
+            <span className="text-xs text-muted">{meetings.length}</span>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface">
             <Table
               columns={meetingColumns}
               data={meetings}
@@ -307,13 +340,14 @@ export default function MeetingsManagementPage() {
               emptyDescription={t('meetings.empty.meetingsDescription')}
             />
           </div>
-        </Card>
+        </section>
       ) : (
         <EmptyState
           title={t('meetings.empty.noMeetingsPermissionTitle')}
           description={t('meetings.empty.noMeetingsPermissionDescription')}
         />
       )}
+
     </div>
   );
 }

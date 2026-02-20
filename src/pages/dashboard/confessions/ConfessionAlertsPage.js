@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BellRing, Save } from 'lucide-react';
+import { BellRing, Save, Users, CalendarClock } from 'lucide-react';
 import { confessionsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
-import Card, { CardHeader } from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
 import SearchInput from '../../../components/ui/SearchInput';
@@ -16,15 +15,32 @@ import toast from 'react-hot-toast';
 import { useI18n } from '../../../i18n/i18n';
 import useNavigateToUser from '../../../hooks/useNavigateToUser';
 
+/* ── primitives ──────────────────────────────────────────────────────────── */
+
+function SectionLabel({ children }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+        {children}
+      </span>
+      <div className="h-px flex-1 bg-border/60" />
+    </div>
+  );
+}
+
+/* ── page ────────────────────────────────────────────────────────────────── */
+
 export default function ConfessionAlertsPage() {
   const { hasPermission } = useAuth();
   const { t } = useI18n();
   const queryClient = useQueryClient();
+  const navigateToUser = useNavigateToUser();
 
   const canManageThreshold = hasPermission('CONFESSIONS_ALERTS_MANAGE');
   const [searchName, setSearchName] = useState('');
   const [thresholdDraft, setThresholdDraft] = useState('');
 
+  /* ── queries ── */
   const { data: configRes, isLoading: configLoading } = useQuery({
     queryKey: ['confessions', 'alert-config'],
     queryFn: async () => {
@@ -43,15 +59,14 @@ export default function ConfessionAlertsPage() {
   const { data: alertsRes, isLoading: alertsLoading } = useQuery({
     queryKey: ['confessions', 'alerts', { fullName: searchName }],
     queryFn: async () => {
-      const { data } = await confessionsApi.getAlerts({
-        ...(searchName && { fullName: searchName }),
-      });
+      const { data } = await confessionsApi.getAlerts({ ...(searchName && { fullName: searchName }) });
       return data?.data || null;
     },
     keepPreviousData: true,
     staleTime: 30000,
   });
 
+  /* ── mutation ── */
   const updateThresholdMutation = useMutation({
     mutationFn: (value) => confessionsApi.updateAlertConfig(value),
     onSuccess: () => {
@@ -60,11 +75,10 @@ export default function ConfessionAlertsPage() {
       queryClient.invalidateQueries({ queryKey: ['confessions', 'alerts'] });
       queryClient.invalidateQueries({ queryKey: ['confessions', 'analytics'] });
     },
-    onError: (err) => {
-      toast.error(normalizeApiError(err).message);
-    },
+    onError: (err) => toast.error(normalizeApiError(err).message),
   });
 
+  /* ── derived ── */
   const thresholdDays = alertsRes?.thresholdDays || configRes?.alertThresholdDays || 0;
   const alerts = Array.isArray(alertsRes?.alerts) ? alertsRes.alerts : [];
   const alertsCount = alertsRes?.count ?? alerts.length;
@@ -78,55 +92,65 @@ export default function ConfessionAlertsPage() {
     updateThresholdMutation.mutate(parsed);
   };
 
-  const navigateToUser = useNavigateToUser();
+  /* ── table columns ── */
+  const columns = useMemo(() => [
+    {
+      key: 'fullName',
+      label: t('confessions.alerts.columns.user'),
+      render: (row) => (
+        <button
+          type="button"
+          onClick={() => navigateToUser(row.userId)}
+          className="group text-start"
+        >
+          <p className="font-medium text-heading transition-colors group-hover:text-primary">
+            {row.fullName}
+          </p>
+          {row.phonePrimary && (
+            <p className="text-xs text-muted direction-ltr">{row.phonePrimary}</p>
+          )}
+        </button>
+      ),
+    },
+    {
+      key: 'lastSessionAt',
+      label: t('confessions.alerts.columns.lastSession'),
+      render: (row) => (
+        <span className="text-sm text-heading">
+          {row.lastSessionAt
+            ? formatDateTime(row.lastSessionAt)
+            : <span className="text-muted">{t('confessions.alerts.neverAttended')}</span>}
+        </span>
+      ),
+    },
+    {
+      key: 'daysSinceLastSession',
+      label: t('confessions.alerts.columns.daysSince'),
+      render: (row) => (
+        <span className="font-semibold text-heading">
+          {row.daysSinceLastSession == null
+            ? <span className="text-muted">{t('confessions.alerts.noSessions')}</span>
+            : `${row.daysSinceLastSession} ${t('confessions.alerts.daysWord')}`}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      label: t('confessions.alerts.columns.status'),
+      render: (row) => (
+        <Badge variant="danger">
+          {row.daysSinceLastSession == null
+            ? t('confessions.alerts.noSessionStatus', { days: thresholdDays })
+            : t('confessions.alerts.overdueStatus', { days: row.daysSinceLastSession })}
+        </Badge>
+      ),
+    },
+  ], [navigateToUser, t, thresholdDays]);
 
-  const columns = useMemo(
-    () => [
-      {
-        key: 'fullName',
-        label: t('confessions.alerts.columns.user'),
-        render: (row) => (
-          <div onClick={() => navigateToUser(row.userId)} className='cursor-pointer'>
-            <p className="font-medium text-heading">{row.fullName}</p>
-            {row.phonePrimary && (
-              <p className="text-xs text-muted direction-ltr text-left">{row.phonePrimary}</p>
-            )}
-          </div>
-        ),
-      },
-      {
-        key: 'lastSessionAt',
-        label: t('confessions.alerts.columns.lastSession'),
-        render: (row) => (row.lastSessionAt ? formatDateTime(row.lastSessionAt) : t('confessions.alerts.neverAttended')),
-      },
-      {
-        key: 'daysSinceLastSession',
-        label: t('confessions.alerts.columns.daysSince'),
-        render: (row) => (
-          <span className="font-medium text-heading">
-            {row.daysSinceLastSession == null
-              ? t('confessions.alerts.noSessions')
-              : `${row.daysSinceLastSession} ${t('confessions.alerts.daysWord')}`}
-          </span>
-        ),
-      },
-      {
-        key: 'status',
-        label: t('confessions.alerts.columns.status'),
-        render: (row) => (
-          <Badge variant="danger">
-            {row.daysSinceLastSession == null
-              ? t('confessions.alerts.noSessionStatus', { days: thresholdDays })
-              : t('confessions.alerts.overdueStatus', { days: row.daysSinceLastSession })}
-          </Badge>
-        ),
-      },
-    ],
-    [t, thresholdDays]
-  );
-
+  /* ── render ── */
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in space-y-8 pb-10">
+
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
@@ -134,36 +158,80 @@ export default function ConfessionAlertsPage() {
         ]}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <Card className="lg:col-span-2">
-          <CardHeader
-            title={t('confessions.alerts.title')}
-            subtitle={t('confessions.alerts.subtitle')}
-            action={<BellRing className="w-5 h-5 text-danger" />}
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="rounded-md border border-border bg-surface-alt p-4">
-              <p className="text-xs text-muted mb-1">{t('confessions.alerts.currentThreshold')}</p>
-              <p className="text-2xl font-bold text-heading">
-                {thresholdDays || t('common.placeholder.empty')} {t('confessions.alerts.daysWord')}
-              </p>
-            </div>
-            <div className="rounded-md border border-border bg-surface-alt p-4">
-              <p className="text-xs text-muted mb-1">{t('confessions.alerts.alertedUsers')}</p>
-              <p className="text-2xl font-bold text-heading">{alertsCount}</p>
-            </div>
-          </div>
-        </Card>
+      {/* ══ HEADER ══════════════════════════════════════════════════════ */}
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+            {t('shared.dashboard')}
+          </p>
+          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
+            {t('confessions.alerts.title')}
+          </h1>
+          <p className="mt-1 text-sm text-muted">{t('confessions.alerts.subtitle')}</p>
+        </div>
 
-        <Card>
-          <CardHeader
-            title={t('confessions.alerts.settingsTitle')}
-            subtitle={t('confessions.alerts.settingsSubtitle')}
-          />
+        {/* live alert indicator */}
+        <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold
+          ${alertsCount > 0
+            ? 'border-danger/30 bg-danger-light text-danger'
+            : 'border-success/30 bg-success-light text-success'
+          }`}
+        >
+          <BellRing className="h-3.5 w-3.5" />
+          {alertsCount} {t('confessions.alerts.alertedUsers')}
+        </div>
+      </div>
+
+      {/* ══ KPI + SETTINGS ROW ══════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+
+        {/* threshold tile */}
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+              {t('confessions.alerts.currentThreshold')}
+            </p>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-alt text-muted">
+              <CalendarClock className="h-4 w-4" />
+            </span>
+          </div>
+          <p className="mt-4 text-4xl font-bold tracking-tight text-heading">
+            {thresholdDays || '—'}
+          </p>
+          <p className="mt-1 text-xs text-muted">{t('confessions.alerts.daysWord')}</p>
+          <div className="mt-4 h-0.5 w-10 rounded-full bg-border" />
+        </div>
+
+        {/* alerted users tile */}
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+              {t('confessions.alerts.alertedUsers')}
+            </p>
+            <span className={`flex h-8 w-8 items-center justify-center rounded-xl
+              ${alertsCount > 0 ? 'bg-danger-light text-danger' : 'bg-surface-alt text-muted'}`}>
+              <Users className="h-4 w-4" />
+            </span>
+          </div>
+          <p className={`mt-4 text-4xl font-bold tracking-tight
+            ${alertsCount > 0 ? 'text-danger' : 'text-heading'}`}>
+            {alertsCount}
+          </p>
+          <p className="mt-1 text-xs text-muted">{t('confessions.alerts.alertedUsers')}</p>
+          <div className={`mt-4 h-0.5 w-10 rounded-full ${alertsCount > 0 ? 'bg-danger' : 'bg-border'}`} />
+        </div>
+
+        {/* threshold settings tile */}
+        <div className="flex flex-col rounded-2xl border border-border bg-surface p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+            {t('confessions.alerts.settingsTitle')}
+          </p>
+          <p className="mt-1 text-xs text-muted">{t('confessions.alerts.settingsSubtitle')}</p>
+
           {!canManageThreshold ? (
-            <p className="text-sm text-muted">{t('confessions.alerts.noManagePermission')}</p>
+            <p className="mt-4 text-sm text-muted">{t('confessions.alerts.noManagePermission')}</p>
           ) : (
-            <>
+            <div className="mt-4 flex flex-col gap-3">
               <Input
                 label={t('confessions.alerts.thresholdLabel')}
                 type="number"
@@ -171,6 +239,7 @@ export default function ConfessionAlertsPage() {
                 value={thresholdDraft}
                 onChange={(e) => setThresholdDraft(e.target.value)}
                 placeholder={configLoading ? t('common.loading') : t('confessions.alerts.thresholdPlaceholder')}
+                containerClassName="!mb-0"
               />
               <Button
                 icon={Save}
@@ -180,13 +249,20 @@ export default function ConfessionAlertsPage() {
               >
                 {t('confessions.alerts.saveThreshold')}
               </Button>
-            </>
+            </div>
           )}
-        </Card>
+        </div>
       </div>
 
-      <Card>
-        <div className="mb-4">
+      {/* ══ ALERTS TABLE ════════════════════════════════════════════════ */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <SectionLabel>{t('confessions.alerts.page')}</SectionLabel>
+          <span className="text-xs text-muted">{alertsCount}</span>
+        </div>
+
+        {/* search */}
+        <div className="max-w-sm">
           <SearchInput
             value={searchName}
             onChange={setSearchName}
@@ -194,14 +270,17 @@ export default function ConfessionAlertsPage() {
           />
         </div>
 
-        <Table
-          columns={columns}
-          data={alerts}
-          loading={alertsLoading}
-          emptyTitle={t('confessions.alerts.emptyTitle')}
-          emptyDescription={t('confessions.alerts.emptyDescription')}
-        />
-      </Card>
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+          <Table
+            columns={columns}
+            data={alerts}
+            loading={alertsLoading}
+            emptyTitle={t('confessions.alerts.emptyTitle')}
+            emptyDescription={t('confessions.alerts.emptyDescription')}
+          />
+        </div>
+      </section>
+
     </div>
   );
 }
