@@ -192,7 +192,7 @@ function VerseCard({ verse, isRTL, index }) {
     <Reveal delay={index * 0.12}>
       <Card className={`group relative h-full overflow-hidden rounded-3xl border-primary/8 bg-page transition-all duration-500 hover:border-primary/20 hover:shadow-lg ${isRTL ? 'text-right' : 'text-left'}`}>
         {/* Large decorative quote */}
-        <div className="absolute -top-2 start-4 text-primary/6 transition-colors duration-500 group-hover:text-primary/12">
+        <div className="absolute -top-2 start-4 text-primary/6 transition-colors duration-500 group-hover:text-primary/12 opacity-10">
           <Quote className="h-20 w-20" />
         </div>
         <div className="relative pt-8">
