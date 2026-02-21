@@ -1,4 +1,4 @@
-export const translations = {
+﻿export const translations = {
   en: {
     common: {
       appName: 'Church Management',
@@ -1840,3 +1840,4 @@ export const translations = {
     },
   },
 };
+  
