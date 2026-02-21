@@ -700,7 +700,7 @@ export default function UserEditPage() {
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs items={[
         { label: 'لوحة التحكم', href: '/dashboard' },
-        { label: 'المستخدمون', href: '/dashboard/users' },
+        { label: 'الافراد', href: '/dashboard/users' },
         { label: user?.fullName, href: `/dashboard/users/${id}` },
         { label: 'تعديل' },
       ]} />
