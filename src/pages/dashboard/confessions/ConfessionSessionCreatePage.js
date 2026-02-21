@@ -429,6 +429,7 @@ export default function ConfessionSessionCreatePage() {
                   searchApi={confessionsApi.searchUsers}
                   queryKeyPrefix="confessions-users"
                   className="mb-0"
+                // autoFoucs
                 />
                 {errors.attendee && (
                   <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-danger">

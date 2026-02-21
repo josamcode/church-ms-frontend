@@ -257,9 +257,8 @@ export default function FamilyHouseLookupPage() {
             </label>
             <div className="relative">
               <Search
-                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted pointer-events-none ${
-                  isRTL ? 'right-3' : 'left-3'
-                }`}
+                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted pointer-events-none ${isRTL ? 'right-3' : 'left-3'
+                  }`}
               />
               <input
                 ref={lookupInputRef}
@@ -360,6 +359,7 @@ export default function FamilyHouseLookupPage() {
           />
         </div>
 
+        {/* relatedNamesLabel */}
         <div className="rounded-xl border border-border bg-surface-alt/50 p-3 text-sm">
           <span className="font-medium text-heading">
             {t('familyHouseLookup.summary.relatedNamesLabel')}

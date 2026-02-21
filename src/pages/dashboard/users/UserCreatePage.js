@@ -248,7 +248,7 @@ export default function UserCreatePage() {
 
       <Breadcrumbs items={[
         { label: 'لوحة التحكم', href: '/dashboard' },
-        { label: 'المستخدمون', href: '/dashboard/users' },
+        { label: 'الافراد', href: '/dashboard/users' },
         { label: 'إضافة مستخدم' },
       ]} />
 
@@ -256,7 +256,7 @@ export default function UserCreatePage() {
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            المستخدمون
+            الافراد
           </p>
           <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
             إضافة مستخدم جديد
