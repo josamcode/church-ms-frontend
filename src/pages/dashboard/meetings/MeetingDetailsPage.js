@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowUpRight, CalendarClock, CalendarDays, Edit, FileText,
@@ -13,7 +13,7 @@ import Button from '../../../components/ui/Button';
 import EmptyState from '../../../components/ui/EmptyState';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
-import { getDayLabel } from './meetingsForm.utils';
+import { getActivityTypeLabel, getDayLabel } from './meetingsForm.utils';
 import useNavigateToUser from '../../../hooks/useNavigateToUser';
 
 const EMPTY = '---';
@@ -454,7 +454,7 @@ export default function MeetingDetailsPage() {
                         <p className="mt-1 line-clamp-2 text-xs text-muted">{activity.notes}</p>
                       )}
                     </div>
-                    {activity.type && <Badge variant="secondary">{activity.type}</Badge>}
+                    {activity.type && <Badge variant="secondary">{getActivityTypeLabel(activity.type, t)}</Badge>}
                   </div>
                 </div>
               ))}

@@ -14,12 +14,21 @@ export function getDayOptions(t) {
   }));
 }
 
-export const ACTIVITY_OPTIONS = [
-  { value: 'trip', label: 'Trip' },
-  { value: 'conference', label: 'Conference' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'other', label: 'Other' },
-];
+export const ACTIVITY_VALUES = ['trip', 'conference', 'activity', 'other'];
+
+export function getActivityTypeLabel(type, t) {
+  if (!type) return '';
+  const key = `meetings.activityTypes.${type}`;
+  const translated = t(key);
+  return translated === key ? type : translated;
+}
+
+export function getActivityOptions(t) {
+  return ACTIVITY_VALUES.map((type) => ({
+    value: type,
+    label: getActivityTypeLabel(type, t),
+  }));
+}
 
 export function toLocalDateTimeInput(isoValue) {
   if (!isoValue) return '';
@@ -251,6 +260,11 @@ export function buildMeetingPayload(form, options = {}) {
     payload.committees = (form.committees || [])
       .filter((committee) => String(committee.name || '').trim())
       .map((committee) => {
+        const selectedMemberIds = (committee.members || []).map((user) => user?._id).filter(Boolean);
+        const selectedMemberNames = (committee.members || [])
+          .map((user) => String(user?.fullName || '').trim())
+          .filter(Boolean);
+
         let details = {};
         if (String(committee.detailsText || '').trim()) {
           try {
@@ -262,11 +276,8 @@ export function buildMeetingPayload(form, options = {}) {
 
         return {
           name: String(committee.name || '').trim(),
-          memberUserIds:
-            (committee.members || []).length > 0
-              ? (committee.members || []).map((user) => user?._id).filter(Boolean)
-              : uniqueCsv(committee.memberUserIdsCsv),
-          memberNames: uniqueCsv(committee.memberNamesCsv),
+          memberUserIds: selectedMemberIds.length > 0 ? selectedMemberIds : uniqueCsv(committee.memberUserIdsCsv),
+          memberNames: uniqueStringList([...selectedMemberNames, ...uniqueCsv(committee.memberNamesCsv)]),
           details,
           ...(String(committee.notes || '').trim() && { notes: String(committee.notes || '').trim() }),
         };

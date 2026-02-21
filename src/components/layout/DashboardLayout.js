@@ -133,6 +133,7 @@ export default function DashboardLayout() {
   const groupedItems = useMemo(() => [
     {
       key: 'users',
+      sectionLabel: t('dashboardLayout.section.usersManagement'),
       parent: {
         label: t('dashboardLayout.menu.users'),
         href: '/dashboard/users',
@@ -152,6 +153,7 @@ export default function DashboardLayout() {
     },
     {
       key: 'confessions',
+      sectionLabel: t('dashboardLayout.section.confessions'),
       parent: {
         label: t('dashboardLayout.menu.confessionSessions'),
         href: '/dashboard/confessions',
@@ -185,6 +187,7 @@ export default function DashboardLayout() {
     },
     {
       key: 'visitations',
+      sectionLabel: t('dashboardLayout.section.visitations'),
       parent: {
         label: t('dashboardLayout.menu.pastoralVisitations'),
         href: '/dashboard/visitations',
@@ -211,6 +214,7 @@ export default function DashboardLayout() {
     },
     {
       key: 'meetings',
+      sectionLabel: t('dashboardLayout.section.meetings'),
       parent: {
         label: t('dashboardLayout.menu.meetingsAndSectors'),
         href: '/dashboard/meetings',
@@ -288,12 +292,25 @@ export default function DashboardLayout() {
 
   const visibleTopItems = useMemo(() => topItems.filter(isItemAllowed), [topItems, isItemAllowed]);
 
-  const visibleManageItems = useMemo(
+  const visibleManageSections = useMemo(
     () =>
       groupedItems
-        .flatMap((group) => [group.parent, ...group.children])
-        .filter(isItemAllowed),
+        .map((group) => {
+          const items = [group.parent, ...group.children].filter(isItemAllowed);
+          if (!items.length) return null;
+          return {
+            key: group.key,
+            label: group.sectionLabel,
+            items,
+          };
+        })
+        .filter(Boolean),
     [groupedItems, isItemAllowed]
+  );
+
+  const visibleManageItems = useMemo(
+    () => visibleManageSections.flatMap((section) => section.items),
+    [visibleManageSections]
   );
 
   const visibleBottomItems = useMemo(() => bottomItems.filter(isItemAllowed), [bottomItems, isItemAllowed]);
@@ -359,20 +376,25 @@ export default function DashboardLayout() {
         />
       ))}
 
-      {visibleManageItems.length > 0 && (
+      {visibleManageSections.length > 0 && (
         <>
           <NavDivider collapsed={false} />
-          <NavSectionLabel label={t('dashboardLayout.section.manage')} />
-          {visibleManageItems.map((item) => (
-            <NavItem
-              key={item.href}
-              item={item}
-              active={isItemActive(item)}
-              collapsed={false}
-              isRTL={isRTL}
-              tooltipSide={tooltipSide}
-              onClick={onLinkClick}
-            />
+          {visibleManageSections.map((section, index) => (
+            <div key={section.key}>
+              <NavSectionLabel label={section.label} />
+              {section.items.map((item) => (
+                <NavItem
+                  key={item.href}
+                  item={item}
+                  active={isItemActive(item)}
+                  collapsed={false}
+                  isRTL={isRTL}
+                  tooltipSide={tooltipSide}
+                  onClick={onLinkClick}
+                />
+              ))}
+              {index < visibleManageSections.length - 1 && <NavDivider collapsed={false} />}
+            </div>
           ))}
         </>
       )}
