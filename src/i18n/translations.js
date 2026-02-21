@@ -151,6 +151,10 @@ export const translations = {
       section: {
         main: "Main",
         manage: "Manage",
+        usersManagement: 'Users Management',
+        confessions: 'Confessions',
+        visitations: 'Visitations',
+        meetings: 'Meetings',
         other: "Other",
       },
       menu: {
@@ -788,6 +792,7 @@ export const translations = {
         addServant: 'Add Servant',
         addCommittee: 'Add Committee',
         addActivity: 'Add Activity',
+        addMember: 'Add Member',
         manageSectors: 'Manage Sectors',
         manageMeetings: 'Manage Meetings',
         openDashboard: 'Open Dashboard',
@@ -859,6 +864,12 @@ export const translations = {
         activityNotesPlaceholder: 'Any notes for this activity...',
         csvPlaceholder: 'name1, name2, name3',
         idCsvPlaceholder: 'userId1, userId2',
+      },
+      activityTypes: {
+        trip: 'Trip',
+        conference: 'Conference',
+        activity: 'Activity',
+        other: 'Other',
       },
       columns: {
         sector: 'Sector',
@@ -1081,6 +1092,10 @@ export const translations = {
       section: {
         main: "الرئيسية",
         manage: "الإدارة",
+        usersManagement: 'إدارة المستخدمين',
+        confessions: 'الاعترافات',
+        visitations: 'الافتقادات',
+        meetings: 'الاجتماعات',
         other: "أخرى",
       },
       menu: {
@@ -1668,6 +1683,7 @@ export const translations = {
         addServant: 'إضافة خادم',
         addCommittee: 'إضافة لجنة',
         addActivity: 'إضافة نشاط',
+        addMember: 'إضافة عضو',
         remove: 'حذف',
       },
       filters: {
@@ -1741,6 +1757,12 @@ export const translations = {
         scheduledAt: 'موعد التنفيذ',
         csvPlaceholder: 'اسم1, اسم2, اسم3',
         idCsvPlaceholder: 'userId1, userId2',
+      },
+      activityTypes: {
+        trip: 'رحلة',
+        conference: 'مؤتمر',
+        activity: 'نشاط',
+        other: 'أخرى',
       },
       columns: {
         sector: 'القطاع',

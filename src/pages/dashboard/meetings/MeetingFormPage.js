@@ -17,8 +17,8 @@ import TagInput from '../../../components/ui/TagInput';
 import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
 import {
-  ACTIVITY_OPTIONS,
   buildMeetingPayload,
+  getActivityOptions,
   getDayLabel,
   getDayOptions,
   mapMeetingToForm,
@@ -122,6 +122,7 @@ export default function MeetingFormPage() {
     sectors.find((sector) => String(sector.id || sector._id) === String(form.sectorId))?.name ||
     t('meetings.fields.selectSector');
   const dayOptions = getDayOptions(t);
+  const activityOptions = getActivityOptions(t);
   const meetingGroupOptions = (form.groups || []).map((groupName) => ({ value: groupName, label: groupName }));
   const hasValidationErrors = Object.values(errors || {}).some(Boolean);
   const summaryItems = [
@@ -200,6 +201,42 @@ export default function MeetingFormPage() {
     setForm((prev) => ({
       ...prev,
       [key]: (prev[key] || []).filter((_, entryIndex) => entryIndex !== index),
+    }));
+  };
+
+  const addCommitteeMember = (committeeIndex, user) => {
+    if (!user?._id) return;
+    setForm((prev) => ({
+      ...prev,
+      committees: (prev.committees || []).map((committee, entryIndex) => {
+        if (entryIndex !== committeeIndex) return committee;
+        if ((committee.members || []).some((member) => member._id === user._id)) return committee;
+
+        const nextMembers = [...(committee.members || []), user];
+        return {
+          ...committee,
+          members: nextMembers,
+          memberUserIdsCsv: nextMembers.map((member) => member?._id).filter(Boolean).join(', '),
+          memberNamesCsv: nextMembers.map((member) => member?.fullName).filter(Boolean).join(', '),
+        };
+      }),
+    }));
+  };
+
+  const removeCommitteeMember = (committeeIndex, memberId) => {
+    setForm((prev) => ({
+      ...prev,
+      committees: (prev.committees || []).map((committee, entryIndex) => {
+        if (entryIndex !== committeeIndex) return committee;
+        const nextMembers = (committee.members || []).filter((member) => member._id !== memberId);
+
+        return {
+          ...committee,
+          members: nextMembers,
+          memberUserIdsCsv: nextMembers.map((member) => member?._id).filter(Boolean).join(', '),
+          memberNamesCsv: nextMembers.map((member) => member?.fullName).filter(Boolean).join(', '),
+        };
+      }),
     }));
   };
 
@@ -781,7 +818,7 @@ export default function MeetingFormPage() {
                       ...prev,
                       committees: [
                         ...prev.committees,
-                        { name: '', memberNamesCsv: '', memberUserIdsCsv: '', detailsText: '', notes: '' },
+                        { name: '', members: [], memberNamesCsv: '', memberUserIdsCsv: '', detailsText: '', notes: '' },
                       ],
                     }))
                   }
@@ -801,23 +838,24 @@ export default function MeetingFormPage() {
                       placeholder={t('meetings.fields.committeeNamePlaceholder')}
                       onChange={(event) => patchListItem('committees', index, { name: event.target.value })}
                     />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Input
-                        label={t('meetings.fields.memberNames')}
-                        value={committee.memberNamesCsv}
-                        onChange={(event) =>
-                          patchListItem('committees', index, { memberNamesCsv: event.target.value })
-                        }
-                        placeholder={t('meetings.fields.csvPlaceholder')}
+                    <div className="rounded-lg border border-border bg-surface p-3">
+                      <UserSearchSelect
+                        label={t('meetings.actions.addMember')}
+                        value={null}
+                        onChange={(value) => addCommitteeMember(index, value)}
                       />
-                      <Input
-                        label={t('meetings.fields.memberUserIdsCsv')}
-                        value={committee.memberUserIdsCsv}
-                        onChange={(event) =>
-                          patchListItem('committees', index, { memberUserIdsCsv: event.target.value })
-                        }
-                        placeholder={t('meetings.fields.idCsvPlaceholder')}
-                      />
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {(committee.members || []).length === 0 && (
+                          <p className="text-sm text-muted">{t('meetings.empty.noServedUsersYet')}</p>
+                        )}
+                        {(committee.members || []).map((user) => (
+                          <UserPill
+                            key={`${index}_${user._id}`}
+                            user={user}
+                            onRemove={() => removeCommitteeMember(index, user._id)}
+                          />
+                        ))}
+                      </div>
                     </div>
                     <TextArea
                       label={t('meetings.fields.committeeDetails')}
@@ -882,7 +920,7 @@ export default function MeetingFormPage() {
                         label={t('meetings.fields.activityType')}
                         value={activity.type}
                         onChange={(event) => patchListItem('activities', index, { type: event.target.value })}
-                        options={ACTIVITY_OPTIONS}
+                        options={activityOptions}
                       />
                       <Input
                         label={t('meetings.fields.scheduledAt')}
