@@ -74,78 +74,145 @@
     },
     publicLayout: {
       home: 'Home',
-      about: 'About',
+      about: 'Our Church',
+      priests: 'Priests',
+      verses: 'Bible Verses',
+      visit: 'Visit Us',
       faq: 'FAQ',
       dashboard: 'Dashboard',
       login: 'Sign In',
       menu: 'Menu',
       quickLinks: 'Quick Links',
       contactUs: 'Contact Us',
-      contactDesc: 'For support and inquiries, please contact church administration.',
+      contactDesc: 'For church inquiries and pastoral support, please contact church administration.',
       location: 'El Qatousha Village - Matay Diocese',
       rightsReserved: 'All rights reserved',
     },
     landing: {
-      heroTitle: 'Integrated Management System',
-      heroHighlight: 'for Archangel Michael Church',
-      heroDescription:
-        'A modern digital platform to manage members, families, and ministries with strong security and high performance.',
-      login: 'Sign In',
-      discover: 'Discover More',
+      hero: {
+        badge: 'Archangel Michael Church',
+        title: 'A Living Church Family in',
+        highlight: 'Faith, Love, and Service',
+        description:
+          'Discover our worship life, pastoral care, and community journey as one family in Christ.',
+        primaryCta: 'Learn About Our Church',
+        secondaryCta: 'Plan Your Visit',
+        cardLabel: 'Weekly Rhythm',
+        cardTitle: 'Pray and Grow With Us',
+        highlights: {
+          one: 'Divine Liturgy and regular confession guidance.',
+          two: 'Meetings for children, youth, families, and servants.',
+          three: 'Pastoral care, visitation, and spiritual support.',
+        },
+      },
+      about: {
+        label: 'About The Church',
+        title: 'A Church Home for Every Family',
+        subtitle: 'Rooted in the Gospel, we gather as one body to worship, serve, and grow together.',
+        description:
+          'Archangel Michael Church serves families with liturgical life, discipleship, and pastoral care. Our doors are open for children, youth, parents, and elders to live a practical spiritual life centered on Christ.',
+        missionLabel: 'Our Mission',
+        missionText: 'To guide every person toward Christ through worship, discipleship, and compassionate service.',
+        visionLabel: 'Our Vision',
+        visionText: 'To be a united church family that reflects God\'s love in the village and beyond.',
+      },
+      priests: {
+        label: 'Our Priests',
+        title: 'Shepherds Serving With Love',
+        subtitle: 'Meet the fathers who guide the church with prayer, teaching, and faithful pastoral care.',
+        imageHint: 'Replace priest image paths with transparent PNG URLs at any time from translation content.',
+        items: {
+          one: {
+            name: 'Fr. Yohana Mikhail',
+            role: 'Parish Priest',
+            bio: 'Serves families through liturgy, confession guidance, and regular pastoral visitation.',
+            alt: 'Portrait of Fr. Yohana Mikhail',
+            image: '/images/priests/priest-1.png',
+          },
+          two: {
+            name: 'Fr. Botros Samir',
+            role: 'Assistant Priest',
+            bio: 'Leads youth and family discipleship meetings with focus on spiritual growth.',
+            alt: 'Portrait of Fr. Botros Samir',
+            image: '/images/priests/priest-2.png',
+          },
+          three: {
+            name: 'Fr. Mina Nabil',
+            role: 'Service Priest',
+            bio: 'Supports church ministries and follows up with servants, children, and outreach teams.',
+            alt: 'Portrait of Fr. Mina Nabil',
+            image: '/images/priests/priest-3.png',
+          },
+        },
+      },
       stats: {
-        activeMembers: 'Active Members',
-        registeredFamilies: 'Registered Families',
-        apiEndpoints: 'API Endpoints',
-        permissions: 'Available Permissions',
+        label: 'Church Life In Numbers',
+        title: 'By God\'s Grace, We Continue to Grow',
+        subtitle: 'These values are content-driven and can be connected to your admin dashboard later.',
+        items: {
+          families: { value: '250+', label: 'Families' },
+          members: { value: '1200+', label: 'Church Members' },
+          services: { value: '8', label: 'Weekly Liturgies & Meetings' },
+          servants: { value: '60+', label: 'Servants & Volunteers' },
+        },
       },
-      featuresTitle: 'System Features',
-      featuresSubtitle:
-        'A carefully designed system that meets church administration needs with modern technology.',
-      features: {
-        dataTitle: 'Data Management',
-        dataDesc:
-          'Comprehensive management for members and families with a full audit trail for every change.',
-        securityTitle: 'Security & Permissions',
-        securityDesc:
-          'Advanced role-based permissions with strong protection for sensitive information.',
-        performanceTitle: 'High Performance',
-        performanceDesc:
-          'Built to handle large datasets with responsive behavior and smooth operations.',
-        scalabilityTitle: 'Scalability',
-        scalabilityDesc:
-          'Extensible architecture that allows adding new modules without disrupting current workflows.',
+      verses: {
+        label: 'Bible Verses',
+        title: 'God\'s Word at the Center',
+        subtitle: 'Scripture that reflects our church family spirit and daily walk with Christ.',
+        items: {
+          one: {
+            text: '"As for me and my house, we will serve the Lord."',
+            reference: 'Joshua 24:15',
+          },
+          two: {
+            text: '"Let the little children come to me, and do not forbid them."',
+            reference: 'Mark 10:14',
+          },
+          three: {
+            text: '"By this all will know that you are My disciples, if you have love for one another."',
+            reference: 'John 13:35',
+          },
+        },
       },
-      howTitle: 'How It Works',
-      howSubtitle: 'Simple steps to get started quickly.',
-      stepLabel: 'Step {num}',
-      steps: {
-        oneTitle: 'Register Members',
-        oneDesc: 'Add members and family records quickly and clearly.',
-        twoTitle: 'Assign Permissions',
-        twoDesc: 'Set roles and permissions for each user account.',
-        threeTitle: 'Track Data',
-        threeDesc: 'Browse and manage data using advanced filters.',
-        fourTitle: 'End-to-End Management',
-        fourDesc: 'Connect families, tags, and services in one place.',
+      life: {
+        label: 'Church Family Life',
+        title: 'What You Will Find in Our Community',
+        subtitle: 'A welcoming church life built on prayer, care, and practical discipleship.',
+        items: {
+          one: {
+            title: 'Pastoral Care',
+            description: 'Regular follow-up, confession guidance, and support for every family stage.',
+          },
+          two: {
+            title: 'Bible Learning',
+            description: 'Age-focused meetings and Bible study tracks for children, youth, and adults.',
+          },
+          three: {
+            title: 'Spiritual Events',
+            description: 'Retreats, praise nights, and service activities that strengthen church fellowship.',
+          },
+        },
       },
-      faqTitle: 'Frequently Asked Questions',
-      faqs: {
-        oneQ: 'What is the church management system?',
-        oneA:
-          'It is an integrated platform for managing members, families, services, and meetings with modern architecture.',
-        twoQ: 'Is the system secure?',
-        twoA:
-          'Yes. It includes secure authentication and a role-based permission model to protect sensitive data.',
-        threeQ: 'Can we add more modules later?',
-        threeA:
-          'Yes. The system is designed to be extensible so new modules can be added without breaking existing ones.',
-        fourQ: 'Who can use the system?',
-        fourA:
-          'It supports multiple roles such as super admin, admin, and standard users with controlled access.',
+      visit: {
+        label: 'Visit The Church',
+        title: 'We Would Love to Welcome You',
+        subtitle: 'Join us in worship and fellowship. You are always welcome with your family.',
+        addressLabel: 'Address',
+        addressValue: 'El Qatousha Village - Matay Diocese',
+        phoneLabel: 'Phone',
+        phoneValue: '+20 100 000 0000',
+        emailLabel: 'Email',
+        emailValue: 'info@archangelmichaelchurch.org',
+        hoursLabel: 'Office & Service Hours',
+        hoursValue: 'Daily: 9:00 AM - 8:00 PM',
       },
-      ctaTitle: 'Start Using the System Today',
-      ctaDescription:
-        'Sign in and begin managing church data in an organized and reliable way.',
+      portal: {
+        label: 'Members And Servants',
+        title: 'Member Portal Access',
+        description: 'If you are a servant or authorized church member, sign in to access internal tools.',
+        loginCta: 'Member Sign In',
+      },
     },
     dashboardLayout: {
       section: {
@@ -1021,72 +1088,144 @@
     },
     publicLayout: {
       home: 'الرئيسية',
-      about: 'عن النظام',
+      about: 'عن الكنيسة',
+      priests: 'الكهنة',
+      verses: 'آيات كتابية',
+      visit: 'زورنا',
       faq: 'الأسئلة الشائعة',
       dashboard: 'لوحة التحكم',
       login: 'تسجيل الدخول',
       menu: 'القائمة',
       quickLinks: 'روابط سريعة',
       contactUs: 'تواصل معنا',
-      contactDesc: 'للتواصل والاستفسارات يرجى التواصل مع إدارة الكنيسة.',
+      contactDesc: 'للاستفسارات الكنسية والرعوية يرجى التواصل مع إدارة الكنيسة.',
       location: 'قرية القطوشة - التابعة لإيبارشية مطاي',
       rightsReserved: 'جميع الحقوق محفوظة',
     },
     landing: {
-      heroTitle: 'نظام إدارة متكامل',
-      heroHighlight: 'لكنيسة الملاك ميخائيل',
-      heroDescription:
-        'منصة رقمية حديثة لإدارة بيانات الأعضاء والعائلات والخدمات وفق أعلى معايير الأمان والكفاءة.',
-      login: 'تسجيل الدخول',
-      discover: 'اكتشف المزيد',
+      hero: {
+        badge: 'كنيسة الملاك ميخائيل',
+        title: 'كنيسة حية تنمو في',
+        highlight: 'الإيمان والمحبة والخدمة',
+        description: 'اكتشف حياة العبادة والرعاية الكنسية وخدمة المجتمع كعائلة واحدة في المسيح.',
+        primaryCta: 'تعرّف على كنيستنا',
+        secondaryCta: 'خطط لزيارتك',
+        cardLabel: 'إيقاع الأسبوع',
+        cardTitle: 'صلّ وانمُ معنا',
+        highlights: {
+          one: 'قداسات إلهية وإرشاد منتظم للاعتراف.',
+          two: 'اجتماعات للأطفال والشباب والأسر والخدام.',
+          three: 'افتقاد ورعاية روحية ودعم أسري.',
+        },
+      },
+      about: {
+        label: 'عن الكنيسة',
+        title: 'بيت كنسي لكل أسرة',
+        subtitle: 'متجذرون في الإنجيل، نجتمع كجسد واحد للعبادة والخدمة والنمو معًا.',
+        description:
+          'تخدم كنيسة الملاك ميخائيل الأسر من خلال الحياة الليتورجية والتلمذة والرعاية الرعوية. أبواب الكنيسة مفتوحة للأطفال والشباب والآباء وكبار السن ليحيوا حياة روحية عملية تتمركز حول المسيح.',
+        missionLabel: 'رسالتنا',
+        missionText: 'أن نقود كل نفس إلى المسيح من خلال العبادة والتلمذة والخدمة المحبة.',
+        visionLabel: 'رؤيتنا',
+        visionText: 'أن نكون عائلة كنسية متحدة تعكس محبة الله داخل القرية وخارجها.',
+      },
+      priests: {
+        label: 'آباؤنا الكهنة',
+        title: 'رعاة يخدمون بالمحبة',
+        subtitle: 'تعرّف على الآباء الذين يقودون الكنيسة بالصلاة والتعليم والرعاية الأمينة.',
+        imageHint: 'يمكنك استبدال مسارات صور الكهنة بروابط PNG شفافة في أي وقت من ملف الترجمة.',
+        items: {
+          one: {
+            name: 'القمص يوحنا ميخائيل',
+            role: 'كاهن الكنيسة',
+            bio: 'يخدم الأسر من خلال القداس والإرشاد الروحي ومتابعة الافتقاد الرعوي.',
+            alt: 'صورة القمص يوحنا ميخائيل',
+            image: '/images/priests/priest-1.jpg',
+          },
+          two: {
+            name: 'القس بطرس سمير',
+            role: 'كاهن مساعد',
+            bio: 'يقود اجتماعات الشباب والأسر ويركز على التلمذة والنمو الروحي.',
+            alt: 'صورة القس بطرس سمير',
+            image: '/images/priests/priest-2.jpg',
+          },
+          three: {
+            name: 'القس مينا نبيل',
+            role: 'كاهن الخدمة',
+            bio: 'يتابع خدمات الكنيسة والخدام والأطفال وفرق الخدمة الخارجية.',
+            alt: 'صورة القس مينا نبيل',
+            image: '/images/priests/priest-3.jpg',
+          },
+        },
+      },
       stats: {
-        activeMembers: 'عضو نشط',
-        registeredFamilies: 'عائلة مسجلة',
-        apiEndpoints: 'نقطة نهاية API',
-        permissions: 'صلاحية متاحة',
+        label: 'إحصائيات الحياة الكنسية',
+        title: 'بنعمة الله ننمو باستمرار',
+        subtitle: 'يمكن ربط هذه القيم لاحقًا بلوحة تحكم الإدارة وتحديثها تلقائيًا.',
+        items: {
+          families: { value: '250+', label: 'أسرة' },
+          members: { value: '1200+', label: 'عضو كنسي' },
+          services: { value: '8', label: 'قداسات واجتماعات أسبوعية' },
+          servants: { value: '60+', label: 'خادم ومتطوع' },
+        },
       },
-      featuresTitle: 'مميزات النظام',
-      featuresSubtitle: 'نظام مصمم بعناية لتلبية احتياجات إدارة الكنيسة بأفضل التقنيات.',
-      features: {
-        dataTitle: 'إدارة البيانات',
-        dataDesc: 'إدارة شاملة لبيانات الأعضاء والعائلات مع سجل مراجعة كامل لكل تغيير.',
-        securityTitle: 'الصلاحيات والأمان',
-        securityDesc: 'نظام صلاحيات متقدم مبني على الأدوار مع حماية قوية للبيانات الحساسة.',
-        performanceTitle: 'سرعة الأداء',
-        performanceDesc: 'مصمم للتعامل مع أعداد كبيرة من السجلات بأداء ثابت وسلاسة عالية.',
-        scalabilityTitle: 'قابلية التوسع',
-        scalabilityDesc: 'بنية مرنة تسمح بإضافة وحدات جديدة دون التأثير على سير العمل الحالي.',
+      verses: {
+        label: 'آيات كتابية',
+        title: 'كلمة الله في قلب الكنيسة',
+        subtitle: 'آيات تعبّر عن روح عائلتنا الكنسية ومسيرتنا اليومية مع المسيح.',
+        items: {
+          one: {
+            text: '«أما أنا وبيتي فنعبد الرب»',
+            reference: 'يشوع 24: 15',
+          },
+          two: {
+            text: '«دعوا الأولاد يأتون إليّ ولا تمنعوهم»',
+            reference: 'مرقس 10: 14',
+          },
+          three: {
+            text: '«بهذا يعرف الجميع أنكم تلاميذي: إن كان لكم حب بعضًا لبعض»',
+            reference: 'يوحنا 13: 35',
+          },
+        },
       },
-      howTitle: 'كيف يعمل النظام',
-      howSubtitle: 'خطوات بسيطة للبدء بسرعة.',
-      stepLabel: 'الخطوة {num}',
-      steps: {
-        oneTitle: 'تسجيل الأعضاء',
-        oneDesc: 'إضافة بيانات الأعضاء والعائلات بسهولة ووضوح.',
-        twoTitle: 'تعيين الصلاحيات',
-        twoDesc: 'تحديد الأدوار والصلاحيات لكل مستخدم.',
-        threeTitle: 'متابعة البيانات',
-        threeDesc: 'تصفح وإدارة البيانات باستخدام فلاتر متقدمة.',
-        fourTitle: 'إدارة متكاملة',
-        fourDesc: 'ربط العائلات والوسوم والخدمات في مكان واحد.',
+      life: {
+        label: 'حياة العائلة الكنسية',
+        title: 'ماذا ستجد في مجتمعنا الكنسي',
+        subtitle: 'حياة كنسية دافئة مبنية على الصلاة والرعاية والتلمذة العملية.',
+        items: {
+          one: {
+            title: 'رعاية رعوية',
+            description: 'متابعة منتظمة وإرشاد اعترافي ودعم لكل مرحلة من مراحل الأسرة.',
+          },
+          two: {
+            title: 'تعليم كتابي',
+            description: 'اجتماعات ودروس كتاب مقدس مناسبة للأطفال والشباب والكبار.',
+          },
+          three: {
+            title: 'أنشطة روحية',
+            description: 'مؤتمرات وترانيم وأنشطة خدمية تعزز روح الشركة بين أبناء الكنيسة.',
+          },
+        },
       },
-      faqTitle: 'الأسئلة الشائعة',
-      faqs: {
-        oneQ: 'ما هو نظام إدارة الكنيسة؟',
-        oneA:
-          'هو منصة متكاملة لإدارة بيانات الأعضاء والعائلات والخدمات والاجتماعات بطريقة منظمة وحديثة.',
-        twoQ: 'هل النظام آمن؟',
-        twoA:
-          'نعم. يعتمد على مصادقة آمنة ونظام صلاحيات قائم على الأدوار لحماية البيانات الحساسة.',
-        threeQ: 'هل يمكن إضافة وحدات جديدة لاحقًا؟',
-        threeA:
-          'بالتأكيد. النظام مصمم للتوسع ويمكن إضافة وحدات جديدة دون التأثير على الوحدات الحالية.',
-        fourQ: 'من يمكنه استخدام النظام؟',
-        fourA:
-          'يدعم أدوارًا متعددة مثل مدير النظام والمسؤول والمستخدم العادي مع صلاحيات مناسبة لكل دور.',
+      visit: {
+        label: 'زيارة الكنيسة',
+        title: 'نفرح باستقبالكم',
+        subtitle: 'انضموا إلينا في العبادة والشركة. أنتم دائمًا مرحب بكم مع عائلاتكم.',
+        addressLabel: 'العنوان',
+        addressValue: 'قرية القطوشة - التابعة لإيبارشية مطاي',
+        phoneLabel: 'الهاتف',
+        phoneValue: '+20 100 000 0000',
+        emailLabel: 'البريد الإلكتروني',
+        emailValue: 'info@archangelmichaelchurch.org',
+        hoursLabel: 'مواعيد المكتب والخدمات',
+        hoursValue: 'يوميًا: 9:00 ص - 8:00 م',
       },
-      ctaTitle: 'ابدأ باستخدام النظام الآن',
-      ctaDescription: 'سجّل دخولك وابدأ إدارة بيانات الكنيسة بطريقة منظمة وآمنة.',
+      portal: {
+        label: 'الأعضاء والخدام',
+        title: 'دخول بوابة الأعضاء',
+        description: 'إذا كنت من الخدام أو الأعضاء المصرح لهم، يمكنك تسجيل الدخول للوصول إلى الأدوات الداخلية.',
+        loginCta: 'تسجيل دخول الأعضاء',
+      },
     },
     dashboardLayout: {
       section: {
@@ -1840,4 +1979,4 @@
     },
   },
 };
-  
+

@@ -15,11 +15,18 @@ export default function PublicLayout() {
   const navLinks = useMemo(
     () => [
       { label: t('publicLayout.home'), href: '/' },
-      { label: t('publicLayout.about'), href: '/#features' },
-      { label: t('publicLayout.faq'), href: '/#faq' },
+      { label: t('publicLayout.about'), href: '#about' },
+      { label: t('publicLayout.priests'), href: '#priests' },
+      { label: t('publicLayout.verses'), href: '#verses' },
+      { label: t('publicLayout.visit'), href: '#visit' },
     ],
     [t]
   );
+
+  const isLinkActive = (href) => {
+    if (href === '/') return location.pathname === '/' && !location.hash;
+    return location.pathname === '/' && location.hash === href;
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-page">
@@ -36,7 +43,7 @@ export default function PublicLayout() {
                 key={link.href}
                 href={link.href}
                 className={`text-sm font-medium transition-colors hover:text-primary ${
-                  location.pathname === link.href ? 'text-primary' : 'text-muted'
+                  isLinkActive(link.href) ? 'text-primary' : 'text-muted'
                 }`}
               >
                 {link.label}
