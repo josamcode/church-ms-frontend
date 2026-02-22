@@ -151,7 +151,7 @@
         subtitle: 'These values are content-driven and can be connected to your admin dashboard later.',
         items: {
           families: { value: '250+', label: 'Families' },
-          members: { value: '1200+', label: 'Church Members' },
+          members: { value: '12000+', label: 'Church Members' },
           services: { value: '8', label: 'Weekly Liturgies & Meetings' },
           servants: { value: '60+', label: 'Servants & Volunteers' },
         },
@@ -1164,7 +1164,7 @@
         subtitle: 'يمكن ربط هذه القيم لاحقًا بلوحة تحكم الإدارة وتحديثها تلقائيًا.',
         items: {
           families: { value: '250+', label: 'أسرة' },
-          members: { value: '1200+', label: 'عضو كنسي' },
+          members: { value: '12000+', label: 'عضو كنسي' },
           services: { value: '8', label: 'قداسات واجتماعات أسبوعية' },
           servants: { value: '60+', label: 'خادم ومتطوع' },
         },
