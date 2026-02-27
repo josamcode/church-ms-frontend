@@ -789,6 +789,9 @@
       meetingsPageTitle: 'إدارة الاجتماعات',
       myMeetingsPageTitle: 'اجتماعاتي',
       meetingsPageSubtitle: 'إدارة الجداول والقيادة وفرق الخدمة.',
+      meetingDetails: {
+        members: "أعضاء"
+      },
       memberDetails: {
         pageTitle: 'تفاصيل العضو',
         meetingFallback: 'الاجتماع',
@@ -1807,8 +1810,74 @@
       },
     },
     meetings: {
-      pageTitle: 'الاجتماعات والقطاعات',
-      pageSubtitle: 'إدارة القطاعات والاجتماعات والخدام واللجان والأنشطة والملاحظات.',
+      pageTitle: 'Meetings & Sectors',
+      pageSubtitle: 'Manage sectors, meetings, servants, committees, activities, and notes.',
+      dashboardTitle: 'Meetings Dashboard',
+      dashboardSubtitle: 'Performance indicators and unified operational insights across sectors and meetings.',
+      sectorsPageTitle: 'Sectors Management',
+      sectorsPageSubtitle: 'Manage sector responsibilities, officials, and organizational structure.',
+      meetingsPageTitle: 'Meetings Management',
+      myMeetingsPageTitle: 'My Meetings',
+      meetingsPageSubtitle: 'Manage schedules, leadership, and service teams.',
+      meetingDetails: {
+        members: 'Members',
+      },
+      memberDetails: {
+        pageTitle: 'Member Details',
+        meetingFallback: 'Meeting',
+        notFoundTitle: 'Member Not Found',
+        notFoundDescription: 'This meeting member is not available or you do not have access to it.',
+        groupsTitle: 'Groups',
+        notesPlaceholder: 'Write member notes...',
+        messages: {
+          notesUpdated: 'Member notes updated successfully.',
+        },
+      },
+      dashboard: {
+        cards: {
+          totalSectors: 'Total Sectors',
+          totalMeetings: 'Total Meetings',
+          totalServants: 'Assigned Servants',
+          servedUsers: 'Served Members',
+          sectorsWithoutOfficials: 'Sectors Without Officials',
+          meetingsWithoutServants: 'Meetings Without Servants',
+        },
+        sections: {
+          sectorHealth: 'Sector Health Overview',
+          sectorHealthSubtitle: 'Meetings load, distribution, and services within each sector.',
+          weeklyLoad: 'Weekly Load Distribution',
+          weeklyLoadSubtitle: 'Number of scheduled meetings for each day of the week.',
+          actionCenter: 'Action Center',
+          actionCenterSubtitle: 'Items that require follow-up based on current data.',
+          responsibilities: 'Responsibilities Analytics',
+          responsibilitiesSubtitle: 'Most frequently used servant responsibilities across meetings.',
+          quickActions: 'Quick Actions',
+        },
+        actionItems: {
+          sectorsWithoutOfficialsTitle: 'Assign Officials to Sectors',
+          sectorsWithoutOfficialsDesc: '{count} sectors currently have no assigned officials.',
+          meetingsWithoutServantsTitle: 'Assign Servants to Meetings',
+          meetingsWithoutServantsDesc: '{count} meetings currently have no assigned servants.',
+          meetingsWithoutActivitiesTitle: 'Plan Activities',
+          meetingsWithoutActivitiesDesc: '{count} meetings have no planned activities.',
+          meetingsWithoutCommitteesTitle: 'Define Committees',
+          meetingsWithoutCommitteesDesc: '{count} meetings have no committees set up.',
+        },
+        status: {
+          noData: 'No data available within the current permission scope.',
+          noResponsibilities: 'No responsibilities saved yet.',
+          noPermissionsTitle: 'No Access to Meetings Module',
+          noPermissionsDescription:
+            'You currently do not have permission to view sectors or meetings.',
+        },
+        labels: {
+          meetings: 'Meetings',
+          officials: 'Officials',
+          servants: 'Servants',
+          activities: 'Activities',
+          usageCount: 'Used {count} times',
+        },
+      },
       sections: {
         sectors: 'القطاعات',
         sectorsSubtitle: 'ملف القطاع مع الصورة والمسؤولين.',
