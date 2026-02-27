@@ -94,7 +94,7 @@ function priestsToLabel(priests = []) {
 }
 
 export default function DivineLiturgiesPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
 
@@ -264,11 +264,36 @@ export default function DivineLiturgiesPage() {
     setExceptionForm(emptyExceptionForm());
   };
 
+  const getRecurringDisplayName = (row) => {
+    const manualName = String(row?.name || '').trim();
+    if (manualName) return manualName;
+
+    const dayLabel = getDayLabel(row?.dayOfWeek, t) || row?.dayOfWeek || '';
+
+    if (language === 'ar') {
+      if (row?.serviceType === DIVINE_SERVICE_TYPE) {
+        return `قداس يوم ${dayLabel}`;
+      }
+      if (row?.serviceType === VESPERS_SERVICE_TYPE) {
+        return `عشية القداس يوم ${dayLabel}`;
+      }
+    }
+
+    if (row?.serviceType === DIVINE_SERVICE_TYPE) {
+      return `${dayLabel} Divine Liturgy`;
+    }
+    if (row?.serviceType === VESPERS_SERVICE_TYPE) {
+      return `${dayLabel} Vespers of the Divine Liturgy`;
+    }
+
+    return row?.displayName || '';
+  };
+
   const recurringColumns = (includePriests, onEdit, onDelete) => [
     {
       key: 'displayName',
       label: t('divineLiturgies.table.displayName'),
-      render: (row) => <span className="text-sm font-medium text-heading">{row.displayName}</span>,
+      render: (row) => <span className="text-sm font-medium text-heading">{getRecurringDisplayName(row)}</span>,
     },
     {
       key: 'dayOfWeek',
