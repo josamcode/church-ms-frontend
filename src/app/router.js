@@ -38,6 +38,7 @@ const SectorsManagementPage = lazy(() => import('../pages/dashboard/meetings/Sec
 const MeetingsManagementPage = lazy(() => import('../pages/dashboard/meetings/MeetingsManagementPage'));
 const SectorDetailsPage = lazy(() => import('../pages/dashboard/meetings/SectorDetailsPage'));
 const MeetingDetailsPage = lazy(() => import('../pages/dashboard/meetings/MeetingDetailsPage'));
+const MeetingMemberDetailsPage = lazy(() => import('../pages/dashboard/meetings/MeetingMemberDetailsPage'));
 const SectorFormPage = lazy(() => import('../pages/dashboard/meetings/SectorFormPage'));
 const MeetingFormPage = lazy(() => import('../pages/dashboard/meetings/MeetingFormPage'));
 const UnderDevelopmentPage = lazy(() => import('../pages/shared/UnderDevelopmentPage'));
@@ -220,6 +221,7 @@ const router = createBrowserRouter([
           <PermissionGuard
             required={[
               'MEETINGS_VIEW',
+              'MEETINGS_VIEW_OWN',
               'MEETINGS_CREATE',
               'MEETINGS_UPDATE',
               'MEETINGS_DELETE',
@@ -236,8 +238,19 @@ const router = createBrowserRouter([
       {
         path: 'meetings/list/:id',
         element: (
-          <PermissionGuard required={['MEETINGS_VIEW']}>
+          <PermissionGuard required={['MEETINGS_VIEW', 'MEETINGS_VIEW_OWN']} mode="any">
             <Lazy><MeetingDetailsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'meetings/list/:meetingId/members/:memberId',
+        element: (
+          <PermissionGuard
+            required={['MEETINGS_VIEW', 'MEETINGS_VIEW_OWN', 'MEETINGS_MEMBERS_VIEW']}
+            mode="any"
+          >
+            <Lazy><MeetingMemberDetailsPage /></Lazy>
           </PermissionGuard>
         ),
       },

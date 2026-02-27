@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowUpRight, CalendarClock, CalendarDays, Edit, FileText,
@@ -14,7 +14,6 @@ import EmptyState from '../../../components/ui/EmptyState';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
 import { getActivityTypeLabel, getDayLabel } from './meetingsForm.utils';
-import useNavigateToUser from '../../../hooks/useNavigateToUser';
 
 const EMPTY = '---';
 
@@ -78,7 +77,7 @@ function PersonChip({ person, t }) {
  * Clickable user card for group served users.
  * Clicking navigates to /dashboard/users/:userId
  */
-function UserCard({ user, navigateToUser }) {
+function UserCard({ user, onOpenMember }) {
   const userId = user?.id || user?._id;
   const name = user?.fullName || EMPTY;
   const initial = String(name).trim().charAt(0).toUpperCase();
@@ -87,8 +86,8 @@ function UserCard({ user, navigateToUser }) {
   return (
     <button
       type="button"
-      onClick={() => userId && navigateToUser(userId)}
-      disabled={!userId}
+      onClick={() => userId && onOpenMember(userId)}
+      disabled={!userId || !onOpenMember}
       className="group flex w-full items-center gap-3 rounded-2xl border border-border bg-surface p-3.5 text-start transition-all duration-150 hover:border-primary/30 hover:shadow-sm disabled:pointer-events-none disabled:opacity-60"
     >
       {/* avatar */}
@@ -118,9 +117,9 @@ function UserCard({ user, navigateToUser }) {
 
 export default function MeetingDetailsPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { t } = useI18n();
   const { hasPermission } = useAuth();
-  const navigateToUser = useNavigateToUser();
 
   const tf = (key, fallback) => { const v = t(key); return v === key ? fallback : v; };
 
@@ -143,15 +142,30 @@ export default function MeetingDetailsPage() {
   });
 
   const meeting = meetingQuery.data || null;
+  const canViewAllDetails = Boolean(meeting?.viewerContext?.canViewAllDetails);
+  const canViewAllServedUsers = Boolean(meeting?.viewerContext?.canViewAllServedUsers);
 
   const stats = useMemo(() => ({
     assistantsCount: (meeting?.assistantSecretaries || []).length,
     servedUsersCount: (meeting?.servedUsers || []).length,
     groupsCount: (meeting?.groups || []).length,
+    groupMembersCount: (meeting?.groupAssignments || []).reduce(
+      (count, assignment) => count + (assignment?.servedUsers || []).length,
+      0
+    ),
     servantsCount: (meeting?.servants || []).length,
     committeesCount: (meeting?.committees || []).length,
     activitiesCount: (meeting?.activities || []).length,
   }), [meeting]);
+
+  const openMeetingMember = (memberId) => {
+    if (!id || !memberId) return;
+    if (canViewAllDetails && canViewUsers) {
+      navigate(`/dashboard/users/${memberId}`);
+      return;
+    }
+    navigate(`/dashboard/meetings/list/${id}/members/${memberId}`);
+  };
 
   const breadcrumbs = [
     { label: t('shared.dashboard'), href: '/dashboard' },
@@ -181,14 +195,25 @@ export default function MeetingDetailsPage() {
     );
   }
 
-  const kpiTiles = [
-    { label: t('meetings.fields.assistants'), value: stats.assistantsCount, icon: Users },
-    { label: t('meetings.fields.servedUsers'), value: stats.servedUsersCount, icon: UserCircle },
-    { label: t('meetings.columns.groupsCount'), value: stats.groupsCount, icon: ListChecks },
-    { label: t('meetings.columns.servantsCount'), value: stats.servantsCount, icon: Users },
-    { label: t('meetings.columns.committeesCount'), value: stats.committeesCount, icon: FileText },
-    { label: t('meetings.columns.activitiesCount'), value: stats.activitiesCount, icon: CalendarClock },
-  ];
+  const kpiTiles = canViewAllDetails
+    ? [
+        { label: t('meetings.fields.assistants'), value: stats.assistantsCount, icon: Users },
+        ...(canViewAllServedUsers
+          ? [{ label: t('meetings.fields.servedUsers'), value: stats.servedUsersCount, icon: UserCircle }]
+          : []),
+        { label: t('meetings.columns.groupsCount'), value: stats.groupsCount, icon: ListChecks },
+        { label: t('meetings.columns.servantsCount'), value: stats.servantsCount, icon: Users },
+        { label: t('meetings.columns.committeesCount'), value: stats.committeesCount, icon: FileText },
+        { label: t('meetings.columns.activitiesCount'), value: stats.activitiesCount, icon: CalendarClock },
+      ]
+    : [
+        { label: t('meetings.columns.groupsCount'), value: stats.groupsCount, icon: ListChecks },
+        {
+          label: tf('meetings.memberDetails.groupsTitle', 'Groups'),
+          value: stats.groupMembersCount,
+          icon: UserCircle,
+        },
+      ];
 
   return (
     <div className="animate-fade-in space-y-8 pb-10">
@@ -273,20 +298,22 @@ export default function MeetingDetailsPage() {
       )}
 
       {/* ══ LEADERSHIP ════════════════════════════════════════════════════ */}
-      <section className="space-y-4">
-        <SectionLabel count={(meeting.assistantSecretaries || []).length}>
-          {t('meetings.sections.leadership')}
-        </SectionLabel>
-        {(meeting.assistantSecretaries || []).length === 0 ? (
-          <EmptyState icon={Users} title={tf('meetings.meetingDetails.noAssistantsTitle', 'No assistants assigned')} description={tf('meetings.meetingDetails.noAssistantsDescription', 'No assistant secretaries are assigned to this meeting.')} />
-        ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {(meeting.assistantSecretaries || []).map((assistant, i) => (
-              <PersonChip key={`${assistant?.name || 'a'}_${i}`} person={assistant} t={t} />
-            ))}
-          </div>
-        )}
-      </section>
+      {canViewAllDetails && (
+        <section className="space-y-4">
+          <SectionLabel count={(meeting.assistantSecretaries || []).length}>
+            {t('meetings.sections.leadership')}
+          </SectionLabel>
+          {(meeting.assistantSecretaries || []).length === 0 ? (
+            <EmptyState icon={Users} title={tf('meetings.meetingDetails.noAssistantsTitle', 'No assistants assigned')} description={tf('meetings.meetingDetails.noAssistantsDescription', 'No assistant secretaries are assigned to this meeting.')} />
+          ) : (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {(meeting.assistantSecretaries || []).map((assistant, i) => (
+                <PersonChip key={`${assistant?.name || 'a'}_${i}`} person={assistant} t={t} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* ══ GROUPS ════════════════════════════════════════════════════════ */}
       <section className="space-y-4">
@@ -325,7 +352,7 @@ export default function MeetingDetailsPage() {
                           <UserCard
                             key={user.id || user._id || user.fullName}
                             user={user}
-                            navigateToUser={canViewUsers ? navigateToUser : null}
+                            onOpenMember={openMeetingMember}
                           />
                         ))}
                       </div>
@@ -339,60 +366,62 @@ export default function MeetingDetailsPage() {
       </section>
 
       {/* ══ SERVANTS ══════════════════════════════════════════════════════ */}
-      <section className="space-y-4">
-        <SectionLabel count={(meeting.servants || []).length}>
-          {t('meetings.sections.servants')}
-        </SectionLabel>
+      {canViewAllDetails && (
+        <section className="space-y-4">
+          <SectionLabel count={(meeting.servants || []).length}>
+            {t('meetings.sections.servants')}
+          </SectionLabel>
 
-        {(meeting.servants || []).length === 0 ? (
-          <EmptyState icon={Users} title={t('meetings.empty.noServantsYet')} description={tf('meetings.meetingDetails.noServantsDescription', 'No servants are assigned to this meeting.')} />
-        ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {(meeting.servants || []).map((servant) => (
-              <div key={servant.id} className="rounded-2xl border border-border bg-surface p-4">
-                {/* avatar row */}
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                    {String(servant.name || '?').charAt(0).toUpperCase()}
+          {(meeting.servants || []).length === 0 ? (
+            <EmptyState icon={Users} title={t('meetings.empty.noServantsYet')} description={tf('meetings.meetingDetails.noServantsDescription', 'No servants are assigned to this meeting.')} />
+          ) : (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {(meeting.servants || []).map((servant) => (
+                <div key={servant.id} className="rounded-2xl border border-border bg-surface p-4">
+                  {/* avatar row */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                      {String(servant.name || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-heading">{servant.name || EMPTY}</p>
+                      <p className="truncate text-xs text-muted">
+                        {servant.responsibility || t('common.placeholder.empty')}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-heading">{servant.name || EMPTY}</p>
-                    <p className="truncate text-xs text-muted">
-                      {servant.responsibility || t('common.placeholder.empty')}
-                    </p>
+
+                  {/* groups managed */}
+                  {(servant.groupsManaged || []).length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {(servant.groupsManaged || []).map((groupName) => (
+                        <span key={`${servant.id}_${groupName}`} className="rounded-full border border-primary/30 bg-primary/8 px-2.5 py-0.5 text-xs font-medium text-primary">
+                          {groupName}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* footer */}
+                  <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-3">
+                    <span className="text-xs text-muted">
+                      {t('meetings.fields.servedUsers')}:{' '}
+                      <strong className="text-heading">{(servant.servedUsers || []).length}</strong>
+                    </span>
                   </div>
+
+                  {servant.notes && (
+                    <p className="mt-2 line-clamp-2 text-xs text-muted">{servant.notes}</p>
+                  )}
                 </div>
-
-                {/* groups managed */}
-                {(servant.groupsManaged || []).length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {(servant.groupsManaged || []).map((groupName) => (
-                      <span key={`${servant.id}_${groupName}`} className="rounded-full border border-primary/30 bg-primary/8 px-2.5 py-0.5 text-xs font-medium text-primary">
-                        {groupName}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* footer */}
-                <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-3">
-                  <span className="text-xs text-muted">
-                    {t('meetings.fields.servedUsers')}:{' '}
-                    <strong className="text-heading">{(servant.servedUsers || []).length}</strong>
-                  </span>
-                </div>
-
-                {servant.notes && (
-                  <p className="mt-2 line-clamp-2 text-xs text-muted">{servant.notes}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* ══ COMMITTEES + ACTIVITIES ════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      {canViewAllDetails && <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
 
         {/* committees */}
         <section className="space-y-4">
@@ -461,7 +490,7 @@ export default function MeetingDetailsPage() {
             </div>
           )}
         </section>
-      </div>
+      </div>}
 
     </div>
   );
