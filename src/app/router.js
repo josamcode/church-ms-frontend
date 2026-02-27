@@ -238,7 +238,17 @@ const router = createBrowserRouter([
       {
         path: 'meetings/list/:id',
         element: (
-          <PermissionGuard required={['MEETINGS_VIEW', 'MEETINGS_VIEW_OWN']} mode="any">
+          <PermissionGuard
+            required={[
+              'MEETINGS_VIEW',
+              'MEETINGS_VIEW_OWN',
+              'MEETINGS_UPDATE',
+              'MEETINGS_SERVANTS_MANAGE',
+              'MEETINGS_COMMITTEES_MANAGE',
+              'MEETINGS_ACTIVITIES_MANAGE',
+            ]}
+            mode="any"
+          >
             <Lazy><MeetingDetailsPage /></Lazy>
           </PermissionGuard>
         ),
@@ -247,7 +257,15 @@ const router = createBrowserRouter([
         path: 'meetings/list/:meetingId/members/:memberId',
         element: (
           <PermissionGuard
-            required={['MEETINGS_VIEW', 'MEETINGS_VIEW_OWN', 'MEETINGS_MEMBERS_VIEW']}
+            required={[
+              'MEETINGS_VIEW',
+              'MEETINGS_VIEW_OWN',
+              'MEETINGS_MEMBERS_VIEW',
+              'MEETINGS_UPDATE',
+              'MEETINGS_SERVANTS_ MANAGE',
+              'MEETINGS_COMMITTEES_MANAGE',
+              'MEETINGS_ACTIVITIES_MANAGE',
+            ]}
             mode="any"
           >
             <Lazy><MeetingMemberDetailsPage /></Lazy>

@@ -44,10 +44,6 @@ export default function MeetingsManagementPage() {
 
   const canViewMeetings = hasPermission('MEETINGS_VIEW');
   const canViewOwnMeetings = hasPermission('MEETINGS_VIEW_OWN');
-  const canViewMeetingsList = canViewMeetings || canViewOwnMeetings;
-  const meetingsListTitle = canViewMeetings
-    ? t('meetings.meetingsPageTitle')
-    : tf('meetings.myMeetingsPageTitle', 'My Meetings');
   const canCreateMeetings = hasPermission('MEETINGS_CREATE');
   const canUpdateMeetings = hasPermission('MEETINGS_UPDATE');
   const canUpdateMeetingsSections =
@@ -55,6 +51,15 @@ export default function MeetingsManagementPage() {
     hasPermission('MEETINGS_COMMITTEES_MANAGE') ||
     hasPermission('MEETINGS_ACTIVITIES_MANAGE');
   const canDeleteMeetings = hasPermission('MEETINGS_DELETE');
+  const canViewMeetingsList =
+    canViewMeetings ||
+    canViewOwnMeetings ||
+    canUpdateMeetings ||
+    canUpdateMeetingsSections ||
+    canDeleteMeetings;
+  const meetingsListTitle = (canViewMeetings || canUpdateMeetings || canUpdateMeetingsSections || canDeleteMeetings)
+    ? t('meetings.meetingsPageTitle')
+    : tf('meetings.myMeetingsPageTitle', 'My Meetings');
   const canManageMeetingRows =
     canViewMeetingsList || canUpdateMeetings || canUpdateMeetingsSections || canDeleteMeetings;
   const canAccessMeetingsModule = hasAnyPermission(MEETING_PERMISSIONS);
