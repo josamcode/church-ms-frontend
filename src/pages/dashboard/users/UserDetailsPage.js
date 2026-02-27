@@ -159,7 +159,7 @@ export default function UserDetailsPage() {
                 <h1 className="mt-0.5 text-3xl font-bold tracking-tight text-heading">
                   {user.fullName || EMPTY}
                 </h1>
-                <p className="mt-1 text-sm text-muted direction-ltr text-left">
+                <p className="mt-1 text-sm text-muted">
                   {user.phonePrimary || EMPTY}
                 </p>
                 <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
@@ -286,7 +286,7 @@ function ProfileTab({ user }) {
               <Field icon={User} label={t('userDetails.fields.gender')} value={getGenderLabel(user.gender)} />
               <Field icon={Calendar} label={t('userDetails.fields.birthDate')} value={formatDate(user.birthDate)} />
               <Field icon={User} label={t('userDetails.fields.ageGroup')} value={user.ageGroup || EMPTY} />
-              <Field icon={Shield} label={t('userDetails.fields.nationalId')} value={user.nationalId || EMPTY} ltr />
+              <Field icon={Shield} label={t('userDetails.fields.nationalId')} value={user.nationalId || EMPTY} />
             </div>
           </div>
         </div>
@@ -295,10 +295,10 @@ function ProfileTab({ user }) {
         <div className="space-y-4">
           <SectionLabel>{t('userDetails.profile.contactTitle')}</SectionLabel>
           <div className="rounded-2xl border border-border bg-surface px-6 py-5 space-y-5">
-            <Field icon={Phone} label={t('userDetails.fields.primaryPhone')} value={user.phonePrimary || EMPTY} ltr />
-            <Field icon={Phone} label={t('userDetails.fields.secondaryPhone')} value={user.phoneSecondary || EMPTY} ltr />
-            <Field icon={Phone} label={t('userDetails.fields.whatsapp')} value={user.whatsappNumber || EMPTY} ltr />
-            <Field icon={Mail} label={t('userDetails.fields.email')} value={user.email || EMPTY} ltr />
+            <Field icon={Phone} label={t('userDetails.fields.primaryPhone')} value={user.phonePrimary || EMPTY} />
+            <Field icon={Phone} label={t('userDetails.fields.secondaryPhone')} value={user.phoneSecondary || EMPTY} />
+            <Field icon={Phone} label={t('userDetails.fields.whatsapp')} value={user.whatsappNumber || EMPTY} />
+            <Field icon={Mail} label={t('userDetails.fields.email')} value={user.email || EMPTY} />
           </div>
         </div>
       </div>

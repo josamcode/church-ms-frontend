@@ -47,7 +47,7 @@ function Field({ icon: Icon, label, value, ltr = false, tone = 'default' }) {
 /* ── page ────────────────────────────────────────────────────────────────── */
 
 export default function ProfilePage() {
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['auth', 'me'],
@@ -122,7 +122,7 @@ export default function ProfilePage() {
               <h1 className="mt-0.5 text-3xl font-bold tracking-tight text-heading">
                 {user?.fullName || empty}
               </h1>
-              <p className="mt-1 text-sm text-muted direction-ltr text-left">{email}</p>
+              <p className="mt-1 text-sm text-muted">{email}</p>
               <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                 <Badge variant="primary">{roleLabel}</Badge>
                 <Badge variant={statusVariant}>{statusLabel}</Badge>
@@ -137,16 +137,16 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
 
         {/* ── Personal details ─── */}
-        <div className="space-y-4 xl:col-span-2">
+        <div className={`space-y-4 xl:col-span-2 ${isRTL ? 'direction-rtl text-right' : 'text-left'}`}>
           <SectionLabel>{t('profilePage.sections.profileDetails.title')}</SectionLabel>
 
           <div className="rounded-2xl border border-border bg-surface px-6 py-5">
             <div className="grid grid-cols-1 gap-x-10 gap-y-5 sm:grid-cols-2">
               <Field icon={Calendar} label={t('profilePage.fields.birthDate')} value={formatDate(user?.birthDate)} />
               <Field icon={UserCircle} label={t('profilePage.fields.gender')} value={getGenderLabel(user?.gender)} />
-              <Field icon={Phone} label={t('profilePage.fields.primaryPhone')} value={primaryPhone} ltr />
-              <Field icon={Phone} label={t('profilePage.fields.secondaryPhone')} value={secondaryPhone} ltr />
-              <Field icon={Mail} label={t('profilePage.fields.email')} value={email} ltr />
+              <Field icon={Phone} label={t('profilePage.fields.primaryPhone')} value={primaryPhone} />
+              <Field icon={Phone} label={t('profilePage.fields.secondaryPhone')} value={secondaryPhone} />
+              <Field icon={Mail} label={t('profilePage.fields.email')} value={email} />
               <Field icon={ShieldCheck} label={t('profilePage.fields.role')} value={roleLabel} />
             </div>
           </div>
