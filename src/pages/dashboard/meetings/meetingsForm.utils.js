@@ -76,6 +76,16 @@ export function toPersonPayload(selectedUser, manualName) {
   return { name };
 }
 
+function uniqueSelectUsersById(users = []) {
+  const seen = new Set();
+  return (users || []).filter((user) => {
+    const id = user?._id;
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
 export function mapSectorToForm(sector) {
   return {
     name: sector?.name || '',
@@ -130,7 +140,9 @@ export function mapMeetingToForm(meeting) {
   const groupServedUsersByGroup = (meeting?.groupAssignments || []).reduce((acc, entry) => {
     const groupName = String(entry?.group || '').trim();
     if (!groupName) return acc;
-    acc[groupName] = (entry?.servedUsers || []).map((user) => toSelectUser(user)).filter(Boolean);
+    acc[groupName] = uniqueSelectUsersById(
+      (entry?.servedUsers || []).map((user) => toSelectUser(user)).filter(Boolean)
+    );
     return acc;
   }, {});
 
@@ -152,7 +164,9 @@ export function mapMeetingToForm(meeting) {
       user: toSelectUser(assistant?.user, assistant?.name),
       name: assistant?.name || '',
     })),
-    servedUsers: (meeting?.servedUsers || []).map((user) => toSelectUser(user)).filter(Boolean),
+    servedUsers: uniqueSelectUsersById(
+      (meeting?.servedUsers || []).map((user) => toSelectUser(user)).filter(Boolean)
+    ),
     groups: uniqueStringList(meeting?.groups || []),
     groupServedUsersByGroup,
     pendingGroupServedUserByGroup: {},
@@ -161,12 +175,16 @@ export function mapMeetingToForm(meeting) {
       name: servant?.name || '',
       responsibility: servant?.responsibility || '',
       groupsManaged: uniqueStringList(servant?.groupsManaged || []),
-      servedUsers: (servant?.servedUsers || []).map((user) => toSelectUser(user)).filter(Boolean),
+      servedUsers: uniqueSelectUsersById(
+        (servant?.servedUsers || []).map((user) => toSelectUser(user)).filter(Boolean)
+      ),
       notes: servant?.notes || '',
     })),
     committees: (meeting?.committees || []).map((committee) => ({
       name: committee?.name || '',
-      members: (committee?.members || []).map((user) => toSelectUser(user)).filter(Boolean),
+      members: uniqueSelectUsersById(
+        (committee?.members || []).map((user) => toSelectUser(user)).filter(Boolean)
+      ),
       memberUserIdsCsv: (committee?.members || []).map((user) => user.id).join(', '),
       memberNamesCsv: (committee?.memberNames || []).join(', '),
       detailsText:
