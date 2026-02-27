@@ -91,8 +91,8 @@ export const meetingsApi = {
     },
     getById: (id) => apiClient.get(`/meetings/${id}`),
     getMemberById: (meetingId, memberId) => apiClient.get(`/meetings/${meetingId}/members/${memberId}`),
-    updateMemberNotes: (meetingId, memberId, notes) =>
-      apiClient.patch(`/meetings/${meetingId}/members/${memberId}/notes`, { notes }),
+    updateMemberNotes: (meetingId, memberId, note) =>
+      apiClient.patch(`/meetings/${meetingId}/members/${memberId}/notes`, { note }),
     updateBasic: (id, data) => apiClient.patch(`/meetings/${id}/basic`, data),
     updateServants: (id, servants) => apiClient.patch(`/meetings/${id}/servants`, { servants }),
     updateCommittees: (id, committees) => apiClient.patch(`/meetings/${id}/committees`, { committees }),
