@@ -114,6 +114,10 @@ export default function DashboardLayout() {
     const value = t(key);
     return value === key ? fallback : value;
   }, [t]);
+  const hasAssignedMeetings = useMemo(
+    () => Array.isArray(user?.meetingIds) && user.meetingIds.length > 0,
+    [user?.meetingIds]
+  );
 
   // ── Menu definitions ──────────────────────────────────────────────────────
 
@@ -248,6 +252,7 @@ export default function DashboardLayout() {
           icon: CalendarDays,
           permission: 'MEETINGS_VIEW_OWN',
           excludePermissions: ['MEETINGS_VIEW'],
+          requiresMeetingAssignment: true,
           matchChildren: true,
         },
         {
@@ -304,8 +309,12 @@ export default function DashboardLayout() {
       return false;
     }
 
+    if (item.requiresMeetingAssignment && !hasAssignedMeetings) {
+      return false;
+    }
+
     return true;
-  }, [hasPermission]);
+  }, [hasPermission, hasAssignedMeetings]);
 
   const doesItemMatchPath = useCallback((item, pathname) => {
     if (!item?.href) return false;
