@@ -126,11 +126,11 @@ export default function ChurchPriestsPage() {
         <SectionLabel>{t('divineLiturgies.sections.priests')}</SectionLabel>
 
         <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
-          <div className="text-sm text-muted">
+          {/* <div className="text-sm text-muted">
             {canManagePriests
               ? t('divineLiturgies.hints.priestsManage')
               : t('divineLiturgies.hints.priestsReadOnly')}
-          </div>
+          </div> */}
 
           {canManagePriests && (
             <>
