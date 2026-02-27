@@ -285,7 +285,7 @@ export default function PublicLayout() {
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
                   >
-                    البشمهندس جرجس صموئيل
+                    م/جرجس صموئيل
                   </a>{' '}
                   وارشاد الاباء الكهنة
                 </>
