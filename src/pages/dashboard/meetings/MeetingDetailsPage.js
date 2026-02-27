@@ -45,7 +45,7 @@ function Field({ label, value }) {
 }
 
 /** Person card used in leadership/assistants */
-function PersonChip({ person, t }) {
+function PersonChip({ person, roleLabel }) {
   if (!person) return null;
   const initial = String(person.name || person.user?.fullName || '?').trim().charAt(0).toUpperCase();
   return (
@@ -55,6 +55,11 @@ function PersonChip({ person, t }) {
           {initial}
         </div>
         <div className="min-w-0">
+          {roleLabel && (
+            <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted">
+              {roleLabel}
+            </p>
+          )}
           <p className="truncate font-semibold text-heading">
             {person.name || person.user?.fullName || EMPTY}
           </p>
@@ -144,6 +149,13 @@ export default function MeetingDetailsPage() {
   const meeting = meetingQuery.data || null;
   const canViewAllDetails = Boolean(meeting?.viewerContext?.canViewAllDetails);
   const canViewAllServedUsers = Boolean(meeting?.viewerContext?.canViewAllServedUsers);
+  const leadershipCards = useMemo(() => {
+    const assistants = meeting?.assistantSecretaries || [];
+    const leaders = [];
+    if (meeting?.serviceSecretary) leaders.push({ person: meeting.serviceSecretary, role: 'service' });
+    assistants.forEach((assistant) => leaders.push({ person: assistant, role: 'assistant' }));
+    return leaders;
+  }, [meeting]);
 
   const stats = useMemo(() => ({
     assistantsCount: (meeting?.assistantSecretaries || []).length,
@@ -300,15 +312,19 @@ export default function MeetingDetailsPage() {
       {/* ══ LEADERSHIP ════════════════════════════════════════════════════ */}
       {canViewAllDetails && (
         <section className="space-y-4">
-          <SectionLabel count={(meeting.assistantSecretaries || []).length}>
+          <SectionLabel count={leadershipCards.length}>
             {t('meetings.sections.leadership')}
           </SectionLabel>
-          {(meeting.assistantSecretaries || []).length === 0 ? (
-            <EmptyState icon={Users} title={tf('meetings.meetingDetails.noAssistantsTitle', 'No assistants assigned')} description={tf('meetings.meetingDetails.noAssistantsDescription', 'No assistant secretaries are assigned to this meeting.')} />
+          {leadershipCards.length === 0 ? (
+            <EmptyState icon={Users} title={tf('meetings.meetingDetails.noLeadershipTitle', 'No leadership assigned')} description={tf('meetings.meetingDetails.noLeadershipDescription', 'No service secretary or assistant secretaries are assigned to this meeting.')} />
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {(meeting.assistantSecretaries || []).map((assistant, i) => (
-                <PersonChip key={`${assistant?.name || 'a'}_${i}`} person={assistant} t={t} />
+              {leadershipCards.map(({ person, role }, i) => (
+                <PersonChip
+                  key={`${role}_${person?.user?.id || person?.id || person?.name || 'p'}_${i}`}
+                  person={person}
+                  roleLabel={role === 'service' ? t('meetings.fields.serviceSecretary') : t('meetings.fields.assistants')}
+                />
               ))}
             </div>
           )}
