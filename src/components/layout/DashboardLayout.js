@@ -221,6 +221,26 @@ export default function DashboardLayout() {
       ],
     },
     {
+      key: 'divine-liturgies',
+      sectionLabel: t('dashboardLayout.section.divineLiturgies'),
+      parent: {
+        label: t('dashboardLayout.menu.divineLiturgies'),
+        href: '/dashboard/divine-liturgies',
+        icon: Church,
+        permission: 'DIVINE_LITURGIES_VIEW',
+        matchChildren: true,
+      },
+      children: [
+        {
+          label: t('dashboardLayout.menu.churchPriests'),
+          href: '/dashboard/divine-liturgies/priests',
+          icon: Users,
+          permission: 'DIVINE_LITURGIES_VIEW',
+          matchChildren: false,
+        },
+      ],
+    },
+    {
       key: 'meetings',
       sectionLabel: t('dashboardLayout.section.meetings'),
       parent: {

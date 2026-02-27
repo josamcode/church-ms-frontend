@@ -40,6 +40,9 @@ export const PERMISSIONS = [
   'MEETINGS_SERVANT_HISTORY_VIEW',
   'MEETINGS_MEMBERS_VIEW',
   'MEETINGS_MEMBERS_NOTES_UPDATE',
+  'DIVINE_LITURGIES_VIEW',
+  'DIVINE_LITURGIES_MANAGE',
+  'DIVINE_LITURGIES_PRIESTS_MANAGE',
 ];
 
 export const ROLE_PERMISSIONS = {
@@ -85,6 +88,8 @@ export const ROLE_PERMISSIONS = {
     'MEETINGS_SERVANT_HISTORY_VIEW',
     'MEETINGS_MEMBERS_VIEW',
     'MEETINGS_MEMBERS_NOTES_UPDATE',
+    'DIVINE_LITURGIES_VIEW',
+    'DIVINE_LITURGIES_MANAGE',
   ],
   USER: [
     'AUTH_VIEW_SELF',
@@ -95,6 +100,7 @@ export const ROLE_PERMISSIONS = {
     'MEETINGS_VIEW_OWN',
     'MEETINGS_MEMBERS_VIEW',
     'MEETINGS_MEMBERS_NOTES_UPDATE',
+    'DIVINE_LITURGIES_VIEW',
   ],
 };
 
@@ -140,6 +146,9 @@ export const PERMISSION_LABELS = {
   MEETINGS_SERVANT_HISTORY_VIEW: 'View servant meeting history',
   MEETINGS_MEMBERS_VIEW: 'View meeting members',
   MEETINGS_MEMBERS_NOTES_UPDATE: 'Update meeting member notes',
+  DIVINE_LITURGIES_VIEW: 'View divine liturgy schedules',
+  DIVINE_LITURGIES_MANAGE: 'Manage divine liturgy schedules',
+  DIVINE_LITURGIES_PRIESTS_MANAGE: 'Manage church priests list',
 };
 
 export const PERMISSION_GROUPS = [
@@ -186,6 +195,15 @@ export const PERMISSION_GROUPS = [
       'PASTORAL_VISITATIONS_VIEW',
       'PASTORAL_VISITATIONS_CREATE',
       'PASTORAL_VISITATIONS_ANALYTICS_VIEW',
+    ],
+  },
+  {
+    id: 'divineLiturgies',
+    label: 'Divine liturgies',
+    permissions: [
+      'DIVINE_LITURGIES_VIEW',
+      'DIVINE_LITURGIES_MANAGE',
+      'DIVINE_LITURGIES_PRIESTS_MANAGE',
     ],
   },
   {
