@@ -242,6 +242,7 @@ export default function DashboardLayout() {
       },
       children: [
         {
+          key: 'meetings-my',
           label: tf('dashboardLayout.menu.myMeetings', 'My Meetings'),
           href: '/dashboard/meetings/list',
           icon: CalendarDays,
@@ -257,6 +258,7 @@ export default function DashboardLayout() {
           matchChildren: true,
         },
         {
+          key: 'meetings-management',
           label: t('dashboardLayout.menu.meetingsManagement'),
           href: '/dashboard/meetings/list',
           icon: CalendarDays,
@@ -390,7 +392,7 @@ export default function DashboardLayout() {
 
       {visibleTopItems.map((item) => (
         <NavItem
-          key={item.href}
+          key={item.key ?? item.href}
           item={item}
           active={isItemActive(item)}
           collapsed={false}
@@ -408,7 +410,7 @@ export default function DashboardLayout() {
               <NavSectionLabel label={section.label} />
               {section.items.map((item) => (
                 <NavItem
-                  key={item.href}
+                  key={item.key ?? item.href}
                   item={item}
                   active={isItemActive(item)}
                   collapsed={false}
@@ -429,7 +431,7 @@ export default function DashboardLayout() {
           <NavSectionLabel label={t('dashboardLayout.section.other')} />
           {visibleBottomItems.map((item) => (
             <NavItem
-              key={item.href}
+              key={item.key ?? item.href}
               item={item}
               active={isItemActive(item)}
               collapsed={false}
@@ -447,7 +449,7 @@ export default function DashboardLayout() {
     <>
       {visibleTopItems.map((item) => (
         <NavItem
-          key={item.href}
+          key={item.key ?? item.href}
           item={item}
           active={isItemActive(item)}
           collapsed
@@ -461,7 +463,7 @@ export default function DashboardLayout() {
 
       {visibleManageItems.map((item) => (
         <NavItem
-          key={item.href}
+          key={item.key ?? item.href}
           item={item}
           active={isItemActive(item)}
           collapsed
@@ -475,7 +477,7 @@ export default function DashboardLayout() {
 
       {visibleBottomItems.map((item) => (
         <NavItem
-          key={item.href}
+          key={item.key ?? item.href}
           item={item}
           active={isItemActive(item)}
           collapsed
