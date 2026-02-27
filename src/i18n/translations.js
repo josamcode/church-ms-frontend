@@ -236,6 +236,7 @@
         pastoralVisitationsCreate: 'Create Visitation',
         pastoralVisitationsAnalytics: 'Visitation Analytics',
         meetingsAndSectors: 'Meetings & Sectors',
+        myMeetings: 'My Meetings',
         sectorsManagement: 'Sectors Management',
         meetingsManagement: 'Meetings Management',
         underDevelopment: 'Under Development',
@@ -786,7 +787,19 @@
       sectorsPageTitle: 'إدارة القطاعات',
       sectorsPageSubtitle: 'إدارة مسؤولية القطاع والمسؤولين والهيكل التنظيمي.',
       meetingsPageTitle: 'إدارة الاجتماعات',
+      myMeetingsPageTitle: 'اجتماعاتي',
       meetingsPageSubtitle: 'إدارة الجداول والقيادة وفرق الخدمة.',
+      memberDetails: {
+        pageTitle: 'تفاصيل العضو',
+        meetingFallback: 'الاجتماع',
+        notFoundTitle: 'العضو غير موجود',
+        notFoundDescription: 'عضو الاجتماع هذا غير متاح أو ليس لديك صلاحية الوصول إليه.',
+        groupsTitle: 'المجموعات',
+        notesPlaceholder: 'اكتب ملاحظات العضو...',
+        messages: {
+          notesUpdated: 'تم تحديث ملاحظات العضو بنجاح.',
+        },
+      },
       dashboard: {
         cards: {
           totalSectors: 'إجمالي القطاعات',
@@ -1249,6 +1262,7 @@
         pastoralVisitationsCreate: 'إنشاء زيارة رعوية',
         pastoralVisitationsAnalytics: 'تحليلات الزيارات الرعوية',
         meetingsAndSectors: 'الاجتماعات والقطاعات',
+        myMeetings: 'اجتماعاتي',
         sectorsManagement: 'إدارة القطاعات',
         meetingsManagement: 'إدارة الاجتماعات',
         underDevelopment: 'قيد التطوير',
@@ -1979,4 +1993,3 @@
     },
   },
 };
-

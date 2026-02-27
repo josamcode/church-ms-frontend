@@ -110,6 +110,10 @@ export default function DashboardLayout() {
   const { t, isRTL } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
+  const tf = useCallback((key, fallback) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  }, [t]);
 
   // ── Menu definitions ──────────────────────────────────────────────────────
 
@@ -238,6 +242,14 @@ export default function DashboardLayout() {
       },
       children: [
         {
+          label: tf('dashboardLayout.menu.myMeetings', 'My Meetings'),
+          href: '/dashboard/meetings/list',
+          icon: CalendarDays,
+          permission: 'MEETINGS_VIEW_OWN',
+          excludePermissions: ['MEETINGS_VIEW'],
+          matchChildren: true,
+        },
+        {
           label: t('dashboardLayout.menu.sectorsManagement'),
           href: '/dashboard/meetings/sectors',
           icon: Layers3,
@@ -261,7 +273,7 @@ export default function DashboardLayout() {
         },
       ],
     },
-  ], [t]);
+  ], [t, tf]);
 
   const bottomItems = useMemo(() => [
     {
@@ -276,9 +288,21 @@ export default function DashboardLayout() {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   const isItemAllowed = useCallback((item) => {
-    if (!item.permission) return true;
-    if (Array.isArray(item.permission)) return item.permission.some((p) => hasPermission(p));
-    return hasPermission(item.permission);
+    let isAllowed = true;
+
+    if (item.permission) {
+      isAllowed = Array.isArray(item.permission)
+        ? item.permission.some((p) => hasPermission(p))
+        : hasPermission(item.permission);
+    }
+
+    if (!isAllowed) return false;
+
+    if (Array.isArray(item.excludePermissions) && item.excludePermissions.some((p) => hasPermission(p))) {
+      return false;
+    }
+
+    return true;
   }, [hasPermission]);
 
   const doesItemMatchPath = useCallback((item, pathname) => {

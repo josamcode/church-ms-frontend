@@ -90,6 +90,9 @@ export const meetingsApi = {
       return apiClient.post('/meetings/upload-avatar', formData);
     },
     getById: (id) => apiClient.get(`/meetings/${id}`),
+    getMemberById: (meetingId, memberId) => apiClient.get(`/meetings/${meetingId}/members/${memberId}`),
+    updateMemberNotes: (meetingId, memberId, notes) =>
+      apiClient.patch(`/meetings/${meetingId}/members/${memberId}/notes`, { notes }),
     updateBasic: (id, data) => apiClient.patch(`/meetings/${id}/basic`, data),
     updateServants: (id, servants) => apiClient.patch(`/meetings/${id}/servants`, { servants }),
     updateCommittees: (id, committees) => apiClient.patch(`/meetings/${id}/committees`, { committees }),

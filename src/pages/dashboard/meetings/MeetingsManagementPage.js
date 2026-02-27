@@ -18,6 +18,7 @@ import { formatDateTime } from '../../../utils/formatters';
 import { getDayLabel, getDayOptions } from './meetingsForm.utils';
 
 const MEETING_PERMISSIONS = [
+  'MEETINGS_VIEW_OWN',
   'MEETINGS_VIEW', 'MEETINGS_CREATE', 'MEETINGS_UPDATE', 'MEETINGS_DELETE',
   'MEETINGS_SERVANTS_MANAGE', 'MEETINGS_COMMITTEES_MANAGE', 'MEETINGS_ACTIVITIES_MANAGE',
 ];
@@ -33,11 +34,20 @@ function SectionLabel({ children }) {
 
 export default function MeetingsManagementPage() {
   const { t } = useI18n();
+  const tf = (key, fallback) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { hasAnyPermission, hasPermission } = useAuth();
 
   const canViewMeetings = hasPermission('MEETINGS_VIEW');
+  const canViewOwnMeetings = hasPermission('MEETINGS_VIEW_OWN');
+  const canViewMeetingsList = canViewMeetings || canViewOwnMeetings;
+  const meetingsListTitle = canViewMeetings
+    ? t('meetings.meetingsPageTitle')
+    : tf('meetings.myMeetingsPageTitle', 'My Meetings');
   const canCreateMeetings = hasPermission('MEETINGS_CREATE');
   const canUpdateMeetings = hasPermission('MEETINGS_UPDATE');
   const canUpdateMeetingsSections =
@@ -45,7 +55,8 @@ export default function MeetingsManagementPage() {
     hasPermission('MEETINGS_COMMITTEES_MANAGE') ||
     hasPermission('MEETINGS_ACTIVITIES_MANAGE');
   const canDeleteMeetings = hasPermission('MEETINGS_DELETE');
-  const canManageMeetingRows = canViewMeetings || canUpdateMeetings || canUpdateMeetingsSections || canDeleteMeetings;
+  const canManageMeetingRows =
+    canViewMeetingsList || canUpdateMeetings || canUpdateMeetingsSections || canDeleteMeetings;
   const canAccessMeetingsModule = hasAnyPermission(MEETING_PERMISSIONS);
   const canViewSectors = hasPermission('SECTORS_VIEW');
 
@@ -67,7 +78,7 @@ export default function MeetingsManagementPage() {
 
   const meetingsQuery = useQuery({
     queryKey: ['meetings', 'list', filters],
-    enabled: canViewMeetings,
+    enabled: canViewMeetingsList,
     staleTime: 30000,
     queryFn: async () => {
       const { data } = await meetingsApi.meetings.list({
@@ -176,7 +187,7 @@ export default function MeetingsManagementPage() {
       render: (row) => (
         <RowActions
           actions={[
-            ...(canViewMeetings
+            ...(canViewMeetingsList
               ? [{ label: t('common.actions.view'), onClick: () => navigate(`/dashboard/meetings/list/${row.id}`) }]
               : []),
             ...((canUpdateMeetings || canUpdateMeetingsSections)
@@ -197,13 +208,13 @@ export default function MeetingsManagementPage() {
         />
       ),
     }] : []),
-  ], [canDeleteMeetings, canManageMeetingRows, canUpdateMeetings, canUpdateMeetingsSections, canViewMeetings, deleteMeetingMutation, navigate, t]);
+  ], [canDeleteMeetings, canManageMeetingRows, canUpdateMeetings, canUpdateMeetingsSections, canViewMeetingsList, deleteMeetingMutation, navigate, t]);
 
   /* ── guard ── */
   if (!canAccessMeetingsModule) {
     return (
       <div className="animate-fade-in space-y-6">
-        <Breadcrumbs items={[{ label: t('shared.dashboard'), href: '/dashboard' }, { label: t('meetings.meetingsPageTitle') }]} />
+        <Breadcrumbs items={[{ label: t('shared.dashboard'), href: '/dashboard' }, { label: meetingsListTitle }]} />
         <EmptyState title={t('meetings.empty.noMeetingsPermissionTitle')} description={t('meetings.empty.noMeetingsPermissionDescription')} />
       </div>
     );
@@ -215,7 +226,7 @@ export default function MeetingsManagementPage() {
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
-          { label: t('meetings.meetingsPageTitle') },
+          { label: meetingsListTitle },
         ]}
       />
 
@@ -226,7 +237,7 @@ export default function MeetingsManagementPage() {
             {t('shared.dashboard')}
           </p>
           <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-            {t('meetings.meetingsPageTitle')}
+            {meetingsListTitle}
           </h1>
           <p className="mt-1 text-sm text-muted">{t('meetings.meetingsPageSubtitle')}</p>
         </div>
@@ -244,7 +255,7 @@ export default function MeetingsManagementPage() {
       </div>
 
       {/* ══ KPI TILES ═════════════════════════════════════════════════════ */}
-      {canViewMeetings && (
+      {canViewMeetingsList && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
 
           {[
@@ -284,7 +295,7 @@ export default function MeetingsManagementPage() {
       )}
 
       {/* ══ FILTERS ═══════════════════════════════════════════════════════ */}
-      {canViewMeetings && (
+      {canViewMeetingsList && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <SectionLabel>{t('meetings.filters.sector')}</SectionLabel>
@@ -324,7 +335,7 @@ export default function MeetingsManagementPage() {
       )}
 
       {/* ══ TABLE ═════════════════════════════════════════════════════════ */}
-      {canViewMeetings ? (
+      {canViewMeetingsList ? (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <SectionLabel>{t('meetings.sections.meetings')}</SectionLabel>
