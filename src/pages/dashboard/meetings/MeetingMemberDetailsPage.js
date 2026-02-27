@@ -11,6 +11,7 @@ import EmptyState from '../../../components/ui/EmptyState';
 import TextArea from '../../../components/ui/TextArea';
 import Badge from '../../../components/ui/Badge';
 import { useI18n } from '../../../i18n/i18n';
+import { formatDateTime } from '../../../utils/formatters';
 
 const EMPTY = '---';
 
@@ -36,13 +37,14 @@ export default function MeetingMemberDetailsPage() {
   });
 
   useEffect(() => {
-    setNote(memberQuery.data?.note || '');
-  }, [memberQuery.data?.note]);
+    setNote('');
+  }, [meetingId, memberId]);
 
   const saveNotesMutation = useMutation({
-    mutationFn: () => meetingsApi.meetings.updateMemberNotes(meetingId, memberId, note),
+    mutationFn: () => meetingsApi.meetings.updateMemberNotes(meetingId, memberId, note.trim()),
     onSuccess: () => {
-      toast.success(tf('meetings.memberDetails.messages.notesUpdated', 'Member notes updated successfully.'));
+      toast.success(tf('meetings.memberDetails.messages.notesUpdated', 'Member note added successfully.'));
+      setNote('');
       queryClient.invalidateQueries({ queryKey: ['meetings', 'member', meetingId, memberId] });
       queryClient.invalidateQueries({ queryKey: ['meetings', 'details', meetingId] });
       queryClient.invalidateQueries({ queryKey: ['meetings', 'list'] });
@@ -53,6 +55,7 @@ export default function MeetingMemberDetailsPage() {
   });
 
   const member = memberQuery.data || null;
+  const noteItems = Array.isArray(member?.notes) ? member.notes : [];
   const canEditNote = Boolean(member?.canEditNote);
 
   const breadcrumbs = [
@@ -128,7 +131,7 @@ export default function MeetingMemberDetailsPage() {
         <div className="flex items-center gap-2">
           <MessageSquareText className="h-4 w-4 text-muted" />
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            {t('meetings.fields.notes')}
+            {tf('meetings.memberDetails.noteTitle', 'Note')}
           </p>
         </div>
 
@@ -136,7 +139,7 @@ export default function MeetingMemberDetailsPage() {
           <TextArea
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            placeholder={tf('meetings.memberDetails.notesPlaceholder', 'Write member notes...')}
+            placeholder={tf('meetings.memberDetails.notePlaceholder', 'Write a note...')}
             disabled={!canEditNote}
           />
         </div>
@@ -146,12 +149,40 @@ export default function MeetingMemberDetailsPage() {
             <Button
               icon={Save}
               onClick={() => saveNotesMutation.mutate()}
+              disabled={!note.trim()}
               loading={saveNotesMutation.isPending}
             >
               {t('common.actions.save')}
             </Button>
           </div>
         )}
+
+        <div className="mt-5 border-t border-border pt-4">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+            {tf('meetings.memberDetails.noteHistoryTitle', 'Note History')}
+          </p>
+
+          {noteItems.length === 0 ? (
+            <p className="mt-2 text-sm text-muted">
+              {tf('meetings.memberDetails.noNotesYet', 'No notes added yet.')}
+            </p>
+          ) : (
+            <div className="mt-3 space-y-2.5">
+              {noteItems.map((item) => (
+                <div key={item.id || `${item.updatedAt || ''}-${item.note || ''}`} className="rounded-xl border border-border/80 bg-surface-alt px-3 py-2.5">
+                  <p className="whitespace-pre-wrap break-words text-sm text-heading">{item.note || EMPTY}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                    <span>
+                      {tf('meetings.memberDetails.noteByLabel', 'By')}{' '}
+                      {item.updatedBy?.fullName || item.addedBy?.fullName || tf('meetings.memberDetails.unknownNoteAuthor', 'Unknown servant')}
+                    </span>
+                    <span>{formatDateTime(item.updatedAt)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
