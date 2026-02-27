@@ -68,6 +68,17 @@ export const visitationsApi = {
   getAnalytics: (params) => apiClient.get('/visitations/analytics', { params }),
 };
 
+export const divineLiturgiesApi = {
+  getOverview: () => apiClient.get('/divine-liturgies'),
+  createRecurring: (data) => apiClient.post('/divine-liturgies/recurring', data),
+  updateRecurring: (id, data) => apiClient.patch(`/divine-liturgies/recurring/${id}`, data),
+  deleteRecurring: (id) => apiClient.delete(`/divine-liturgies/recurring/${id}`),
+  createException: (data) => apiClient.post('/divine-liturgies/exceptions', data),
+  updateException: (id, data) => apiClient.patch(`/divine-liturgies/exceptions/${id}`, data),
+  deleteException: (id) => apiClient.delete(`/divine-liturgies/exceptions/${id}`),
+  setChurchPriests: (priestUserIds) => apiClient.put('/divine-liturgies/priests', { priestUserIds }),
+};
+
 export const meetingsApi = {
   sectors: {
     list: (params) => apiClient.get('/meetings/sectors', { params }),
