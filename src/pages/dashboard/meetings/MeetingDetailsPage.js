@@ -82,7 +82,7 @@ function PersonChip({ person, roleLabel }) {
  * Clickable user card for group served users.
  * Clicking navigates to /dashboard/users/:userId
  */
-function UserCard({ user, onOpenMember }) {
+function UserCard({ user, onOpenMember, showPhone = true }) {
   const userId = user?.id || user?._id;
   const name = user?.fullName || EMPTY;
   const initial = String(name).trim().charAt(0).toUpperCase();
@@ -105,7 +105,7 @@ function UserCard({ user, onOpenMember }) {
         <p className="truncate text-sm font-semibold text-heading transition-colors group-hover:text-primary">
           {name}
         </p>
-        {phone && (
+        {showPhone && phone && (
           <p className="truncate text-xs text-muted direction-ltr">{phone}</p>
         )}
       </div>
@@ -149,6 +149,12 @@ export default function MeetingDetailsPage() {
   const meeting = meetingQuery.data || null;
   const canViewAllDetails = Boolean(meeting?.viewerContext?.canViewAllDetails);
   const canViewAllServedUsers = Boolean(meeting?.viewerContext?.canViewAllServedUsers);
+  const canViewLeadership = Boolean(meeting?.viewerContext?.canViewLeadership ?? canViewAllDetails);
+  const canViewServants = Boolean(meeting?.viewerContext?.canViewServants ?? canViewAllDetails);
+  const canViewCommittees = Boolean(meeting?.viewerContext?.canViewCommittees ?? canViewAllDetails);
+  const canViewActivities = Boolean(meeting?.viewerContext?.canViewActivities ?? canViewAllDetails);
+  const canOpenMemberFromGroups = meeting?.viewerContext?.accessLevel !== 'member';
+  const canViewMemberPhoneInGroups = meeting?.viewerContext?.accessLevel !== 'member';
   const leadershipCards = useMemo(() => {
     const assistants = meeting?.assistantSecretaries || [];
     const leaders = [];
@@ -310,7 +316,7 @@ export default function MeetingDetailsPage() {
       )}
 
       {/* ══ LEADERSHIP ════════════════════════════════════════════════════ */}
-      {canViewAllDetails && (
+      {canViewLeadership && (
         <section className="space-y-4">
           <SectionLabel count={leadershipCards.length}>
             {t('meetings.sections.leadership')}
@@ -368,7 +374,8 @@ export default function MeetingDetailsPage() {
                           <UserCard
                             key={user.id || user._id || user.fullName}
                             user={user}
-                            onOpenMember={openMeetingMember}
+                            onOpenMember={canOpenMemberFromGroups ? openMeetingMember : null}
+                            showPhone={canViewMemberPhoneInGroups}
                           />
                         ))}
                       </div>
@@ -382,7 +389,7 @@ export default function MeetingDetailsPage() {
       </section>
 
       {/* ══ SERVANTS ══════════════════════════════════════════════════════ */}
-      {canViewAllDetails && (
+      {canViewServants && (
         <section className="space-y-4">
           <SectionLabel count={(meeting.servants || []).length}>
             {t('meetings.sections.servants')}
@@ -437,75 +444,79 @@ export default function MeetingDetailsPage() {
       )}
 
       {/* ══ COMMITTEES + ACTIVITIES ════════════════════════════════════════ */}
-      {canViewAllDetails && <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      {(canViewCommittees || canViewActivities) && <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
 
         {/* committees */}
-        <section className="space-y-4">
-          <SectionLabel count={(meeting.committees || []).length}>
-            {t('meetings.sections.committees')}
-          </SectionLabel>
+        {canViewCommittees && (
+          <section className="space-y-4">
+            <SectionLabel count={(meeting.committees || []).length}>
+              {t('meetings.sections.committees')}
+            </SectionLabel>
 
-          {(meeting.committees || []).length === 0 ? (
-            <EmptyState icon={FileText} title={t('meetings.empty.noCommitteesYet')} description={tf('meetings.meetingDetails.noCommitteesDescription', 'No committees are defined for this meeting.')} />
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-border bg-surface">
-              {(meeting.committees || []).map((committee, i) => (
-                <div key={committee.id} className={`px-5 py-4 ${i !== (meeting.committees || []).length - 1 ? 'border-b border-border/60' : ''}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-heading">{committee.name || EMPTY}</p>
-                      {committee.notes && (
-                        <p className="mt-1 line-clamp-2 text-xs text-muted">{committee.notes}</p>
-                      )}
+            {(meeting.committees || []).length === 0 ? (
+              <EmptyState icon={FileText} title={t('meetings.empty.noCommitteesYet')} description={tf('meetings.meetingDetails.noCommitteesDescription', 'No committees are defined for this meeting.')} />
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+                {(meeting.committees || []).map((committee, i) => (
+                  <div key={committee.id} className={`px-5 py-4 ${i !== (meeting.committees || []).length - 1 ? 'border-b border-border/60' : ''}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-heading">{committee.name || EMPTY}</p>
+                        {committee.notes && (
+                          <p className="mt-1 line-clamp-2 text-xs text-muted">{committee.notes}</p>
+                        )}
+                      </div>
+                      <Badge variant="default">
+                        {(committee.members || []).length} {tf('meetings.meetingDetails.members', 'members')}
+                      </Badge>
                     </div>
-                    <Badge variant="default">
-                      {(committee.members || []).length} {tf('meetings.meetingDetails.members', 'members')}
-                    </Badge>
+                    {(committee.memberNames || []).length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {(committee.memberNames || []).map((name, idx) => (
+                          <span key={`${committee.id}_${idx}`} className="rounded-full border border-border bg-surface-alt px-2.5 py-0.5 text-xs font-medium text-heading">
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {(committee.memberNames || []).length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {(committee.memberNames || []).map((name, idx) => (
-                        <span key={`${committee.id}_${idx}`} className="rounded-full border border-border bg-surface-alt px-2.5 py-0.5 text-xs font-medium text-heading">
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* activities */}
-        <section className="space-y-4">
-          <SectionLabel count={(meeting.activities || []).length}>
-            {t('meetings.sections.activities')}
-          </SectionLabel>
+        {canViewActivities && (
+          <section className="space-y-4">
+            <SectionLabel count={(meeting.activities || []).length}>
+              {t('meetings.sections.activities')}
+            </SectionLabel>
 
-          {(meeting.activities || []).length === 0 ? (
-            <EmptyState icon={CalendarClock} title={t('meetings.empty.noActivitiesYet')} description={tf('meetings.meetingDetails.noActivitiesDescription', 'No activities are planned for this meeting.')} />
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-border bg-surface">
-              {(meeting.activities || []).map((activity, i) => (
-                <div key={activity.id} className={`px-5 py-4 ${i !== (meeting.activities || []).length - 1 ? 'border-b border-border/60' : ''}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-heading">{activity.name || EMPTY}</p>
-                      <p className="mt-0.5 text-xs text-muted">
-                        {activity.scheduledAt ? formatDateTime(activity.scheduledAt) : t('common.placeholder.empty')}
-                      </p>
-                      {activity.notes && (
-                        <p className="mt-1 line-clamp-2 text-xs text-muted">{activity.notes}</p>
-                      )}
+            {(meeting.activities || []).length === 0 ? (
+              <EmptyState icon={CalendarClock} title={t('meetings.empty.noActivitiesYet')} description={tf('meetings.meetingDetails.noActivitiesDescription', 'No activities are planned for this meeting.')} />
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+                {(meeting.activities || []).map((activity, i) => (
+                  <div key={activity.id} className={`px-5 py-4 ${i !== (meeting.activities || []).length - 1 ? 'border-b border-border/60' : ''}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-heading">{activity.name || EMPTY}</p>
+                        <p className="mt-0.5 text-xs text-muted">
+                          {activity.scheduledAt ? formatDateTime(activity.scheduledAt) : t('common.placeholder.empty')}
+                        </p>
+                        {activity.notes && (
+                          <p className="mt-1 line-clamp-2 text-xs text-muted">{activity.notes}</p>
+                        )}
+                      </div>
+                      {activity.type && <Badge variant="secondary">{getActivityTypeLabel(activity.type, t)}</Badge>}
                     </div>
-                    {activity.type && <Badge variant="secondary">{getActivityTypeLabel(activity.type, t)}</Badge>}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </div>}
 
     </div>

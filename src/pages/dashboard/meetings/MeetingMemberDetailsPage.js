@@ -23,7 +23,7 @@ export default function MeetingMemberDetailsPage() {
     return value === key ? fallback : value;
   };
 
-  const [notes, setNotes] = useState('');
+  const [note, setNote] = useState('');
 
   const memberQuery = useQuery({
     queryKey: ['meetings', 'member', meetingId, memberId],
@@ -36,11 +36,11 @@ export default function MeetingMemberDetailsPage() {
   });
 
   useEffect(() => {
-    setNotes(memberQuery.data?.notes || '');
-  }, [memberQuery.data?.notes]);
+    setNote(memberQuery.data?.note || '');
+  }, [memberQuery.data?.note]);
 
   const saveNotesMutation = useMutation({
-    mutationFn: () => meetingsApi.meetings.updateMemberNotes(meetingId, memberId, notes),
+    mutationFn: () => meetingsApi.meetings.updateMemberNotes(meetingId, memberId, note),
     onSuccess: () => {
       toast.success(tf('meetings.memberDetails.messages.notesUpdated', 'Member notes updated successfully.'));
       queryClient.invalidateQueries({ queryKey: ['meetings', 'member', meetingId, memberId] });
@@ -53,7 +53,7 @@ export default function MeetingMemberDetailsPage() {
   });
 
   const member = memberQuery.data || null;
-  const canEditNotes = Boolean(member?.canEditNotes);
+  const canEditNote = Boolean(member?.canEditNote);
 
   const breadcrumbs = [
     { label: t('shared.dashboard'), href: '/dashboard' },
@@ -134,14 +134,14 @@ export default function MeetingMemberDetailsPage() {
 
         <div className="mt-3">
           <TextArea
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
             placeholder={tf('meetings.memberDetails.notesPlaceholder', 'Write member notes...')}
-            disabled={!canEditNotes}
+            disabled={!canEditNote}
           />
         </div>
 
-        {canEditNotes && (
+        {canEditNote && (
           <div className="mt-3 flex justify-end">
             <Button
               icon={Save}
@@ -156,4 +156,3 @@ export default function MeetingMemberDetailsPage() {
     </div>
   );
 }
-
