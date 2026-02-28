@@ -19,6 +19,7 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Skeleton from '../../../components/ui/Skeleton';
 import UserSearchSelect from '../../../components/UserSearchSelect';
 import toast from 'react-hot-toast';
+import { useI18n } from '../../../i18n/i18n';
 import {
   ArrowRight, CheckCircle2, MinusCircle, Plus,
   Save, ShieldAlert, ShieldCheck, ShieldOff, Trash2, Upload, Users,
@@ -40,6 +41,62 @@ const roleOptions = [
 
 const normalizePermissionArray = (value) =>
   [...new Set((Array.isArray(value) ? value : []).filter(Boolean))];
+
+const PERMISSION_LABELS_AR = {
+  USERS_VIEW: 'عرض المستخدمين',
+  USERS_VIEW_SELF: 'عرض الملف الشخصي',
+  USERS_CREATE: 'إنشاء مستخدمين',
+  USERS_UPDATE: 'تعديل المستخدمين',
+  USERS_UPDATE_SELF: 'تعديل الملف الشخصي',
+  USERS_DELETE: 'حذف المستخدمين',
+  USERS_LOCK: 'قفل الحسابات',
+  USERS_UNLOCK: 'فتح قفل الحسابات',
+  USERS_TAGS_MANAGE: 'إدارة وسوم المستخدمين',
+  USERS_FAMILY_LINK: 'إدارة روابط العائلة',
+  USERS_UPLOAD_AVATAR: 'رفع صور المستخدمين',
+  USERS_UPLOAD_AVATAR_SELF: 'رفع الصورة الشخصية',
+  AUTH_VIEW_SELF: 'عرض ملف المصادقة الشخصي',
+  AUTH_MANAGE_SESSIONS: 'إدارة الجلسات',
+  AUTH_CHANGE_PASSWORD: 'تغيير كلمة المرور',
+  CONFESSIONS_VIEW: 'عرض الاعترافات',
+  CONFESSIONS_CREATE: 'إنشاء جلسات اعتراف',
+  CONFESSIONS_ASSIGN_USER: 'تعيين أشخاص للاعتراف',
+  CONFESSIONS_SESSION_TYPES_MANAGE: 'إدارة أنواع جلسات الاعتراف',
+  CONFESSIONS_ALERTS_VIEW: 'عرض تنبيهات الاعتراف',
+  CONFESSIONS_ALERTS_MANAGE: 'إدارة تنبيهات الاعتراف',
+  CONFESSIONS_ANALYTICS_VIEW: 'عرض تحليلات الاعتراف',
+  PASTORAL_VISITATIONS_VIEW: 'عرض الافتقادات الرعوية',
+  PASTORAL_VISITATIONS_CREATE: 'إنشاء افتقادات رعوية',
+  PASTORAL_VISITATIONS_ANALYTICS_VIEW: 'عرض تحليلات الافتقاد الرعوي',
+  SECTORS_VIEW: 'عرض القطاعات',
+  SECTORS_CREATE: 'إنشاء قطاعات',
+  SECTORS_UPDATE: 'تعديل القطاعات',
+  SECTORS_DELETE: 'حذف القطاعات',
+  MEETINGS_VIEW: 'عرض الاجتماعات',
+  MEETINGS_VIEW_OWN: 'عرض اجتماعاتي',
+  MEETINGS_CREATE: 'إنشاء اجتماعات',
+  MEETINGS_UPDATE: 'تعديل بيانات الاجتماع الأساسية',
+  MEETINGS_DELETE: 'حذف الاجتماعات',
+  MEETINGS_SERVANTS_MANAGE: 'إدارة خدام الاجتماع',
+  MEETINGS_COMMITTEES_MANAGE: 'إدارة لجان الاجتماع',
+  MEETINGS_ACTIVITIES_MANAGE: 'إدارة أنشطة الاجتماع',
+  MEETINGS_RESPONSIBILITIES_VIEW: 'عرض اقتراحات المسؤوليات',
+  MEETINGS_SERVANT_HISTORY_VIEW: 'عرض سجل خدمة الخادم',
+  MEETINGS_MEMBERS_VIEW: 'عرض أعضاء الاجتماع',
+  MEETINGS_MEMBERS_NOTES_UPDATE: 'تعديل ملاحظات أعضاء الاجتماع',
+  DIVINE_LITURGIES_VIEW: 'عرض جداول القداسات الإلهية',
+  DIVINE_LITURGIES_MANAGE: 'إدارة جداول القداسات الإلهية',
+  DIVINE_LITURGIES_PRIESTS_MANAGE: 'إدارة قائمة كهنة الكنيسة',
+};
+
+const PERMISSION_GROUP_LABELS_AR = {
+  users: 'إدارة المستخدمين',
+  auth: 'المصادقة',
+  confessions: 'الاعترافات',
+  visitations: 'الافتقادات الرعوية',
+  divineLiturgies: 'القداسات الإلهية',
+  meetings: 'القطاعات والاجتماعات',
+};
 
 /* ── primitives ──────────────────────────────────────────────────────────── */
 
@@ -111,9 +168,7 @@ function NameCombobox({ label, value, onChange, options, placeholder }) {
 
 /* ── PermissionRow ──────────────────────────────────────────────────────── */
 
-function PermissionRow({ permission, roleHasPermission, isExtra, isDenied, disabled, onChange }) {
-  const label = PERMISSION_LABELS[permission] || permission;
-
+function PermissionRow({ permission, label, roleHasPermission, isExtra, isDenied, disabled, onChange }) {
   /* derive status */
   let status = 'inherited';   // role grants it, no override
   if (isDenied) status = 'denied';
@@ -201,7 +256,13 @@ function PermissionRow({ permission, roleHasPermission, isExtra, isDenied, disab
 
 /* ── PermissionsPanel ───────────────────────────────────────────────────── */
 
-function PermissionsPanel({ form, selectedRolePermissions, effectivePermissionsPreview, onPermissionChange }) {
+function PermissionsPanel({
+  form,
+  selectedRolePermissions,
+  effectivePermissionsPreview,
+  onPermissionChange,
+  language,
+}) {
   const [expandedGroups, setExpandedGroups] = useState(() =>
     Object.fromEntries(PERMISSION_GROUPS.map((g) => [g.id, true]))
   );
@@ -210,6 +271,20 @@ function PermissionsPanel({ form, selectedRolePermissions, effectivePermissionsP
     setExpandedGroups((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const isSuperAdmin = form.role === 'SUPER_ADMIN';
+
+  const getPermissionLabel = (permission) => {
+    if (language === 'ar') {
+      return PERMISSION_LABELS_AR[permission] || PERMISSION_LABELS[permission] || permission;
+    }
+    return PERMISSION_LABELS[permission] || permission;
+  };
+
+  const getGroupLabel = (group) => {
+    if (language === 'ar') {
+      return PERMISSION_GROUP_LABELS_AR[group.id] || group.label;
+    }
+    return group.label;
+  };
 
   /* stats */
   const extraCount = (form.extraPermissions || []).length;
@@ -267,7 +342,7 @@ function PermissionsPanel({ form, selectedRolePermissions, effectivePermissionsP
               className="flex w-full items-center justify-between gap-4 px-5 py-4 text-start hover:bg-surface-alt/50 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <p className="text-sm font-semibold text-heading">{group.label}</p>
+                <p className="text-sm font-semibold text-heading">{getGroupLabel(group)}</p>
                 <span className="text-[11px] text-muted">{group.permissions.length} صلاحية</span>
                 {groupExtra > 0 && (
                   <span className="rounded-full border border-success/25 bg-success-light px-2 py-0.5 text-[11px] font-semibold text-success">
@@ -299,6 +374,7 @@ function PermissionsPanel({ form, selectedRolePermissions, effectivePermissionsP
                       <PermissionRow
                         key={permission}
                         permission={permission}
+                        label={getPermissionLabel(permission)}
                         roleHasPermission={roleHasPermission}
                         isExtra={isExtra}
                         isDenied={isDenied}
@@ -324,6 +400,7 @@ export default function UserEditPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
+  const { language } = useI18n();
 
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState({});
@@ -825,6 +902,7 @@ export default function UserEditPage() {
                 selectedRolePermissions={selectedRolePermissions}
                 effectivePermissionsPreview={effectivePermissionsPreview}
                 onPermissionChange={setPermissionOverride}
+                language={language}
               />
             </section>
           )}
