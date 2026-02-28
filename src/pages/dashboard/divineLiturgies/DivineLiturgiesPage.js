@@ -313,6 +313,20 @@ export default function DivineLiturgiesPage() {
     return row?.displayName || '';
   };
 
+  const getExceptionDisplayName = (row) => {
+    const manualName = String(row?.name || '').trim();
+    if (manualName) return manualName;
+
+    const dateLabel = row?.date || '';
+    if (!dateLabel) return row?.displayName || '';
+
+    if (language === 'ar') {
+      return `قداس استثنائي (${dateLabel})`;
+    }
+
+    return `Exceptional Divine Liturgy (${dateLabel})`;
+  };
+
   const recurringColumns = (includePriests, onEdit, onDelete) => [
     {
       key: 'displayName',
@@ -377,7 +391,9 @@ export default function DivineLiturgiesPage() {
     {
       key: 'displayName',
       label: t('divineLiturgies.table.displayName'),
-      render: (row) => <span className="text-sm font-medium text-heading">{row.displayName}</span>,
+      render: (row) => (
+        <span className="text-sm font-medium text-heading">{getExceptionDisplayName(row)}</span>
+      ),
     },
     {
       key: 'date',
