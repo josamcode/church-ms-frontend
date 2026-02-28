@@ -708,7 +708,7 @@ export default function DashboardLayout() {
                   </div>
                 )}
                 <span className="hidden max-w-[140px] truncate text-[13px] font-medium text-heading md:inline">
-                  {user?.name || '—'}
+                  {user?.fullName || '—'}
                 </span>
               </Link>
             </div>
@@ -791,7 +791,7 @@ function SidebarFooter({ collapsed, darkMode, toggleDark, handleLogout, tooltipS
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-semibold leading-tight text-heading">{user?.name || '—'}</p>
+            <p className="truncate text-[13px] font-semibold leading-tight text-heading">{user?.fullName || '—'}</p>
             <p className="truncate text-[11px] leading-tight text-muted/60">
               {user?.role ? getRoleLabel(user.role) : ''}
             </p>
