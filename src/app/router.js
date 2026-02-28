@@ -38,6 +38,7 @@ const DivineLiturgiesPage = lazy(() => import('../pages/dashboard/divineLiturgie
 const ChurchPriestsPage = lazy(() => import('../pages/dashboard/divineLiturgies/ChurchPriestsPage'));
 const NotificationsPage = lazy(() => import('../pages/dashboard/notifications/NotificationsPage'));
 const NotificationFormPage = lazy(() => import('../pages/dashboard/notifications/NotificationFormPage'));
+const NotificationDetailsPage = lazy(() => import('../pages/dashboard/notifications/NotificationDetailsPage'));
 const NotificationTypesPage = lazy(() => import('../pages/dashboard/notifications/NotificationTypesPage'));
 const MeetingsDashboardPage = lazy(() => import('../pages/dashboard/meetings/MeetingsDashboardPage'));
 const SectorsManagementPage = lazy(() => import('../pages/dashboard/meetings/SectorsManagementPage'));
@@ -238,6 +239,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['NOTIFICATIONS_UPDATE']}>
             <Lazy><NotificationFormPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'notifications/:id',
+        element: (
+          <PermissionGuard required={['NOTIFICATIONS_VIEW']}>
+            <Lazy><NotificationDetailsPage /></Lazy>
           </PermissionGuard>
         ),
       },

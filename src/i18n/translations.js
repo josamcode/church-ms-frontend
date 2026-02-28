@@ -1186,6 +1186,7 @@ export const translations = {
       actions: {
         create: 'Create Notification',
         edit: 'Edit Notification',
+        readFull: 'Read Full',
         addDetail: 'Add Detail',
         manageTypes: 'Manage Types',
         setActive: 'Set Active',
@@ -1208,6 +1209,12 @@ export const translations = {
       status: {
         active: 'Active',
         inactive: 'Inactive',
+      },
+      details: {
+        section: 'Full Details',
+        subtitle: 'Complete notification content and attached media.',
+        empty: 'No detail blocks available.',
+        notFoundTitle: 'Notification not found',
       },
       form: {
         createTitle: 'Create Notification',
@@ -2482,6 +2489,7 @@ export const translations = {
       actions: {
         create: 'إنشاء إشعار',
         edit: 'تعديل إشعار',
+        readFull: 'عرض كامل',
         addDetail: 'إضافة تفصيل',
         manageTypes: 'إدارة الأنواع',
         setActive: 'تفعيل',
@@ -2504,6 +2512,12 @@ export const translations = {
       status: {
         active: 'نشط',
         inactive: 'غير نشط',
+      },
+      details: {
+        section: 'التفاصيل الكاملة',
+        subtitle: 'محتوى الإشعار الكامل والوسائط المرفقة.',
+        empty: 'لا توجد عناصر تفاصيل متاحة.',
+        notFoundTitle: 'الإشعار غير موجود',
       },
       form: {
         createTitle: 'إنشاء إشعار',

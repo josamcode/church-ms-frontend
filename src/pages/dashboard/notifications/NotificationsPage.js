@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Pencil, Plus } from 'lucide-react';
+import { ArrowRight, CalendarDays, Eye, Pencil, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { notificationsApi } from '../../../api/endpoints';
@@ -10,7 +10,6 @@ import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Badge from '../../../components/ui/Badge';
-import Table from '../../../components/ui/Table';
 import Pagination from '../../../components/ui/Pagination';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
@@ -25,10 +24,123 @@ function SectionLabel({ children }) {
   );
 }
 
+function NewsCard({ notification, onOpen, onEdit, canEdit, t }) {
+  const detailsCount = Array.isArray(notification?.details) ? notification.details.length : 0;
+
+  return (
+    <article className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card transition-all hover:border-primary/30 hover:shadow-lg">
+      {notification.coverImageUrl ? (
+        <img src={notification.coverImageUrl} alt="" className="h-44 w-full object-cover" />
+      ) : (
+        <div className="h-44 w-full bg-gradient-to-br from-primary/15 via-accent/10 to-surface-alt" />
+      )}
+
+      <div className="space-y-4 p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="primary">{localizeNotificationTypeName(notification.type?.name, t)}</Badge>
+          <Badge variant={notification.isActive ? 'success' : 'default'}>
+            {notification.isActive ? t('notifications.status.active') : t('notifications.status.inactive')}
+          </Badge>
+          <span className="text-xs text-muted">
+            <CalendarDays className="mb-0.5 me-1 inline h-3 w-3" />
+            {notification.eventDate ? formatDateTime(notification.eventDate) : formatDateTime(notification.createdAt)}
+          </span>
+        </div>
+
+        <div>
+          <h3 className="text-xl font-bold leading-snug text-heading">{notification.name}</h3>
+          {notification.summary ? (
+            <p className="mt-2 line-clamp-3 text-sm text-muted">{notification.summary}</p>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 text-xs text-muted">
+          <span>
+            {t('notifications.columns.detailsCount')}: {detailsCount}
+          </span>
+          <span>{formatDateTime(notification.updatedAt)}</span>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" icon={Eye} onClick={onOpen}>
+            {t('notifications.actions.readFull')}
+          </Button>
+          {canEdit ? (
+            <Button type="button" size="sm" variant="ghost" icon={Pencil} onClick={onEdit}>
+              {t('common.actions.edit')}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function FeaturedNewsCard({ notification, onOpen, onEdit, canEdit, t, tf }) {
+  const detailsCount = Array.isArray(notification?.details) ? notification.details.length : 0;
+
+  return (
+    <article className="overflow-hidden rounded-3xl border border-border bg-surface shadow-card">
+      <div className="grid grid-cols-1 lg:grid-cols-2">
+        <div className="relative min-h-[260px]">
+          {notification.coverImageUrl ? (
+            <img src={notification.coverImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-accent/15 to-surface-alt" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-black/5" />
+          <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center gap-2">
+            <Badge variant="primary">{localizeNotificationTypeName(notification.type?.name, t)}</Badge>
+            <Badge variant={notification.isActive ? 'success' : 'default'}>
+              {notification.isActive ? t('notifications.status.active') : t('notifications.status.inactive')}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="space-y-4 p-6 lg:p-8">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+            {tf('notifications.news.featured', 'Featured News')}
+          </p>
+          <h2 className="text-2xl font-bold leading-tight text-heading">{notification.name}</h2>
+          {notification.summary ? (
+            <p className="line-clamp-4 text-sm text-muted">{notification.summary}</p>
+          ) : null}
+
+          <div className="flex flex-wrap gap-4 text-xs text-muted">
+            <span>
+              <CalendarDays className="mb-0.5 me-1 inline h-3 w-3" />
+              {notification.eventDate ? formatDateTime(notification.eventDate) : formatDateTime(notification.createdAt)}
+            </span>
+            <span>
+              {t('notifications.columns.detailsCount')}: {detailsCount}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" icon={Eye} onClick={onOpen}>
+              {t('notifications.actions.readFull')}
+            </Button>
+            {canEdit ? (
+              <Button type="button" variant="ghost" icon={Pencil} onClick={onEdit}>
+                {t('common.actions.edit')}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function NotificationsPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const { hasPermission } = useAuth();
+
+  const tf = (key, fallback) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
 
   const canCreate = hasPermission('NOTIFICATIONS_CREATE');
   const canEdit = hasPermission('NOTIFICATIONS_UPDATE');
@@ -89,6 +201,9 @@ export default function NotificationsPage() {
   const notifications = Array.isArray(listRes?.data) ? listRes.data : [];
   const meta = listRes?.meta || null;
 
+  const featuredNotification = notifications[0] || null;
+  const regularNotifications = featuredNotification ? notifications.slice(1) : [];
+
   const hasActiveFilters = Boolean(filters.q || filters.typeId || filters.isActive !== 'all');
 
   const handleNext = () => {
@@ -105,79 +220,6 @@ export default function NotificationsPage() {
     });
   };
 
-  const columns = useMemo(
-    () => [
-      {
-        key: 'name',
-        label: t('notifications.columns.name'),
-        render: (row) => (
-          <div className="space-y-1">
-            <p className="font-medium text-heading">{row.name}</p>
-            {row.summary ? <p className="text-xs text-muted line-clamp-2">{row.summary}</p> : null}
-          </div>
-        ),
-      },
-      {
-        key: 'type',
-        label: t('notifications.columns.type'),
-        render: (row) => (
-          <Badge variant="primary">
-            {localizeNotificationTypeName(row.type?.name, t)}
-          </Badge>
-        ),
-      },
-      {
-        key: 'detailsCount',
-        label: t('notifications.columns.detailsCount'),
-        render: (row) => (
-          <span className="text-sm text-heading">{Array.isArray(row.details) ? row.details.length : 0}</span>
-        ),
-      },
-      {
-        key: 'eventDate',
-        label: t('notifications.columns.eventDate'),
-        render: (row) =>
-          row.eventDate ? (
-            <span className="text-sm text-heading">{formatDateTime(row.eventDate)}</span>
-          ) : (
-            <span className="text-sm text-muted">{t('common.placeholder.empty')}</span>
-          ),
-      },
-      {
-        key: 'status',
-        label: t('notifications.columns.status'),
-        render: (row) => (
-          <Badge variant={row.isActive ? 'success' : 'default'}>
-            {row.isActive ? t('notifications.status.active') : t('notifications.status.inactive')}
-          </Badge>
-        ),
-      },
-      {
-        key: 'updatedAt',
-        label: t('notifications.columns.updatedAt'),
-        render: (row) => <span className="text-xs text-muted">{formatDateTime(row.updatedAt)}</span>,
-      },
-      {
-        key: 'actions',
-        label: '',
-        cellClassName: 'w-[100px]',
-        render: (row) =>
-          canEdit ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              icon={Pencil}
-              onClick={() => navigate(`/dashboard/notifications/${row.id}/edit`)}
-            >
-              {t('common.actions.edit')}
-            </Button>
-          ) : null,
-      },
-    ],
-    [canEdit, navigate, t]
-  );
-
   return (
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs
@@ -187,26 +229,33 @@ export default function NotificationsPage() {
         ]}
       />
 
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{t('shared.dashboard')}</p>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">{t('notifications.title')}</h1>
-          <p className="mt-1 text-sm text-muted">{t('notifications.subtitle')}</p>
-        </div>
+      <section className="relative overflow-hidden rounded-3xl border border-border bg-surface p-6 lg:p-8">
+        <div className="pointer-events-none absolute -top-24 right-0 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-0 h-64 w-64 rounded-full bg-accent/10 blur-3xl" />
 
-        <div className="flex flex-wrap gap-2">
-          {canManageTypes ? (
-            <Button type="button" variant="outline" onClick={() => navigate('/dashboard/notifications/types')}>
-              {t('notifications.actions.manageTypes')}
-            </Button>
-          ) : null}
-          {canCreate ? (
-            <Button type="button" icon={Plus} onClick={() => navigate('/dashboard/notifications/new')}>
-              {t('notifications.actions.create')}
-            </Button>
-          ) : null}
+        <div className="relative flex flex-wrap items-end justify-between gap-4">
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{t('shared.dashboard')}</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-heading lg:text-4xl">
+              {t('notifications.title')}
+            </h1>
+            <p className="mt-2 text-sm text-muted">{tf('notifications.news.subtitle', 'Latest church news, announcements, events, and celebrations.')}</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {canManageTypes ? (
+              <Button type="button" variant="outline" onClick={() => navigate('/dashboard/notifications/types')}>
+                {t('notifications.actions.manageTypes')}
+              </Button>
+            ) : null}
+            {canCreate ? (
+              <Button type="button" icon={Plus} onClick={() => navigate('/dashboard/notifications/new')}>
+                {t('notifications.actions.create')}
+              </Button>
+            ) : null}
+          </div>
         </div>
-      </div>
+      </section>
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
@@ -248,31 +297,69 @@ export default function NotificationsPage() {
         </div>
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <SectionLabel>{t('notifications.page')}</SectionLabel>
+          <SectionLabel>{tf('notifications.news.latest', 'Latest News')}</SectionLabel>
           {meta?.count != null ? <span className="text-xs text-muted">{meta.count}</span> : null}
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-border bg-surface">
-          <Table
-            columns={columns}
-            data={notifications}
-            loading={isLoading}
-            emptyTitle={t('notifications.empty.title')}
-            emptyDescription={t('notifications.empty.description')}
-          />
-          <div className="border-t border-border px-4 pb-4 pt-2">
-            <Pagination
-              meta={meta}
-              onLoadMore={handleNext}
-              onPrev={handlePrev}
-              cursors={cursorStack}
-              loading={isLoading}
-            />
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="h-64 animate-pulse rounded-2xl border border-border bg-surface-alt" />
+            ))}
           </div>
+        ) : notifications.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-surface p-10 text-center">
+            <h3 className="text-lg font-semibold text-heading">{t('notifications.empty.title')}</h3>
+            <p className="mt-2 text-sm text-muted">{t('notifications.empty.description')}</p>
+          </div>
+        ) : (
+          <>
+            {featuredNotification ? (
+              <FeaturedNewsCard
+                notification={featuredNotification}
+                t={t}
+                tf={tf}
+                canEdit={canEdit}
+                onOpen={() => navigate(`/dashboard/notifications/${featuredNotification.id}`)}
+                onEdit={() => navigate(`/dashboard/notifications/${featuredNotification.id}/edit`)}
+              />
+            ) : null}
+
+            {regularNotifications.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {regularNotifications.map((notification) => (
+                  <NewsCard
+                    key={notification.id}
+                    notification={notification}
+                    t={t}
+                    canEdit={canEdit}
+                    onOpen={() => navigate(`/dashboard/notifications/${notification.id}`)}
+                    onEdit={() => navigate(`/dashboard/notifications/${notification.id}/edit`)}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </>
+        )}
+
+        <div className="rounded-2xl border border-border bg-surface px-4 pb-4 pt-3">
+          <Pagination
+            meta={meta}
+            onLoadMore={handleNext}
+            onPrev={handlePrev}
+            cursors={cursorStack}
+            loading={isLoading}
+          />
         </div>
       </section>
+
+      <div className="flex justify-end">
+        <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => navigate('/dashboard')}>
+          {t('common.actions.back')}
+        </Button>
+      </div>
     </div>
   );
 }
