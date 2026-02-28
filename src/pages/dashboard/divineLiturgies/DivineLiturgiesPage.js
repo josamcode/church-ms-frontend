@@ -316,34 +316,34 @@ export default function DivineLiturgiesPage() {
     },
     ...(includePriests
       ? [
-          {
-            key: 'priests',
-            label: t('divineLiturgies.table.priests'),
-            render: (row) => (
-              <span className="text-sm text-heading">
-                {row.priests?.length ? priestsToLabel(row.priests) : t('common.placeholder.empty')}
-              </span>
-            ),
-          },
-        ]
+        {
+          key: 'priests',
+          label: t('divineLiturgies.table.priests'),
+          render: (row) => (
+            <span className="text-sm text-heading">
+              {row.priests?.length ? priestsToLabel(row.priests) : t('common.placeholder.empty')}
+            </span>
+          ),
+        },
+      ]
       : []),
     ...(canManage
       ? [
-          {
-            key: 'actions',
-            label: '',
-            cellClassName: 'w-10',
-            render: (row) => (
-              <RowActions
-                actions={[
-                  { label: t('common.actions.edit'), onClick: () => onEdit(row) },
-                  { divider: true },
-                  { label: t('common.actions.delete'), danger: true, onClick: () => onDelete(row.id) },
-                ]}
-              />
-            ),
-          },
-        ]
+        {
+          key: 'actions',
+          label: '',
+          cellClassName: 'w-10',
+          render: (row) => (
+            <RowActions
+              actions={[
+                { label: t('common.actions.edit'), onClick: () => onEdit(row) },
+                { divider: true },
+                { label: t('common.actions.delete'), danger: true, onClick: () => onDelete(row.id) },
+              ]}
+            />
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -383,40 +383,40 @@ export default function DivineLiturgiesPage() {
     },
     ...(canManage
       ? [
-          {
-            key: 'actions',
-            label: '',
-            cellClassName: 'w-10',
-            render: (row) => (
-              <RowActions
-                actions={[
-                  {
-                    label: t('common.actions.edit'),
-                    onClick: () => {
-                      setExceptionEditId(row.id);
-                      setExceptionForm({
-                        date: row.date,
-                        startTime: row.startTime || '',
-                        endTime: row.endTime || '',
-                        name: row.name || '',
-                        priestUserIds: (row.priests || []).map((entry) => entry.id).filter(Boolean),
-                      });
-                    },
+        {
+          key: 'actions',
+          label: '',
+          cellClassName: 'w-10',
+          render: (row) => (
+            <RowActions
+              actions={[
+                {
+                  label: t('common.actions.edit'),
+                  onClick: () => {
+                    setExceptionEditId(row.id);
+                    setExceptionForm({
+                      date: row.date,
+                      startTime: row.startTime || '',
+                      endTime: row.endTime || '',
+                      name: row.name || '',
+                      priestUserIds: (row.priests || []).map((entry) => entry.id).filter(Boolean),
+                    });
                   },
-                  { divider: true },
-                  {
-                    label: t('common.actions.delete'),
-                    danger: true,
-                    onClick: () => {
-                      if (!window.confirm(t('divineLiturgies.confirmations.deleteException'))) return;
-                      deleteExceptionMutation.mutate(row.id);
-                    },
+                },
+                { divider: true },
+                {
+                  label: t('common.actions.delete'),
+                  danger: true,
+                  onClick: () => {
+                    if (!window.confirm(t('divineLiturgies.confirmations.deleteException'))) return;
+                    deleteExceptionMutation.mutate(row.id);
                   },
-                ]}
-              />
-            ),
-          },
-        ]
+                },
+              ]}
+            />
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -444,11 +444,11 @@ export default function DivineLiturgiesPage() {
         </Link>
       </div>
 
-      {!canManage && (
+      {/* {!canManage && (
         <div className="rounded-2xl border border-border bg-surface-alt/60 px-4 py-3 text-sm text-muted">
           {t('divineLiturgies.hints.readOnly')}
         </div>
-      )}
+      )} */}
 
       <section className="space-y-4">
         <SectionLabel>{t('divineLiturgies.sections.recurringDivine')}</SectionLabel>
@@ -553,7 +553,9 @@ export default function DivineLiturgiesPage() {
       </section>
 
       <section className="space-y-4">
-        <SectionLabel>{t('divineLiturgies.sections.recurringVespers')}</SectionLabel>
+        {(recurringVespers.length > 0 || canManage) && (
+          <SectionLabel>{t('divineLiturgies.sections.recurringVespers')}</SectionLabel>
+        )}
         {canManage && (
           <form onSubmit={handleSubmitVespers} className="rounded-2xl border border-border bg-surface p-5">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -618,34 +620,38 @@ export default function DivineLiturgiesPage() {
           </form>
         )}
 
-        <Table
-          columns={recurringColumns(
-            false,
-            (row) => {
-              setVespersEditId(row.id);
-              setVespersForm({
-                serviceType: VESPERS_SERVICE_TYPE,
-                dayOfWeek: row.dayOfWeek,
-                startTime: row.startTime || '',
-                endTime: row.endTime || '',
-                name: row.name || '',
-                priestUserIds: [],
-              });
-            },
-            (id) => {
-              if (!window.confirm(t('divineLiturgies.confirmations.deleteRecurring'))) return;
-              deleteRecurringMutation.mutate(id);
-            }
-          )}
-          data={recurringVespers}
-          loading={overviewQuery.isLoading}
-          emptyTitle={t('divineLiturgies.empty.recurringVespers')}
-          emptyDescription={t('common.placeholder.empty')}
-        />
+        {recurringVespers.length > 0 && (
+          <Table
+            columns={recurringColumns(
+              false,
+              (row) => {
+                setVespersEditId(row.id);
+                setVespersForm({
+                  serviceType: VESPERS_SERVICE_TYPE,
+                  dayOfWeek: row.dayOfWeek,
+                  startTime: row.startTime || '',
+                  endTime: row.endTime || '',
+                  name: row.name || '',
+                  priestUserIds: [],
+                });
+              },
+              (id) => {
+                if (!window.confirm(t('divineLiturgies.confirmations.deleteRecurring'))) return;
+                deleteRecurringMutation.mutate(id);
+              }
+            )}
+            data={recurringVespers}
+            loading={overviewQuery.isLoading}
+            emptyTitle={t('divineLiturgies.empty.recurringVespers')}
+            emptyDescription={t('common.placeholder.empty')}
+          />
+        )}
       </section>
 
       <section className="space-y-4">
-        <SectionLabel>{t('divineLiturgies.sections.exceptions')}</SectionLabel>
+        {(exceptionalCases.length > 0 || canManage) && (
+          <SectionLabel>{t('divineLiturgies.sections.exceptions')}</SectionLabel>
+        )}
         {canManage && (
           <form onSubmit={handleSubmitException} className="rounded-2xl border border-border bg-surface p-5">
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
@@ -723,13 +729,15 @@ export default function DivineLiturgiesPage() {
           </form>
         )}
 
-        <Table
-          columns={exceptionColumns}
-          data={exceptionalCases}
-          loading={overviewQuery.isLoading}
-          emptyTitle={t('divineLiturgies.empty.exceptions')}
-          emptyDescription={t('common.placeholder.empty')}
-        />
+        {exceptionalCases.length > 0 && (
+          <Table
+            columns={exceptionColumns}
+            data={exceptionalCases}
+            loading={overviewQuery.isLoading}
+            emptyTitle={t('divineLiturgies.empty.exceptions')}
+            emptyDescription={t('common.placeholder.empty')}
+          />
+        )}
       </section>
     </div>
   );
