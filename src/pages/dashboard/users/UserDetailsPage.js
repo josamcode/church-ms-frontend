@@ -11,6 +11,7 @@ import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDate, formatDateTime, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
+import { localizeSessionTypeName } from '../../../utils/sessionTypeLocalization';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
@@ -25,6 +26,63 @@ import { PERMISSIONS, PERMISSION_GROUPS, PERMISSION_LABELS, ROLE_PERMISSIONS } f
 import toast from 'react-hot-toast';
 
 const EMPTY = '---';
+
+const PERMISSION_LABELS_AR = {
+  USERS_VIEW: 'عرض المستخدمين',
+  USERS_VIEW_SELF: 'عرض الملف الشخصي',
+  USERS_CREATE: 'إنشاء مستخدمين',
+  USERS_UPDATE: 'تعديل المستخدمين',
+  USERS_UPDATE_SELF: 'تعديل الملف الشخصي',
+  USERS_DELETE: 'حذف المستخدمين',
+  USERS_LOCK: 'قفل الحسابات',
+  USERS_UNLOCK: 'فتح قفل الحسابات',
+  USERS_TAGS_MANAGE: 'إدارة وسوم المستخدمين',
+  USERS_FAMILY_LINK: 'إدارة روابط العائلة',
+  USERS_UPLOAD_AVATAR: 'رفع صور المستخدمين',
+  USERS_UPLOAD_AVATAR_SELF: 'رفع الصورة الشخصية',
+  AUTH_VIEW_SELF: 'عرض ملف المصادقة الشخصي',
+  AUTH_MANAGE_SESSIONS: 'إدارة الجلسات',
+  AUTH_CHANGE_PASSWORD: 'تغيير كلمة المرور',
+  CONFESSIONS_VIEW: 'عرض الاعترافات',
+  CONFESSIONS_CREATE: 'إنشاء جلسات اعتراف',
+  CONFESSIONS_ASSIGN_USER: 'تعيين أشخاص للاعتراف',
+  CONFESSIONS_SESSION_TYPES_MANAGE: 'إدارة أنواع جلسات الاعتراف',
+  CONFESSIONS_ALERTS_VIEW: 'عرض تنبيهات الاعتراف',
+  CONFESSIONS_ALERTS_MANAGE: 'إدارة تنبيهات الاعتراف',
+  CONFESSIONS_ANALYTICS_VIEW: 'عرض تحليلات الاعتراف',
+  PASTORAL_VISITATIONS_VIEW: 'عرض الافتقادات الرعوية',
+  PASTORAL_VISITATIONS_CREATE: 'إنشاء افتقادات رعوية',
+  PASTORAL_VISITATIONS_ANALYTICS_VIEW: 'عرض تحليلات الافتقاد الرعوي',
+  SECTORS_VIEW: 'عرض القطاعات',
+  SECTORS_CREATE: 'إنشاء قطاعات',
+  SECTORS_UPDATE: 'تعديل القطاعات',
+  SECTORS_DELETE: 'حذف القطاعات',
+  MEETINGS_VIEW: 'عرض الاجتماعات',
+  MEETINGS_VIEW_OWN: 'عرض اجتماعاتي',
+  MEETINGS_CREATE: 'إنشاء اجتماعات',
+  MEETINGS_UPDATE: 'تعديل بيانات الاجتماع الأساسية',
+  MEETINGS_DELETE: 'حذف الاجتماعات',
+  MEETINGS_SERVANTS_MANAGE: 'إدارة خدام الاجتماع',
+  MEETINGS_COMMITTEES_MANAGE: 'إدارة لجان الاجتماع',
+  MEETINGS_ACTIVITIES_MANAGE: 'إدارة أنشطة الاجتماع',
+  MEETINGS_RESPONSIBILITIES_VIEW: 'عرض اقتراحات المسؤوليات',
+  MEETINGS_SERVANT_HISTORY_VIEW: 'عرض سجل خدمة الخادم',
+  MEETINGS_MEMBERS_VIEW: 'عرض أعضاء الاجتماع',
+  MEETINGS_MEMBERS_NOTES_UPDATE: 'تعديل ملاحظات أعضاء الاجتماع',
+  DIVINE_LITURGIES_VIEW: 'عرض جداول القداسات الإلهية',
+  DIVINE_LITURGIES_MANAGE: 'إدارة جداول القداسات الإلهية',
+  DIVINE_LITURGIES_PRIESTS_MANAGE: 'إدارة قائمة كهنة الكنيسة',
+};
+
+const PERMISSION_GROUP_LABELS_AR = {
+  users: 'إدارة المستخدمين',
+  auth: 'المصادقة',
+  confessions: 'الاعترافات',
+  visitations: 'الافتقادات الرعوية',
+  divineLiturgies: 'القداسات الإلهية',
+  meetings: 'القطاعات والاجتماعات',
+  custom: 'مخصص',
+};
 
 /* ── primitives ──────────────────────────────────────────────────────────── */
 
@@ -125,7 +183,7 @@ export default function UserDetailsPage() {
       ),
     },
     {
-      label: tf('userDetails.tabs.system', 'Cross-System'),
+      label: tf('userDetails.system.sidebar.overview', 'Overview'),
       content: (
         <SystemTab
           user={user}
@@ -133,6 +191,59 @@ export default function UserDetailsPage() {
           hasPermission={hasPermission}
           hasAnyPermission={hasAnyPermission}
           tf={tf}
+          section="overview"
+        />
+      ),
+    },
+    {
+      label: tf('userDetails.system.sidebar.confessions', 'Confessions'),
+      content: (
+        <SystemTab
+          user={user}
+          userId={id}
+          hasPermission={hasPermission}
+          hasAnyPermission={hasAnyPermission}
+          tf={tf}
+          section="confessions"
+        />
+      ),
+    },
+    {
+      label: tf('userDetails.system.sidebar.meetings', 'Meetings'),
+      content: (
+        <SystemTab
+          user={user}
+          userId={id}
+          hasPermission={hasPermission}
+          hasAnyPermission={hasAnyPermission}
+          tf={tf}
+          section="meetings"
+        />
+      ),
+    },
+    {
+      label: tf('userDetails.system.sidebar.visitations', 'Visitations'),
+      content: (
+        <SystemTab
+          user={user}
+          userId={id}
+          hasPermission={hasPermission}
+          hasAnyPermission={hasAnyPermission}
+          tf={tf}
+          section="visitations"
+        />
+      ),
+    },
+    {
+      label: tf('userDetails.system.sidebar.permissions', 'Permissions'),
+      content: (
+        <SystemTab
+          user={user}
+          userId={id}
+          hasPermission={hasPermission}
+          hasAnyPermission={hasAnyPermission}
+          tf={tf}
+          section="permissions"
         />
       ),
     },
@@ -387,13 +498,27 @@ const MEETING_OVERVIEW_PERMISSIONS = [
   'MEETINGS_ACTIVITIES_MANAGE',
 ];
 
-function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf }) {
-  const { t } = useI18n();
+function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf, section = 'overview' }) {
+  const { t, language } = useI18n();
   const canViewConfessions = hasPermission('CONFESSIONS_VIEW');
   const canViewVisitations = hasPermission('PASTORAL_VISITATIONS_VIEW');
   const canViewMeetings = hasAnyPermission(MEETING_OVERVIEW_PERMISSIONS);
   const canViewPermissions = hasPermission('USERS_VIEW');
   const houseName = String(user.houseName || '').trim();
+
+  const getPermissionLabel = (permission) => {
+    if (language === 'ar') {
+      return PERMISSION_LABELS_AR[permission] || PERMISSION_LABELS[permission] || permission;
+    }
+    return PERMISSION_LABELS[permission] || permission;
+  };
+
+  const getPermissionGroupLabel = (groupId, fallbackLabel) => {
+    if (language === 'ar') {
+      return PERMISSION_GROUP_LABELS_AR[groupId] || fallbackLabel;
+    }
+    return fallbackLabel;
+  };
 
   const [
     confessionsQuery,
@@ -484,37 +609,16 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf }) {
 
   const permissionsSnapshot = useMemo(() => buildPermissionsSnapshot(user), [user]);
 
-  const sidebarItems = useMemo(() => [
-    { id: 'user-system-overview', label: tf('userDetails.system.sidebar.overview', 'Overview') },
-    { id: 'user-system-confessions', label: tf('userDetails.system.sidebar.confessions', 'Confessions') },
-    { id: 'user-system-meetings', label: tf('userDetails.system.sidebar.meetings', 'Meetings') },
-    { id: 'user-system-visitations', label: tf('userDetails.system.sidebar.visitations', 'Visitations') },
-    { id: 'user-system-permissions', label: tf('userDetails.system.sidebar.permissions', 'Permissions') },
-  ], [tf]);
+  const showOverview = section === 'overview';
+  const showConfessions = section === 'confessions';
+  const showMeetings = section === 'meetings';
+  const showVisitations = section === 'visitations';
+  const showPermissions = section === 'permissions';
 
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[240px_minmax(0,1fr)]">
-      <aside className="xl:sticky xl:top-24 xl:self-start">
-        <div className="rounded-2xl border border-border bg-surface p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            {tf('userDetails.system.sidebar.title', 'Sections')}
-          </p>
-          <div className="mt-3 space-y-1.5">
-            {sidebarItems.map((item) => (
-              <a
-                key={item.id}
-                href={`#${item.id}`}
-                className="block rounded-lg px-2.5 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-alt hover:text-heading"
-              >
-                {item.label}
-              </a>
-            ))}
-          </div>
-        </div>
-      </aside>
-
-      <div className="space-y-6">
-        <section id="user-system-overview" className="space-y-4">
+    <div className="space-y-6">
+      {showOverview && (
+        <section className="space-y-4">
           <SectionLabel>{tf('userDetails.system.overview.title', 'Cross-System Overview')}</SectionLabel>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <QuickStat
@@ -539,8 +643,10 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf }) {
             />
           </div>
         </section>
+      )}
 
-        <section id="user-system-confessions" className="space-y-4">
+      {showConfessions && (
+        <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <SectionLabel count={canViewConfessions ? confessions.length : null}>
               {tf('userDetails.system.confessions.title', 'Confessions')}
@@ -566,7 +672,7 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf }) {
                   <div key={session.id} className="rounded-xl border border-border/80 bg-surface-alt/40 px-3.5 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-sm font-semibold text-heading">
-                        {session.sessionType?.name || EMPTY}
+                        {localizeSessionTypeName(session.sessionType?.name, t)}
                       </p>
                       <p className="text-xs text-muted">
                         {formatDateTime(session.scheduledAt)}
@@ -586,8 +692,10 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf }) {
             )}
           </div>
         </section>
+      )}
 
-        <section id="user-system-meetings" className="space-y-4">
+      {showMeetings && (
+        <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <SectionLabel count={canViewMeetings ? involvedMeetings.length : null}>
               {tf('userDetails.system.meetings.title', 'Meetings')}
@@ -639,8 +747,10 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf }) {
             )}
           </div>
         </section>
+      )}
 
-        <section id="user-system-visitations" className="space-y-4">
+      {showVisitations && (
+        <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <SectionLabel count={canViewVisitations ? recordedVisitations.length : null}>
               {tf('userDetails.system.visitations.title', 'Visitations')}
@@ -688,8 +798,10 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf }) {
             </div>
           </div>
         </section>
+      )}
 
-        <section id="user-system-permissions" className="space-y-4">
+      {showPermissions && (
+        <section className="space-y-4">
           <SectionLabel count={canViewPermissions ? permissionsSnapshot.effectivePermissions.length : null}>
             {tf('userDetails.system.permissions.title', 'Permissions')}
           </SectionLabel>
@@ -714,7 +826,7 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf }) {
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {permissionsSnapshot.extraPermissions.map((permission) => (
                         <Badge key={`extra-${permission}`} variant="success">
-                          {PERMISSION_LABELS[permission] || permission}
+                          {getPermissionLabel(permission)}
                         </Badge>
                       ))}
                     </div>
@@ -729,7 +841,7 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf }) {
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {permissionsSnapshot.deniedPermissions.map((permission) => (
                         <Badge key={`denied-${permission}`} variant="danger">
-                          {PERMISSION_LABELS[permission] || permission}
+                          {getPermissionLabel(permission)}
                         </Badge>
                       ))}
                     </div>
@@ -739,7 +851,9 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf }) {
                 <div className="space-y-4">
                   {permissionsSnapshot.groupedEffectivePermissions.map((group) => (
                     <div key={group.id} className="space-y-2">
-                      <SectionLabel count={group.permissions.length}>{group.label}</SectionLabel>
+                      <SectionLabel count={group.permissions.length}>
+                        {getPermissionGroupLabel(group.id, group.label)}
+                      </SectionLabel>
                       {group.permissions.length === 0 ? (
                         <p className="text-sm text-muted">{tf('userDetails.system.permissions.emptyGroup', 'No effective permissions in this group.')}</p>
                       ) : (
@@ -749,7 +863,7 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf }) {
                               key={`${group.id}-${permission}`}
                               variant={permissionsSnapshot.extraPermissionSet.has(permission) ? 'success' : 'primary'}
                             >
-                              {PERMISSION_LABELS[permission] || permission}
+                              {getPermissionLabel(permission)}
                             </Badge>
                           ))}
                         </div>
@@ -761,7 +875,7 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf }) {
             )}
           </div>
         </section>
-      </div>
+      )}
     </div>
   );
 }
