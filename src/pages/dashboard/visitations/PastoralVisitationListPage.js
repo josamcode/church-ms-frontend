@@ -96,7 +96,7 @@ export default function PastoralVisitationListPage() {
         const query = new URLSearchParams({ lookupType: 'houseName', lookupName: houseName }).toString();
         return (
           <Link
-            to={`/dashboard/users/family-house?${query}`}
+            to={`/dashboard/users/family-house/details?${query}`}
             className="group inline-flex items-center gap-1 font-medium text-heading transition-colors hover:text-primary"
           >
             {houseName}
