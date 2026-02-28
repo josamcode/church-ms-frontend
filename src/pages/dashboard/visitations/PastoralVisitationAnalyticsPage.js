@@ -121,6 +121,7 @@ export default function PastoralVisitationAnalyticsPage() {
             value={months}
             onChange={(e) => setMonths(e.target.value)}
             options={[
+              { value: '1', label: t('visitations.analytics.period1') },
               { value: '3', label: t('visitations.analytics.period3') },
               { value: '6', label: t('visitations.analytics.period6') },
               { value: '12', label: t('visitations.analytics.period12') },

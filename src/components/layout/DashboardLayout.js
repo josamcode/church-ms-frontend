@@ -114,6 +114,8 @@ export default function DashboardLayout() {
     const value = t(key);
     return value === key ? fallback : value;
   }, [t]);
+  const hasFullMeetingsView = hasPermission('MEETINGS_VIEW');
+  const hasOwnMeetingsViewOnly = hasPermission('MEETINGS_VIEW_OWN') && !hasFullMeetingsView;
   const hasAssignedMeetings = useMemo(
     () => Array.isArray(user?.meetingIds) && user.meetingIds.length > 0,
     [user?.meetingIds]
@@ -247,6 +249,7 @@ export default function DashboardLayout() {
         label: t('dashboardLayout.menu.meetingsAndSectors'),
         href: '/dashboard/meetings',
         icon: CalendarDays,
+        hidden: hasOwnMeetingsViewOnly,
         permission: [
           'SECTORS_VIEW',
           'SECTORS_CREATE',
@@ -287,6 +290,7 @@ export default function DashboardLayout() {
           label: t('dashboardLayout.menu.meetingsManagement'),
           href: '/dashboard/meetings/list',
           icon: CalendarDays,
+          hidden: hasOwnMeetingsViewOnly,
           permission: [
             'MEETINGS_VIEW',
             'MEETINGS_CREATE',
@@ -300,7 +304,7 @@ export default function DashboardLayout() {
         },
       ],
     },
-  ], [t, tf]);
+  ], [t, tf, hasOwnMeetingsViewOnly]);
 
   const bottomItems = useMemo(() => [
     {
@@ -315,6 +319,8 @@ export default function DashboardLayout() {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   const isItemAllowed = useCallback((item) => {
+    if (item.hidden) return false;
+
     let isAllowed = true;
 
     if (item.permission) {
