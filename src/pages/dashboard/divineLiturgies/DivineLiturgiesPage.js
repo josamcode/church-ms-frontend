@@ -93,6 +93,30 @@ function priestsToLabel(priests = []) {
     .join(', ');
 }
 
+function formatTime12(value, language) {
+  const raw = String(value || '').trim();
+  const match = raw.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return raw;
+
+  const hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+
+  try {
+    const date = new Date(Date.UTC(1970, 0, 1, hours, minutes));
+    const locale = language === 'ar' ? 'ar-EG' : 'en-US';
+    return new Intl.DateTimeFormat(locale, {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'UTC',
+    }).format(date);
+  } catch (_error) {
+    const hour12 = hours % 12 || 12;
+    const suffix = hours >= 12 ? 'PM' : 'AM';
+    return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+  }
+}
+
 export default function DivineLiturgiesPage() {
   const { t, language } = useI18n();
   const { hasPermission } = useAuth();
@@ -303,14 +327,16 @@ export default function DivineLiturgiesPage() {
     {
       key: 'startTime',
       label: t('divineLiturgies.table.startTime'),
-      render: (row) => <span className="text-sm text-heading">{row.startTime}</span>,
+      render: (row) => (
+        <span className="text-sm text-heading">{formatTime12(row.startTime, language)}</span>
+      ),
     },
     {
       key: 'endTime',
       label: t('divineLiturgies.table.endTime'),
       render: (row) => (
         <span className="text-sm text-heading">
-          {row.endTime || t('common.placeholder.empty')}
+          {row.endTime ? formatTime12(row.endTime, language) : t('common.placeholder.empty')}
         </span>
       ),
     },
@@ -361,14 +387,16 @@ export default function DivineLiturgiesPage() {
     {
       key: 'startTime',
       label: t('divineLiturgies.table.startTime'),
-      render: (row) => <span className="text-sm text-heading">{row.startTime}</span>,
+      render: (row) => (
+        <span className="text-sm text-heading">{formatTime12(row.startTime, language)}</span>
+      ),
     },
     {
       key: 'endTime',
       label: t('divineLiturgies.table.endTime'),
       render: (row) => (
         <span className="text-sm text-heading">
-          {row.endTime || t('common.placeholder.empty')}
+          {row.endTime ? formatTime12(row.endTime, language) : t('common.placeholder.empty')}
         </span>
       ),
     },
