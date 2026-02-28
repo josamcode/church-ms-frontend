@@ -8,6 +8,7 @@ import { normalizeApiError } from '../../../api/errors';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
+import PageHeader from '../../../components/ui/PageHeader';
 import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
 
@@ -207,15 +208,12 @@ export default function PastoralVisitationCreatePage() {
       />
 
       {/* ══ HEADER ══════════════════════════════════════════════════════ */}
-      <div className="border-b border-border pb-6">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-          {t('visitations.list.page')}
-        </p>
-        <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-          {t('visitations.create.title')}
-        </h1>
-        <p className="mt-1 text-sm text-muted">{t('visitations.create.subtitle')}</p>
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        eyebrow={t('visitations.list.page')}
+        title={t('visitations.create.title')}
+        subtitle={t('visitations.create.subtitle')}
+      />
 
       {/* ══ FORM ════════════════════════════════════════════════════════ */}
       <form onSubmit={handleSubmit} noValidate>

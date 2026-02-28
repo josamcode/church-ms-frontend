@@ -152,6 +152,14 @@ export default function DashboardLayout() {
         matchChildren: true,
       },
       children: [
+        // {
+        //   key: 'family-house-lookup',
+        //   label: tf('dashboardLayout.menu.familyHouseLookup', 'Family & House Lookup'),
+        //   href: '/dashboard/users/family-house',
+        //   icon: Building2,
+        //   permission: 'USERS_VIEW',
+        //   matchChildren: false,
+        // },
         {
           key: 'family-house-analytics',
           label: tf('dashboardLayout.menu.familyHouseAnalytics', 'Family Analytics'),

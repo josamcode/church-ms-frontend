@@ -12,6 +12,7 @@ import Badge from '../../../components/ui/Badge';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import Table, { RowActions } from '../../../components/ui/Table';
+import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
 
@@ -217,28 +218,24 @@ export default function SectorsManagementPage() {
       />
 
       {/* ══ HEADER ════════════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            {t('shared.dashboard')}
-          </p>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-            {t('meetings.sectorsPageTitle')}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t('meetings.sectorsPageSubtitle')}</p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button variant="ghost" icon={CalendarRange} onClick={() => navigate('/dashboard/meetings')}>
-            {t('meetings.actions.openDashboard')}
-          </Button>
-          {canCreateSectors && (
-            <Button icon={Layers3} onClick={() => navigate('/dashboard/meetings/sectors/new')}>
-              {t('meetings.actions.addSector')}
+      <PageHeader
+        className="border-b border-border pb-6"
+        eyebrow={t('shared.dashboard')}
+        title={t('meetings.sectorsPageTitle')}
+        subtitle={t('meetings.sectorsPageSubtitle')}
+        actions={(
+          <div className="flex flex-wrap gap-2">
+            <Button variant="ghost" icon={CalendarRange} onClick={() => navigate('/dashboard/meetings')}>
+              {t('meetings.actions.openDashboard')}
             </Button>
-          )}
-        </div>
-      </div>
+            {canCreateSectors && (
+              <Button icon={Layers3} onClick={() => navigate('/dashboard/meetings/sectors/new')}>
+                {t('meetings.actions.addSector')}
+              </Button>
+            )}
+          </div>
+        )}
+      />
 
       {/* ══ KPI TILES ═════════════════════════════════════════════════════ */}
       {canViewSectors && (

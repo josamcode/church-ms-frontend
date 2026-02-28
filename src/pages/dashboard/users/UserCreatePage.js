@@ -9,6 +9,8 @@ import Select from '../../../components/ui/Select';
 import TextArea from '../../../components/ui/TextArea';
 import Button from '../../../components/ui/Button';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
+import PageHeader from '../../../components/ui/PageHeader';
+import { useI18n } from '../../../i18n/i18n';
 import toast from 'react-hot-toast';
 import { ArrowRight, Plus, Save, Trash2, Upload, Users, X } from 'lucide-react';
 
@@ -97,6 +99,7 @@ function NameCombobox({ label, value, onChange, options, placeholder }) {
 export default function UserCreatePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useI18n();
 
   const [form, setForm] = useState({
     fullName: '', phonePrimary: '', email: '', birthDate: '',
@@ -247,23 +250,23 @@ export default function UserCreatePage() {
     <div className="animate-fade-in space-y-8 pb-10">
 
       <Breadcrumbs items={[
-        { label: 'لوحة التحكم', href: '/dashboard' },
-        { label: 'الافراد', href: '/dashboard/users' },
-        { label: 'إضافة مستخدم' },
+        { label: t('shared.dashboard'), href: '/dashboard' },
+        { label: t('shared.users'), href: '/dashboard/users' },
+        { label: t('usersForm.create.title') },
       ]} />
 
       {/* ══ HEADER ══════════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            الافراد
-          </p>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-            إضافة مستخدم جديد
-          </h1>
-        </div>
-        <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => navigate(-1)}>رجوع</Button>
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        eyebrow={t('shared.users')}
+        title={t('usersForm.create.title')}
+        subtitle={t('usersForm.create.subtitle')}
+        actions={(
+          <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => navigate(-1)}>
+            {t('common.actions.back')}
+          </Button>
+        )}
+      />
 
       {/* ══ FORM ════════════════════════════════════════════════════════ */}
       <form onSubmit={handleSubmit} noValidate>
@@ -571,3 +574,5 @@ export default function UserCreatePage() {
     </div>
   );
 }
+
+

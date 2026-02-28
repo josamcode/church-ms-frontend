@@ -11,6 +11,7 @@ import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
+import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
 import Table, { RowActions } from '../../../components/ui/Table';
 import { useI18n } from '../../../i18n/i18n';
@@ -187,10 +188,13 @@ export default function MeetingsPage() {
 
       <Card>
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="text-xl font-bold text-heading">{t('meetings.pageTitle')}</h1>
-            <p className="text-sm text-muted">{t('meetings.pageSubtitle')}</p>
-          </div>
+          <PageHeader
+            contentOnly
+            title={t('meetings.pageTitle')}
+            subtitle={t('meetings.pageSubtitle')}
+            titleClassName="mt-0 text-xl font-bold text-heading"
+            subtitleClassName="mt-0 text-sm text-muted"
+          />
           <div className="flex gap-2 flex-wrap">
             {canCreateSectors && (
               <Button icon={Layers3} variant="outline" onClick={() => navigate('/dashboard/meetings/sectors/new')}>

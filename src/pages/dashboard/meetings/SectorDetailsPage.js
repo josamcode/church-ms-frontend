@@ -11,6 +11,7 @@ import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import EmptyState from '../../../components/ui/EmptyState';
+import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
 import { getDayLabel } from './meetingsForm.utils';
@@ -135,17 +136,13 @@ export default function SectorDetailsPage() {
             </div>
           )}
 
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-              {t('meetings.sectorsPageTitle')}
-            </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-heading">
-              {sector.name || EMPTY}
-            </h1>
-            <p className="mt-1 text-sm text-muted">
-              {tf('meetings.sectorDetails.subtitle', 'Full profile including officials and linked meetings.')}
-            </p>
-          </div>
+          <PageHeader
+            contentOnly
+            eyebrow={t('meetings.sectorsPageTitle')}
+            title={sector.name || EMPTY}
+            subtitle={tf('meetings.sectorDetails.subtitle', 'Full profile including officials and linked meetings.')}
+            titleClassName="mt-1 text-3xl font-bold tracking-tight text-heading"
+          />
         </div>
 
         {/* actions */}

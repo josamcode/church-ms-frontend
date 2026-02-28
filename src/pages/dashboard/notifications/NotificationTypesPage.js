@@ -9,6 +9,7 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Badge from '../../../components/ui/Badge';
+import PageHeader from '../../../components/ui/PageHeader';
 import Table from '../../../components/ui/Table';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
@@ -109,13 +110,12 @@ export default function NotificationTypesPage() {
         ]}
       />
 
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{t('shared.dashboard')}</p>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">{t('notifications.types.title')}</h1>
-          <p className="mt-1 text-sm text-muted">{t('notifications.types.subtitle')}</p>
-        </div>
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        eyebrow={t('shared.dashboard')}
+        title={t('notifications.types.title')}
+        subtitle={t('notifications.types.subtitle')}
+      />
 
       <section className="space-y-3">
         <SectionLabel>{t('notifications.types.createTitle')}</SectionLabel>

@@ -32,6 +32,7 @@ import { confessionsApi, healthApi, usersApi, visitationsApi } from '../../api/e
 import { useAuth } from '../../auth/auth.hooks';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
+import PageHeader from '../../components/ui/PageHeader';
 import { formatDateTime, getRoleLabel } from '../../utils/formatters';
 import { useI18n } from '../../i18n/i18n';
 
@@ -289,34 +290,27 @@ export default function DashboardHome() {
     <div className="animate-fade-in space-y-8 pb-10">
 
       {/* ══ GREETING STRIP ══════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            {todayLabel}
-          </p>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-            {t('dashboardHome.welcome', { name: user?.fullName || '' })}
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            {getRoleLabel(user?.role)}
-          </p>
-        </div>
-
-        {/* account + uptime pills — compact, no card */}
-        <div className="flex flex-wrap gap-2">
-          <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium
-            ${user?.isLocked
-              ? 'border-danger/30 bg-danger-light text-danger'
-              : 'border-success/30 bg-success-light text-success'
-            }`}>
-            {user?.isLocked ? t('common.status.locked') : t('common.status.active')}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1 text-xs font-medium text-muted">
-            <Server className="h-3 w-3" />
-            {formatUptime(healthQuery.data?.uptime, t)}
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        eyebrow={todayLabel}
+        title={t('dashboardHome.welcome', { name: user?.fullName || '' })}
+        subtitle={getRoleLabel(user?.role)}
+        actions={(
+          <div className="flex flex-wrap gap-2">
+            <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium
+              ${user?.isLocked
+                ? 'border-danger/30 bg-danger-light text-danger'
+                : 'border-success/30 bg-success-light text-success'
+              }`}>
+              {user?.isLocked ? t('common.status.locked') : t('common.status.active')}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1 text-xs font-medium text-muted">
+              <Server className="h-3 w-3" />
+              {formatUptime(healthQuery.data?.uptime, t)}
+            </span>
+          </div>
+        )}
+      />
 
       {/* ══ KPI ROW — 3 tiles only ══════════════════════════════════════════ */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

@@ -8,6 +8,7 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Pagination from '../../../components/ui/Pagination';
+import PageHeader from '../../../components/ui/PageHeader';
 import Table from '../../../components/ui/Table';
 import { useI18n } from '../../../i18n/i18n';
 import useNavigateToUser from '../../../hooks/useNavigateToUser';
@@ -169,22 +170,19 @@ export default function PastoralVisitationListPage() {
       />
 
       {/* ══ HEADER ══════════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            {t('shared.dashboard')}
-          </p>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-            {t('visitations.list.title')}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t('visitations.list.subtitle')}</p>
-        </div>
-        {canCreate && (
-          <Link to="/dashboard/visitations/new">
-            <Button icon={Plus}>{t('visitations.list.createAction')}</Button>
-          </Link>
-        )}
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        eyebrow={t('shared.dashboard')}
+        title={t('visitations.list.title')}
+        subtitle={t('visitations.list.subtitle')}
+        actions={
+          canCreate ? (
+            <Link to="/dashboard/visitations/new">
+              <Button icon={Plus}>{t('visitations.list.createAction')}</Button>
+            </Link>
+          ) : null
+        }
+      />
 
       {/* ══ FILTERS ═════════════════════════════════════════════════════ */}
       <section className="space-y-3">

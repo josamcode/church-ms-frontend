@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { authApi } from '../../api/endpoints';
 import Badge from '../../components/ui/Badge';
 import Breadcrumbs from '../../components/ui/Breadcrumbs';
+import PageHeader from '../../components/ui/PageHeader';
 import Skeleton from '../../components/ui/Skeleton';
 import { formatDate, getGenderLabel, getRoleLabel } from '../../utils/formatters';
 import { useI18n } from '../../i18n/i18n';
@@ -115,20 +116,19 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-primary/70">
-                {t('dashboardLayout.menu.profile')}
-              </p>
-              <h1 className="mt-0.5 text-3xl font-bold tracking-tight text-heading">
-                {user?.fullName || empty}
-              </h1>
-              <p className="mt-1 text-sm text-muted">{email}</p>
-              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                <Badge variant="primary">{roleLabel}</Badge>
-                <Badge variant={statusVariant}>{statusLabel}</Badge>
-                {user?.ageGroup && <Badge>{user.ageGroup}</Badge>}
-              </div>
-            </div>
+            <PageHeader
+              contentOnly
+              eyebrow={t('dashboardLayout.menu.profile')}
+              title={user?.fullName || empty}
+              subtitle={email}
+              eyebrowClassName="text-primary/70"
+              titleClassName="mt-0.5 text-3xl font-bold tracking-tight text-heading"
+              childrenClassName="mt-2.5 flex flex-wrap items-center gap-1.5"
+            >
+              <Badge variant="primary">{roleLabel}</Badge>
+              <Badge variant={statusVariant}>{statusLabel}</Badge>
+              {user?.ageGroup && <Badge>{user.ageGroup}</Badge>}
+            </PageHeader>
           </div>
         </div>
       </div>

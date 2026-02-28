@@ -10,6 +10,7 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
+import PageHeader from '../../../components/ui/PageHeader';
 import Table, { RowActions } from '../../../components/ui/Table';
 import { useI18n } from '../../../i18n/i18n';
 import { getDayLabel, getDayOptions } from '../meetings/meetingsForm.utils';
@@ -476,17 +477,16 @@ export default function DivineLiturgiesPage() {
         ]}
       />
 
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-            {t('divineLiturgies.title')}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t('divineLiturgies.subtitle')}</p>
-        </div>
-        <Link to="/dashboard/divine-liturgies/priests">
-          <Button variant="outline">{t('divineLiturgies.actions.openChurchPriests')}</Button>
-        </Link>
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        title={t('divineLiturgies.title')}
+        subtitle={t('divineLiturgies.subtitle')}
+        actions={(
+          <Link to="/dashboard/divine-liturgies/priests">
+            <Button variant="outline">{t('divineLiturgies.actions.openChurchPriests')}</Button>
+          </Link>
+        )}
+      />
 
       {/* {!canManage && (
         <div className="rounded-2xl border border-border bg-surface-alt/60 px-4 py-3 text-sm text-muted">

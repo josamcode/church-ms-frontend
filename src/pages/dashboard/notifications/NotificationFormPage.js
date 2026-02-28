@@ -13,6 +13,7 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import TextArea from '../../../components/ui/TextArea';
 import Badge from '../../../components/ui/Badge';
+import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 import { localizeNotificationTypeName } from '../../../utils/notificationTypeLocalization';
 
@@ -303,21 +304,17 @@ export default function NotificationFormPage() {
         ]}
       />
 
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{t('shared.dashboard')}</p>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-            {isEdit ? t('notifications.form.editTitle') : t('notifications.form.createTitle')}
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            {isEdit ? t('notifications.form.editSubtitle') : t('notifications.form.createSubtitle')}
-          </p>
-        </div>
-
-        <Button type="button" variant="ghost" size="sm" icon={ArrowRight} onClick={() => navigate('/dashboard/notifications')}>
-          {t('common.actions.back')}
-        </Button>
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        eyebrow={t('shared.dashboard')}
+        title={isEdit ? t('notifications.form.editTitle') : t('notifications.form.createTitle')}
+        subtitle={isEdit ? t('notifications.form.editSubtitle') : t('notifications.form.createSubtitle')}
+        actions={(
+          <Button type="button" variant="ghost" size="sm" icon={ArrowRight} onClick={() => navigate('/dashboard/notifications')}>
+            {t('common.actions.back')}
+          </Button>
+        )}
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>

@@ -16,6 +16,7 @@ import TextArea from '../../../components/ui/TextArea';
 import Switch from '../../../components/ui/Switch';
 import Button from '../../../components/ui/Button';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
+import PageHeader from '../../../components/ui/PageHeader';
 import Skeleton from '../../../components/ui/Skeleton';
 import UserSearchSelect from '../../../components/UserSearchSelect';
 import toast from 'react-hot-toast';
@@ -400,7 +401,7 @@ export default function UserEditPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
 
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState({});
@@ -786,10 +787,10 @@ export default function UserEditPage() {
   return (
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs items={[
-        { label: 'لوحة التحكم', href: '/dashboard' },
-        { label: 'الافراد', href: '/dashboard/users' },
+        { label: t('shared.dashboard'), href: '/dashboard' },
+        { label: t('shared.users'), href: '/dashboard/users' },
         { label: user?.fullName, href: `/dashboard/users/${id}` },
-        { label: 'تعديل' },
+        { label: t('usersForm.edit.title') },
       ]} />
 
       {/* ══ HEADER ══════════════════════════════════════════════════════ */}
@@ -802,12 +803,16 @@ export default function UserEditPage() {
               {initial}
             </div>
           )}
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">تعديل بيانات المستخدم</p>
-            <h1 className="mt-0.5 text-3xl font-bold tracking-tight text-heading">{user?.fullName}</h1>
-          </div>
+          <PageHeader
+            contentOnly
+            eyebrow={t('usersForm.edit.title')}
+            title={user?.fullName}
+            titleClassName="mt-0.5 text-3xl font-bold tracking-tight text-heading"
+          />
         </div>
-        <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => navigate(-1)}>رجوع</Button>
+        <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => navigate(-1)}>
+          {t('common.actions.back')}
+        </Button>
       </div>
 
       {/* ══ FORM ════════════════════════════════════════════════════════ */}

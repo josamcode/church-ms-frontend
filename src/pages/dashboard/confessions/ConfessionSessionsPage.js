@@ -9,6 +9,7 @@ import Button from '../../../components/ui/Button';
 import Table from '../../../components/ui/Table';
 import Pagination from '../../../components/ui/Pagination';
 import Badge from '../../../components/ui/Badge';
+import PageHeader from '../../../components/ui/PageHeader';
 import { formatDateTime } from '../../../utils/formatters';
 import { localizeSessionTypeName } from '../../../utils/sessionTypeLocalization';
 import { useI18n } from '../../../i18n/i18n';
@@ -138,25 +139,21 @@ export default function ConfessionSessionsPage() {
       />
 
       {/* ══ PAGE HEADER ═══════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-            {t('confessions.sessions.recentTitle')}
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            {t('confessions.sessions.recentSubtitle')}
-          </p>
-        </div>
-
-        {canCreate && (
-          <Button
-            icon={CalendarPlus}
-            onClick={() => navigate('/dashboard/confessions/new')}
-          >
-            {t('confessions.sessions.createAction')}
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        title={t('confessions.sessions.recentTitle')}
+        subtitle={t('confessions.sessions.recentSubtitle')}
+        actions={
+          canCreate ? (
+            <Button
+              icon={CalendarPlus}
+              onClick={() => navigate('/dashboard/confessions/new')}
+            >
+              {t('confessions.sessions.createAction')}
+            </Button>
+          ) : null
+        }
+      />
 
       {/* ══ TABLE SECTION ═════════════════════════════════════════════════ */}
       <section className="space-y-3">
