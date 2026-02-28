@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { ArrowRight, ImagePlus, PlusCircle, Save, Trash2 } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowRight, ImagePlus, PlusCircle, Save, Trash2, Tag } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 import { notificationsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
+import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
@@ -35,17 +36,106 @@ function toDateInputValue(isoValue) {
   return shifted.toISOString().slice(0, 16);
 }
 
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function NotificationTypeCombobox({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  error,
+  hint,
+  emptyMessage,
+}) {
+  const [open, setOpen] = useState(false);
+
+  const filtered = useMemo(() => {
+    const query = normalizeText(value);
+    if (!query) return options.slice(0, 20);
+
+    return options
+      .filter((option) => {
+        const display = normalizeText(option.display);
+        const name = normalizeText(option.name);
+        return display.includes(query) || name.includes(query);
+      })
+      .slice(0, 20);
+  }, [options, value]);
+
+  return (
+    <div className="relative mb-4">
+      {label ? <label className="mb-1.5 block text-sm font-medium text-base">{label}</label> : null}
+
+      <div
+        className={[
+          'relative flex items-center overflow-hidden rounded-xl border bg-surface transition-colors',
+          error
+            ? 'border-danger focus-within:ring-2 focus-within:ring-danger/15'
+            : 'border-border focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10',
+        ].join(' ')}
+      >
+        <Tag className="ms-3 h-4 w-4 shrink-0 text-muted" />
+        <input
+          type="text"
+          value={value}
+          onChange={(event) => {
+            onChange(event.target.value, null);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder={placeholder}
+          className="w-full bg-transparent px-3 py-2.5 text-sm text-heading placeholder:text-muted focus:outline-none"
+        />
+      </div>
+
+      {hint && !error ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
+      {error ? <p className="mt-1 text-xs font-medium text-danger">{error}</p> : null}
+
+      {open ? (
+        <ul className="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-border bg-surface py-1 shadow-lg">
+          {filtered.length === 0 ? (
+            <li className="px-3 py-2 text-xs text-muted">{emptyMessage}</li>
+          ) : (
+            filtered.map((option) => (
+              <li
+                key={option.id}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  onChange(option.display, option.id);
+                  setOpen(false);
+                }}
+                className="cursor-pointer px-3 py-2 text-sm text-heading transition-colors hover:bg-primary/8 hover:text-primary"
+              >
+                {option.display}
+              </li>
+            ))
+          )}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 export default function NotificationFormPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
   const { t } = useI18n();
+  const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
+
+  const canManageTypes = hasPermission('NOTIFICATIONS_TYPES_MANAGE');
 
   const tf = (key, fallback) => {
     const value = t(key);
     return value === key ? fallback : value;
   };
 
+  const [typeInput, setTypeInput] = useState('');
   const [formErrors, setFormErrors] = useState({});
   const [coverUploading, setCoverUploading] = useState(false);
   const [detailUploading, setDetailUploading] = useState({});
@@ -71,13 +161,25 @@ export default function NotificationFormPage() {
     staleTime: 60000,
   });
 
-  const typeOptions = useMemo(() => {
+  const typeChoices = useMemo(() => {
     const types = Array.isArray(typesRes?.data) ? typesRes.data : [];
     return types.map((type) => ({
-      value: type.id,
-      label: localizeNotificationTypeName(type.name, t),
+      id: type.id,
+      name: type.name,
+      display: localizeNotificationTypeName(type.name, t),
     }));
   }, [typesRes, t]);
+
+  const findTypeByInput = (inputValue) => {
+    const needle = normalizeText(inputValue);
+    if (!needle) return null;
+
+    return (
+      typeChoices.find((type) => normalizeText(type.name) === needle)
+      || typeChoices.find((type) => normalizeText(type.display) === needle)
+      || null
+    );
+  };
 
   const { data: notificationRes, isLoading: loadingNotification } = useQuery({
     queryKey: ['notifications', 'details', id],
@@ -89,11 +191,12 @@ export default function NotificationFormPage() {
   });
 
   useEffect(() => {
-    if (isEdit) return;
-    if (!typeOptions.length) return;
+    if (isEdit || !typeChoices.length || form.typeId) return;
 
-    setForm((prev) => (prev.typeId ? prev : { ...prev, typeId: typeOptions[0].value }));
-  }, [isEdit, typeOptions]);
+    const first = typeChoices[0];
+    setForm((prev) => ({ ...prev, typeId: first.id }));
+    setTypeInput(first.display);
+  }, [isEdit, typeChoices, form.typeId]);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -118,7 +221,9 @@ export default function NotificationFormPage() {
             }))
           : [createDetail('text')],
     });
-  }, [isEdit, notificationRes]);
+
+    setTypeInput(localizeNotificationTypeName(notification.type?.name || '', t));
+  }, [isEdit, notificationRes, t]);
 
   const createMutation = useMutation({
     mutationFn: (payload) => notificationsApi.create(payload),
@@ -142,11 +247,30 @@ export default function NotificationFormPage() {
     },
   });
 
-  const isSaving = createMutation.isPending || updateMutation.isPending;
+  const createTypeMutation = useMutation({
+    mutationFn: (typeName) => notificationsApi.createType(typeName),
+  });
+
+  const isSaving = createMutation.isPending || updateMutation.isPending || createTypeMutation.isPending;
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const updateTypeInput = (value, selectedTypeId) => {
+    setTypeInput(value);
+
+    const matched = selectedTypeId
+      ? typeChoices.find((type) => type.id === selectedTypeId)
+      : findTypeByInput(value);
+
+    setForm((prev) => ({
+      ...prev,
+      typeId: matched?.id || '',
+    }));
+
+    setFormErrors((prev) => ({ ...prev, typeId: undefined }));
   };
 
   const updateDetail = (localId, field, value) => {
@@ -229,7 +353,7 @@ export default function NotificationFormPage() {
   const validateForm = () => {
     const nextErrors = {};
 
-    if (!form.typeId) {
+    if (!typeInput.trim()) {
       nextErrors.typeId = tf('notifications.validation.typeRequired', 'Notification type is required.');
     }
 
@@ -262,13 +386,60 @@ export default function NotificationFormPage() {
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = (event) => {
+  const resolveTypeId = async () => {
+    if (form.typeId) {
+      return form.typeId;
+    }
+
+    const matched = findTypeByInput(typeInput);
+    if (matched) {
+      return matched.id;
+    }
+
+    const newTypeName = typeInput.trim();
+    if (!newTypeName) {
+      throw new Error(tf('notifications.validation.typeRequired', 'Notification type is required.'));
+    }
+
+    if (!canManageTypes) {
+      throw new Error(
+        tf(
+          'notifications.validation.typeMustExist',
+          'Please select an existing notification type. You do not have permission to create new types.'
+        )
+      );
+    }
+
+    const response = await createTypeMutation.mutateAsync(newTypeName);
+    const createdType = response?.data?.data ?? response?.data;
+    if (!createdType?.id) {
+      throw new Error(tf('notifications.messages.typeCreateFailed', 'Failed to create notification type.'));
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['notifications', 'types'] });
+    toast.success(tf('notifications.messages.typeCreated', 'Notification type created successfully.'));
+
+    setForm((prev) => ({ ...prev, typeId: createdType.id }));
+    setTypeInput(localizeNotificationTypeName(createdType.name || newTypeName, t));
+
+    return createdType.id;
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (!validateForm()) return;
 
+    let resolvedTypeId = null;
+    try {
+      resolvedTypeId = await resolveTypeId();
+    } catch (error) {
+      setFormErrors((prev) => ({ ...prev, typeId: error.message }));
+      return;
+    }
+
     const payload = {
-      typeId: form.typeId,
+      typeId: resolvedTypeId,
       name: form.name.trim(),
       summary: form.summary.trim() || null,
       details: form.details.map((detail) => ({
@@ -324,14 +495,19 @@ export default function NotificationFormPage() {
           />
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Select
+            <NotificationTypeCombobox
               label={t('notifications.form.type')}
-              value={form.typeId}
-              onChange={(event) => updateField('typeId', event.target.value)}
-              options={typeOptions}
+              value={typeInput}
+              onChange={updateTypeInput}
+              options={typeChoices}
               placeholder={t('notifications.form.typePlaceholder')}
               error={formErrors.typeId}
-              required
+              // hint={
+              //   canManageTypes
+              //     ? tf('notifications.form.typeSmartHint', 'Select an existing type or type a new one to create automatically.')
+              //     : tf('notifications.form.typeSelectHint', 'Select an existing notification type.')
+              // }
+              emptyMessage={tf('notifications.form.typeNoMatches', 'No matching type. Keep typing to create new if allowed.')}
             />
             <Input
               label={t('notifications.form.name')}
@@ -366,28 +542,28 @@ export default function NotificationFormPage() {
             className="min-h-[90px]"
           />
 
-            <div className="rounded-xl border border-border p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-heading">{t('notifications.form.coverImage')}</p>
-                  <p className="text-xs text-muted">{t('notifications.form.coverImageHint')}</p>
-                </div>
-                <input
-                  ref={coverInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  className="hidden"
-                  onChange={handleCoverUpload}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  icon={ImagePlus}
-                  loading={coverUploading}
-                  onClick={() => coverInputRef.current?.click()}
-                >
-                  {t('notifications.form.uploadImage')}
-                </Button>
+          <div className="rounded-xl border border-border p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-heading">{t('notifications.form.coverImage')}</p>
+                <p className="text-xs text-muted">{t('notifications.form.coverImageHint')}</p>
+              </div>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={handleCoverUpload}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                icon={ImagePlus}
+                loading={coverUploading}
+                onClick={() => coverInputRef.current?.click()}
+              >
+                {t('notifications.form.uploadImage')}
+              </Button>
             </div>
 
             {form.coverImageUrl ? (
@@ -477,29 +653,29 @@ export default function NotificationFormPage() {
                 {detail.kind === 'image' ? (
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-3">
-                        <input
-                          ref={(node) => {
-                            if (node) {
-                              detailInputRefs.current[detail.localId] = node;
-                            } else {
-                              delete detailInputRefs.current[detail.localId];
-                            }
-                          }}
-                          type="file"
-                          accept="image/jpeg,image/png,image/gif,image/webp"
-                          className="hidden"
-                          onChange={(event) => handleDetailImageUpload(detail.localId, event)}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          icon={ImagePlus}
-                          loading={Boolean(detailUploading[detail.localId])}
-                          onClick={() => detailInputRefs.current[detail.localId]?.click()}
-                        >
-                          {t('notifications.form.uploadImage')}
-                        </Button>
+                      <input
+                        ref={(node) => {
+                          if (node) {
+                            detailInputRefs.current[detail.localId] = node;
+                          } else {
+                            delete detailInputRefs.current[detail.localId];
+                          }
+                        }}
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        className="hidden"
+                        onChange={(event) => handleDetailImageUpload(detail.localId, event)}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        icon={ImagePlus}
+                        loading={Boolean(detailUploading[detail.localId])}
+                        onClick={() => detailInputRefs.current[detail.localId]?.click()}
+                      >
+                        {t('notifications.form.uploadImage')}
+                      </Button>
 
                       {detail.url ? (
                         <a href={detail.url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">

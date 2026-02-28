@@ -145,7 +145,6 @@ export default function NotificationsPage() {
 
   const canCreate = hasPermission('NOTIFICATIONS_CREATE');
   const canEdit = hasPermission('NOTIFICATIONS_UPDATE');
-  const canManageTypes = hasPermission('NOTIFICATIONS_TYPES_MANAGE');
 
   const [filters, setFilters] = useState({ q: '', typeId: '', isActive: 'all' });
   const [cursor, setCursor] = useState(null);
@@ -244,11 +243,6 @@ export default function NotificationsPage() {
           subtitleClassName="mt-2 text-sm text-muted"
           actions={(
             <div className="flex flex-wrap gap-2">
-              {canManageTypes ? (
-                <Button type="button" variant="outline" onClick={() => navigate('/dashboard/notifications/types')}>
-                  {t('notifications.actions.manageTypes')}
-                </Button>
-              ) : null}
               {canCreate ? (
                 <Button type="button" icon={Plus} onClick={() => navigate('/dashboard/notifications/new')}>
                   {t('notifications.actions.create')}
