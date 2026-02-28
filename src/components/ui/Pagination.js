@@ -8,13 +8,17 @@ export default function Pagination({
   onPrev,
   loading = false,
   cursors = [],
+  pageInfo = null,
 }) {
   const { t, isRTL } = useI18n();
 
   if (!meta) return null;
 
   const canGoBack = cursors && cursors.length > 1;
-  const canLoadMore = meta.hasMore;
+  const canLoadMore = Boolean(meta?.hasMore ?? meta?.nextCursor);
+  const currentPage = Math.max(Array.isArray(cursors) ? cursors.length : 1, 1);
+  const totalPages = meta?.hasMore ? '?' : currentPage;
+  const resolvedPageInfo = pageInfo || `${currentPage}/${totalPages}`;
 
   return (
     <div className="flex items-center justify-between pt-4">
@@ -31,6 +35,9 @@ export default function Pagination({
             {t('common.pagination.previous')}
           </Button>
         )}
+        <span className="min-w-12 text-center text-sm font-medium text-muted direction-ltr">
+          {resolvedPageInfo}
+        </span>
         <Button
           variant="outline"
           size="sm"

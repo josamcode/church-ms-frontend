@@ -3,14 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus, Eye, Edit, Lock, Unlock, Trash2,
-  Users, UserCheck, UserX,
+  Users, UserCheck,
 } from 'lucide-react';
 import { usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import { useI18n } from '../../../i18n/i18n';
 import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
 import Table, { RowActions } from '../../../components/ui/Table';
 import SearchInput from '../../../components/ui/SearchInput';
 import Select from '../../../components/ui/Select';
@@ -20,6 +19,7 @@ import Badge from '../../../components/ui/Badge';
 import Modal from '../../../components/ui/Modal';
 import toast from 'react-hot-toast';
 import { AGE_GROUPS, formatDate, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
+import { fetchUsersWithPagination } from './familyHouseLookup.shared';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Helpers
@@ -52,7 +52,7 @@ export default function UsersListPage() {
   const [filters, setFilters] = useState({ fullName: '', ageGroup: '', gender: '', role: '' });
   const [cursor, setCursor] = useState(null);
   const [cursorStack, setCursorStack] = useState([null]);
-  const [limit] = useState(20);
+  const [limit] = useState(10);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -75,6 +75,15 @@ export default function UsersListPage() {
     keepPreviousData: true,
   });
 
+  const { data: totalUsersCount = 0, refetch: refetchTotalUsers } = useQuery({
+    queryKey: ['users', 'totalCount'],
+    queryFn: async () => {
+      const allUsers = await fetchUsersWithPagination();
+      return allUsers.length;
+    },
+    staleTime: 120000,
+  });
+
   const users = useMemo(() => data?.data ?? [], [data?.data]);
   const meta = data?.meta || null;
 
@@ -91,14 +100,15 @@ export default function UsersListPage() {
   }, []);
 
   const handleNext = useCallback(() => {
-    if (meta?.nextCursor) {
+    if (meta?.nextCursor && meta.nextCursor !== cursor) {
       setCursorStack((prev) => [...prev, meta.nextCursor]);
       setCursor(meta.nextCursor);
     }
-  }, [meta?.nextCursor]);
+  }, [cursor, meta?.nextCursor]);
 
   const handlePrev = useCallback(() => {
     setCursorStack((prev) => {
+      if (prev.length <= 1) return prev;
       const next = prev.slice(0, -1);
       setCursor(next[next.length - 1] || null);
       return next;
@@ -113,6 +123,7 @@ export default function UsersListPage() {
       toast.success(t('usersListPage.messages.deletedSuccess'));
       setDeleteTarget(null);
       refetch();
+      refetchTotalUsers();
     } catch (err) {
       toast.error(normalizeApiError(err).message);
     } finally {
@@ -278,20 +289,20 @@ export default function UsersListPage() {
           <div className="mt-4 h-0.5 w-10 rounded-full bg-success/40" />
         </div>
 
-        {/* locked */}
+        {/* total users */}
         <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-              {t('usersListPage.stats.lockedAccounts')}
+              Total users
             </p>
-            <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${lockedCount > 0 ? 'bg-danger-light text-danger' : 'bg-surface-alt text-muted'}`}>
-              <UserX className="h-4 w-4" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Users className="h-4 w-4" />
             </span>
           </div>
-          <p className={`mt-4 text-4xl font-bold tracking-tight ${lockedCount > 0 ? 'text-danger' : 'text-heading'}`}>
-            {lockedCount}
+          <p className="mt-4 text-4xl font-bold tracking-tight text-primary">
+            {totalUsersCount}
           </p>
-          <div className={`mt-4 h-0.5 w-10 rounded-full ${lockedCount > 0 ? 'bg-danger/40' : 'bg-border'}`} />
+          <div className="mt-4 h-0.5 w-10 rounded-full bg-primary/40" />
         </div>
       </div>
 

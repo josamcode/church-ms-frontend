@@ -252,6 +252,26 @@ export default function DashboardLayout() {
       ],
     },
     {
+      key: 'notifications',
+      sectionLabel: tf('dashboardLayout.section.notifications', 'Notifications'),
+      parent: {
+        label: tf('dashboardLayout.menu.notifications', 'Notifications'),
+        href: '/dashboard/notifications',
+        icon: BellRing,
+        permission: 'NOTIFICATIONS_VIEW',
+        matchChildren: true,
+      },
+      children: [
+        {
+          label: tf('dashboardLayout.menu.notificationTypes', 'Notification Types'),
+          href: '/dashboard/notifications/types',
+          icon: Layers3,
+          permission: 'NOTIFICATIONS_TYPES_MANAGE',
+          matchChildren: false,
+        },
+      ],
+    },
+    {
       key: 'meetings',
       sectionLabel: t('dashboardLayout.section.meetings'),
       parent: {

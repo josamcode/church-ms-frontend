@@ -36,6 +36,9 @@ const PastoralVisitationDetailsPage = lazy(() => import('../pages/dashboard/visi
 const PastoralVisitationAnalyticsPage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationAnalyticsPage'));
 const DivineLiturgiesPage = lazy(() => import('../pages/dashboard/divineLiturgies/DivineLiturgiesPage'));
 const ChurchPriestsPage = lazy(() => import('../pages/dashboard/divineLiturgies/ChurchPriestsPage'));
+const NotificationsPage = lazy(() => import('../pages/dashboard/notifications/NotificationsPage'));
+const NotificationFormPage = lazy(() => import('../pages/dashboard/notifications/NotificationFormPage'));
+const NotificationTypesPage = lazy(() => import('../pages/dashboard/notifications/NotificationTypesPage'));
 const MeetingsDashboardPage = lazy(() => import('../pages/dashboard/meetings/MeetingsDashboardPage'));
 const SectorsManagementPage = lazy(() => import('../pages/dashboard/meetings/SectorsManagementPage'));
 const MeetingsManagementPage = lazy(() => import('../pages/dashboard/meetings/MeetingsManagementPage'));
@@ -211,6 +214,38 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['DIVINE_LITURGIES_VIEW']}>
             <Lazy><ChurchPriestsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'notifications',
+        element: (
+          <PermissionGuard required={['NOTIFICATIONS_VIEW']}>
+            <Lazy><NotificationsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'notifications/new',
+        element: (
+          <PermissionGuard required={['NOTIFICATIONS_CREATE']}>
+            <Lazy><NotificationFormPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'notifications/:id/edit',
+        element: (
+          <PermissionGuard required={['NOTIFICATIONS_UPDATE']}>
+            <Lazy><NotificationFormPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'notifications/types',
+        element: (
+          <PermissionGuard required={['NOTIFICATIONS_TYPES_MANAGE']}>
+            <Lazy><NotificationTypesPage /></Lazy>
           </PermissionGuard>
         ),
       },
