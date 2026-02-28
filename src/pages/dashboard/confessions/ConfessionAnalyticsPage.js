@@ -8,6 +8,7 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Select from '../../../components/ui/Select';
 import Table from '../../../components/ui/Table';
 import Badge from '../../../components/ui/Badge';
+import PageHeader from '../../../components/ui/PageHeader';
 import { formatDateTime } from '../../../utils/formatters';
 import { localizeSessionTypeName } from '../../../utils/sessionTypeLocalization';
 import { useI18n } from '../../../i18n/i18n';
@@ -100,32 +101,27 @@ export default function ConfessionAnalyticsPage() {
       />
 
       {/* ══ HEADER ══════════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            {t('shared.dashboard')}
-          </p>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-            {t('confessions.analytics.title')}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t('confessions.analytics.subtitle')}</p>
-        </div>
-
-        {/* period selector */}
-        <div className="w-full sm:w-48">
-          <Select
-            value={months}
-            onChange={(e) => setMonths(e.target.value)}
-            options={[
-              { value: '3', label: t('confessions.analytics.period3') },
-              { value: '6', label: t('confessions.analytics.period6') },
-              { value: '12', label: t('confessions.analytics.period12') },
-              { value: '24', label: t('confessions.analytics.period24') },
-            ]}
-            containerClassName="!mb-0"
-          />
-        </div>
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        eyebrow={t('shared.dashboard')}
+        title={t('confessions.analytics.title')}
+        subtitle={t('confessions.analytics.subtitle')}
+        actions={(
+          <div className="w-full sm:w-48">
+            <Select
+              value={months}
+              onChange={(e) => setMonths(e.target.value)}
+              options={[
+                { value: '3', label: t('confessions.analytics.period3') },
+                { value: '6', label: t('confessions.analytics.period6') },
+                { value: '12', label: t('confessions.analytics.period12') },
+                { value: '24', label: t('confessions.analytics.period24') },
+              ]}
+              containerClassName="!mb-0"
+            />
+          </div>
+        )}
+      />
 
       {/* ══ KPI TILES ═══════════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">

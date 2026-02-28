@@ -10,6 +10,7 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
+import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
 import Table from '../../../components/ui/Table';
 import { getGenderLabel } from '../../../utils/formatters';
@@ -292,14 +293,12 @@ export default function FamilyHouseLookupPage() {
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Building2 className="h-5 w-5" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-heading">
-                  {t('familyHouseLookup.detailsPage.title')}
-                </h1>
-                <p className="mt-1 text-sm text-muted">
-                  {t('familyHouseLookup.detailsPage.subtitle')}
-                </p>
-              </div>
+              <PageHeader
+                contentOnly
+                title={t('familyHouseLookup.detailsPage.title')}
+                subtitle={t('familyHouseLookup.detailsPage.subtitle')}
+                titleClassName="mt-0 text-2xl font-bold text-heading"
+              />
             </div>
             <Link to={FAMILY_HOUSE_ANALYTICS_PATH}>
               <Button variant="outline" icon={ArrowLeft}>

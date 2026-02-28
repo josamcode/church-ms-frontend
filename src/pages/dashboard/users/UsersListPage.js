@@ -17,6 +17,7 @@ import Pagination from '../../../components/ui/Pagination';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Badge from '../../../components/ui/Badge';
 import Modal from '../../../components/ui/Modal';
+import PageHeader from '../../../components/ui/PageHeader';
 import toast from 'react-hot-toast';
 import { AGE_GROUPS, formatDate, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
 import { fetchUsersWithPagination } from './familyHouseLookup.shared';
@@ -244,20 +245,18 @@ export default function UsersListPage() {
       />
 
       {/* ══ PAGE HEADER ═══════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-            {t('shared.users')}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t('usersListPage.hero.description')}</p>
-        </div>
-
-        {hasPermission('USERS_CREATE') && (
-          <Link to="/dashboard/users/new">
-            <Button icon={Plus}>{t('usersListPage.actions.addUser')}</Button>
-          </Link>
-        )}
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        title={t('shared.users')}
+        subtitle={t('usersListPage.hero.description')}
+        actions={
+          hasPermission('USERS_CREATE') ? (
+            <Link to="/dashboard/users/new">
+              <Button icon={Plus}>{t('usersListPage.actions.addUser')}</Button>
+            </Link>
+          ) : null
+        }
+      />
 
       {/* ══ KPI TILES ═════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

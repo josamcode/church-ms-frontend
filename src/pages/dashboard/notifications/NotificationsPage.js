@@ -11,6 +11,7 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Badge from '../../../components/ui/Badge';
 import Pagination from '../../../components/ui/Pagination';
+import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
 import { localizeNotificationTypeName } from '../../../utils/notificationTypeLocalization';
@@ -90,7 +91,7 @@ function FeaturedNewsCard({ notification, onOpen, onEdit, canEdit, t, tf }) {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-black/5" />
           <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center gap-2">
-            <Badge variant="primary">{localizeNotificationTypeName(notification.type?.name, t)}</Badge>
+            <Badge variant="primary" className='bg-primary text-white'>{localizeNotificationTypeName(notification.type?.name, t)}</Badge>
             <Badge variant={notification.isActive ? 'success' : 'default'}>
               {notification.isActive ? t('notifications.status.active') : t('notifications.status.inactive')}
             </Badge>
@@ -233,28 +234,29 @@ export default function NotificationsPage() {
         <div className="pointer-events-none absolute -top-24 right-0 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 left-0 h-64 w-64 rounded-full bg-accent/10 blur-3xl" />
 
-        <div className="relative flex flex-wrap items-end justify-between gap-4">
-          <div className="max-w-2xl">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{t('shared.dashboard')}</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-heading lg:text-4xl">
-              {t('notifications.title')}
-            </h1>
-            <p className="mt-2 text-sm text-muted">{tf('notifications.news.subtitle', 'Latest church news, announcements, events, and celebrations.')}</p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {canManageTypes ? (
-              <Button type="button" variant="outline" onClick={() => navigate('/dashboard/notifications/types')}>
-                {t('notifications.actions.manageTypes')}
-              </Button>
-            ) : null}
-            {canCreate ? (
-              <Button type="button" icon={Plus} onClick={() => navigate('/dashboard/notifications/new')}>
-                {t('notifications.actions.create')}
-              </Button>
-            ) : null}
-          </div>
-        </div>
+        <PageHeader
+          className="relative"
+          contentClassName="max-w-2xl"
+          eyebrow={t('shared.dashboard')}
+          title={t('notifications.title')}
+          subtitle={tf('notifications.news.subtitle', 'Latest church news, announcements, events, and celebrations.')}
+          titleClassName="mt-2 lg:text-4xl"
+          subtitleClassName="mt-2 text-sm text-muted"
+          actions={(
+            <div className="flex flex-wrap gap-2">
+              {canManageTypes ? (
+                <Button type="button" variant="outline" onClick={() => navigate('/dashboard/notifications/types')}>
+                  {t('notifications.actions.manageTypes')}
+                </Button>
+              ) : null}
+              {canCreate ? (
+                <Button type="button" icon={Plus} onClick={() => navigate('/dashboard/notifications/new')}>
+                  {t('notifications.actions.create')}
+                </Button>
+              ) : null}
+            </div>
+          )}
+        />
       </section>
 
       <section className="space-y-3">

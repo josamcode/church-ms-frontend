@@ -20,6 +20,7 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
+import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
 import { DAY_VALUES, getDayLabel } from './meetingsForm.utils';
@@ -264,40 +265,37 @@ export default function MeetingsDashboardPage() {
       {/* ══════════════════════════════════════════════
           HERO HEADER — clean, no background gradient
       ══════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-end justify-between gap-6 border-b border-border pb-6">
-        <div>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-heading">
-            {t('meetings.dashboardTitle')}
-          </h1>
-          <p className="mt-1.5 max-w-md text-sm text-muted">
-            {t('meetings.dashboardSubtitle')}
-          </p>
-        </div>
-
-        {/* action buttons — minimal row */}
-        <div className="flex flex-wrap items-center gap-2">
-          {canManageSectors && (
-            <Button variant="ghost" icon={Layers3} onClick={() => navigate('/dashboard/meetings/sectors')}>
-              {t('meetings.actions.manageSectors')}
-            </Button>
-          )}
-          {canManageMeetings && (
-            <Button variant="outline" icon={ListChecks} onClick={() => navigate('/dashboard/meetings/list')}>
-              {t('meetings.actions.manageMeetings')}
-            </Button>
-          )}
-          {canCreateSectors && (
-            <Button variant="ghost" icon={Layers3} onClick={() => navigate('/dashboard/meetings/sectors/new')}>
-              {t('meetings.actions.addSector')}
-            </Button>
-          )}
-          {canCreateMeetings && (
-            <Button icon={CalendarPlus} onClick={() => navigate('/dashboard/meetings/new')}>
-              {t('meetings.actions.addMeeting')}
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        title={t('meetings.dashboardTitle')}
+        subtitle={t('meetings.dashboardSubtitle')}
+        titleClassName="mt-1 text-3xl font-bold tracking-tight text-heading"
+        subtitleClassName="mt-1.5 max-w-md text-sm text-muted"
+        actions={(
+          <div className="flex flex-wrap items-center gap-2">
+            {canManageSectors && (
+              <Button variant="ghost" icon={Layers3} onClick={() => navigate('/dashboard/meetings/sectors')}>
+                {t('meetings.actions.manageSectors')}
+              </Button>
+            )}
+            {canManageMeetings && (
+              <Button variant="outline" icon={ListChecks} onClick={() => navigate('/dashboard/meetings/list')}>
+                {t('meetings.actions.manageMeetings')}
+              </Button>
+            )}
+            {canCreateSectors && (
+              <Button variant="ghost" icon={Layers3} onClick={() => navigate('/dashboard/meetings/sectors/new')}>
+                {t('meetings.actions.addSector')}
+              </Button>
+            )}
+            {canCreateMeetings && (
+              <Button icon={CalendarPlus} onClick={() => navigate('/dashboard/meetings/new')}>
+                {t('meetings.actions.addMeeting')}
+              </Button>
+            )}
+          </div>
+        )}
+      />
 
       {/* ══════════════════════════════════════════════
           KPI GRID — 3 cols on xl, 2 on sm

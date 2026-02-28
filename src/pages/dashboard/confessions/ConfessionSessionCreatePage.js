@@ -9,6 +9,7 @@ import Input from '../../../components/ui/Input';
 import TextArea from '../../../components/ui/TextArea';
 import Button from '../../../components/ui/Button';
 import UserSearchSelect from '../../../components/UserSearchSelect';
+import PageHeader from '../../../components/ui/PageHeader';
 import toast from 'react-hot-toast';
 import { useI18n } from '../../../i18n/i18n';
 import { localizeSessionTypeName } from '../../../utils/sessionTypeLocalization';
@@ -393,21 +394,18 @@ export default function ConfessionSessionCreatePage() {
       /> */}
 
       {/* ══ PAGE HEADER ═════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-            {t('confessions.sessions.createTitle')}
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            {t('confessions.sessions.createSubtitle')}
-          </p>
-        </div>
-        {canViewSessions && (
-          <Button variant="ghost" icon={ListChecks} onClick={() => navigate('/dashboard/confessions')}>
-            {t('confessions.sessions.recentTitle')}
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        title={t('confessions.sessions.createTitle')}
+        subtitle={t('confessions.sessions.createSubtitle')}
+        actions={
+          canViewSessions ? (
+            <Button variant="ghost" icon={ListChecks} onClick={() => navigate('/dashboard/confessions')}>
+              {t('confessions.sessions.recentTitle')}
+            </Button>
+          ) : null
+        }
+      />
 
       {/* ══ FORM — max width, centred on large screens ═══════════════════ */}
       <form onSubmit={handleCreateSession} noValidate>
@@ -549,4 +547,3 @@ export default function ConfessionSessionCreatePage() {
     </div>
   );
 }
-

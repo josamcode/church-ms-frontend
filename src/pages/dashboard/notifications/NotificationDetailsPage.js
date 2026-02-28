@@ -9,6 +9,7 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import Card, { CardHeader } from '../../../components/ui/Card';
+import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
 import { localizeNotificationTypeName } from '../../../utils/notificationTypeLocalization';
@@ -112,8 +113,13 @@ export default function NotificationDetailsPage() {
               </span>
             </div>
 
-            <h1 className="text-3xl font-bold leading-tight text-white">{notification.name}</h1>
-            {notification.summary ? <p className="max-w-3xl text-sm text-white/85">{notification.summary}</p> : null}
+            <PageHeader
+              contentOnly
+              title={notification.name}
+              subtitle={notification.summary}
+              titleClassName="mt-0 text-3xl font-bold leading-tight text-white"
+              subtitleClassName="mt-0 max-w-3xl text-sm text-white/85"
+            />
           </div>
         </div>
       </section>

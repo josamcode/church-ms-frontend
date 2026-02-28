@@ -8,6 +8,7 @@ import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
+import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 
 function SectionLabel({ children }) {
@@ -172,11 +173,10 @@ export default function ChurchPriestsPage() {
         ]}
       />
 
-      <div className="border-b border-border pb-6">
-        <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-          {t('dashboardLayout.menu.churchPriests')}
-        </h1>
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        title={t('dashboardLayout.menu.churchPriests')}
+      />
 
       <section className="space-y-4">
         {/* <SectionLabel>{t('divineLiturgies.sections.priests')}</SectionLabel> */}

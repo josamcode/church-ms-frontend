@@ -12,6 +12,7 @@ import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
+import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
 import TagInput from '../../../components/ui/TagInput';
 import TextArea from '../../../components/ui/TextArea';
@@ -338,10 +339,12 @@ export default function MeetingFormPage() {
 
       <Card className="overflow-hidden">
         <div className="border-b border-border bg-gradient-to-br from-surface to-surface-alt/60 px-6 py-5">
-          <h1 className="text-xl font-bold text-heading">
-            {isEdit ? t('meetings.actions.editMeetingPage') : t('meetings.actions.createMeetingPage')}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t('meetings.sections.meetingsSubtitle')}</p>
+          <PageHeader
+            contentOnly
+            title={isEdit ? t('meetings.actions.editMeetingPage') : t('meetings.actions.createMeetingPage')}
+            subtitle={t('meetings.sections.meetingsSubtitle')}
+            titleClassName="mt-0 text-xl font-bold text-heading"
+          />
 
           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-lg border border-border bg-surface px-3 py-2">

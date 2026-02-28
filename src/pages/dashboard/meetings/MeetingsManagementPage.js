@@ -13,6 +13,7 @@ import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Table, { RowActions } from '../../../components/ui/Table';
+import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
 import { getDayLabel, getDayOptions } from './meetingsForm.utils';
@@ -236,28 +237,24 @@ export default function MeetingsManagementPage() {
       />
 
       {/* ══ HEADER ════════════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            {t('shared.dashboard')}
-          </p>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-            {meetingsListTitle}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t('meetings.meetingsPageSubtitle')}</p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button variant="ghost" icon={BarChart3} onClick={() => navigate('/dashboard/meetings')}>
-            {t('meetings.actions.openDashboard')}
-          </Button>
-          {canCreateMeetings && (
-            <Button icon={CalendarPlus} onClick={() => navigate('/dashboard/meetings/new')}>
-              {t('meetings.actions.addMeeting')}
+      <PageHeader
+        className="border-b border-border pb-6"
+        eyebrow={t('shared.dashboard')}
+        title={meetingsListTitle}
+        subtitle={t('meetings.meetingsPageSubtitle')}
+        actions={(
+          <div className="flex flex-wrap gap-2">
+            <Button variant="ghost" icon={BarChart3} onClick={() => navigate('/dashboard/meetings')}>
+              {t('meetings.actions.openDashboard')}
             </Button>
-          )}
-        </div>
-      </div>
+            {canCreateMeetings && (
+              <Button icon={CalendarPlus} onClick={() => navigate('/dashboard/meetings/new')}>
+                {t('meetings.actions.addMeeting')}
+              </Button>
+            )}
+          </div>
+        )}
+      />
 
       {/* ══ KPI TILES ═════════════════════════════════════════════════════ */}
       {canViewMeetingsList && (

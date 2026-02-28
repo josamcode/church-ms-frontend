@@ -6,6 +6,7 @@ import { usersApi, visitationsApi } from '../../../api/endpoints';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import EmptyState from '../../../components/ui/EmptyState';
 import Button from '../../../components/ui/Button';
+import PageHeader from '../../../components/ui/PageHeader';
 import { formatDateTime } from '../../../utils/formatters';
 import { useI18n } from '../../../i18n/i18n';
 import useNavigateToUser from '../../../hooks/useNavigateToUser';
@@ -136,26 +137,22 @@ export default function PastoralVisitationDetailsPage() {
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
             <Home className="h-6 w-6 text-primary" />
           </div>
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-              {t('visitations.list.page')}
-            </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-heading">
-              {visitation.houseName || EMPTY}
-            </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {/* visit date pill */}
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 px-3 py-1 text-xs font-semibold text-primary">
-                <CalendarClock className="h-3 w-3" />
-                {formatDateTime(visitation.visitedAt)}
-              </span>
-              {/* duration pill */}
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1 text-xs font-medium text-muted">
-                <Clock3 className="h-3 w-3" />
-                {visitation.durationMinutes || 10} {t('visitations.shared.minutes')}
-              </span>
-            </div>
-          </div>
+          <PageHeader
+            contentOnly
+            eyebrow={t('visitations.list.page')}
+            title={visitation.houseName || EMPTY}
+            titleClassName="mt-1 text-3xl font-bold tracking-tight text-heading"
+            childrenClassName="mt-2 flex flex-wrap items-center gap-2"
+          >
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 px-3 py-1 text-xs font-semibold text-primary">
+              <CalendarClock className="h-3 w-3" />
+              {formatDateTime(visitation.visitedAt)}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1 text-xs font-medium text-muted">
+              <Clock3 className="h-3 w-3" />
+              {visitation.durationMinutes || 10} {t('visitations.shared.minutes')}
+            </span>
+          </PageHeader>
         </div>
       </div>
 

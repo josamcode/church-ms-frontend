@@ -427,6 +427,15 @@ export const translations = {
         deletedSuccess: 'User deleted successfully.',
       },
     },
+    usersForm: {
+      create: {
+        title: 'Create User',
+        subtitle: 'Add a new user profile and assign role/access details.',
+      },
+      edit: {
+        title: 'Edit User',
+      },
+    },
     familyHouseLookup: {
       page: 'Family & House Lookup',
       title: 'Find Members by Family Name or House Name',

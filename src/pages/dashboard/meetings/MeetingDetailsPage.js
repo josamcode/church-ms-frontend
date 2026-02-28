@@ -11,6 +11,7 @@ import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import EmptyState from '../../../components/ui/EmptyState';
+import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
 import { getActivityTypeLabel, getDayLabel } from './meetingsForm.utils';
@@ -247,26 +248,24 @@ export default function MeetingDetailsPage() {
               <CalendarDays className="h-7 w-7 text-primary" />
             </div>
           )}
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-              {t('meetings.meetingsPageTitle')}
-            </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-heading">
-              {meeting.name || EMPTY}
-            </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 px-3 py-1 text-xs font-semibold text-primary">
-                <CalendarDays className="h-3 w-3" />
-                {getDayLabel(meeting.day, t)} · {meeting.time || EMPTY}
+          <PageHeader
+            contentOnly
+            eyebrow={t('meetings.meetingsPageTitle')}
+            title={meeting.name || EMPTY}
+            titleClassName="mt-1 text-3xl font-bold tracking-tight text-heading"
+            childrenClassName="mt-2 flex flex-wrap items-center gap-2"
+          >
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 px-3 py-1 text-xs font-semibold text-primary">
+              <CalendarDays className="h-3 w-3" />
+              {getDayLabel(meeting.day, t)} · {meeting.time || EMPTY}
+            </span>
+            {meeting.sector?.name && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1 text-xs font-medium text-muted">
+                <Layers3 className="h-3 w-3" />
+                {meeting.sector.name}
               </span>
-              {meeting.sector?.name && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1 text-xs font-medium text-muted">
-                  <Layers3 className="h-3 w-3" />
-                  {meeting.sector.name}
-                </span>
-              )}
-            </div>
-          </div>
+            )}
+          </PageHeader>
         </div>
 
         <div className="flex flex-wrap gap-2">

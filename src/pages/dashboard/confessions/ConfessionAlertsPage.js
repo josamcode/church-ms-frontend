@@ -10,6 +10,7 @@ import Button from '../../../components/ui/Button';
 import SearchInput from '../../../components/ui/SearchInput';
 import Table from '../../../components/ui/Table';
 import Badge from '../../../components/ui/Badge';
+import PageHeader from '../../../components/ui/PageHeader';
 import { formatDateTime } from '../../../utils/formatters';
 import toast from 'react-hot-toast';
 import { useI18n } from '../../../i18n/i18n';
@@ -159,28 +160,23 @@ export default function ConfessionAlertsPage() {
       />
 
       {/* ══ HEADER ══════════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            {t('shared.dashboard')}
-          </p>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-heading">
-            {t('confessions.alerts.title')}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t('confessions.alerts.subtitle')}</p>
-        </div>
-
-        {/* live alert indicator */}
-        <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold
-          ${alertsCount > 0
-            ? 'border-danger/30 bg-danger-light text-danger'
-            : 'border-success/30 bg-success-light text-success'
-          }`}
-        >
-          <BellRing className="h-3.5 w-3.5" />
-          {alertsCount} {t('confessions.alerts.alertedUsers')}
-        </div>
-      </div>
+      <PageHeader
+        className="border-b border-border pb-6"
+        eyebrow={t('shared.dashboard')}
+        title={t('confessions.alerts.title')}
+        subtitle={t('confessions.alerts.subtitle')}
+        actions={(
+          <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold
+            ${alertsCount > 0
+              ? 'border-danger/30 bg-danger-light text-danger'
+              : 'border-success/30 bg-success-light text-success'
+            }`}
+          >
+            <BellRing className="h-3.5 w-3.5" />
+            {alertsCount} {t('confessions.alerts.alertedUsers')}
+          </div>
+        )}
+      />
 
       {/* ══ KPI + SETTINGS ROW ══════════════════════════════════════════ */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

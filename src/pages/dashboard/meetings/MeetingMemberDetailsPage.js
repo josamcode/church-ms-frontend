@@ -8,6 +8,7 @@ import { normalizeApiError } from '../../../api/errors';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import EmptyState from '../../../components/ui/EmptyState';
+import PageHeader from '../../../components/ui/PageHeader';
 import TextArea from '../../../components/ui/TextArea';
 import Badge from '../../../components/ui/Badge';
 import { useI18n } from '../../../i18n/i18n';
@@ -97,7 +98,11 @@ export default function MeetingMemberDetailsPage() {
       <Breadcrumbs items={breadcrumbs} />
 
       <div className="rounded-2xl border border-border bg-surface p-6">
-        <h1 className="text-2xl font-bold tracking-tight text-heading">{member.fullName || EMPTY}</h1>
+        <PageHeader
+          contentOnly
+          title={member.fullName || EMPTY}
+          titleClassName="mt-0 text-2xl font-bold tracking-tight text-heading"
+        />
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1 text-xs font-medium text-muted direction-ltr">
             <Phone className="h-3 w-3" />

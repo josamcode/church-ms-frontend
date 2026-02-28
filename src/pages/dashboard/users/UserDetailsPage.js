@@ -18,6 +18,7 @@ import Button from '../../../components/ui/Button';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import Modal from '../../../components/ui/Modal';
+import PageHeader from '../../../components/ui/PageHeader';
 import Skeleton from '../../../components/ui/Skeleton';
 import Tabs from '../../../components/ui/Tabs';
 import TextArea from '../../../components/ui/TextArea';
@@ -280,23 +281,20 @@ export default function UserDetailsPage() {
                 </div>
               )}
 
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-primary/70">
-                  {t('shared.users')}
-                </p>
-                <h1 className="mt-0.5 text-3xl font-bold tracking-tight text-heading">
-                  {user.fullName || EMPTY}
-                </h1>
-                <p className="mt-1 text-sm text-muted">
-                  {user.phonePrimary || EMPTY}
-                </p>
-                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                  <Badge variant="primary">{getRoleLabel(user.role)}</Badge>
-                  <Badge variant={user.isLocked ? 'danger' : 'success'}>
-                    {user.isLocked ? t('common.status.locked') : t('common.status.active')}
-                  </Badge>
-                </div>
-              </div>
+              <PageHeader
+                contentOnly
+                eyebrow={t('shared.users')}
+                title={user.fullName || EMPTY}
+                subtitle={user.phonePrimary || EMPTY}
+                eyebrowClassName="text-primary/70"
+                titleClassName="mt-0.5 text-3xl font-bold tracking-tight text-heading"
+                childrenClassName="mt-2.5 flex flex-wrap items-center gap-1.5"
+              >
+                <Badge variant="primary">{getRoleLabel(user.role)}</Badge>
+                <Badge variant={user.isLocked ? 'danger' : 'success'}>
+                  {user.isLocked ? t('common.status.locked') : t('common.status.active')}
+                </Badge>
+              </PageHeader>
             </div>
 
             {/* actions */}
