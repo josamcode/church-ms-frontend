@@ -153,8 +153,17 @@ export default function DashboardLayout() {
       },
       children: [
         {
-          label: t('dashboardLayout.menu.familyHouseLookup'),
-          href: '/dashboard/users/family-house',
+          key: 'family-house-analytics',
+          label: tf('dashboardLayout.menu.familyHouseAnalytics', 'Family Analytics'),
+          href: '/dashboard/users/family-house/analytics',
+          icon: BarChart3,
+          permission: 'USERS_VIEW',
+          matchChildren: false,
+        },
+        {
+          key: 'family-house-details',
+          label: tf('dashboardLayout.menu.familyHouseDetails', 'Family/House Details'),
+          href: '/dashboard/users/family-house/details',
           icon: Building2,
           permission: 'USERS_VIEW',
           matchChildren: false,
@@ -739,34 +748,6 @@ function SidebarFooter({ collapsed, darkMode, toggleDark, handleLogout, tooltipS
       'border-t border-border/60',
       collapsed ? 'flex flex-col items-center gap-1 p-2' : 'space-y-1 p-3',
     ].join(' ')}>
-
-      {!collapsed && (
-        <div className="rounded-xl bg-surface-alt/50 p-1">
-          <LanguageSwitcher className="w-full justify-center" />
-        </div>
-      )}
-
-      <Tooltip
-        content={collapsed ? (darkMode ? t('common.theme.light') : t('common.theme.dark')) : null}
-        position={tooltipSide}
-      >
-        <button
-          onClick={toggleDark}
-          className={[
-            'flex items-center rounded-xl text-sm text-muted transition-colors hover:bg-surface-alt hover:text-heading',
-            collapsed ? 'h-10 w-10 justify-center' : 'w-full gap-3 px-3 py-2.5',
-          ].join(' ')}
-        >
-          <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center">
-            {darkMode ? <Sun className="h-[15px] w-[15px]" /> : <Moon className="h-[15px] w-[15px]" />}
-          </span>
-          {!collapsed && (
-            <span className="font-medium">
-              {darkMode ? t('common.theme.light') : t('common.theme.dark')}
-            </span>
-          )}
-        </button>
-      </Tooltip>
 
       <Tooltip content={collapsed ? t('common.actions.logout') : null} position={tooltipSide}>
         <button

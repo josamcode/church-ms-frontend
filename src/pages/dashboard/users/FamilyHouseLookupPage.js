@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Building2, Home, Search, Users as UsersIcon } from 'lucide-react';
+import { ArrowLeft, Building2, Search, Users as UsersIcon } from 'lucide-react';
 import { usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useI18n } from '../../../i18n/i18n';
@@ -13,12 +13,18 @@ import EmptyState from '../../../components/ui/EmptyState';
 import Select from '../../../components/ui/Select';
 import Table from '../../../components/ui/Table';
 import { getGenderLabel } from '../../../utils/formatters';
-
-const EMPTY = '---';
-const PAGE_LIMIT = 100;
-const MAX_PAGE_REQUESTS = 200;
-const QUICK_USERS_LIMIT = 14;
-const RANK_LIMIT = 8;
+import {
+  EMPTY,
+  FAMILY_HOUSE_ANALYTICS_PATH,
+  FAMILY_HOUSE_DETAILS_PATH,
+  QUICK_USERS_LIMIT,
+  RANK_LIMIT,
+  buildCountList,
+  buildLookupQuery,
+  buildNamedCountList,
+  fetchUsersWithPagination,
+  normalizeText,
+} from './familyHouseLookup.shared';
 
 export default function FamilyHouseLookupPage() {
   const { t, isRTL } = useI18n();
@@ -51,7 +57,7 @@ export default function FamilyHouseLookupPage() {
     isFetching: membersFetching,
     error: membersError,
   } = useQuery({
-    queryKey: ['users', 'family-house-lookup', lookupType, normalizedSubmittedName],
+    queryKey: ['users', 'family-house-details', lookupType, normalizedSubmittedName],
     queryFn: async () =>
       fetchUsersWithPagination(
         isFamilyLookup
@@ -64,7 +70,6 @@ export default function FamilyHouseLookupPage() {
 
   const {
     data: directoryUsersResponse,
-    isLoading: directoryUsersLoading,
     error: directoryUsersError,
   } = useQuery({
     queryKey: ['users', 'family-house-lookup-directory'],
@@ -79,7 +84,6 @@ export default function FamilyHouseLookupPage() {
 
   const filteredLookupNames = useMemo(() => {
     if (!normalizedLookupName) return lookupNames.slice(0, 20);
-
     return lookupNames
       .filter((name) => normalizeText(name).includes(normalizedLookupName))
       .slice(0, 20);
@@ -113,21 +117,6 @@ export default function FamilyHouseLookupPage() {
   const directoryUsers = useMemo(
     () => (Array.isArray(directoryUsersResponse) ? directoryUsersResponse : []),
     [directoryUsersResponse]
-  );
-
-  const directoryFamilyRanks = useMemo(
-    () => buildNamedCountList(directoryUsers, 'familyName'),
-    [directoryUsers]
-  );
-
-  const directoryHouseRanks = useMemo(
-    () => buildNamedCountList(directoryUsers, 'houseName'),
-    [directoryUsers]
-  );
-
-  const directoryLockedMembers = useMemo(
-    () => directoryUsers.filter((member) => member.isLocked).length,
-    [directoryUsers]
   );
 
   const selectedLockedMembers = useMemo(
@@ -173,12 +162,9 @@ export default function FamilyHouseLookupPage() {
     const urlLookupType = searchParams.get('lookupType');
     const urlLookupName = String(searchParams.get('lookupName') || '').trim();
 
-    const nextLookupType =
-      urlLookupType === 'houseName' || urlLookupType === 'familyName'
-        ? urlLookupType
-        : null;
-
-    if (nextLookupType) setLookupType(nextLookupType);
+    if (urlLookupType === 'houseName' || urlLookupType === 'familyName') {
+      setLookupType(urlLookupType);
+    }
 
     if (urlLookupName) {
       setLookupName(urlLookupName);
@@ -294,21 +280,32 @@ export default function FamilyHouseLookupPage() {
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
           { label: t('shared.users'), href: '/dashboard/users' },
-          { label: t('familyHouseLookup.page') },
+          { label: t('familyHouseLookup.detailsPage.page') },
         ]}
       />
 
       <Card padding={false} className="relative overflow-hidden border-primary/20">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
         <div className="relative p-6 lg:p-7">
-          <div className="flex items-start gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Building2 className="h-5 w-5" />
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Building2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-heading">
+                  {t('familyHouseLookup.detailsPage.title')}
+                </h1>
+                <p className="mt-1 text-sm text-muted">
+                  {t('familyHouseLookup.detailsPage.subtitle')}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-heading">{t('familyHouseLookup.title')}</h1>
-              <p className="mt-1 text-sm text-muted">{t('familyHouseLookup.subtitle')}</p>
-            </div>
+            <Link to={FAMILY_HOUSE_ANALYTICS_PATH}>
+              <Button variant="outline" icon={ArrowLeft}>
+                {t('familyHouseLookup.detailsPage.backToAnalytics')}
+              </Button>
+            </Link>
           </div>
         </div>
       </Card>
@@ -319,8 +316,7 @@ export default function FamilyHouseLookupPage() {
             label={t('familyHouseLookup.filters.searchType')}
             value={lookupType}
             onChange={(event) => {
-              const nextType = event.target.value;
-              setLookupType(nextType);
+              setLookupType(event.target.value);
               setLookupName('');
               setSubmittedLookupName('');
               setLookupDropdownOpen(false);
@@ -410,64 +406,15 @@ export default function FamilyHouseLookupPage() {
         </div>
       </Card>
 
-      <Card className="space-y-5">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-heading">
-            {t('familyHouseLookup.analytics.globalTitle')}
-          </h2>
-          <Badge variant="secondary">{t('familyHouseLookup.analytics.globalBadge')}</Badge>
-        </div>
-
-        {directoryErrorMessage ? (
+      {directoryErrorMessage ? (
+        <Card>
           <EmptyState
             icon={UsersIcon}
             title={t('familyHouseLookup.empty.errorTitle')}
             description={directoryErrorMessage}
           />
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              <SummaryItem
-                icon={UsersIcon}
-                label={t('familyHouseLookup.analytics.totalMembers')}
-                value={directoryUsers.length}
-              />
-              <SummaryItem
-                icon={Building2}
-                label={t('familyHouseLookup.analytics.totalFamilies')}
-                value={directoryFamilyRanks.length}
-              />
-              <SummaryItem
-                icon={Home}
-                label={t('familyHouseLookup.analytics.totalHouses')}
-                value={directoryHouseRanks.length}
-              />
-              <SummaryItem
-                icon={BarChart3}
-                label={t('familyHouseLookup.summary.lockedCount')}
-                value={directoryLockedMembers}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <RankedBars
-                title={t('familyHouseLookup.analytics.biggestFamilies')}
-                items={directoryFamilyRanks.slice(0, RANK_LIMIT)}
-                loading={directoryUsersLoading}
-                emptyLabel={t('familyHouseLookup.analytics.noFamilies')}
-                linkType="familyName"
-              />
-              <RankedBars
-                title={t('familyHouseLookup.analytics.biggestHouses')}
-                items={directoryHouseRanks.slice(0, RANK_LIMIT)}
-                loading={directoryUsersLoading}
-                emptyLabel={t('familyHouseLookup.analytics.noHouses')}
-                linkType="houseName"
-              />
-            </div>
-          </>
-        )}
-      </Card>
+        </Card>
+      ) : null}
 
       <Card className="space-y-5">
         <div className="flex items-center justify-between gap-3">
@@ -486,8 +433,8 @@ export default function FamilyHouseLookupPage() {
         {!normalizedSubmittedName ? (
           <EmptyState
             icon={Search}
-            title={t('familyHouseLookup.empty.initialTitle')}
-            description={t('familyHouseLookup.analytics.selectedHint')}
+            title={t('familyHouseLookup.detailsPage.noSelectionTitle')}
+            description={t('familyHouseLookup.detailsPage.noSelectionDescription')}
           />
         ) : membersErrorMessage ? (
           <EmptyState
@@ -641,7 +588,7 @@ function RankedBars({ title, items, loading, emptyLabel, linkType }) {
                 <div className="mb-1.5 flex items-center justify-between gap-3">
                   {linkType ? (
                     <Link
-                      to={`/dashboard/users/family-house?${buildLookupQuery(linkType, item.name)}`}
+                      to={`${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery(linkType, item.name)}`}
                       className="truncate text-xs font-semibold text-heading hover:text-primary"
                     >
                       {item.name}
@@ -704,7 +651,7 @@ function QuickAccessGroups({ title, groups, emptyLabel, lookupType }) {
           {groups.map((group) => (
             <Link
               key={group.name}
-              to={`/dashboard/users/family-house?${buildLookupQuery(lookupType, group.name)}`}
+              to={`${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery(lookupType, group.name)}`}
               className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-heading hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
             >
               <span>{group.name}</span>
@@ -723,7 +670,7 @@ function LookupNameLink({ lookupType, name, emptyValue }) {
 
   return (
     <Link
-      to={`/dashboard/users/family-house?${buildLookupQuery(lookupType, normalizedName)}`}
+      to={`${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery(lookupType, normalizedName)}`}
       className="text-heading hover:text-primary"
     >
       {normalizedName}
@@ -734,91 +681,4 @@ function LookupNameLink({ lookupType, name, emptyValue }) {
 function getInitial(name) {
   if (!name) return 'U';
   return String(name).trim().charAt(0).toUpperCase();
-}
-
-function normalizeText(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase();
-}
-
-function buildLookupQuery(lookupType, lookupName) {
-  return new URLSearchParams({
-    lookupType: String(lookupType || '').trim(),
-    lookupName: String(lookupName || '').trim(),
-  }).toString();
-}
-
-function buildNamedCountList(users, field) {
-  const map = new Map();
-
-  users.forEach((user) => {
-    const rawValue = String(user?.[field] || '').trim();
-    if (!rawValue) return;
-
-    const normalizedValue = normalizeText(rawValue);
-    const current = map.get(normalizedValue);
-
-    if (current) {
-      current.count += 1;
-      return;
-    }
-
-    map.set(normalizedValue, {
-      name: rawValue,
-      count: 1,
-    });
-  });
-
-  return [...map.values()].sort(
-    (a, b) => b.count - a.count || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-  );
-}
-
-function buildCountList(values) {
-  const map = new Map();
-
-  values.forEach((value) => {
-    const key = String(value || '').trim();
-    if (!key) return;
-    map.set(key, (map.get(key) || 0) + 1);
-  });
-
-  return [...map.entries()]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-}
-
-async function fetchUsersWithPagination(filters = {}) {
-  const users = [];
-  const seenIds = new Set();
-  let cursor = null;
-  let attempts = 0;
-
-  while (attempts < MAX_PAGE_REQUESTS) {
-    const { data } = await usersApi.list({
-      limit: PAGE_LIMIT,
-      sort: 'createdAt',
-      order: 'asc',
-      ...(cursor ? { cursor } : {}),
-      ...filters,
-    });
-
-    const batch = Array.isArray(data?.data) ? data.data : [];
-    batch.forEach((user) => {
-      const userId = user?._id || user?.id;
-      if (userId && seenIds.has(userId)) return;
-      if (userId) seenIds.add(userId);
-      users.push(user);
-    });
-
-    const hasMore = Boolean(data?.meta?.hasMore);
-    const nextCursor = data?.meta?.nextCursor;
-
-    if (!hasMore || !nextCursor || nextCursor === cursor) break;
-    cursor = nextCursor;
-    attempts += 1;
-  }
-
-  return users;
 }
