@@ -79,6 +79,20 @@ export const divineLiturgiesApi = {
   setChurchPriests: (priestUserIds) => apiClient.put('/divine-liturgies/priests', { priestUserIds }),
 };
 
+export const notificationsApi = {
+  list: (params) => apiClient.get('/notifications', { params }),
+  getById: (id) => apiClient.get(`/notifications/${id}`),
+  create: (data) => apiClient.post('/notifications', data),
+  update: (id, data) => apiClient.patch(`/notifications/${id}`, data),
+  listTypes: () => apiClient.get('/notifications/types'),
+  createType: (name) => apiClient.post('/notifications/types', { name }),
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return apiClient.post('/notifications/upload-image', formData);
+  },
+};
+
 export const meetingsApi = {
   sectors: {
     list: (params) => apiClient.get('/meetings/sectors', { params }),

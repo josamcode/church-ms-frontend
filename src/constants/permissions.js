@@ -43,6 +43,10 @@ export const PERMISSIONS = [
   'DIVINE_LITURGIES_VIEW',
   'DIVINE_LITURGIES_MANAGE',
   'DIVINE_LITURGIES_PRIESTS_MANAGE',
+  'NOTIFICATIONS_VIEW',
+  'NOTIFICATIONS_CREATE',
+  'NOTIFICATIONS_UPDATE',
+  'NOTIFICATIONS_TYPES_MANAGE',
 ];
 
 export const ROLE_PERMISSIONS = {
@@ -90,6 +94,10 @@ export const ROLE_PERMISSIONS = {
     'MEETINGS_MEMBERS_NOTES_UPDATE',
     'DIVINE_LITURGIES_VIEW',
     'DIVINE_LITURGIES_MANAGE',
+    'NOTIFICATIONS_VIEW',
+    'NOTIFICATIONS_CREATE',
+    'NOTIFICATIONS_UPDATE',
+    'NOTIFICATIONS_TYPES_MANAGE',
   ],
   USER: [
     'AUTH_VIEW_SELF',
@@ -101,6 +109,7 @@ export const ROLE_PERMISSIONS = {
     'MEETINGS_MEMBERS_VIEW',
     'MEETINGS_MEMBERS_NOTES_UPDATE',
     'DIVINE_LITURGIES_VIEW',
+    'NOTIFICATIONS_VIEW',
   ],
 };
 
@@ -149,6 +158,10 @@ export const PERMISSION_LABELS = {
   DIVINE_LITURGIES_VIEW: 'View divine liturgy schedules',
   DIVINE_LITURGIES_MANAGE: 'Manage divine liturgy schedules',
   DIVINE_LITURGIES_PRIESTS_MANAGE: 'Manage church priests list',
+  NOTIFICATIONS_VIEW: 'View notifications',
+  NOTIFICATIONS_CREATE: 'Create notifications',
+  NOTIFICATIONS_UPDATE: 'Update notifications',
+  NOTIFICATIONS_TYPES_MANAGE: 'Manage notification types',
 };
 
 export const PERMISSION_GROUPS = [
@@ -226,6 +239,16 @@ export const PERMISSION_GROUPS = [
       'MEETINGS_SERVANT_HISTORY_VIEW',
       'MEETINGS_MEMBERS_VIEW',
       'MEETINGS_MEMBERS_NOTES_UPDATE',
+    ],
+  },
+  {
+    id: 'notifications',
+    label: 'Notifications',
+    permissions: [
+      'NOTIFICATIONS_VIEW',
+      'NOTIFICATIONS_CREATE',
+      'NOTIFICATIONS_UPDATE',
+      'NOTIFICATIONS_TYPES_MANAGE',
     ],
   },
 ];
