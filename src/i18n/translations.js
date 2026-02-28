@@ -1210,6 +1210,11 @@ export const translations = {
         active: 'Active',
         inactive: 'Inactive',
       },
+      news: {
+        latest: 'Latest News',
+        featured: 'Featured News',
+        subtitle: 'Latest church news, announcements, events, and celebrations.',
+      },
       details: {
         section: 'Full Details',
         subtitle: 'Complete notification content and attached media.',
@@ -2512,6 +2517,11 @@ export const translations = {
       status: {
         active: 'نشط',
         inactive: 'غير نشط',
+      },
+      news: {
+        latest: 'آخر الأخبار',
+        featured: 'خبر مميز',
+        subtitle: 'أحدث أخبار الكنيسة والإعلانات والفعاليات والتهاني.',
       },
       details: {
         section: 'التفاصيل الكاملة',
