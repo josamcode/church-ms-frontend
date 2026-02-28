@@ -179,9 +179,9 @@ export default function ChurchPriestsPage() {
       </div>
 
       <section className="space-y-4">
-        <SectionLabel>{t('divineLiturgies.sections.priests')}</SectionLabel>
+        {/* <SectionLabel>{t('divineLiturgies.sections.priests')}</SectionLabel> */}
 
-        <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+        <div className="rounded-2xl space-y-4">
           {/* <div className="text-sm text-muted">
             {canManagePriests
               ? t('divineLiturgies.hints.priestsManage')
@@ -217,7 +217,7 @@ export default function ChurchPriestsPage() {
           {!churchPriests.length ? (
             <p className="text-sm text-muted">{t('divineLiturgies.hints.noPriests')}</p>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {churchPriests.map((entry) => (
                 <PriestCard key={entry.id} entry={entry} t={t} />
               ))}

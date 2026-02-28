@@ -13,6 +13,7 @@ import {
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import TextArea from '../../../components/ui/TextArea';
+import Switch from '../../../components/ui/Switch';
 import Button from '../../../components/ui/Button';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Skeleton from '../../../components/ui/Skeleton';
@@ -149,7 +150,7 @@ function PermissionRow({ permission, roleHasPermission, isExtra, isDenied, disab
       <div className="flex shrink-0 items-center gap-2">
         {/* role-source tag */}
         {roleHasPermission && !isDenied && !isExtra && (
-          <span className="rounded-full border border-primary/20 bg-primary/8 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+          <span className="rounded-full border border-primary/20 bg-primary/50 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
             أساسي
           </span>
         )}
@@ -440,6 +441,7 @@ export default function UserEditPage() {
         familyName: user.familyName || '',
         houseName: user.houseName || '',
         role: user.role || 'USER',
+        hasLogin: Boolean(user.hasLogin),
         password: '',
         extraPermissions: normalizePermissionArray(user.extraPermissions),
         deniedPermissions: normalizePermissionArray(user.deniedPermissions),
@@ -539,9 +541,16 @@ export default function UserEditPage() {
         next.extraPermissions = [];
         next.deniedPermissions = [];
       }
+      if (field === 'hasLogin' && !value) {
+        next.password = '';
+      }
       return next;
     });
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+    setErrors((prev) => ({
+      ...prev,
+      [field]: undefined,
+      ...(field === 'hasLogin' && !value ? { password: undefined } : {}),
+    }));
   };
 
   const setPermissionOverride = (permission, mode, checked) => {
@@ -589,7 +598,8 @@ export default function UserEditPage() {
     if (form.familyName !== (user.familyName || '')) payload.familyName = form.familyName;
     if (form.houseName !== (user.houseName || '')) payload.houseName = form.houseName;
     if (form.role !== user.role) payload.role = form.role;
-    if ((form.password || '').trim()) payload.password = form.password.trim();
+    if (form.hasLogin !== Boolean(user.hasLogin)) payload.hasLogin = Boolean(form.hasLogin);
+    if (form.hasLogin && (form.password || '').trim()) payload.password = form.password.trim();
 
     if (canManagePermissionOverrides) {
       const nextExtra = normalizePermissionArray(form.extraPermissions);
@@ -774,7 +784,33 @@ export default function UserEditPage() {
                 <NameCombobox label="اسم العائلة" value={form.familyName} onChange={(v) => update('familyName', v)} options={familyNames} placeholder="ابحث أو اكتب اسم العائلة" />
                 <NameCombobox label="اسم البيت" value={form.houseName} onChange={(v) => update('houseName', v)} options={houseNames} placeholder="ابحث أو اكتب اسم البيت" />
                 <Select label="الدور" options={roleOptionsForEditor} value={form.role} onChange={(e) => update('role', e.target.value)} containerClassName="!mb-0" />
-                <Input label="كلمة المرور" type="password" dir="ltr" className="text-left" hint="اتركها فارغة إذا لا تريد تغييرها" value={form.password} onChange={(e) => update('password', e.target.value)} error={errors.password} containerClassName="!mb-0" />
+                <Input
+                  label="كلمة المرور"
+                  type="password"
+                  dir="ltr"
+                  className="text-left"
+                  hint={form.hasLogin ? 'اتركها فارغة إذا لا تريد تغييرها' : 'فعّل تسجيل الدخول أولاً لتعيين كلمة مرور'}
+                  value={form.password}
+                  onChange={(e) => update('password', e.target.value)}
+                  error={errors.password}
+                  disabled={!form.hasLogin}
+                  containerClassName="!mb-0"
+                />
+                <div className="sm:col-span-2 rounded-xl border border-border bg-surface-alt/50 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-heading">تسجيل الدخول</p>
+                      <p className="text-xs text-muted">
+                        {form.hasLogin ? 'يمكن للمستخدم تسجيل الدخول للنظام.' : 'تم منع هذا الحساب من تسجيل الدخول.'}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={Boolean(form.hasLogin)}
+                      onChange={(checked) => update('hasLogin', checked)}
+                      label={form.hasLogin ? 'مسموح' : 'ممنوع'}
+                    />
+                  </div>
+                </div>
               </div>
               <TextArea label="ملاحظات" value={form.notes} onChange={(e) => update('notes', e.target.value)} containerClassName="!mb-0" />
             </div>
