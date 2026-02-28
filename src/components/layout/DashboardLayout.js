@@ -269,15 +269,7 @@ export default function DashboardLayout() {
         permission: 'NOTIFICATIONS_VIEW',
         matchChildren: true,
       },
-      children: [
-        {
-          label: tf('dashboardLayout.menu.notificationTypes', 'Notification Types'),
-          href: '/dashboard/notifications/types',
-          icon: Layers3,
-          permission: 'NOTIFICATIONS_TYPES_MANAGE',
-          matchChildren: false,
-        },
-      ],
+      children: [],
     },
     {
       key: 'meetings',

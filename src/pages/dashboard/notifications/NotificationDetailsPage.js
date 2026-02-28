@@ -103,7 +103,7 @@ export default function NotificationDetailsPage() {
 
           <div className="absolute bottom-0 left-0 right-0 space-y-3 p-6 lg:p-8">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="primary">{localizeNotificationTypeName(notification.type?.name, t)}</Badge>
+              <Badge variant="primary" className='bg-primary text-white'>{localizeNotificationTypeName(notification.type?.name, t)}</Badge>
               <Badge variant={notification.isActive ? 'success' : 'default'}>
                 {notification.isActive ? t('notifications.status.active') : t('notifications.status.inactive')}
               </Badge>
