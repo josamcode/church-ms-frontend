@@ -426,7 +426,7 @@ export default function LandingPage() {
 
           {/* Heading */}
           <Reveal delay={0.15}>
-            <h1 className="text-center text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] xl:text-6xl font-extrabold leading-[1.12] tracking-tight text-heading max-w-4xl">
+            <h1 className="text-center mb-12 text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] xl:text-6xl font-extrabold leading-[1.12] tracking-tight text-heading max-w-4xl">
               {t('landing.hero.title')}{' '}
               <span className="relative inline-block text-primary">
                 {t('landing.hero.highlight')}
@@ -438,11 +438,11 @@ export default function LandingPage() {
           </Reveal>
 
           {/* Description */}
-          <Reveal delay={0.3}>
+          {/* <Reveal delay={0.3}>
             <p className="mt-10 sm:mt-16 max-w-2xl text-center text-base sm:text-lg lg:text-xl leading-relaxed text-white">
               {t('landing.hero.description')}
             </p>
-          </Reveal>
+          </Reveal> */}
 
           {/* CTAs */}
           <Reveal delay={0.4}>
