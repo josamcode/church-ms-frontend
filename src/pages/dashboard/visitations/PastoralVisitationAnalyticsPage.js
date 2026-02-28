@@ -23,11 +23,40 @@ function SectionLabel({ children, icon: Icon }) {
   );
 }
 
+function formatMonthlyTrendLabel(item, language) {
+  const year = Number(item?.year);
+  const month = Number(item?.month);
+  const locale = language === 'ar' ? 'ar-EG' : 'en-US';
+
+  if (Number.isInteger(year) && Number.isInteger(month) && month >= 1 && month <= 12) {
+    const date = new Date(Date.UTC(year, month - 1, 1));
+    return new Intl.DateTimeFormat(locale, {
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(date);
+  }
+
+  const rawLabel = String(item?.label || '').trim();
+  if (!rawLabel) return '';
+
+  const parsed = new Date(`${rawLabel} 1`);
+  if (!Number.isNaN(parsed.getTime())) {
+    return new Intl.DateTimeFormat(locale, {
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(parsed);
+  }
+
+  return rawLabel;
+}
+
 /* ── page ────────────────────────────────────────────────────────────────── */
 
 export default function PastoralVisitationAnalyticsPage() {
-  const { t } = useI18n();
-  const [months, setMonths] = useState('6');
+  const { t, language } = useI18n();
+  const [months, setMonths] = useState('1');
 
   const { data: analyticsRes, isLoading } = useQuery({
     queryKey: ['visitations', 'analytics', { months }],
@@ -180,7 +209,9 @@ export default function PastoralVisitationAnalyticsPage() {
                   return (
                     <div key={`${item.year}-${item.month}`}>
                       <div className="mb-1.5 flex items-center justify-between">
-                        <span className="text-xs font-medium text-heading">{item.label}</span>
+                        <span className="text-xs font-medium text-heading">
+                          {formatMonthlyTrendLabel(item, language)}
+                        </span>
                         <span className="text-xs font-bold tabular-nums text-primary">{item.count}</span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-surface-alt">
