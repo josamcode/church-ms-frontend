@@ -460,7 +460,7 @@ export default function DashboardLayout() {
         </>
       )}
 
-      {visibleBottomItems.length > 0 && (
+      {/* {visibleBottomItems.length > 0 && (
         <>
           <NavDivider collapsed={false} />
           <NavSectionLabel label={t('dashboardLayout.section.other')} />
@@ -476,7 +476,7 @@ export default function DashboardLayout() {
             />
           ))}
         </>
-      )}
+      )} */}
     </>
   );
 
