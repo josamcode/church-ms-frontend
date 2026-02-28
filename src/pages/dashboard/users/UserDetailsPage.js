@@ -1,16 +1,16 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Calendar, Clock3, Edit, ExternalLink, Lock, Mail, MapPin,
   MessageCircle, Phone, Plus, Shield, Tag, Unlock, User,
   UserCircle, Users as UsersIcon,
 } from 'lucide-react';
-import { usersApi } from '../../../api/endpoints';
+import { confessionsApi, meetingsApi, usersApi, visitationsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import { useI18n } from '../../../i18n/i18n';
-import { formatDate, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
+import { formatDate, formatDateTime, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
@@ -21,6 +21,7 @@ import Skeleton from '../../../components/ui/Skeleton';
 import Tabs from '../../../components/ui/Tabs';
 import TextArea from '../../../components/ui/TextArea';
 import UserSearchSelect from '../../../components/UserSearchSelect';
+import { PERMISSIONS, PERMISSION_GROUPS, PERMISSION_LABELS, ROLE_PERMISSIONS } from '../../../constants/permissions';
 import toast from 'react-hot-toast';
 
 const EMPTY = '---';
@@ -59,9 +60,13 @@ function Field({ icon: Icon, label, value, ltr = false }) {
 
 export default function UserDetailsPage() {
   const { id } = useParams();
-  const { hasPermission } = useAuth();
+  const { hasPermission, hasAnyPermission } = useAuth();
   const { t } = useI18n();
   const queryClient = useQueryClient();
+  const tf = (key, fallback) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['users', id],
@@ -116,6 +121,18 @@ export default function UserDetailsPage() {
           hasPermission={hasPermission}
           queryClient={queryClient}
           onRefresh={refreshUser}
+        />
+      ),
+    },
+    {
+      label: tf('userDetails.tabs.system', 'Cross-System'),
+      content: (
+        <SystemTab
+          user={user}
+          userId={id}
+          hasPermission={hasPermission}
+          hasAnyPermission={hasAnyPermission}
+          tf={tf}
         />
       ),
     },
@@ -360,6 +377,402 @@ function ProfileTab({ user }) {
 }
 
 /* ── FamilyTab ──────────────────────────────────────────────────────────── */
+
+const MEETING_OVERVIEW_PERMISSIONS = [
+  'MEETINGS_VIEW',
+  'MEETINGS_VIEW_OWN',
+  'MEETINGS_UPDATE',
+  'MEETINGS_SERVANTS_MANAGE',
+  'MEETINGS_COMMITTEES_MANAGE',
+  'MEETINGS_ACTIVITIES_MANAGE',
+];
+
+function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf }) {
+  const { t } = useI18n();
+  const canViewConfessions = hasPermission('CONFESSIONS_VIEW');
+  const canViewVisitations = hasPermission('PASTORAL_VISITATIONS_VIEW');
+  const canViewMeetings = hasAnyPermission(MEETING_OVERVIEW_PERMISSIONS);
+  const canViewPermissions = hasPermission('USERS_VIEW');
+  const houseName = String(user.houseName || '').trim();
+
+  const [
+    confessionsQuery,
+    recorderVisitationsQuery,
+    houseVisitationsQuery,
+    meetingsQuery,
+  ] = useQueries({
+    queries: [
+      {
+        queryKey: ['user-details', userId, 'confessions'],
+        enabled: canViewConfessions && Boolean(userId),
+        staleTime: 30000,
+        queryFn: async () => {
+          const { data } = await confessionsApi.listSessions({
+            limit: 100,
+            order: 'desc',
+            attendeeUserId: userId,
+          });
+          return Array.isArray(data?.data) ? data.data : [];
+        },
+      },
+      {
+        queryKey: ['user-details', userId, 'visitations', 'recorded'],
+        enabled: canViewVisitations && Boolean(userId),
+        staleTime: 30000,
+        queryFn: async () => {
+          const { data } = await visitationsApi.list({
+            limit: 100,
+            order: 'desc',
+            recordedByUserId: userId,
+          });
+          return Array.isArray(data?.data) ? data.data : [];
+        },
+      },
+      {
+        queryKey: ['user-details', userId, 'visitations', 'house', houseName],
+        enabled: canViewVisitations && Boolean(houseName),
+        staleTime: 30000,
+        queryFn: async () => {
+          const { data } = await visitationsApi.list({
+            limit: 100,
+            order: 'desc',
+            houseName,
+          });
+          return Array.isArray(data?.data) ? data.data : [];
+        },
+      },
+      {
+        queryKey: ['user-details', userId, 'meetings'],
+        enabled: canViewMeetings,
+        staleTime: 30000,
+        queryFn: async () => {
+          const { data } = await meetingsApi.meetings.list({ limit: 100, order: 'desc' });
+          return Array.isArray(data?.data) ? data.data : [];
+        },
+      },
+    ],
+  });
+
+  const confessions = useMemo(
+    () => (Array.isArray(confessionsQuery.data) ? confessionsQuery.data : []),
+    [confessionsQuery.data]
+  );
+  const recordedVisitations = useMemo(
+    () => (Array.isArray(recorderVisitationsQuery.data) ? recorderVisitationsQuery.data : []),
+    [recorderVisitationsQuery.data]
+  );
+  const houseVisitations = useMemo(
+    () => (Array.isArray(houseVisitationsQuery.data) ? houseVisitationsQuery.data : []),
+    [houseVisitationsQuery.data]
+  );
+  const meetings = useMemo(
+    () => (Array.isArray(meetingsQuery.data) ? meetingsQuery.data : []),
+    [meetingsQuery.data]
+  );
+
+  const involvedMeetings = useMemo(
+    () =>
+      meetings
+        .map((meeting) => {
+          const involvement = deriveMeetingInvolvement(meeting, userId);
+          if (involvement.roles.length === 0) return null;
+          return { meeting, involvement };
+        })
+        .filter(Boolean),
+    [meetings, userId]
+  );
+
+  const permissionsSnapshot = useMemo(() => buildPermissionsSnapshot(user), [user]);
+
+  const sidebarItems = useMemo(() => [
+    { id: 'user-system-overview', label: tf('userDetails.system.sidebar.overview', 'Overview') },
+    { id: 'user-system-confessions', label: tf('userDetails.system.sidebar.confessions', 'Confessions') },
+    { id: 'user-system-meetings', label: tf('userDetails.system.sidebar.meetings', 'Meetings') },
+    { id: 'user-system-visitations', label: tf('userDetails.system.sidebar.visitations', 'Visitations') },
+    { id: 'user-system-permissions', label: tf('userDetails.system.sidebar.permissions', 'Permissions') },
+  ], [tf]);
+
+  return (
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[240px_minmax(0,1fr)]">
+      <aside className="xl:sticky xl:top-24 xl:self-start">
+        <div className="rounded-2xl border border-border bg-surface p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+            {tf('userDetails.system.sidebar.title', 'Sections')}
+          </p>
+          <div className="mt-3 space-y-1.5">
+            {sidebarItems.map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                className="block rounded-lg px-2.5 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-alt hover:text-heading"
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      <div className="space-y-6">
+        <section id="user-system-overview" className="space-y-4">
+          <SectionLabel>{tf('userDetails.system.overview.title', 'Cross-System Overview')}</SectionLabel>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <QuickStat
+              icon={Calendar}
+              label={tf('userDetails.system.stats.confessions', 'Confessions')}
+              value={canViewConfessions ? confessions.length : EMPTY}
+            />
+            <QuickStat
+              icon={UsersIcon}
+              label={tf('userDetails.system.stats.meetings', 'Meetings')}
+              value={canViewMeetings ? involvedMeetings.length : EMPTY}
+            />
+            <QuickStat
+              icon={MapPin}
+              label={tf('userDetails.system.stats.visitations', 'Visitations')}
+              value={canViewVisitations ? recordedVisitations.length : EMPTY}
+            />
+            <QuickStat
+              icon={Shield}
+              label={tf('userDetails.system.stats.permissions', 'Effective Permissions')}
+              value={canViewPermissions ? permissionsSnapshot.effectivePermissions.length : EMPTY}
+            />
+          </div>
+        </section>
+
+        <section id="user-system-confessions" className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <SectionLabel count={canViewConfessions ? confessions.length : null}>
+              {tf('userDetails.system.confessions.title', 'Confessions')}
+            </SectionLabel>
+            {canViewConfessions && (
+              <Link to="/dashboard/confessions">
+                <Button variant="ghost" size="sm">{tf('userDetails.system.actions.openModule', 'Open Module')}</Button>
+              </Link>
+            )}
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            {!canViewConfessions ? (
+              <NoPermissionBox message={tf('userDetails.system.permissionRequired', 'You do not have permission to view this section.')} />
+            ) : confessionsQuery.isLoading ? (
+              <p className="text-sm text-muted">{t('common.loading')}</p>
+            ) : confessionsQuery.error ? (
+              <p className="text-sm text-danger">{normalizeApiError(confessionsQuery.error).message}</p>
+            ) : confessions.length === 0 ? (
+              <p className="text-sm text-muted">{tf('userDetails.system.confessions.empty', 'No confession sessions were found for this user.')}</p>
+            ) : (
+              <div className="space-y-2.5">
+                {confessions.slice(0, 12).map((session) => (
+                  <div key={session.id} className="rounded-xl border border-border/80 bg-surface-alt/40 px-3.5 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-heading">
+                        {session.sessionType?.name || EMPTY}
+                      </p>
+                      <p className="text-xs text-muted">
+                        {formatDateTime(session.scheduledAt)}
+                      </p>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                      <span>
+                        {tf('userDetails.system.confessions.nextLabel', 'Next')}: {formatDateTime(session.nextSessionAt)}
+                      </span>
+                      <span>
+                        {tf('userDetails.system.confessions.createdByLabel', 'Created by')}: {session.createdByUser?.fullName || EMPTY}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section id="user-system-meetings" className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <SectionLabel count={canViewMeetings ? involvedMeetings.length : null}>
+              {tf('userDetails.system.meetings.title', 'Meetings')}
+            </SectionLabel>
+            {canViewMeetings && (
+              <Link to="/dashboard/meetings/list">
+                <Button variant="ghost" size="sm">{tf('userDetails.system.actions.openModule', 'Open Module')}</Button>
+              </Link>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            {!canViewMeetings ? (
+              <NoPermissionBox message={tf('userDetails.system.permissionRequired', 'You do not have permission to view this section.')} />
+            ) : meetingsQuery.isLoading ? (
+              <p className="text-sm text-muted">{t('common.loading')}</p>
+            ) : meetingsQuery.error ? (
+              <p className="text-sm text-danger">{normalizeApiError(meetingsQuery.error).message}</p>
+            ) : involvedMeetings.length === 0 ? (
+              <p className="text-sm text-muted">{tf('userDetails.system.meetings.empty', 'No meeting records were found for this user.')}</p>
+            ) : (
+              <div className="space-y-3">
+                {involvedMeetings.map(({ meeting, involvement }) => (
+                  <div key={meeting.id} className="rounded-xl border border-border/80 bg-surface-alt/40 px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold text-heading">{meeting.name || EMPTY}</p>
+                        <p className="text-xs text-muted">
+                          {formatDayTime(meeting.day, meeting.time)}
+                        </p>
+                      </div>
+                      <Link to={`/dashboard/meetings/list/${meeting.id}`}>
+                        <Button variant="outline" size="sm">{t('common.actions.view')}</Button>
+                      </Link>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {involvement.roles.map((role) => (
+                        <Badge key={`${meeting.id}-${role}`} variant="primary">
+                          {getMeetingRoleLabel(role, tf)}
+                        </Badge>
+                      ))}
+                      {involvement.groups.map((group) => (
+                        <Badge key={`${meeting.id}-group-${group}`} variant="default">{group}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section id="user-system-visitations" className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <SectionLabel count={canViewVisitations ? recordedVisitations.length : null}>
+              {tf('userDetails.system.visitations.title', 'Visitations')}
+            </SectionLabel>
+            {canViewVisitations && (
+              <Link to="/dashboard/visitations">
+                <Button variant="ghost" size="sm">{tf('userDetails.system.actions.openModule', 'Open Module')}</Button>
+              </Link>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-border bg-surface p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                {tf('userDetails.system.visitations.houseVisits', 'Visits related to this user house')}
+              </p>
+              {!canViewVisitations ? (
+                <div className="mt-3">
+                  <NoPermissionBox message={tf('userDetails.system.permissionRequired', 'You do not have permission to view this section.')} />
+                </div>
+              ) : !houseName ? (
+                <p className="mt-3 text-sm text-muted">{tf('userDetails.system.visitations.noHouseName', 'This user has no house name assigned.')}</p>
+              ) : houseVisitationsQuery.isLoading ? (
+                <p className="mt-3 text-sm text-muted">{t('common.loading')}</p>
+              ) : houseVisitationsQuery.error ? (
+                <p className="mt-3 text-sm text-danger">{normalizeApiError(houseVisitationsQuery.error).message}</p>
+              ) : houseVisitations.length === 0 ? (
+                <p className="mt-3 text-sm text-muted">{tf('userDetails.system.visitations.emptyHouse', 'No house visitations were found for this house name.')}</p>
+              ) : (
+                <div className="mt-3 space-y-2.5">
+                  {houseVisitations.slice(0, 10).map((visitation) => (
+                    <Link
+                      key={visitation.id}
+                      to={`/dashboard/visitations/${visitation.id}`}
+                      className="block rounded-xl border border-border/80 bg-surface-alt/40 px-3.5 py-3 transition-colors hover:border-primary/30"
+                    >
+                      <p className="text-sm font-semibold text-heading">{visitation.houseName || EMPTY}</p>
+                      <p className="mt-1 text-xs text-muted">
+                        {formatDateTime(visitation.visitedAt)} • {visitation.recordedBy?.fullName || EMPTY}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section id="user-system-permissions" className="space-y-4">
+          <SectionLabel count={canViewPermissions ? permissionsSnapshot.effectivePermissions.length : null}>
+            {tf('userDetails.system.permissions.title', 'Permissions')}
+          </SectionLabel>
+
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            {!canViewPermissions ? (
+              <NoPermissionBox message={tf('userDetails.system.permissionRequired', 'You do not have permission to view this section.')} />
+            ) : (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                  <QuickStat icon={Shield} label={tf('userDetails.system.permissions.role', 'Role')} value={getRoleLabel(user.role)} />
+                  <QuickStat icon={Shield} label={tf('userDetails.system.permissions.base', 'Role permissions')} value={permissionsSnapshot.rolePermissions.length} />
+                  <QuickStat icon={Shield} label={tf('userDetails.system.permissions.extra', 'Extra permissions')} value={permissionsSnapshot.extraPermissions.length} />
+                  <QuickStat icon={Shield} label={tf('userDetails.system.permissions.denied', 'Denied permissions')} value={permissionsSnapshot.deniedPermissions.length} />
+                </div>
+
+                {permissionsSnapshot.extraPermissions.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                      {tf('userDetails.system.permissions.extra', 'Extra permissions')}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {permissionsSnapshot.extraPermissions.map((permission) => (
+                        <Badge key={`extra-${permission}`} variant="success">
+                          {PERMISSION_LABELS[permission] || permission}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {permissionsSnapshot.deniedPermissions.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                      {tf('userDetails.system.permissions.denied', 'Denied permissions')}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {permissionsSnapshot.deniedPermissions.map((permission) => (
+                        <Badge key={`denied-${permission}`} variant="danger">
+                          {PERMISSION_LABELS[permission] || permission}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {permissionsSnapshot.groupedEffectivePermissions.map((group) => (
+                    <div key={group.id} className="space-y-2">
+                      <SectionLabel count={group.permissions.length}>{group.label}</SectionLabel>
+                      {group.permissions.length === 0 ? (
+                        <p className="text-sm text-muted">{tf('userDetails.system.permissions.emptyGroup', 'No effective permissions in this group.')}</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {group.permissions.map((permission) => (
+                            <Badge
+                              key={`${group.id}-${permission}`}
+                              variant={permissionsSnapshot.extraPermissionSet.has(permission) ? 'success' : 'primary'}
+                            >
+                              {PERMISSION_LABELS[permission] || permission}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function NoPermissionBox({ message }) {
+  return (
+    <div className="rounded-xl border border-warning/25 bg-warning-light px-4 py-3 text-sm text-warning">
+      {message}
+    </div>
+  );
+}
 
 function FamilyTab({ user, hasPermission, queryClient, onRefresh }) {
   const { t, isRTL } = useI18n();
@@ -699,6 +1112,141 @@ function FamilyMemberCard({ member, currentUserId, inverse }) {
 }
 
 /* ── helpers (unchanged logic) ───────────────────────────────────────────── */
+
+function normalizePermissionList(value) {
+  return [...new Set((Array.isArray(value) ? value : []).filter(Boolean))];
+}
+
+function toComparableId(value) {
+  if (!value) return null;
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  if (typeof value === 'object') {
+    if (value.id != null) return String(value.id);
+    if (value._id != null) return String(value._id);
+  }
+  return String(value);
+}
+
+function deriveMeetingInvolvement(meeting, userId) {
+  const targetId = toComparableId(userId);
+  if (!targetId || !meeting) return { roles: [], groups: [] };
+
+  const roles = new Set();
+  const groups = new Set();
+  const isTarget = (candidate) => toComparableId(candidate) === targetId;
+  const hasTargetUser = (users) =>
+    (Array.isArray(users) ? users : []).some((entry) => isTarget(entry?.id || entry?._id || entry));
+
+  if (
+    isTarget(meeting?.serviceSecretary?.user?.id) ||
+    (Array.isArray(meeting?.assistantSecretaries)
+      && meeting.assistantSecretaries.some((assistant) => isTarget(assistant?.user?.id)))
+  ) {
+    roles.add('leadership');
+  }
+
+  if (hasTargetUser(meeting?.servedUsers)) {
+    roles.add('member');
+  }
+
+  (Array.isArray(meeting?.groupAssignments) ? meeting.groupAssignments : []).forEach((assignment) => {
+    if (hasTargetUser(assignment?.servedUsers)) {
+      roles.add('member');
+      if (assignment?.group) groups.add(assignment.group);
+    }
+  });
+
+  (Array.isArray(meeting?.servants) ? meeting.servants : []).forEach((servant) => {
+    const isServant = isTarget(servant?.user?.id);
+    if (isServant) {
+      roles.add('servant');
+      (Array.isArray(servant?.groupsManaged) ? servant.groupsManaged : []).forEach((group) => {
+        if (group) groups.add(group);
+      });
+    }
+
+    if (hasTargetUser(servant?.servedUsers)) {
+      roles.add('member');
+    }
+
+    (Array.isArray(servant?.groupAssignments) ? servant.groupAssignments : []).forEach((assignment) => {
+      if (isServant && assignment?.group) groups.add(assignment.group);
+      if (hasTargetUser(assignment?.servedUsers)) {
+        roles.add('member');
+        if (assignment?.group) groups.add(assignment.group);
+      }
+    });
+  });
+
+  if (
+    (Array.isArray(meeting?.committees) ? meeting.committees : []).some((committee) =>
+      hasTargetUser(committee?.members)
+    )
+  ) {
+    roles.add('committee');
+  }
+
+  return { roles: [...roles], groups: [...groups] };
+}
+
+function getMeetingRoleLabel(role, tf) {
+  switch (role) {
+    case 'leadership':
+      return tf('userDetails.system.meetings.roleLeadership', 'Leadership');
+    case 'servant':
+      return tf('userDetails.system.meetings.roleServant', 'Servant');
+    case 'member':
+      return tf('userDetails.system.meetings.roleMember', 'Member');
+    case 'committee':
+      return tf('userDetails.system.meetings.roleCommittee', 'Committee');
+    default:
+      return role;
+  }
+}
+
+function formatDayTime(day, time) {
+  if (day && time) return `${day} - ${time}`;
+  return day || time || EMPTY;
+}
+
+function buildPermissionsSnapshot(user) {
+  const role = user?.role || 'USER';
+  const rolePermissions = role === 'SUPER_ADMIN'
+    ? [...PERMISSIONS]
+    : normalizePermissionList(ROLE_PERMISSIONS[role] || []);
+  const extraPermissions = normalizePermissionList(user?.extraPermissions);
+  const deniedPermissions = normalizePermissionList(user?.deniedPermissions);
+
+  const effectiveSet = new Set(rolePermissions);
+  extraPermissions.forEach((permission) => effectiveSet.add(permission));
+  deniedPermissions.forEach((permission) => effectiveSet.delete(permission));
+
+  const effectivePermissions = [...effectiveSet];
+  const groupedPermissionSet = new Set(PERMISSION_GROUPS.flatMap((group) => group.permissions));
+  const groupedEffectivePermissions = PERMISSION_GROUPS.map((group) => ({
+    id: group.id,
+    label: group.label,
+    permissions: group.permissions.filter((permission) => effectiveSet.has(permission)),
+  }));
+
+  const customPermissions = effectivePermissions.filter((permission) => !groupedPermissionSet.has(permission));
+  if (customPermissions.length > 0) {
+    groupedEffectivePermissions.push({
+      id: 'custom',
+      label: 'Custom',
+      permissions: customPermissions,
+    });
+  }
+
+  return {
+    rolePermissions,
+    extraPermissions,
+    deniedPermissions,
+    effectivePermissions,
+    groupedEffectivePermissions,
+    extraPermissionSet: new Set(extraPermissions),
+  };
+}
 
 function buildFamilyGroups(user, t) {
   return [

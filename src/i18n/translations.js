@@ -502,6 +502,7 @@
       tabs: {
         profile: 'Profile',
         family: 'Family',
+        system: 'Cross-System',
       },
       summary: {
         joinedOn: 'Joined on',
@@ -572,6 +573,60 @@
           inverse: 'Linked from other profiles',
         },
         inverseLink: 'Inverse link',
+      },
+      system: {
+        sidebar: {
+          title: 'Sections',
+          overview: 'Overview',
+          confessions: 'Confessions',
+          meetings: 'Meetings',
+          visitations: 'Visitations',
+          permissions: 'Permissions',
+        },
+        overview: {
+          title: 'Cross-System Overview',
+        },
+        stats: {
+          confessions: 'Confessions',
+          meetings: 'Meetings',
+          visitations: 'Visitations',
+          permissions: 'Effective Permissions',
+        },
+        actions: {
+          openModule: 'Open Module',
+        },
+        permissionRequired: 'You do not have permission to view this section.',
+        confessions: {
+          title: 'Confessions',
+          empty: 'No confession sessions were found for this user.',
+          nextLabel: 'Next',
+          createdByLabel: 'Created by',
+        },
+        meetings: {
+          title: 'Meetings',
+          empty: 'No meeting records were found for this user.',
+          roleLeadership: 'Leadership',
+          roleServant: 'Servant',
+          roleMember: 'Member',
+          roleCommittee: 'Committee',
+        },
+        visitations: {
+          title: 'Visitations',
+          recordedByUser: 'Recorded by this user',
+          emptyRecorded: 'No recorded visitations found.',
+          minutes: 'min',
+          houseVisits: 'Visits related to this user house',
+          noHouseName: 'This user has no house name assigned.',
+          emptyHouse: 'No house visitations were found for this house name.',
+        },
+        permissions: {
+          title: 'Permissions',
+          role: 'Role',
+          base: 'Role permissions',
+          extra: 'Extra permissions',
+          denied: 'Denied permissions',
+          emptyGroup: 'No effective permissions in this group.',
+        },
       },
     },
     confessions: {
@@ -1618,6 +1673,7 @@
       tabs: {
         profile: 'الملف الشخصي',
         family: 'العائلة',
+        system: 'معلومات عبر النظام',
       },
       summary: {
         joinedOn: 'تاريخ الانضمام',
@@ -1688,6 +1744,60 @@
           inverse: 'مرتبط من ملفات أخرى',
         },
         inverseLink: 'رابط عكسي',
+      },
+      system: {
+        sidebar: {
+          title: 'الأقسام',
+          overview: 'نظرة عامة',
+          confessions: 'الاعترافات',
+          meetings: 'الاجتماعات',
+          visitations: 'الافتقاد',
+          permissions: 'الصلاحيات',
+        },
+        overview: {
+          title: 'نظرة عامة عبر النظام',
+        },
+        stats: {
+          confessions: 'الاعترافات',
+          meetings: 'الاجتماعات',
+          visitations: 'الافتقاد',
+          permissions: 'الصلاحيات الفعّالة',
+        },
+        actions: {
+          openModule: 'فتح القسم',
+        },
+        permissionRequired: 'ليس لديك صلاحية لعرض هذا القسم.',
+        confessions: {
+          title: 'الاعترافات',
+          empty: 'لا توجد جلسات اعتراف لهذا المستخدم.',
+          nextLabel: 'التالي',
+          createdByLabel: 'تم الإنشاء بواسطة',
+        },
+        meetings: {
+          title: 'الاجتماعات',
+          empty: 'لا توجد سجلات اجتماعات لهذا المستخدم.',
+          roleLeadership: 'قيادة',
+          roleServant: 'خادم',
+          roleMember: 'عضو',
+          roleCommittee: 'لجنة',
+        },
+        visitations: {
+          title: 'الافتقاد',
+          recordedByUser: 'تم تسجيلها بواسطة هذا المستخدم',
+          emptyRecorded: 'لا توجد زيارات مسجلة.',
+          minutes: 'دقيقة',
+          houseVisits: 'زيارات مرتبطة ببيت هذا المستخدم',
+          noHouseName: 'لا يوجد اسم بيت مُعيَّن لهذا المستخدم.',
+          emptyHouse: 'لا توجد زيارات لهذا البيت.',
+        },
+        permissions: {
+          title: 'الصلاحيات',
+          role: 'الدور',
+          base: 'صلاحيات الدور',
+          extra: 'صلاحيات إضافية',
+          denied: 'صلاحيات مرفوضة',
+          emptyGroup: 'لا توجد صلاحيات فعّالة في هذه المجموعة.',
+        },
       },
     },
     confessions: {
