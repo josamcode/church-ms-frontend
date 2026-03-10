@@ -718,7 +718,7 @@ export default function DashboardLayout() {
 
         {/* ── Main area ─────────────────────────────────────────────────── */}
         <div className={[
-          'flex min-h-screen flex-1 flex-col transition-[margin] duration-300 ease-in-out',
+          'flex min-h-screen min-w-0 flex-1 flex-col transition-[margin] duration-300 ease-in-out',
           collapsed
             ? isRTL ? 'lg:mr-[68px]' : 'lg:ml-[68px]'
             : isRTL ? 'lg:mr-[260px]' : 'lg:ml-[260px]',
@@ -783,7 +783,7 @@ export default function DashboardLayout() {
           </header>
 
           {/* Page content */}
-          <main className="mx-auto w-full max-w-[1240px] flex-1 px-4 py-6 lg:px-8 lg:py-8">
+          <main className="mx-auto w-full min-w-0 max-w-[1240px] flex-1 px-4 py-6 lg:px-8 lg:py-8">
             <Outlet />
           </main>
         </div>

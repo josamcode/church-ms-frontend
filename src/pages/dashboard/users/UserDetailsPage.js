@@ -271,7 +271,7 @@ export default function UserDetailsPage() {
   ];
 
   return (
-    <div className="animate-fade-in space-y-8 pb-10">
+    <div className="min-w-0 animate-fade-in space-y-8 pb-10">
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
@@ -383,7 +383,9 @@ export default function UserDetailsPage() {
       </div>
 
       {/* ══ TABS ════════════════════════════════════════════════════════ */}
-      <Tabs tabs={tabs} />
+      <div className="min-w-0">
+        <Tabs tabs={tabs} />
+      </div>
     </div>
   );
 }

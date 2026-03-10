@@ -259,7 +259,7 @@ function MobileTableCard({
   const alignmentClass = isRTL ? 'text-right' : 'text-left';
   const detailGridTemplate =
     detailColumns.length > 1
-      ? 'repeat(auto-fit, minmax(148px, 1fr))'
+      ? 'repeat(auto-fit, minmax(100px, 1fr))'
       : 'minmax(0, 1fr)';
 
   return (

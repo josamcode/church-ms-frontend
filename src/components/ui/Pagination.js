@@ -21,8 +21,8 @@ export default function Pagination({
   const resolvedPageInfo = pageInfo || `${currentPage}/${totalPages}`;
 
   return (
-    <div className="flex items-center justify-between pt-4">
-      <p className="text-sm text-muted">{t('common.pagination.showing', { count: meta.count })}</p>
+    <div className="flex items-center justify-end pt-4">
+      {/* <p className="text-sm text-muted">{t('common.pagination.showing', { count: meta.count })}</p> */}
       <div className="flex items-center gap-2">
         {onPrev && (
           <Button
