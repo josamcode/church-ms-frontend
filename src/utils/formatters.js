@@ -73,6 +73,31 @@ const RELATION_LABELS_BY_LANG = {
 
 const EMPTY_VALUE = '---';
 
+function parseCalendarDateParts(value) {
+  if (!value) return null;
+
+  const rawValue = String(value).trim();
+  const matchedDateParts = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (matchedDateParts) {
+    const [, year, month, day] = matchedDateParts;
+    return {
+      year: Number(year),
+      month: Number(month),
+      day: Number(day),
+    };
+  }
+
+  const parsedDate = new Date(rawValue);
+  if (Number.isNaN(parsedDate.getTime())) return null;
+
+  return {
+    year: parsedDate.getUTCFullYear(),
+    month: parsedDate.getUTCMonth() + 1,
+    day: parsedDate.getUTCDate(),
+  };
+}
+
 function getLanguageObject(mapByLanguage) {
   const language = getCurrentLanguage();
   return mapByLanguage[language] || mapByLanguage.ar || mapByLanguage.en || {};
@@ -142,6 +167,21 @@ export function formatDateTime(dateStr) {
   } catch {
     return dateStr;
   }
+}
+
+export function formatAgeFromBirthDate(birthDate) {
+  const birthDateParts = parseCalendarDateParts(birthDate);
+  if (!birthDateParts) return EMPTY_VALUE;
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDateParts.year;
+  const hasHadBirthdayThisYear =
+    today.getMonth() + 1 > birthDateParts.month ||
+    (today.getMonth() + 1 === birthDateParts.month && today.getDate() >= birthDateParts.day);
+
+  if (!hasHadBirthdayThisYear) age -= 1;
+
+  return age >= 0 ? age : EMPTY_VALUE;
 }
 
 export function formatPhone(phone) {

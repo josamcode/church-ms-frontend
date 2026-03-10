@@ -257,52 +257,61 @@ function MobileTableCard({
   isRTL,
 }) {
   const alignmentClass = isRTL ? 'text-right' : 'text-left';
+  const detailGridTemplate =
+    detailColumns.length > 1
+      ? 'repeat(auto-fit, minmax(148px, 1fr))'
+      : 'minmax(0, 1fr)';
 
   return (
-    <article className="rounded-xl border border-border bg-surface p-4 shadow-card">
-      {primaryColumn ? (
-        <div
-          className={`min-w-0 ${primaryColumn.onClick ? 'cursor-pointer rounded-lg transition-colors hover:bg-surface-alt/40 focus:outline-none focus:ring-2 focus:ring-primary/20' : ''}`}
-          {...getInteractiveCellProps(primaryColumn, row)}
-        >
-          {getCellContent(primaryColumn, row, rowIndex, emptyValue)}
+    <article className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
+      {(primaryColumn || actionColumns.length > 0) && (
+        <div className="border-b border-border/70 bg-gradient-to-b from-surface-alt/40 to-surface px-4 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            {primaryColumn ? (
+              <div
+                className={`min-w-0 flex-1 ${primaryColumn.onClick ? 'cursor-pointer rounded-xl transition-colors hover:bg-surface-alt/30 focus:outline-none focus:ring-2 focus:ring-primary/20' : ''}`}
+                {...getInteractiveCellProps(primaryColumn, row)}
+              >
+                {getCellContent(primaryColumn, row, rowIndex, emptyValue)}
+              </div>
+            ) : null}
+
+            {actionColumns.length > 0 ? (
+              <div className="flex shrink-0 items-center gap-2">
+                {actionColumns.map((column) => (
+                  <div key={`${row._id || row.id || rowIndex}-${column.key}`}>
+                    {getCellContent(column, row, rowIndex, emptyValue)}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </div>
-      ) : null}
+      )}
 
       {detailColumns.length > 0 ? (
-        <div className="mt-4 space-y-3">
-          {detailColumns.map((column) => (
-            <div
-              key={`${row._id || row.id || rowIndex}-${column.key}`}
-              className={`rounded-lg border border-border/70 bg-surface-alt/30 px-3 py-2 ${column.onClick
-                ? 'cursor-pointer transition-colors hover:bg-surface-alt/60 focus:outline-none focus:ring-2 focus:ring-primary/20'
-                : ''
-                }`}
-              {...getInteractiveCellProps(column, row)}
-            >
-              {String(column.label || '').trim() ? (
-                <p className={`text-[11px] font-semibold uppercase tracking-wide text-muted ${alignmentClass}`}>
-                  {column.label}
-                </p>
-              ) : null}
-              <div className={`mt-1 text-sm text-heading break-words ${alignmentClass}`}>
-                {getCellContent(column, row, rowIndex, emptyValue)}
+        <div className="px-4 py-4">
+          <div className="grid gap-3" style={{ gridTemplateColumns: detailGridTemplate }}>
+            {detailColumns.map((column) => (
+              <div
+                key={`${row._id || row.id || rowIndex}-${column.key}`}
+                className={`flex min-h-[88px] flex-col justify-between rounded-xl border border-border/80 bg-surface-alt/35 px-3.5 py-3 shadow-sm ${column.onClick
+                  ? 'cursor-pointer transition-all hover:-translate-y-0.5 hover:bg-surface-alt/60 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/20'
+                  : ''
+                  }`}
+                {...getInteractiveCellProps(column, row)}
+              >
+                {String(column.label || '').trim() ? (
+                  <p className={`text-[11px] font-medium text-muted ${alignmentClass}`}>
+                    {column.label}
+                  </p>
+                ) : null}
+                <div className={`mt-2 text-sm font-semibold leading-6 text-heading break-words ${alignmentClass}`}>
+                  {getCellContent(column, row, rowIndex, emptyValue)}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {actionColumns.length > 0 ? (
-        <div
-          className={`mt-4 flex items-center gap-2 border-t border-border/70 pt-3 ${isRTL ? 'justify-start' : 'justify-end'
-            }`}
-        >
-          {actionColumns.map((column) => (
-            <div key={`${row._id || row.id || rowIndex}-${column.key}`}>
-              {getCellContent(column, row, rowIndex, emptyValue)}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ) : null}
     </article>
@@ -311,22 +320,35 @@ function MobileTableCard({
 
 function MobileTableSkeletonCard() {
   return (
-    <div className="rounded-xl border border-border bg-surface p-4 shadow-card">
-      <div className="flex items-center gap-3">
-        <Skeleton variant="circle" className="h-10 w-10" />
-        <div className="flex-1 space-y-2">
-          <Skeleton className="h-4 w-1/2" />
-          <Skeleton className="h-3 w-1/3" />
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
+      <div className="border-b border-border/70 bg-gradient-to-b from-surface-alt/40 to-surface px-4 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-1 items-center gap-3">
+            <Skeleton variant="circle" className="h-10 w-10" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-3 w-1/3" />
+            </div>
+          </div>
+          <Skeleton className="h-9 w-9 rounded-lg" />
         </div>
       </div>
 
-      <div className="mt-4 space-y-3">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="rounded-lg border border-border/70 bg-surface-alt/30 px-3 py-3">
-            <Skeleton className="h-3 w-1/4" />
-            <Skeleton className="mt-2 h-4 w-3/4" />
-          </div>
-        ))}
+      <div className="px-4 py-4">
+        <div
+          className="grid gap-3"
+          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(148px, 1fr))' }}
+        >
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={index}
+              className="flex min-h-[88px] flex-col justify-between rounded-xl border border-border/80 bg-surface-alt/35 px-3.5 py-3 shadow-sm"
+            >
+              <Skeleton className="h-3 w-1/3" />
+              <Skeleton className="mt-3 h-4 w-4/5" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

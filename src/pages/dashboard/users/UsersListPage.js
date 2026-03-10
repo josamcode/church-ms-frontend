@@ -15,11 +15,10 @@ import SearchInput from '../../../components/ui/SearchInput';
 import Select from '../../../components/ui/Select';
 import Pagination from '../../../components/ui/Pagination';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
-import Badge from '../../../components/ui/Badge';
 import Modal from '../../../components/ui/Modal';
 import PageHeader from '../../../components/ui/PageHeader';
 import toast from 'react-hot-toast';
-import { AGE_GROUPS, formatDate, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
+import { AGE_GROUPS, formatAgeFromBirthDate, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
 import { fetchUsersWithPagination } from './familyHouseLookup.shared';
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -177,15 +176,20 @@ export default function UsersListPage() {
       onClick: (row) => navigate(`/dashboard/users/${row._id}`),
       cellClassName: 'cursor-pointer',
     },
-    {
-      key: 'role',
-      label: t('usersListPage.columns.role'),
-      render: (row) => <Badge variant="primary">{getRoleLabel(row.role)}</Badge>,
-    },
+    // {
+    //   key: 'role',
+    //   label: t('usersListPage.columns.role'),
+    //   render: (row) => <Badge variant="primary">{getRoleLabel(row.role)}</Badge>,
+    // },
     {
       key: 'ageGroup',
       label: t('usersListPage.columns.ageGroup'),
       render: (row) => row.ageGroup || t('common.placeholder.empty'),
+    },
+    {
+      key: 'age',
+      label: t('usersListPage.columns.age'),
+      render: (row) => formatAgeFromBirthDate(row.birthDate),
     },
     {
       key: 'gender',
@@ -193,18 +197,9 @@ export default function UsersListPage() {
       render: (row) => getGenderLabel(row.gender),
     },
     {
-      key: 'createdAt',
-      label: t('usersListPage.columns.joined'),
-      render: (row) => formatDate(row.createdAt),
-    },
-    {
-      key: 'isLocked',
-      label: t('usersListPage.columns.status'),
-      render: (row) => (
-        <Badge variant={row.isLocked ? 'danger' : 'success'}>
-          {row.isLocked ? t('common.status.locked') : t('common.status.active')}
-        </Badge>
-      ),
+      key: 'familyName',
+      label: t('usersListPage.columns.familyName'),
+      render: (row) => (row.familyName || "---"),
     },
     {
       key: 'actions',

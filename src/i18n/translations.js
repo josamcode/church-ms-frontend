@@ -419,6 +419,8 @@
         gender: 'Gender',
         joined: 'Joined',
         status: 'Status',
+        familyName: 'Family Name',
+        age: 'Age'
       },
       empty: {
         title: 'No users found',
@@ -1747,6 +1749,8 @@
         gender: 'النوع',
         joined: 'تاريخ الانضمام',
         status: 'الحالة',
+        familyName: 'العائلة',
+        age: 'السن'
       },
       empty: {
         title: 'لا يوجد مستخدمون',
