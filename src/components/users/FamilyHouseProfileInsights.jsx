@@ -297,6 +297,7 @@ export default function FamilyHouseProfileInsights({
   lookupType = 'houseName',
   lookupName = '',
   loading = false,
+  renderMemberActions,
 }) {
   const { language } = useI18n();
   const locale = getLocale(language);
@@ -420,6 +421,7 @@ export default function FamilyHouseProfileInsights({
                 member={member}
                 copy={copy}
                 language={language}
+                actions={renderMemberActions?.(member)}
               />
             ))}
           </div>
@@ -498,7 +500,7 @@ function DistributionCard({
   );
 }
 
-function MemberProfileCard({ member, copy, language }) {
+function MemberProfileCard({ member, copy, language, actions }) {
   const healthConditions = getHealthConditions(member);
   const notes = getCombinedNotes(member);
   const address = buildAddress(member);
@@ -606,14 +608,17 @@ function MemberProfileCard({ member, copy, language }) {
           </div>
         </div>
 
-        {userId ? (
-          <Link
-            to={`/dashboard/users/${userId}`}
-            className="text-xs font-semibold text-primary hover:text-primary/80"
-          >
-            {copy.viewProfile}
-          </Link>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {actions}
+          {userId ? (
+            <Link
+              to={`/dashboard/users/${userId}`}
+              className="text-xs font-semibold text-primary hover:text-primary/80"
+            >
+              {copy.viewProfile}
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       {detailItems.length > 0 ? (

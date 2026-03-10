@@ -179,7 +179,7 @@ export default function DashboardLayout() {
       ],
     },
     {
-      key: 'users',
+      key: 'the-lords-brethren',
       sectionLabel: t('dashboardLayout.section.theLordsBrethren'),
       parent: {
         label: t('dashboardLayout.menu.theLordsBrethren'),

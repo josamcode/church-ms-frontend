@@ -51,6 +51,12 @@ export const householdClassificationsApi = {
   deleteCategory: (id) => apiClient.delete(`/household-classifications/categories/${id}`),
   listHouseholds: (params) =>
     apiClient.get('/household-classifications/households', { params }),
+  getHouseholdByName: (houseName) =>
+    apiClient.get('/household-classifications/households/details', {
+      params: { houseName },
+    }),
+  updateHousehold: (data) =>
+    apiClient.patch('/household-classifications/households/details', data),
 };
 
 /* â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ Confessions â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ */

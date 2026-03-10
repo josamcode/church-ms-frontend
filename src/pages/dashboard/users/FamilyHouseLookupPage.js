@@ -1,9 +1,17 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Building2, Search, Users as UsersIcon } from 'lucide-react';
-import { usersApi } from '../../../api/endpoints';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  ArrowLeft,
+  Building2,
+  Pencil,
+  Search,
+  ShieldCheck,
+  Users as UsersIcon,
+} from 'lucide-react';
+import { householdClassificationsApi, usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
+import { useAuth } from '../../../auth/auth.hooks';
 import { useI18n } from '../../../i18n/i18n';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
@@ -14,7 +22,14 @@ import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
 import Table from '../../../components/ui/Table';
 import FamilyHouseProfileInsights from '../../../components/users/FamilyHouseProfileInsights';
+import HouseholdQuickEditModal from '../../../components/users/HouseholdQuickEditModal';
 import { getGenderLabel } from '../../../utils/formatters';
+import {
+  describeCriterionActualValue,
+  formatCurrencyEGP,
+  getHouseholdSourceLabel,
+  getStatusText,
+} from '../households/householdClassifications.shared';
 import {
   EMPTY,
   FAMILY_HOUSE_ANALYTICS_PATH,
@@ -28,19 +43,103 @@ import {
   normalizeText,
 } from './familyHouseLookup.shared';
 
+const DETAILS_COPY = {
+  en: {
+    householdClassificationTitle: 'Household classification',
+    householdClassificationSubtitle:
+      'See the evaluated house status, the stored house profile, and the full rule breakdown for this house.',
+    houseName: 'House name',
+    source: 'Source',
+    primaryClassification: 'Primary classification',
+    computedPrimaryClassification: 'Computed classification',
+    classificationMode: 'Classification mode',
+    manualOverride: 'Manual override',
+    computedMode: 'Computed from rules',
+    matchedCategories: 'Matched categories',
+    totalIncome: 'Total income',
+    averageIncome: 'Average income',
+    incomeSources: 'Income sources',
+    editHouse: 'Edit house',
+    manageRules: 'Manage rules',
+    noMatchedCategories: 'No categories matched this house yet.',
+    noClassificationData:
+      'No household classification result was found for this house. Review the house name or refresh member data.',
+    noIncomeSources: 'No house income sources are stored yet.',
+    evaluationTitle: 'Rule evaluation',
+    evaluationSubtitle:
+      'Each category below shows whether the current house data satisfies its configured criteria.',
+    criteriaActualValue: 'Actual value',
+    noCriteria: 'No criteria are configured for this category.',
+    matched: 'Matched',
+    notMatched: 'Not matched',
+    actionsColumn: 'Actions',
+    quickEdit: 'Quick edit',
+    fullEdit: 'Full edit',
+    familyHintTitle: 'Household statuses are available by house',
+    familyHintDescription:
+      'Classification is evaluated per house name. Open one of the houses in this family to review or edit the full house record.',
+    openHouseStatus: 'Open house status',
+  },
+  ar: {
+    householdClassificationTitle: 'تصنيف البيت',
+    householdClassificationSubtitle:
+      'راجع حالة البيت المحسوبة، وملف البيت المحفوظ، والتفصيل الكامل لتقييم القواعد لهذا البيت.',
+    houseName: 'اسم البيت',
+    source: 'مصدر التجميع',
+    primaryClassification: 'التصنيف الأساسي',
+    computedPrimaryClassification: 'التصنيف المحسوب',
+    classificationMode: 'وضع التصنيف',
+    manualOverride: 'تعيين يدوي',
+    computedMode: 'محسوب من القواعد',
+    matchedCategories: 'التصنيفات المطابقة',
+    totalIncome: 'إجمالي الدخل',
+    averageIncome: 'متوسط الدخل',
+    incomeSources: 'مصادر الدخل',
+    editHouse: 'تعديل البيت',
+    manageRules: 'إدارة القواعد',
+    noMatchedCategories: 'لا توجد تصنيفات مطابقة لهذا البيت حالياً.',
+    noClassificationData:
+      'لا توجد نتيجة تصنيف لهذا البيت حالياً. راجع اسم البيت أو حدّث بيانات الأفراد.',
+    noIncomeSources: 'لا توجد مصادر دخل محفوظة لهذا البيت حالياً.',
+    evaluationTitle: 'تفصيل تقييم القواعد',
+    evaluationSubtitle:
+      'كل فئة بالأسفل توضح هل بيانات هذا البيت الحالية تحقق المعايير المضبوطة أم لا.',
+    criteriaActualValue: 'القيمة الفعلية',
+    noCriteria: 'لا توجد معايير مضبوطة لهذه الفئة.',
+    matched: 'مطابق',
+    notMatched: 'غير مطابق',
+    actionsColumn: 'الإجراءات',
+    quickEdit: 'تعديل سريع',
+    fullEdit: 'تعديل كامل',
+    familyHintTitle: 'تصنيفات البيوت تظهر لكل بيت على حدة',
+    familyHintDescription:
+      'التصنيف يتم حسابه حسب اسم البيت. افتح أحد البيوت المرتبطة بهذه العائلة لعرض ملف البيت بالكامل وتعديله.',
+    openHouseStatus: 'فتح حالة البيت',
+  },
+};
+
 export default function FamilyHouseLookupPage() {
-  const { t, isRTL } = useI18n();
+  const { t, isRTL, language } = useI18n();
+  const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const [lookupType, setLookupType] = useState('familyName');
   const [lookupName, setLookupName] = useState('');
   const [submittedLookupName, setSubmittedLookupName] = useState('');
   const [lookupDropdownOpen, setLookupDropdownOpen] = useState(false);
+  const [houseEditOpen, setHouseEditOpen] = useState(false);
   const lookupInputRef = useRef(null);
+  const detailsCopy = DETAILS_COPY[language === 'ar' ? 'ar' : 'en'];
 
   const isFamilyLookup = lookupType === 'familyName';
   const relatedLookupType = isFamilyLookup ? 'houseName' : 'familyName';
   const normalizedLookupName = normalizeText(lookupName);
   const normalizedSubmittedName = normalizeText(submittedLookupName);
+  const canViewHouseholdClassification = hasPermission('HOUSEHOLD_CLASSIFICATIONS_VIEW');
+  const canEditHouseholdMembers = hasPermission('USERS_UPDATE');
+  const canManageHouseholdClassifications = hasPermission('HOUSEHOLD_CLASSIFICATIONS_MANAGE');
+  const canEditHousehold =
+    canEditHouseholdMembers || canManageHouseholdClassifications;
 
   const { data: lookupNamesResponse, isLoading: lookupNamesLoading } = useQuery({
     queryKey: ['users', isFamilyLookup ? 'family-names' : 'house-names'],
@@ -79,6 +178,26 @@ export default function FamilyHouseLookupPage() {
     staleTime: 60000,
   });
 
+  const {
+    data: selectedHousehold,
+    isLoading: selectedHouseholdLoading,
+    isFetching: selectedHouseholdFetching,
+    error: selectedHouseholdError,
+  } = useQuery({
+    queryKey: ['household-classifications', 'selected-household', normalizedSubmittedName],
+    queryFn: async () => {
+      const { data } = await householdClassificationsApi.getHouseholdByName(
+        submittedLookupName.trim()
+      );
+      return data?.data ?? data ?? null;
+    },
+    enabled:
+      canViewHouseholdClassification &&
+      !isFamilyLookup &&
+      Boolean(normalizedSubmittedName),
+    staleTime: 30000,
+  });
+
   const lookupNames = useMemo(
     () => (Array.isArray(lookupNamesResponse) ? lookupNamesResponse : []),
     [lookupNamesResponse]
@@ -113,8 +232,6 @@ export default function FamilyHouseLookupPage() {
       ),
     [members]
   );
-
-  const quickUsers = useMemo(() => sortedMembers.slice(0, QUICK_USERS_LIMIT), [sortedMembers]);
 
   const directoryUsers = useMemo(
     () => (Array.isArray(directoryUsersResponse) ? directoryUsersResponse : []),
@@ -191,6 +308,10 @@ export default function FamilyHouseLookupPage() {
     ? normalizeApiError(directoryUsersError).message
     : null;
 
+  const selectedHouseholdErrorMessage = selectedHouseholdError
+    ? normalizeApiError(selectedHouseholdError).message
+    : null;
+
   const columns = useMemo(
     () => [
       {
@@ -222,7 +343,7 @@ export default function FamilyHouseLookupPage() {
                 ) : (
                   <span className="font-semibold text-heading">{row.fullName || EMPTY}</span>
                 )}
-                <p className={`${isRTL ? "text-center" : "text-left"} text-xs text-muted`}>
+                <p className={`${isRTL ? 'text-center' : 'text-left'} text-xs text-muted`}>
                   {row.phonePrimary || EMPTY}
                 </p>
               </div>
@@ -239,7 +360,7 @@ export default function FamilyHouseLookupPage() {
         key: 'phonePrimary',
         label: t('familyHouseLookup.columns.phone'),
         render: (row) => (
-          <span className={`${isRTL ? "text-center" : "text-left"}`}>
+          <span className={`${isRTL ? 'text-center' : 'text-left'}`}>
             {row.phonePrimary || EMPTY}
           </span>
         ),
@@ -267,13 +388,24 @@ export default function FamilyHouseLookupPage() {
         ),
       },
     ],
-    [t]
+    [t, isRTL]
   );
 
   const handleClear = () => {
     setLookupName('');
     setSubmittedLookupName('');
     setLookupDropdownOpen(false);
+  };
+
+  const handleHouseholdSaved = (updatedHousehold) => {
+    setHouseEditOpen(false);
+    if (updatedHousehold?.householdName) {
+      setLookupType('houseName');
+      setLookupName(updatedHousehold.householdName);
+      setSubmittedLookupName(updatedHousehold.householdName);
+    }
+    queryClient.invalidateQueries({ queryKey: ['users'] });
+    queryClient.invalidateQueries({ queryKey: ['household-classifications'] });
   };
 
   return (
@@ -493,23 +625,29 @@ export default function FamilyHouseLookupPage() {
                 emptyLabel={t('familyHouseLookup.analytics.noGenderData')}
               />
             </div>
-
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <QuickAccessMembers
-                title={t('familyHouseLookup.analytics.quickUsers')}
-                users={quickUsers}
-                emptyLabel={t('familyHouseLookup.analytics.noUsers')}
-              />
-              <QuickAccessGroups
-                title={t('familyHouseLookup.analytics.quickRelatedGroups')}
-                groups={selectedRelatedRanks.slice(0, QUICK_USERS_LIMIT)}
-                emptyLabel={t('familyHouseLookup.analytics.noRelatedGroups')}
-                lookupType={relatedLookupType}
-              />
-            </div>
           </>
         )}
       </Card>
+
+      {normalizedSubmittedName && canViewHouseholdClassification && isFamilyLookup ? (
+        <FamilyClassificationHint
+          copy={detailsCopy}
+          relatedHouses={selectedRelatedRanks.slice(0, QUICK_USERS_LIMIT)}
+        />
+      ) : null}
+
+      {normalizedSubmittedName && canViewHouseholdClassification && !isFamilyLookup ? (
+        <HouseholdClassificationPanel
+          household={selectedHousehold}
+          loading={selectedHouseholdLoading || selectedHouseholdFetching}
+          errorMessage={selectedHouseholdErrorMessage}
+          copy={detailsCopy}
+          language={language}
+          canEditHousehold={canEditHousehold}
+          canManageHouseholdClassifications={canManageHouseholdClassifications}
+          onEditHousehold={() => setHouseEditOpen(true)}
+        />
+      ) : null}
 
       {normalizedSubmittedName && !membersErrorMessage ? (
         <FamilyHouseProfileInsights
@@ -561,6 +699,15 @@ export default function FamilyHouseLookupPage() {
           </div>
         )}
       </Card>
+
+      <HouseholdQuickEditModal
+        household={selectedHousehold}
+        isOpen={houseEditOpen}
+        onClose={() => setHouseEditOpen(false)}
+        onSaved={handleHouseholdSaved}
+        canEditMembers={canEditHouseholdMembers}
+        canManageHouseholdClassifications={canManageHouseholdClassifications}
+      />
     </div>
   );
 }
@@ -575,6 +722,255 @@ function SummaryItem({ icon: Icon, label, value }) {
       <p className="mt-1 text-lg font-semibold text-heading">{value || 0}</p>
     </div>
   );
+}
+
+function FamilyClassificationHint({ copy, relatedHouses = [] }) {
+  return (
+    <Card className="space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-heading">{copy.familyHintTitle}</h2>
+          <p className="mt-1 text-sm text-muted">{copy.familyHintDescription}</p>
+        </div>
+        <Badge variant="secondary">{relatedHouses.length}</Badge>
+      </div>
+
+      {relatedHouses.length === 0 ? (
+        <p className="text-sm text-muted">{copy.noClassificationData}</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {relatedHouses.map((house) => (
+            <Link
+              key={house.name}
+              to={`${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery('houseName', house.name)}`}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-heading hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+            >
+              <span>{house.name}</span>
+              <span className="text-primary">({house.count})</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function HouseholdClassificationPanel({
+  household,
+  loading,
+  errorMessage,
+  copy,
+  language,
+  canEditHousehold,
+  canManageHouseholdClassifications,
+  onEditHousehold,
+}) {
+  return (
+    <Card className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-heading">{copy.householdClassificationTitle}</h2>
+          <p className="mt-1 text-sm text-muted">{copy.householdClassificationSubtitle}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {canEditHousehold && household ? (
+            <Button type="button" variant="outline" size="sm" icon={Pencil} onClick={onEditHousehold}>
+              {copy.editHouse}
+            </Button>
+          ) : null}
+          {canManageHouseholdClassifications ? (
+            <Link to="/dashboard/households/classifications">
+              <Button type="button" variant="outline" size="sm" icon={ShieldCheck}>
+                {copy.manageRules}
+              </Button>
+            </Link>
+          ) : null}
+        </div>
+      </div>
+
+      {errorMessage ? (
+        <EmptyState
+          icon={Building2}
+          title={copy.householdClassificationTitle}
+          description={errorMessage}
+        />
+      ) : loading ? (
+        <p className="text-sm text-muted">...</p>
+      ) : !household ? (
+        <EmptyState
+          icon={Building2}
+          title={copy.householdClassificationTitle}
+          description={copy.noClassificationData}
+        />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
+            <SummaryItem label={copy.houseName} value={household.householdName || EMPTY} />
+            <SummaryItem label={copy.source} value={getHouseholdSourceLabel(household.sourceField, language)} />
+            <SummaryItem
+              label={copy.primaryClassification}
+              value={household.primaryClassification?.name || getStatusText('unclassified', language)}
+            />
+            <SummaryItem
+              label={copy.classificationMode}
+              value={household.isPrimaryClassificationManual ? copy.manualOverride : copy.computedMode}
+            />
+            <SummaryItem label={tallyLabel(language, 'members')} value={household.memberCount} />
+            <SummaryItem
+              label={copy.totalIncome}
+              value={formatCurrencyEGP(household.totalMemberIncome, language)}
+            />
+            <SummaryItem
+              label={copy.averageIncome}
+              value={formatCurrencyEGP(household.averageMemberIncome, language)}
+            />
+            <SummaryItem
+              label={copy.matchedCategories}
+              value={household.matchedCategories?.length || 0}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <div className="rounded-2xl border border-border bg-surface p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-heading">{copy.primaryClassification}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <HouseholdStatusBadge
+                      classification={household.primaryClassification}
+                      language={language}
+                    />
+                    <Badge variant={household.isPrimaryClassificationManual ? 'secondary' : 'default'}>
+                      {household.isPrimaryClassificationManual ? copy.manualOverride : copy.computedMode}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-surface p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-heading">{copy.incomeSources}</p>
+                <Badge variant="default">{household.incomeSources?.length || 0}</Badge>
+              </div>
+              {household.incomeSources?.length ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {household.incomeSources.map((source) => (
+                    <Badge key={source} variant="secondary">
+                      {source}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-muted">{copy.noIncomeSources}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-heading">{copy.matchedCategories}</p>
+              <Badge variant="default">{household.matchedCategories?.length || 0}</Badge>
+            </div>
+            {household.matchedCategories?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {household.matchedCategories.map((category) => (
+                  <HouseholdStatusBadge key={category.id} classification={category} language={language} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted">{copy.noMatchedCategories}</p>
+            )}
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
+function HouseholdEvaluationCard({ evaluation, language, copy }) {
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-heading">{evaluation.name}</h3>
+          {evaluation.description ? (
+            <p className="mt-1 text-sm text-muted">{evaluation.description}</p>
+          ) : null}
+        </div>
+        <Badge variant={evaluation.matched ? 'success' : 'default'}>
+          {evaluation.matched ? copy.matched : copy.notMatched}
+        </Badge>
+      </div>
+
+      {evaluation.criteria?.length ? (
+        <div className="mt-4 space-y-3">
+          {evaluation.criteria.map((criterion) => (
+            <CriterionResultRow
+              key={criterion.id || `${evaluation.id}-${criterion.metric}-${criterion.operator}`}
+              criterion={criterion}
+              language={language}
+              copy={copy}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-muted">{copy.noCriteria}</p>
+      )}
+    </div>
+  );
+}
+
+function CriterionResultRow({ criterion, language, copy }) {
+  return (
+    <div className="rounded-xl border border-border/70 bg-surface-alt/40 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-heading">
+            {criterion.label || criterion.metric}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            {getStatusText(criterion.isRequired ? 'required' : 'optional', language)}
+          </p>
+        </div>
+        <Badge variant={criterion.passed ? 'success' : 'default'}>
+          {getStatusText(criterion.passed ? 'passed' : 'failed', language)}
+        </Badge>
+      </div>
+
+      <div className="mt-3">
+        <span className="inline-flex items-center rounded-full border border-border bg-surface px-2.5 py-1 text-xs text-muted">
+          {copy.criteriaActualValue}: {describeCriterionActualValue(criterion, language)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function HouseholdStatusBadge({ classification, language }) {
+  if (!classification) {
+    return <Badge>{getStatusText('unclassified', language)}</Badge>;
+  }
+
+  return (
+    <span
+      className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium"
+      style={{
+        color: classification.color || '#2563eb',
+        borderColor: `${classification.color || '#2563eb'}33`,
+        backgroundColor: `${classification.color || '#2563eb'}12`,
+      }}
+    >
+      {classification.name}
+    </span>
+  );
+}
+
+function tallyLabel(language, key) {
+  if (key === 'members') {
+    return language === 'ar' ? 'عدد الأفراد' : 'Members';
+  }
+  return key;
 }
 
 function RankedBars({ title, items, loading, emptyLabel, linkType }) {
@@ -615,57 +1011,6 @@ function RankedBars({ title, items, loading, emptyLabel, linkType }) {
               </div>
             );
           })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function QuickAccessMembers({ title, users, emptyLabel }) {
-  return (
-    <div className="rounded-xl border border-border bg-surface p-4">
-      <h3 className="text-sm font-semibold text-heading">{title}</h3>
-      {users.length === 0 ? (
-        <p className="mt-3 text-sm text-muted">{emptyLabel}</p>
-      ) : (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {users.map((user) => {
-            const userId = user._id || user.id;
-            if (!userId) return null;
-            return (
-              <Link
-                key={userId}
-                to={`/dashboard/users/${userId}`}
-                className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-heading hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-              >
-                {user.fullName || EMPTY}
-              </Link>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function QuickAccessGroups({ title, groups, emptyLabel, lookupType }) {
-  return (
-    <div className="rounded-xl border border-border bg-surface p-4">
-      <h3 className="text-sm font-semibold text-heading">{title}</h3>
-      {groups.length === 0 ? (
-        <p className="mt-3 text-sm text-muted">{emptyLabel}</p>
-      ) : (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {groups.map((group) => (
-            <Link
-              key={group.name}
-              to={`${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery(lookupType, group.name)}`}
-              className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-heading hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-            >
-              <span>{group.name}</span>
-              <span className="text-primary">({group.count})</span>
-            </Link>
-          ))}
         </div>
       )}
     </div>
