@@ -341,6 +341,12 @@ export default function LandingPage() {
   const locationLabel = getOptional('landing.location.label') || (isRTL ? 'تعال زورنا' : 'COME VISIT US');
   const locationSubtitle = getOptional('landing.location.subtitle') || (isRTL ? 'يسعدنا استقبالكم في أي وقت' : 'We would love to welcome you');
   const locationDirections = getOptional('landing.location.directions') || (isRTL ? 'احصل على الاتجاهات' : 'Get Directions');
+  const churchCoordinates = '28.3705542,30.6619377';
+  const churchPlaceName = 'Church of the Archangel Michael Balqtoshh';
+  const churchPlusCode = '9MC6+6QG';
+  const churchAddressLine = 'Astal, West Samalout, Minya Governorate 2477363';
+  const locationMapEmbedUrl = `https://maps.google.com/maps?ll=${encodeURIComponent(churchCoordinates)}&q=${encodeURIComponent(churchPlaceName)}&z=17&output=embed`;
+  const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(churchCoordinates)}`;
 
   /* ── Scroll indicator ── */
   const [showScroll, setShowScroll] = useState(true);
@@ -728,7 +734,7 @@ export default function LandingPage() {
               <div className="relative h-[280px] sm:h-[380px] lg:h-[450px] w-full">
                 <iframe
                   title={isRTL ? 'موقع الكنيسة' : 'Church Location'}
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(t('landing.visit.addressValue'))}&output=embed&z=15`}
+                  src={locationMapEmbedUrl}
                   className="h-full w-full border-0"
                   loading="lazy"
                   allowFullScreen
@@ -748,11 +754,14 @@ export default function LandingPage() {
                       <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary">
                         {t('landing.visit.addressLabel')}
                       </p>
+                      <p className="mt-0.5 text-sm sm:text-base font-semibold text-heading">{churchPlaceName}</p>
+                      <p className="mt-0.5 text-xs sm:text-sm text-muted">{churchPlusCode}</p>
+                      <p className="mt-0.5 text-xs sm:text-sm text-muted">{churchAddressLine}</p>
                       <p className="mt-0.5 text-xs sm:text-sm text-muted">{t('landing.visit.addressValue')}</p>
                     </div>
                   </div>
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t('landing.visit.addressValue'))}`}
+                    href={directionsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full sm:w-auto"
