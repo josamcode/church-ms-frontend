@@ -5,7 +5,7 @@ export default function LanguageSwitcher({ className = '' }) {
 
   return (
     <div
-      className={`inline-flex items-center gap-1 rounded-md border border-border bg-surface-alt p-1 ${className}`}
+      className={`inline-flex items-center gap-1 rounded-md border border-border/40 bg-surface-alt/70 p-1 ${className}`}
       role="group"
       aria-label={t('common.language.switch')}
     >
@@ -13,7 +13,7 @@ export default function LanguageSwitcher({ className = '' }) {
         type="button"
         onClick={() => setLanguage('en')}
         className={`px-2.5 py-1 text-xs font-semibold rounded transition-colors ${
-          language === 'en' ? 'bg-primary text-white' : 'text-muted hover:text-base'
+          language === 'en' ? 'bg-primary text-white/90' : 'text-muted hover:text-base'
         }`}
       >
         EN
@@ -22,7 +22,7 @@ export default function LanguageSwitcher({ className = '' }) {
         type="button"
         onClick={() => setLanguage('ar')}
         className={`px-2.5 py-1 text-xs font-semibold rounded transition-colors ${
-          language === 'ar' ? 'bg-primary text-white' : 'text-muted hover:text-base'
+          language === 'ar' ? 'bg-primary text-white/90' : 'text-muted hover:text-base'
         }`}
       >
         AR

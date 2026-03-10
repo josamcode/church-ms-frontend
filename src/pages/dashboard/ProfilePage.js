@@ -19,7 +19,7 @@ function SectionLabel({ children }) {
       <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
         {children}
       </span>
-      <div className="h-px flex-1 bg-border/60" />
+      <div className="h-px flex-1 bg-border/30" />
     </div>
   );
 }
@@ -96,9 +96,9 @@ export default function ProfilePage() {
       />
 
       {/* ══ HERO ════════════════════════════════════════════════════════ */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-surface">
+      <div className="relative overflow-hidden rounded-2xl border border-border/45 bg-surface/95">
         {/* tinted gradient backdrop */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-accent/6" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/6 via-transparent to-accent/4" />
 
         <div className="relative flex flex-col gap-6 p-6 sm:flex-row sm:items-end sm:justify-between">
 
@@ -108,10 +108,10 @@ export default function ProfilePage() {
               <img
                 src={user.avatar.url}
                 alt=""
-                className="h-20 w-20 rounded-2xl border-2 border-primary/20 object-cover shadow-lg"
+                className="h-20 w-20 rounded-2xl border-2 border-border/45 object-cover shadow-lg"
               />
             ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-primary/20 bg-primary/10 text-2xl font-bold text-primary shadow-inner">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-border/45 bg-primary/10 text-2xl font-bold text-primary shadow-inner">
                 {initial}
               </div>
             )}
@@ -140,7 +140,7 @@ export default function ProfilePage() {
         <div className={`space-y-4 xl:col-span-2 ${isRTL ? 'direction-rtl text-right' : 'text-left'}`}>
           <SectionLabel>{t('profilePage.sections.profileDetails.title')}</SectionLabel>
 
-          <div className="rounded-2xl border border-border bg-surface px-6 py-5">
+          <div className="rounded-2xl border border-border/45 bg-surface/95 px-6 py-5">
             <div className="grid grid-cols-1 gap-x-10 gap-y-5 sm:grid-cols-2">
               <Field icon={Calendar} label={t('profilePage.fields.birthDate')} value={formatDate(user?.birthDate)} />
               <Field icon={UserCircle} label={t('profilePage.fields.gender')} value={getGenderLabel(user?.gender)} />
@@ -156,7 +156,7 @@ export default function ProfilePage() {
         <div className="space-y-4">
           <SectionLabel>{t('profilePage.sections.locationAndTags.title')}</SectionLabel>
 
-          <div className="rounded-2xl border border-border bg-surface px-6 py-5 space-y-5">
+          <div className="rounded-2xl border border-border/45 bg-surface/95 px-6 py-5 space-y-5">
             <Field icon={MapPin} label={t('profilePage.fields.address')} value={addressValue} />
             <Field icon={UserCircle} label={t('profilePage.fields.familyName')} value={user?.familyName || empty} />
             <Field icon={UserCircle} label={t('profilePage.fields.houseName')} value={user?.houseName || empty} />
@@ -194,8 +194,8 @@ export default function ProfilePage() {
           {/* status tile */}
           <div className={`flex flex-col justify-between rounded-2xl border p-5
             ${user?.isLocked
-              ? 'border-danger/25 bg-danger-light'
-              : 'border-success/25 bg-success-light'
+              ? 'border-danger/20 bg-danger-light'
+              : 'border-success/20 bg-success-light'
             }`}
           >
             <div className="flex items-center justify-between">
@@ -213,7 +213,7 @@ export default function ProfilePage() {
           </div>
 
           {/* joined */}
-          <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
+          <div className="flex flex-col justify-between rounded-2xl border border-border/45 bg-surface/95 p-5">
             <div className="flex items-center justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
                 {t('profilePage.fields.joinedOn')}
@@ -227,7 +227,7 @@ export default function ProfilePage() {
           </div>
 
           {/* last updated */}
-          <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
+          <div className="flex flex-col justify-between rounded-2xl border border-border/45 bg-surface/95 p-5">
             <div className="flex items-center justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
                 {t('profilePage.fields.lastUpdated')}
@@ -250,7 +250,7 @@ export default function ProfilePage() {
 function QuickStat({ label, value, ltr = false }) {
   const { t } = useI18n();
   return (
-    <div className="rounded-xl border border-border/70 bg-surface/80 px-4 py-3 backdrop-blur-sm sm:min-w-[180px]">
+    <div className="rounded-xl border border-border/40 bg-surface/80 px-4 py-3 backdrop-blur-sm sm:min-w-[180px]">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">{label}</p>
       <p className={`mt-1 text-sm font-semibold text-heading ${ltr ? 'direction-ltr text-left' : ''}`}>
         {value || t('common.placeholder.empty')}

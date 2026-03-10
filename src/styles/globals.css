@@ -47,6 +47,45 @@
     font-family: inherit;
   }
 
+  .dark [class~="text-white"] {
+    color: var(--color-dark-ink-strong);
+  }
+
+  .dark [class~="text-white/85"] {
+    color: var(--color-dark-ink-soft);
+  }
+
+  .dark [class~="text-white/80"] {
+    color: var(--color-dark-ink-soft);
+  }
+
+  .dark [class~="text-white/60"],
+  .dark [class~="text-white/50"] {
+    color: var(--color-dark-ink-muted);
+  }
+
+  .dark [class~="border-white/50"],
+  .dark [class~="border-white/40"],
+  .dark [class~="border-white/25"],
+  .dark [class~="border-white/20"] {
+    border-color: var(--color-dark-border-strong);
+  }
+
+  .dark [class~="border-white/10"],
+  .dark [class~="border-white/[0.08]"] {
+    border-color: var(--color-dark-border-soft);
+  }
+
+  .dark [class~="bg-white/10"],
+  .dark [class~="bg-white/[0.08]"] {
+    background-color: rgba(221, 230, 240, 0.08);
+  }
+
+  .dark [class~="bg-white/5"],
+  .dark [class~="bg-white/[0.04]"] {
+    background-color: rgba(221, 230, 240, 0.04);
+  }
+
   /* Custom Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;

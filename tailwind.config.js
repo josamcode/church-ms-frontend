@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+const cssVarColor = (name) => `rgb(var(${name}) / <alpha-value>)`;
+
 module.exports = {
   content: ['./src/**/*.{js,jsx}', './public/index.html'],
   darkMode: 'class',
@@ -9,48 +11,48 @@ module.exports = {
       },
       colors: {
         primary: {
-          DEFAULT: 'var(--color-primary)',
-          light: 'var(--color-primary-light)',
-          dark: 'var(--color-primary-dark)',
+          DEFAULT: cssVarColor('--color-primary-rgb'),
+          light: cssVarColor('--color-primary-light-rgb'),
+          dark: cssVarColor('--color-primary-dark-rgb'),
         },
         secondary: {
-          DEFAULT: 'var(--color-secondary)',
+          DEFAULT: cssVarColor('--color-secondary-rgb'),
         },
         accent: {
-          DEFAULT: 'var(--color-accent)',
+          DEFAULT: cssVarColor('--color-accent-rgb'),
         },
         surface: {
-          DEFAULT: 'var(--color-surface)',
-          alt: 'var(--color-surface-alt)',
+          DEFAULT: cssVarColor('--color-surface-rgb'),
+          alt: cssVarColor('--color-surface-alt-rgb'),
         },
         border: {
-          DEFAULT: 'var(--color-border)',
+          DEFAULT: cssVarColor('--color-border-rgb'),
         },
         muted: {
-          DEFAULT: 'var(--color-muted)',
+          DEFAULT: cssVarColor('--color-muted-rgb'),
         },
         danger: {
-          DEFAULT: 'var(--color-danger)',
-          light: 'var(--color-danger-light)',
+          DEFAULT: cssVarColor('--color-danger-rgb'),
+          light: cssVarColor('--color-danger-light-rgb'),
         },
         success: {
-          DEFAULT: 'var(--color-success)',
-          light: 'var(--color-success-light)',
+          DEFAULT: cssVarColor('--color-success-rgb'),
+          light: cssVarColor('--color-success-light-rgb'),
         },
         warning: {
-          DEFAULT: 'var(--color-warning)',
-          light: 'var(--color-warning-light)',
+          DEFAULT: cssVarColor('--color-warning-rgb'),
+          light: cssVarColor('--color-warning-light-rgb'),
         },
         info: {
-          DEFAULT: 'var(--color-info)',
+          DEFAULT: cssVarColor('--color-info-rgb'),
         },
       },
       backgroundColor: {
-        page: 'var(--color-bg)',
+        page: cssVarColor('--color-bg-rgb'),
       },
       textColor: {
-        base: 'var(--color-text)',
-        heading: 'var(--color-text-heading)',
+        base: cssVarColor('--color-text-rgb'),
+        heading: cssVarColor('--color-text-heading-rgb'),
       },
       borderRadius: {
         sm: '0.375rem',

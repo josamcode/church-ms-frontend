@@ -40,13 +40,13 @@ function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick }) {
           className={[
             'relative mx-auto flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-150',
             active
-              ? 'bg-primary text-white shadow-md shadow-primary/25'
+              ? 'bg-primary text-white/90 shadow-md shadow-primary/20'
               : 'text-muted hover:bg-surface-alt hover:text-heading',
           ].join(' ')}
         >
           <item.icon className="h-[18px] w-[18px]" />
           {active && (
-            <span className={`absolute inset-y-2.5 w-0.5 rounded-full bg-white/50 ${isRTL ? 'right-0.5' : 'left-0.5'}`} />
+            <span className={`absolute inset-y-2.5 w-0.5 rounded-full bg-primary-light/60 ${isRTL ? 'right-0.5' : 'left-0.5'}`} />
           )}
         </Link>
       </Tooltip>
@@ -61,17 +61,17 @@ function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick }) {
         'group relative flex w-full items-center gap-3 rounded-xl font-medium transition-all duration-150 select-none',
         'px-3 py-2.5 text-sm',
         active
-          ? 'bg-primary text-white shadow-md rounded-sm shadow-primary/20'
+          ? 'bg-primary text-white/90 shadow-md rounded-sm shadow-primary/20'
           : 'text-muted hover:bg-surface-alt hover:text-heading',
       ].join(' ')}
     >
       {active && (
-        <span className={`absolute inset-y-2.5 w-0.5 rounded-full bg-white/50 ${isRTL ? 'right-0' : 'left-0'}`} />
+        <span className={`absolute inset-y-2.5 w-0.5 rounded-full bg-primary-light/60 ${isRTL ? 'right-0' : 'left-0'}`} />
       )}
       <span className={[
         'flex flex-shrink-0 items-center justify-center rounded-lg transition-colors',
         'h-7 w-7',
-        active ? 'text-white' : 'text-muted group-hover:text-heading',
+        active ? 'text-white/90' : 'text-muted group-hover:text-heading',
       ].join(' ')}>
         <item.icon className="h-4 w-4" />
       </span>
@@ -84,8 +84,8 @@ function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function NavDivider({ collapsed }) {
   return (
-    <div className={`my-1.5 ${collapsed ? 'flex justify-center' : ''}`}>
-      <div className={`h-px bg-border/50 ${collapsed ? 'w-8' : 'w-full'}`} />
+      <div className={`my-1.5 ${collapsed ? 'flex justify-center' : ''}`}>
+      <div className={`h-px bg-border/30 ${collapsed ? 'w-8' : 'w-full'}`} />
     </div>
   );
 }
@@ -619,19 +619,19 @@ export default function DashboardLayout() {
         <aside
           className={[
             'fixed top-0 z-30 hidden h-screen flex-col bg-surface transition-[width] duration-300 ease-in-out lg:flex',
-            isRTL ? 'right-0 border-l border-border/70' : 'left-0 border-r border-border/70',
+            isRTL ? 'right-0 border-l border-border/45' : 'left-0 border-r border-border/45',
             collapsed ? 'w-[68px]' : 'w-[260px]',
           ].join(' ')}
         >
           {/* Brand */}
           <div className={[
-            'flex flex-shrink-0 items-center gap-3 border-b border-border/60',
+            'flex flex-shrink-0 items-center gap-3 border-b border-border/35',
             collapsed ? 'justify-center px-2 py-[14px]' : 'px-4 py-[14px]',
           ].join(' ')}>
             <button
               type="button"
               onClick={() => navigate('/')}
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/30 transition-all hover:scale-105 active:scale-95"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary text-white/90 shadow-md shadow-primary/25 transition-all hover:scale-105 active:scale-95"
             >
               <Church className="h-[18px] w-[18px]" />
             </button>
@@ -662,7 +662,7 @@ export default function DashboardLayout() {
           <button
             onClick={() => setCollapsed((v) => !v)}
             className={[
-              'absolute top-[52px] flex h-5 w-5 items-center justify-center rounded-full border border-border/80 bg-surface text-muted shadow-sm transition-all hover:border-primary/40 hover:text-primary',
+              'absolute top-[52px] flex h-5 w-5 items-center justify-center rounded-full border border-border/50 bg-surface text-muted shadow-sm transition-all hover:border-primary/30 hover:text-primary',
               isRTL ? '-left-2.5' : '-right-2.5',
             ].join(' ')}
             aria-label={collapsed ? t('dashboardLayout.expandSidebar') : t('dashboardLayout.collapseSidebar')}
@@ -677,14 +677,14 @@ export default function DashboardLayout() {
             <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={() => setSidebarOpen(false)} />
             <aside className={[
               'absolute top-0 flex h-full w-[260px] flex-col bg-surface shadow-2xl',
-              isRTL ? 'right-0 border-l border-border/70' : 'left-0 border-r border-border/70',
+              isRTL ? 'right-0 border-l border-border/45' : 'left-0 border-r border-border/45',
             ].join(' ')}>
               {/* Header + close */}
-              <div className="flex flex-shrink-0 items-center gap-3 border-b border-border/60 px-4 py-[14px]">
+              <div className="flex flex-shrink-0 items-center gap-3 border-b border-border/35 px-4 py-[14px]">
                 <button
                   type="button"
                   onClick={() => navigate('/')}
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/30"
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary text-white/90 shadow-md shadow-primary/25"
                 >
                   <Church className="h-[18px] w-[18px]" />
                 </button>
@@ -725,10 +725,10 @@ export default function DashboardLayout() {
         ].join(' ')}>
 
           {/* Topbar */}
-          <header className="sticky top-0 z-20 flex h-[56px] flex-shrink-0 items-center gap-3 border-b border-border/70 bg-surface/95 px-4 backdrop-blur-sm lg:px-6">
+          <header className="sticky top-0 z-20 flex h-[56px] flex-shrink-0 items-center gap-3 border-b border-border/35 bg-surface/95 px-4 backdrop-blur-sm lg:px-6">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 text-muted transition-colors hover:bg-surface-alt hover:text-heading lg:hidden"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/40 text-muted transition-colors hover:bg-surface-alt hover:text-heading lg:hidden"
               aria-label={t('common.actions.openMenu')}
             >
               <Menu className="h-4 w-4" />
@@ -758,7 +758,7 @@ export default function DashboardLayout() {
 
               <button
                 onClick={toggleDark}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 text-muted transition-colors hover:bg-surface-alt hover:text-heading"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/40 text-muted transition-colors hover:bg-surface-alt hover:text-heading"
                 aria-label={darkMode ? t('common.theme.light') : t('common.theme.dark')}
               >
                 {darkMode ? <Sun className="h-[15px] w-[15px]" /> : <Moon className="h-[15px] w-[15px]" />}
@@ -766,10 +766,10 @@ export default function DashboardLayout() {
 
               <Link
                 to="/dashboard/profile"
-                className="flex items-center gap-2 rounded-xl border border-border/60 bg-surface-alt/40 px-2 py-1.5 transition-colors hover:border-primary/25 hover:bg-surface-alt"
+                className="flex items-center gap-2 rounded-xl border border-border/40 bg-surface-alt/40 px-2 py-1.5 transition-colors hover:border-primary/20 hover:bg-surface-alt"
               >
                 {user?.avatar?.url ? (
-                  <img src={user.avatar.url} alt="" className="h-7 w-7 rounded-full border border-border/60 object-cover" />
+                  <img src={user.avatar.url} alt="" className="h-7 w-7 rounded-full border border-border/40 object-cover" />
                 ) : (
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
                     <UserCircle className="h-[16px] w-[16px] text-primary" />
@@ -798,7 +798,7 @@ export default function DashboardLayout() {
 function SidebarFooter({ collapsed, darkMode, toggleDark, handleLogout, tooltipSide, user, t, isRTL, onLinkClick }) {
   return (
     <div className={[
-      'border-t border-border/60',
+      'border-t border-border/35',
       collapsed ? 'flex flex-col items-center gap-1 p-2' : 'space-y-1 p-3',
     ].join(' ')}>
 
@@ -821,10 +821,10 @@ function SidebarFooter({ collapsed, darkMode, toggleDark, handleLogout, tooltipS
         <Link
           to="/dashboard/profile"
           onClick={onLinkClick}
-          className="mt-1 flex items-center gap-2.5 rounded-xl border border-border/60 bg-surface-alt/40 px-3 py-2.5 transition-colors hover:border-primary/25 hover:bg-surface-alt"
+          className="mt-1 flex items-center gap-2.5 rounded-xl border border-border/40 bg-surface-alt/40 px-3 py-2.5 transition-colors hover:border-primary/20 hover:bg-surface-alt"
         >
           {user?.avatar?.url ? (
-            <img src={user.avatar.url} alt="" className="h-8 w-8 flex-shrink-0 rounded-full border border-border/60 object-cover" />
+            <img src={user.avatar.url} alt="" className="h-8 w-8 flex-shrink-0 rounded-full border border-border/40 object-cover" />
           ) : (
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
               <UserCircle className="h-[18px] w-[18px] text-primary" />
@@ -841,7 +841,7 @@ function SidebarFooter({ collapsed, darkMode, toggleDark, handleLogout, tooltipS
         <Tooltip content={user?.name || ''} position={tooltipSide}>
           <Link
             to="/dashboard/profile"
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/60 bg-surface-alt/40 transition-colors hover:border-primary/25 hover:bg-surface-alt"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/40 bg-surface-alt/40 transition-colors hover:border-primary/20 hover:bg-surface-alt"
           >
             {user?.avatar?.url ? (
               <img src={user.avatar.url} alt="" className="h-7 w-7 rounded-full object-cover" />
