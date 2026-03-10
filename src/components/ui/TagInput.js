@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { useI18n } from '../../i18n/i18n';
 
@@ -22,11 +22,22 @@ export default function TagInput({
   containerClassName = '',
   className = '',
   addButtonLabel,
+  suggestions = [],
 }) {
   const { isRTL, t } = useI18n();
   const [draft, setDraft] = useState('');
+  const suggestionsListId = useId();
 
   const tags = uniqueTokens(values);
+  const availableSuggestions = useMemo(() => {
+    const normalizedDraft = normalizeToken(draft).toLowerCase();
+    return uniqueTokens(suggestions)
+      .filter((suggestion) => !tags.includes(suggestion))
+      .filter((suggestion) =>
+        !normalizedDraft || suggestion.toLowerCase().includes(normalizedDraft)
+      )
+      .slice(0, 20);
+  }, [draft, suggestions, tags]);
 
   const commitDraft = () => {
     if (disabled) return;
@@ -95,12 +106,20 @@ export default function TagInput({
             type="text"
             value={draft}
             disabled={disabled}
+            list={availableSuggestions.length > 0 ? suggestionsListId : undefined}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={commitDraft}
             placeholder={tags.length === 0 ? placeholder : ''}
             className="min-w-[140px] flex-1 bg-transparent text-sm placeholder:text-muted outline-none"
           />
+          {availableSuggestions.length > 0 ? (
+            <datalist id={suggestionsListId}>
+              {availableSuggestions.map((suggestion) => (
+                <option key={suggestion} value={suggestion} />
+              ))}
+            </datalist>
+          ) : null}
 
           <button
             type="button"

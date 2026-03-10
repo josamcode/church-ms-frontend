@@ -19,6 +19,11 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import PageHeader from '../../../components/ui/PageHeader';
 import Skeleton from '../../../components/ui/Skeleton';
 import UserSearchSelect from '../../../components/UserSearchSelect';
+import HouseholdSocioeconomicSection, {
+  buildSocioeconomicPayload,
+  mapUserToSocioeconomicForm,
+} from '../../../components/users/HouseholdSocioeconomicSection';
+import UserFormSectionTabs from '../../../components/users/UserFormSectionTabs';
 import toast from 'react-hot-toast';
 import { useI18n } from '../../../i18n/i18n';
 import {
@@ -123,6 +128,40 @@ function StepBadge({ n }) {
   );
 }
 
+function getEditFormSections(language = 'ar', canManagePermissionOverrides = false) {
+  const labels = language === 'ar'
+    ? {
+        basic: 'البيانات الأساسية',
+        additional: 'معلومات إضافية',
+        permissions: 'إدارة الصلاحيات',
+        family: 'أفراد العائلة',
+        address: 'العنوان',
+        custom: 'تفاصيل مخصصة',
+        socioeconomic: 'الملف الاقتصادي والصحي',
+      }
+    : {
+        basic: 'Basic information',
+        additional: 'Additional information',
+        permissions: 'Permissions',
+        family: 'Family members',
+        address: 'Address',
+        custom: 'Custom details',
+        socioeconomic: 'Socioeconomic profile',
+      };
+
+  const sections = [
+    { id: 'basic', label: labels.basic },
+    { id: 'additional', label: labels.additional },
+    ...(canManagePermissionOverrides ? [{ id: 'permissions', label: labels.permissions }] : []),
+    { id: 'family', label: labels.family },
+    { id: 'address', label: labels.address },
+    { id: 'custom', label: labels.custom },
+    { id: 'socioeconomic', label: labels.socioeconomic },
+  ];
+
+  return sections.map((section, index) => ({ ...section, step: index + 1 }));
+}
+
 function NameCombobox({ label, value, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false);
   const filtered = options
@@ -170,12 +209,6 @@ function NameCombobox({ label, value, onChange, options, placeholder }) {
 /* ── PermissionRow ──────────────────────────────────────────────────────── */
 
 function PermissionRow({ permission, label, roleHasPermission, isExtra, isDenied, disabled, onChange }) {
-  /* derive status */
-  let status = 'inherited';   // role grants it, no override
-  if (isDenied) status = 'denied';
-  else if (isExtra) status = 'extra';
-  else if (!roleHasPermission) status = 'missing'; // role doesn't have it, no extra
-
   const effective = (roleHasPermission && !isDenied) || isExtra;
 
   return (
@@ -404,6 +437,7 @@ export default function UserEditPage() {
   const { language, t } = useI18n();
 
   const [form, setForm] = useState(null);
+  const [activeSection, setActiveSection] = useState('basic');
   const [errors, setErrors] = useState({});
   const [customDetailsRows, setCustomDetailsRows] = useState([{ id: 1, key: '', value: '' }]);
   const fileInputRef = useRef(null);
@@ -443,6 +477,25 @@ export default function UserEditPage() {
 
   /* ── derived ── */
   const canManagePermissionOverrides = currentUser?.role === 'SUPER_ADMIN';
+  const formSections = useMemo(
+    () => getEditFormSections(language, canManagePermissionOverrides),
+    [canManagePermissionOverrides, language],
+  );
+  const activeSectionIndex = formSections.findIndex((section) => section.id === activeSection);
+  const previousSection = activeSectionIndex > 0 ? formSections[activeSectionIndex - 1] : null;
+  const nextSection =
+    activeSectionIndex >= 0 && activeSectionIndex < formSections.length - 1
+      ? formSections[activeSectionIndex + 1]
+      : null;
+  const sectionNavCopy = language === 'ar'
+    ? { previous: 'السابق', next: 'التالي' }
+    : { previous: 'Previous', next: 'Next' };
+
+  useEffect(() => {
+    if (!formSections.some((section) => section.id === activeSection)) {
+      setActiveSection(formSections[0]?.id || 'basic');
+    }
+  }, [activeSection, formSections]);
 
   const roleOptionsForEditor = useMemo(() => {
     const base = canManagePermissionOverrides
@@ -528,6 +581,7 @@ export default function UserEditPage() {
         street: user.address?.street || '',
         details: user.address?.details || '',
         family: flattenFamily(user),
+        ...mapUserToSocioeconomicForm(user),
       });
     }
   }, [user, form]);
@@ -592,6 +646,7 @@ export default function UserEditPage() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'family-names'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'house-names'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile-option-values'] });
       navigate(`/dashboard/users/${id}`);
     },
     onError: (err) => {
@@ -692,6 +747,20 @@ export default function UserEditPage() {
     const oldAddr = user.address || {};
     const oldNorm = { governorate: oldAddr.governorate || '', city: oldAddr.city || '', street: oldAddr.street || '', details: oldAddr.details || '' };
     if (JSON.stringify(newAddress) !== JSON.stringify(oldNorm)) payload.address = newAddress;
+
+    const nextSocioeconomic = buildSocioeconomicPayload(form, { includeNulls: true });
+    const currentSocioeconomic = buildSocioeconomicPayload(
+      mapUserToSocioeconomicForm(user),
+      { includeNulls: true }
+    );
+    ['financial', 'employment', 'presence', 'health'].forEach((field) => {
+      if (
+        JSON.stringify(nextSocioeconomic[field] ?? null) !==
+        JSON.stringify(currentSocioeconomic[field] ?? null)
+      ) {
+        payload[field] = nextSocioeconomic[field] ?? null;
+      }
+    });
 
     const newCustomDetails = customDetailsRows
       .filter((r) => r.key.trim())
@@ -818,9 +887,15 @@ export default function UserEditPage() {
       {/* ══ FORM ════════════════════════════════════════════════════════ */}
       <form onSubmit={handleSubmit} noValidate>
         <div className="mx-auto max-w-7xl space-y-8">
+          <UserFormSectionTabs
+            sections={formSections}
+            activeSection={activeSection}
+            onChange={setActiveSection}
+          />
 
           {/* ── STEP 1 · البيانات الأساسية ────────────────────────────── */}
-          <section className="space-y-4">
+          {activeSection === 'basic' && (
+            <section className="space-y-4">
             <div className="flex items-center gap-2"><StepBadge n={1} /><SectionLabel>البيانات الأساسية</SectionLabel></div>
             <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
 
@@ -854,10 +929,12 @@ export default function UserEditPage() {
                 <Input label="الرقم القومي" dir="ltr" className="text-left" value={form.nationalId} onChange={(e) => update('nationalId', e.target.value)} error={errors.nationalId} containerClassName="!mb-0" />
               </div>
             </div>
-          </section>
+            </section>
+          )}
 
           {/* ── STEP 2 · معلومات إضافية ──────────────────────────────── */}
-          <section className="space-y-4">
+          {activeSection === 'additional' && (
+            <section className="space-y-4">
             <div className="flex items-center gap-2"><StepBadge n={2} /><SectionLabel>معلومات إضافية</SectionLabel></div>
             <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -896,10 +973,11 @@ export default function UserEditPage() {
               </div>
               <TextArea label="ملاحظات" value={form.notes} onChange={(e) => update('notes', e.target.value)} containerClassName="!mb-0" />
             </div>
-          </section>
+            </section>
+          )}
 
           {/* ── STEP 3 · الصلاحيات ───────────────────────────────────── */}
-          {canManagePermissionOverrides && (
+          {canManagePermissionOverrides && activeSection === 'permissions' && (
             <section className="space-y-4">
               <div className="flex items-center gap-2"><StepBadge n={3} /><SectionLabel>إدارة الصلاحيات</SectionLabel></div>
               <PermissionsPanel
@@ -913,7 +991,8 @@ export default function UserEditPage() {
           )}
 
           {/* ── STEP 4 · أفراد العائلة ───────────────────────────────── */}
-          <section className="space-y-4">
+          {activeSection === 'family' && (
+            <section className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <StepBadge n={canManagePermissionOverrides ? 4 : 3} />
@@ -981,10 +1060,12 @@ export default function UserEditPage() {
                 );
               })}
             </div>
-          </section>
+            </section>
+          )}
 
           {/* ── STEP 5 · العنوان ─────────────────────────────────────── */}
-          <section className="space-y-4">
+          {activeSection === 'address' && (
+            <section className="space-y-4">
             <div className="flex items-center gap-2">
               <StepBadge n={canManagePermissionOverrides ? 5 : 4} />
               <SectionLabel>العنوان</SectionLabel>
@@ -997,10 +1078,12 @@ export default function UserEditPage() {
                 <Input label="تفاصيل إضافية" value={form.details} onChange={(e) => update('details', e.target.value)} placeholder="اي تفاصيل إضافية" containerClassName="!mb-0" />
               </div>
             </div>
-          </section>
+            </section>
+          )}
 
           {/* ── STEP 6 · تفاصيل مخصصة ───────────────────────────────── */}
-          <section className="space-y-4">
+          {activeSection === 'custom' && (
+            <section className="space-y-4">
             <div className="flex items-center gap-2">
               <StepBadge n={canManagePermissionOverrides ? 6 : 5} />
               <SectionLabel>تفاصيل مخصصة</SectionLabel>
@@ -1039,14 +1122,51 @@ export default function UserEditPage() {
               </div>
               <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addCustomDetailRow}>إضافة حقل</Button>
             </div>
-          </section>
+            </section>
+          )}
 
           {/* ── ACTIONS ───────────────────────────────────────────────── */}
-          <div className="flex gap-2">
+          {activeSection === 'socioeconomic' && (
+            <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <StepBadge n={canManagePermissionOverrides ? 7 : 6} />
+              <SectionLabel>الملف الاقتصادي والصحي</SectionLabel>
+            </div>
+            <div className="rounded-2xl border border-border bg-surface p-5">
+              <HouseholdSocioeconomicSection
+                form={form}
+                errors={errors}
+                onChange={update}
+              />
+            </div>
+            </section>
+          )}
+
+          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-1 gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => previousSection && setActiveSection(previousSection.id)}
+                disabled={!previousSection}
+              >
+                {sectionNavCopy.previous}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => nextSection && setActiveSection(nextSection.id)}
+                disabled={!nextSection}
+              >
+                {sectionNavCopy.next}
+              </Button>
+            </div>
+            <div className="flex gap-2">
             <Button variant="ghost" type="button" onClick={() => navigate(-1)}>إلغاء</Button>
             <Button type="submit" icon={Save} loading={mutation.isPending}>حفظ التعديلات</Button>
           </div>
 
+        </div>
         </div>
       </form>
     </div>

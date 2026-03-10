@@ -1,4 +1,4 @@
-export const translations = {
+﻿export const translations = {
   en: {
     common: {
       appName: 'Church Management',
@@ -233,6 +233,8 @@ export const translations = {
         familyHouseLookup: 'Family & House Lookup',
         familyHouseAnalytics: 'Family Analytics',
         familyHouseDetails: 'Family/House Details',
+        householdClassificationResults: "Household Statuses",
+        householdClassificationRules: "Household Classification Rules",
         confessionSessions: 'Confession Sessions',
         confessionAlerts: 'Confession Alerts',
         confessionAnalytics: 'Confession Analytics',
@@ -1553,6 +1555,8 @@ export const translations = {
         familyHouseLookup: 'العائلات والمنازل',
         familyHouseAnalytics: 'تحليلات العائلات',
         familyHouseDetails: 'تفاصيل العائلة/البيت',
+        householdClassificationResults: "حالات الأسر",
+        householdClassificationRules: "قواعد تصنيف الأسر",
         confessionSessions: 'جلسات الاعتراف',
         confessionAlerts: 'تنبيهات الاعتراف',
         confessionAnalytics: 'تحليلات الاعتراف',

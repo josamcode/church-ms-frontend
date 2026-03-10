@@ -19,6 +19,7 @@ export const usersApi = {
   getCustomDetailKeys: () => apiClient.get('/users/custom-detail-keys'),
   getFamilyNames: () => apiClient.get('/users/family-names'),
   getHouseNames: () => apiClient.get('/users/house-names'),
+  getProfileOptionValues: () => apiClient.get('/users/profile-option-values'),
   getRelationRoles: () => apiClient.get('/users/relation-roles'),
   createRelationRole: (label) => apiClient.post('/users/relation-roles', { label }),
   create: (data) => apiClient.post('/users', data),
@@ -40,6 +41,16 @@ export const usersApi = {
   unlock: (id) => apiClient.post(`/users/${id}/unlock`),
   manageTags: (id, data) => apiClient.post(`/users/${id}/tags`, data),
   linkFamily: (id, data) => apiClient.post(`/users/${id}/family/link`, data),
+};
+
+export const householdClassificationsApi = {
+  listCategories: () => apiClient.get('/household-classifications/categories'),
+  createCategory: (data) => apiClient.post('/household-classifications/categories', data),
+  updateCategory: (id, data) =>
+    apiClient.patch(`/household-classifications/categories/${id}`, data),
+  deleteCategory: (id) => apiClient.delete(`/household-classifications/categories/${id}`),
+  listHouseholds: (params) =>
+    apiClient.get('/household-classifications/households', { params }),
 };
 
 /* â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ Confessions â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ */

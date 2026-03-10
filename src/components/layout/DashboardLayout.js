@@ -176,6 +176,25 @@ export default function DashboardLayout() {
           permission: 'USERS_VIEW',
           matchChildren: false,
         },
+        {
+          key: 'household-results',
+          label: tf('dashboardLayout.menu.householdClassificationResults', 'Household Statuses'),
+          href: '/dashboard/households/results',
+          icon: Building2,
+          permission: 'HOUSEHOLD_CLASSIFICATIONS_VIEW',
+          matchChildren: false,
+        },
+        {
+          key: 'household-classifications',
+          label: tf(
+            'dashboardLayout.menu.householdClassificationRules',
+            'Household Classification Rules'
+          ),
+          href: '/dashboard/households/classifications',
+          icon: Sparkles,
+          permission: 'HOUSEHOLD_CLASSIFICATIONS_MANAGE',
+          matchChildren: false,
+        },
       ],
     },
     {

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Calendar, Clock3, Edit, ExternalLink, Lock, Mail, MapPin,
+  Building2, Calendar, Clock3, Edit, ExternalLink, Lock, Mail, MapPin,
   MessageCircle, Phone, Plus, Shield, Tag, Unlock, User,
   UserCircle, Users as UsersIcon,
 } from 'lucide-react';
@@ -24,9 +24,29 @@ import Tabs from '../../../components/ui/Tabs';
 import TextArea from '../../../components/ui/TextArea';
 import UserSearchSelect from '../../../components/UserSearchSelect';
 import { PERMISSIONS, PERMISSION_GROUPS, PERMISSION_LABELS, ROLE_PERMISSIONS } from '../../../constants/permissions';
+import {
+  getEmploymentStatusLabel,
+  getPresenceStatusLabel,
+} from '../../../constants/householdProfiles';
 import toast from 'react-hot-toast';
 
 const EMPTY = '---';
+
+function formatCurrencyValue(value, language = 'en') {
+  if (value == null || value === '') return EMPTY;
+  const numericValue = Number(value);
+  if (Number.isNaN(numericValue)) return String(value);
+
+  try {
+    return new Intl.NumberFormat(language === 'ar' ? 'ar-EG' : 'en-US', {
+      style: 'currency',
+      currency: 'EGP',
+      maximumFractionDigits: 0,
+    }).format(numericValue);
+  } catch {
+    return `${numericValue} EGP`;
+  }
+}
 
 const PERMISSION_LABELS_AR = {
   USERS_VIEW: 'عرض المستخدمين',
@@ -385,16 +405,54 @@ function QuickStat({ icon: Icon, label, value }) {
 /* ── ProfileTab ─────────────────────────────────────────────────────────── */
 
 function ProfileTab({ user }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const tags = Array.isArray(user.tags) ? user.tags : [];
   const customDetails =
     user.customDetails && typeof user.customDetails === 'object'
       ? Object.entries(user.customDetails)
       : [];
+  const healthConditions = Array.isArray(user.health?.conditions)
+    ? user.health.conditions
+      .map((condition) => String(condition?.name || '').trim())
+      .filter(Boolean)
+    : [];
+  const householdSummary = user.householdClassificationSummary;
 
   const address =
     [user.address?.governorate, user.address?.city, user.address?.street, user.address?.details]
       .filter(Boolean).join(', ') || EMPTY;
+
+  const copy = language === 'ar'
+    ? {
+      socioeconomicTitle: 'الملف الاقتصادي والصحي',
+      monthlyIncome: 'الدخل الشهري',
+      incomeSource: 'مصدر الدخل',
+      employmentStatus: 'حالة العمل',
+      jobEmployer: 'الوظيفة / جهة العمل',
+      presenceStatus: 'حالة التواجد',
+      travelDestination: 'جهة السفر',
+      healthConditions: 'الحالات الصحية',
+      householdClassification: 'تصنيف الأسرة',
+      householdName: 'اسم الأسرة',
+      members: 'عدد الأفراد',
+      totalIncome: 'إجمالي الدخل',
+      primaryStatus: 'الحالة الأساسية',
+    }
+    : {
+      socioeconomicTitle: 'Socioeconomic Profile',
+      monthlyIncome: 'Monthly Income',
+      incomeSource: 'Income Source',
+      employmentStatus: 'Employment Status',
+      jobEmployer: 'Job / Employer',
+      presenceStatus: 'Presence Status',
+      travelDestination: 'Travel Destination',
+      healthConditions: 'Health Conditions',
+      householdClassification: 'Household Classification',
+      householdName: 'Household Name',
+      members: 'Members',
+      totalIncome: 'Total Income',
+      primaryStatus: 'Primary Status',
+    };
 
   return (
     <div className="space-y-8">
@@ -467,6 +525,135 @@ function ProfileTab({ user }) {
       </div>
 
       {/* ── Custom details ── */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="space-y-4 xl:col-span-2">
+          <SectionLabel>{copy.socioeconomicTitle}</SectionLabel>
+          <div className="rounded-2xl border border-border bg-surface px-6 py-5">
+            <div className="grid grid-cols-1 gap-x-10 gap-y-5 sm:grid-cols-2">
+              <Field
+                icon={Building2}
+                label={copy.monthlyIncome}
+                value={
+                  user.financial?.monthlyIncome != null
+                    ? formatCurrencyValue(user.financial.monthlyIncome, language)
+                    : EMPTY
+                }
+              />
+              <Field
+                icon={Building2}
+                label={copy.incomeSource}
+                value={user.financial?.source || EMPTY}
+              />
+              <Field
+                icon={Shield}
+                label={copy.employmentStatus}
+                value={
+                  user.employment?.status
+                    ? getEmploymentStatusLabel(user.employment.status, language)
+                    : EMPTY
+                }
+              />
+              <Field
+                icon={User}
+                label={copy.jobEmployer}
+                value={
+                  [user.employment?.jobTitle, user.employment?.employerName]
+                    .filter(Boolean)
+                    .join(' - ') || EMPTY
+                }
+              />
+              <Field
+                icon={Clock3}
+                label={copy.presenceStatus}
+                value={
+                  user.presence?.status
+                    ? getPresenceStatusLabel(user.presence.status, language)
+                    : EMPTY
+                }
+              />
+              <Field
+                icon={MapPin}
+                label={copy.travelDestination}
+                value={user.presence?.travelDestination || EMPTY}
+              />
+              {healthConditions.length > 0 ? (
+                <div className="sm:col-span-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                    {copy.healthConditions}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {healthConditions.map((condition) => (
+                      <Badge key={condition} variant="warning">
+                        {condition}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <SectionLabel>{copy.householdClassification}</SectionLabel>
+          <div className="rounded-2xl border border-border bg-surface px-6 py-5 space-y-4">
+            <Field
+              icon={UsersIcon}
+              label={copy.householdName}
+              value={householdSummary?.householdName || user.houseName || user.familyName || EMPTY}
+            />
+            <Field
+              icon={UsersIcon}
+              label={copy.members}
+              value={householdSummary?.memberCount ?? EMPTY}
+            />
+            <Field
+              icon={Building2}
+              label={copy.totalIncome}
+              value={
+                householdSummary?.totalMemberIncome != null
+                  ? formatCurrencyValue(householdSummary.totalMemberIncome, language)
+                  : EMPTY
+              }
+            />
+            {/* <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                {copy.primaryStatus}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {householdSummary?.primaryClassification ? (
+                  <span
+                    className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                    style={{
+                      color: householdSummary.primaryClassification.color || '#2563eb',
+                      borderColor: `${householdSummary.primaryClassification.color || '#2563eb'}33`,
+                      backgroundColor: `${householdSummary.primaryClassification.color || '#2563eb'}12`,
+                    }}
+                  >
+                    {householdSummary.primaryClassification.name}
+                  </span>
+                ) : (
+                  <Badge>{EMPTY}</Badge>
+                )}
+                {(householdSummary?.matchedCategories || []).slice(1).map((category) => (
+                  <span
+                    key={category.id}
+                    className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                    style={{
+                      color: category.color || '#2563eb',
+                      borderColor: `${category.color || '#2563eb'}33`,
+                      backgroundColor: `${category.color || '#2563eb'}12`,
+                    }}
+                  >
+                    {category.name}
+                  </span>
+                ))}
+              </div>
+            </div> */}
+          </div>
+        </div>
+      </div>
+
       {customDetails.length > 0 && (
         <div className="space-y-4">
           <SectionLabel count={customDetails.length}>

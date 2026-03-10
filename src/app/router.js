@@ -26,6 +26,12 @@ const FamilyHouseLookupPage = lazy(() => import('../pages/dashboard/users/Family
 const UserDetailsPage = lazy(() => import('../pages/dashboard/users/UserDetailsPage'));
 const UserCreatePage = lazy(() => import('../pages/dashboard/users/UserCreatePage'));
 const UserEditPage = lazy(() => import('../pages/dashboard/users/UserEditPage'));
+const HouseholdClassificationResultsPage = lazy(() =>
+  import('../pages/dashboard/households/HouseholdClassificationResultsPage')
+);
+const HouseholdClassificationCategoriesPage = lazy(() =>
+  import('../pages/dashboard/households/HouseholdClassificationCategoriesPage')
+);
 const ConfessionSessionsPage = lazy(() => import('../pages/dashboard/confessions/ConfessionSessionsPage'));
 const ConfessionSessionCreatePage = lazy(() => import('../pages/dashboard/confessions/ConfessionSessionCreatePage'));
 const ConfessionAlertsPage = lazy(() => import('../pages/dashboard/confessions/ConfessionAlertsPage'));
@@ -118,6 +124,22 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['USERS_VIEW']}>
             <Lazy><FamilyHouseAnalyticsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'households/results',
+        element: (
+          <PermissionGuard required={['HOUSEHOLD_CLASSIFICATIONS_VIEW']}>
+            <Lazy><HouseholdClassificationResultsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'households/classifications',
+        element: (
+          <PermissionGuard required={['HOUSEHOLD_CLASSIFICATIONS_MANAGE']}>
+            <Lazy><HouseholdClassificationCategoriesPage /></Lazy>
           </PermissionGuard>
         ),
       },

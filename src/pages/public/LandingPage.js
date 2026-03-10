@@ -345,8 +345,8 @@ export default function LandingPage() {
   const churchPlaceName = 'Church of the Archangel Michael Balqtoshh';
   const churchPlusCode = '9MC6+6QG';
   const churchAddressLine = 'Astal, West Samalout, Minya Governorate 2477363';
-  const locationMapEmbedUrl = `https://maps.google.com/maps?ll=${encodeURIComponent(churchCoordinates)}&q=${encodeURIComponent(churchPlaceName)}&z=17&output=embed`;
-  const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(churchCoordinates)}`;
+  const locationMapEmbedUrl = `https://maps.google.com/maps?ll=${encodeURIComponent(churchCoordinates)}&q=${encodeURIComponent(churchPlaceName)}&z=18&t=k&output=embed`;
+  const directionsUrl = `https://maps.app.goo.gl/g24SscQHQKMYSq6M9`;
 
   /* ── Scroll indicator ── */
   const [showScroll, setShowScroll] = useState(true);
@@ -802,7 +802,7 @@ export default function LandingPage() {
                   {t('landing.portal.label')}
                 </div>
                 <h3 className="mt-5 sm:mt-6 text-2xl sm:text-3xl lg:text-4xl font-extrabold">{t('landing.portal.title')}</h3>
-                <p className="mx-auto mt-4 max-w-2xl text-sm sm:text-base lg:text-lg text-white">{t('landing.portal.description')}</p>
+                <p className="mx-auto mt-4 max-w-2xl text-sm sm:text-base lg:text-lg !text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.25)]" style={{ color: '#fff' }}>{t('landing.portal.description')}</p>
                 <div className="mt-7 sm:mt-8">
                   <Link to="/auth/login">
                     <Button
