@@ -2,9 +2,9 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usersApi } from '../../api/endpoints';
 import Input from '../ui/Input';
-import CreatableDatalistInput from '../ui/CreatableDatalistInput';
+import CreatableComboboxInput from '../ui/CreatableComboboxInput';
+import CreatableTagComboboxInput from '../ui/CreatableTagComboboxInput';
 import Select from '../ui/Select';
-import TagInput from '../ui/TagInput';
 import TextArea from '../ui/TextArea';
 import { useI18n } from '../../i18n/i18n';
 import {
@@ -243,11 +243,11 @@ export default function HouseholdSocioeconomicSection({ form, errors = {}, onCha
             hint={copy.monthlyIncomeHint}
             containerClassName="!mb-0"
           />
-          <CreatableDatalistInput
+          <CreatableComboboxInput
             label={copy.incomeSource}
             options={profileOptionValues.incomeSources}
             value={form.incomeSource}
-            onChange={(event) => onChange('incomeSource', event.target.value)}
+            onChange={(value) => onChange('incomeSource', value)}
             error={errors['financial.source']}
             containerClassName="!mb-0"
           />
@@ -274,19 +274,19 @@ export default function HouseholdSocioeconomicSection({ form, errors = {}, onCha
             error={errors['employment.status']}
             containerClassName="!mb-0"
           />
-          <CreatableDatalistInput
+          <CreatableComboboxInput
             label={copy.jobTitle}
             options={profileOptionValues.jobTitles}
             value={form.jobTitle}
-            onChange={(event) => onChange('jobTitle', event.target.value)}
+            onChange={(value) => onChange('jobTitle', value)}
             error={errors['employment.jobTitle']}
             containerClassName="!mb-0"
           />
-          <CreatableDatalistInput
+          <CreatableComboboxInput
             label={copy.employerName}
             options={profileOptionValues.employerNames}
             value={form.employerName}
-            onChange={(event) => onChange('employerName', event.target.value)}
+            onChange={(value) => onChange('employerName', value)}
             error={errors['employment.employerName']}
             containerClassName="!mb-0"
           />
@@ -315,19 +315,19 @@ export default function HouseholdSocioeconomicSection({ form, errors = {}, onCha
           />
           {isTraveling ? (
             <>
-              <CreatableDatalistInput
+              <CreatableComboboxInput
                 label={copy.travelDestination}
                 options={profileOptionValues.travelDestinations}
                 value={form.travelDestination}
-                onChange={(event) => onChange('travelDestination', event.target.value)}
+                onChange={(value) => onChange('travelDestination', value)}
                 error={errors['presence.travelDestination']}
                 containerClassName="!mb-0"
               />
-              <CreatableDatalistInput
+              <CreatableComboboxInput
                 label={copy.travelReason}
                 options={profileOptionValues.travelReasons}
                 value={form.travelReason}
-                onChange={(event) => onChange('travelReason', event.target.value)}
+                onChange={(value) => onChange('travelReason', value)}
                 error={errors['presence.travelReason']}
                 containerClassName="!mb-0"
               />
@@ -338,7 +338,7 @@ export default function HouseholdSocioeconomicSection({ form, errors = {}, onCha
 
       <div className="space-y-3">
         {buildSectionLabel(copy.healthTitle)}
-        <TagInput
+        <CreatableTagComboboxInput
           label={copy.healthConditions}
           values={form.healthConditions}
           onChange={(next) => onChange('healthConditions', next)}

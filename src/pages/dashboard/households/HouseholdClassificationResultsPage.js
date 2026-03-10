@@ -1,14 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import {
-  BarChart3,
-  Building2,
-  Eye,
-  Filter,
-  ShieldCheck,
-  Users,
-} from 'lucide-react';
+import { Building2, Eye, Filter, ShieldCheck } from 'lucide-react';
 import { householdClassificationsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
@@ -18,19 +11,20 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
-import Modal from '../../../components/ui/Modal';
 import PageHeader from '../../../components/ui/PageHeader';
 import SearchInput from '../../../components/ui/SearchInput';
 import Select from '../../../components/ui/Select';
 import Switch from '../../../components/ui/Switch';
 import Table from '../../../components/ui/Table';
 import {
-  describeCriterionActualValue,
-  describeMemberFacts,
   formatCurrencyEGP,
   getHouseholdSourceLabel,
   getStatusText,
 } from './householdClassifications.shared';
+import {
+  buildLookupQuery,
+  FAMILY_HOUSE_DETAILS_PATH,
+} from '../users/familyHouseLookup.shared';
 
 const COPY = {
   en: {
@@ -41,10 +35,12 @@ const COPY = {
     classificationFilter: 'Primary classification',
     allClassifications: 'All classifications',
     includeUnclassified: 'Include unclassified',
-    totalHouseholds: 'Households',
-    classifiedHouseholds: 'Classified',
-    unclassifiedHouseholds: 'Unclassified',
-    urgentHouseholds: 'Most in need',
+    categoryCardsTitle: 'Classification categories',
+    categoryCardsSubtitle:
+      'Each card shows the number of households currently matching one active category.',
+    householdsCount: 'households',
+    criteriaCount: 'criteria',
+    noCategoryCards: 'No active household classification categories found.',
     tableResults: '{count} household results',
     columns: {
       householdName: 'Household',
@@ -59,10 +55,6 @@ const COPY = {
     noDataTitle: 'No household classifications found',
     noDataDescription:
       'Try adjusting your filters or define category criteria before reviewing the results.',
-    detailsTitle: 'Household details',
-    membersTitle: 'Members',
-    criteriaTitle: 'Rule evaluation',
-    noCriteria: 'No rule matched this household yet.',
     searchPlaceholder: 'Search by household or member name',
     previous: 'Previous',
     next: 'Next',
@@ -71,15 +63,17 @@ const COPY = {
   ar: {
     title: 'حالات الأسر',
     subtitle:
-      'راجع تصنيف كل أسرة بناء على القواعد الحالية وبيانات أفرادها الفعلية.',
+      'راجع تصنيف كل أسرة بناءً على القواعد الحالية وبيانات أفرادها الفعلية.',
     filtersTitle: 'الفلاتر',
     classificationFilter: 'التصنيف الأساسي',
     allClassifications: 'كل التصنيفات',
     includeUnclassified: 'إظهار الأسر غير المصنفة',
-    totalHouseholds: 'الأسر',
-    classifiedHouseholds: 'مصنفة',
-    unclassifiedHouseholds: 'غير مصنفة',
-    urgentHouseholds: 'الأكثر احتياجًا',
+    categoryCardsTitle: 'فئات التصنيف',
+    categoryCardsSubtitle:
+      'كل بطاقة تعرض عدد الأسر المطابقة حاليًا لكل فئة نشطة.',
+    householdsCount: 'أسر',
+    criteriaCount: 'معايير',
+    noCategoryCards: 'لا توجد فئات تصنيف أسر نشطة.',
     tableResults: '{count} نتيجة',
     columns: {
       householdName: 'الأسرة',
@@ -93,11 +87,7 @@ const COPY = {
     viewDetails: 'عرض التفاصيل',
     noDataTitle: 'لا توجد نتائج لتصنيف الأسر',
     noDataDescription:
-      'عدّل الفلاتر أو عرّف شروط التصنيف أولاً ثم أعد المراجعة.',
-    detailsTitle: 'تفاصيل الأسرة',
-    membersTitle: 'الأفراد',
-    criteriaTitle: 'تقييم القواعد',
-    noCriteria: 'لم تنطبق أي قاعدة على هذه الأسرة حتى الآن.',
+      'عدّل الفلاتر أو عرّف شروط التصنيف أولًا ثم أعد المراجعة.',
     searchPlaceholder: 'ابحث باسم الأسرة أو أحد الأفراد',
     previous: 'السابق',
     next: 'التالي',
@@ -105,23 +95,65 @@ const COPY = {
   },
 };
 
-function SummaryStat({ icon: Icon, label, value, tone = 'default' }) {
-  const tones = {
-    default: 'border-border bg-surface text-heading',
-    success: 'border-success/20 bg-success-light text-success',
-    danger: 'border-danger/20 bg-danger-light text-danger',
-    warning: 'border-warning/20 bg-warning-light text-warning',
-  };
-
-  return (
-    <div className={`rounded-2xl border p-5 ${tones[tone] || tones.default}`}>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{label}</p>
-        {Icon ? <Icon className="h-4 w-4" /> : null}
-      </div>
-      <p className="mt-4 text-3xl font-bold tracking-tight">{value}</p>
-    </div>
+function buildCategorySummaryCards(categories, breakdown = []) {
+  const breakdownMap = new Map(
+    (Array.isArray(breakdown) ? breakdown : []).map((entry) => [String(entry.id), entry])
   );
+
+  const activeCategories = (Array.isArray(categories) ? categories : []).filter(
+    (category) => category?.isActive !== false
+  );
+
+  if (activeCategories.length > 0) {
+    return activeCategories.map((category) => {
+      const summaryEntry = breakdownMap.get(String(category.id));
+      return {
+        id: String(category.id),
+        name: category.name,
+        color: category.color || summaryEntry?.color || '#2563eb',
+        count: summaryEntry?.count || 0,
+        criteriaCount: Number(category.criteriaCount) || 0,
+      };
+    });
+  }
+
+  return (Array.isArray(breakdown) ? breakdown : []).map((entry) => ({
+    id: String(entry.id),
+    name: entry.name,
+    color: entry.color || '#2563eb',
+    count: entry.count || 0,
+    criteriaCount: 0,
+  }));
+}
+
+function splitCardsIntoRows(cards = []) {
+  const total = cards.length;
+  if (total === 0) return [];
+  if (total <= 4) return [cards];
+
+  const rowsCount = Math.ceil(total / 3);
+  const baseSize = Math.floor(total / rowsCount);
+  const remainder = total % rowsCount;
+  const rowSizes = Array.from({ length: rowsCount }, (_, index) =>
+    baseSize + (index < remainder ? 1 : 0)
+  );
+
+  const rows = [];
+  let cursor = 0;
+
+  rowSizes.forEach((size) => {
+    rows.push(cards.slice(cursor, cursor + size));
+    cursor += size;
+  });
+
+  return rows;
+}
+
+function getCategoryRowGridClass(length) {
+  if (length === 4) return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4';
+  if (length === 3) return 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3';
+  if (length === 2) return 'grid-cols-1 md:grid-cols-2';
+  return 'grid-cols-1';
 }
 
 function HouseholdStatusBadge({ classification, language }) {
@@ -143,6 +175,49 @@ function HouseholdStatusBadge({ classification, language }) {
   );
 }
 
+function CategorySummaryCard({ category, copy }) {
+  const color = category.color || '#2563eb';
+
+  return (
+    <div
+      className="rounded-2xl border p-5 shadow-card"
+      style={{
+        borderColor: `${color}33`,
+        background: `linear-gradient(135deg, ${color}14 0%, rgba(255, 255, 255, 0.96) 100%)`,
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+            {copy.classificationFilter}
+          </p>
+          <h3
+            className="mt-2 truncate text-lg font-bold tracking-tight"
+            style={{ color }}
+            title={category.name}
+          >
+            {category.name}
+          </h3>
+        </div>
+        <span
+          className="mt-1 inline-flex h-3 w-3 shrink-0 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+      </div>
+
+      <div className="mt-6 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-3xl font-bold tracking-tight text-heading">{category.count}</p>
+          <p className="mt-1 text-sm text-muted">{copy.householdsCount}</p>
+        </div>
+        <Badge variant="default">
+          {category.criteriaCount} {copy.criteriaCount}
+        </Badge>
+      </div>
+    </div>
+  );
+}
+
 export default function HouseholdClassificationResultsPage() {
   const { hasPermission } = useAuth();
   const { language, t } = useI18n();
@@ -151,7 +226,6 @@ export default function HouseholdClassificationResultsPage() {
   const [page, setPage] = useState(1);
   const [classificationId, setClassificationId] = useState('');
   const [includeUnclassified, setIncludeUnclassified] = useState(false);
-  const [selectedHousehold, setSelectedHousehold] = useState(null);
 
   const categoriesQuery = useQuery({
     queryKey: ['household-classifications', 'categories'],
@@ -209,10 +283,15 @@ export default function HouseholdClassificationResultsPage() {
     [categories, copy.allClassifications]
   );
 
-  const urgentCategory = useMemo(() => {
-    const breakdown = Array.isArray(summary.categoryBreakdown) ? summary.categoryBreakdown : [];
-    return breakdown.reduce((best, current) => (current.count > (best?.count || 0) ? current : best), null);
-  }, [summary.categoryBreakdown]);
+  const categorySummaryCards = useMemo(
+    () => buildCategorySummaryCards(categories, summary.categoryBreakdown),
+    [categories, summary.categoryBreakdown]
+  );
+
+  const categorySummaryRows = useMemo(
+    () => splitCardsIntoRows(categorySummaryCards),
+    [categorySummaryCards]
+  );
 
   const columns = useMemo(
     () => [
@@ -273,15 +352,13 @@ export default function HouseholdClassificationResultsPage() {
         key: 'actions',
         label: copy.columns.actions,
         render: (row) => (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            icon={Eye}
-            onClick={() => setSelectedHousehold(row)}
+          <Link
+            to={`${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery('houseName', row.householdName)}`}
           >
-            {copy.viewDetails}
-          </Button>
+            <Button type="button" variant="outline" size="sm" icon={Eye}>
+              {copy.viewDetails}
+            </Button>
+          </Link>
         ),
       },
     ],
@@ -320,7 +397,7 @@ export default function HouseholdClassificationResultsPage() {
           <Filter className="h-4 w-4 text-muted" />
           <p className="text-sm font-semibold text-heading">{copy.filtersTitle}</p>
         </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_0.8fr_auto] items-end">
+        <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-[1.4fr_0.8fr_auto]">
           <SearchInput
             value={search}
             onChange={(next) => {
@@ -354,31 +431,40 @@ export default function HouseholdClassificationResultsPage() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-        <SummaryStat
-          icon={Building2}
-          label={copy.totalHouseholds}
-          value={summary.totalHouseholds || 0}
-        />
-        <SummaryStat
-          icon={ShieldCheck}
-          label={copy.classifiedHouseholds}
-          value={summary.classifiedHouseholds || 0}
-          tone="success"
-        />
-        <SummaryStat
-          icon={BarChart3}
-          label={copy.unclassifiedHouseholds}
-          value={summary.unclassifiedHouseholds || 0}
-          tone="warning"
-        />
-        <SummaryStat
-          icon={Users}
-          label={copy.urgentHouseholds}
-          value={urgentCategory?.count || 0}
-          tone="danger"
-        />
-      </div>
+      <Card className="space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-heading">{copy.categoryCardsTitle}</p>
+            <p className="mt-1 text-sm text-muted">{copy.categoryCardsSubtitle}</p>
+          </div>
+          <Badge variant="default">{categorySummaryCards.length}</Badge>
+        </div>
+
+        {categorySummaryRows.length === 0 ? (
+          <EmptyState
+            icon={Building2}
+            title={copy.categoryCardsTitle}
+            description={copy.noCategoryCards}
+          />
+        ) : (
+          <div className="space-y-4">
+            {categorySummaryRows.map((row, index) => (
+              <div
+                key={`category-summary-row-${index}`}
+                className={`grid gap-4 ${getCategoryRowGridClass(row.length)}`}
+              >
+                {row.map((category) => (
+                  <CategorySummaryCard
+                    key={category.id}
+                    category={category}
+                    copy={copy}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {errorMessage ? (
         <Card>
@@ -426,131 +512,6 @@ export default function HouseholdClassificationResultsPage() {
           </div>
         </Card>
       )}
-
-      <Modal
-        isOpen={Boolean(selectedHousehold)}
-        onClose={() => setSelectedHousehold(null)}
-        title={selectedHousehold?.householdName || copy.detailsTitle}
-        size="xl"
-        footer={
-          <Button variant="ghost" onClick={() => setSelectedHousehold(null)}>
-            {t('common.actions.close')}
-          </Button>
-        }
-      >
-        {selectedHousehold ? (
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-center gap-2">
-              <HouseholdStatusBadge
-                classification={selectedHousehold.primaryClassification}
-                language={language}
-              />
-              {(selectedHousehold.matchedCategories || []).map((category) => (
-                <HouseholdStatusBadge
-                  key={category.id}
-                  classification={category}
-                  language={language}
-                />
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <SummaryStat
-                label={copy.columns.members}
-                value={selectedHousehold.memberCount}
-              />
-              <SummaryStat
-                label={copy.columns.income}
-                value={formatCurrencyEGP(selectedHousehold.totalMemberIncome, language)}
-              />
-              <SummaryStat
-                label={copy.columns.source}
-                value={getHouseholdSourceLabel(selectedHousehold.sourceField, language)}
-              />
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-heading">{copy.membersTitle}</p>
-              <div className="space-y-2">
-                {(selectedHousehold.members || []).map((member) => (
-                  <div
-                    key={member.id}
-                    className="rounded-xl border border-border bg-surface-alt/40 px-4 py-3"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-heading">{member.fullName}</p>
-                        <p className="text-xs text-muted">{member.phonePrimary || '---'}</p>
-                      </div>
-                      <Badge>{formatCurrencyEGP(member.monthlyIncome || 0, language)}</Badge>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {describeMemberFacts(member, language).map((fact) => (
-                        <Badge key={`${member.id}-${fact}`} variant="secondary">
-                          {fact}
-                        </Badge>
-                      ))}
-                      {(member.diseases || []).map((disease) => (
-                        <Badge key={`${member.id}-${disease}`} variant="warning">
-                          {disease}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-heading">{copy.criteriaTitle}</p>
-              {(selectedHousehold.categoryEvaluations || []).some((category) => category.matched) ? (
-                <div className="space-y-3">
-                  {(selectedHousehold.categoryEvaluations || [])
-                    .filter((category) => category.matched)
-                    .map((category) => (
-                      <div key={category.id} className="rounded-xl border border-border p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <HouseholdStatusBadge classification={category} language={language} />
-                          <span className="text-xs text-muted">
-                            {category.matchedRequiredCriteria} / {category.criteria.length}
-                          </span>
-                        </div>
-                        <div className="mt-3 space-y-2">
-                          {category.criteria.map((criterion) => (
-                            <div
-                              key={criterion.id}
-                              className="rounded-lg border border-border bg-surface-alt/40 px-3 py-2"
-                            >
-                              <div className="flex items-center justify-between gap-3">
-                                <p className="text-sm font-medium text-heading">
-                                  {criterion.label || criterion.metric}
-                                </p>
-                                <Badge variant={criterion.passed ? 'success' : 'danger'}>
-                                  {criterion.passed
-                                    ? getStatusText('passed', language)
-                                    : getStatusText('failed', language)}
-                                </Badge>
-                              </div>
-                              <p className="mt-1 text-xs text-muted">
-                                {criterion.isRequired
-                                  ? getStatusText('required', language)
-                                  : getStatusText('optional', language)}
-                                {' • '}
-                                {describeCriterionActualValue(criterion, language)}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted">{copy.noCriteria}</p>
-              )}
-            </div>
-          </div>
-        ) : null}
-      </Modal>
     </div>
   );
 }

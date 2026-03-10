@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Building2, Search, Users as UsersIcon } from 'lucide-react';
@@ -13,6 +13,7 @@ import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
 import Table from '../../../components/ui/Table';
+import FamilyHouseProfileInsights from '../../../components/users/FamilyHouseProfileInsights';
 import { getGenderLabel } from '../../../utils/formatters';
 import {
   EMPTY,
@@ -221,7 +222,7 @@ export default function FamilyHouseLookupPage() {
                 ) : (
                   <span className="font-semibold text-heading">{row.fullName || EMPTY}</span>
                 )}
-                <p className="text-xs text-muted direction-ltr text-left">
+                <p className={`${isRTL ? "text-center" : "text-left"} text-xs text-muted`}>
                   {row.phonePrimary || EMPTY}
                 </p>
               </div>
@@ -238,7 +239,7 @@ export default function FamilyHouseLookupPage() {
         key: 'phonePrimary',
         label: t('familyHouseLookup.columns.phone'),
         render: (row) => (
-          <span className="direction-ltr text-left">
+          <span className={`${isRTL ? "text-center" : "text-left"}`}>
             {row.phonePrimary || EMPTY}
           </span>
         ),
@@ -339,9 +340,8 @@ export default function FamilyHouseLookupPage() {
             </label>
             <div className="relative">
               <Search
-                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted pointer-events-none ${
-                  isRTL ? 'right-3' : 'left-3'
-                }`}
+                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted pointer-events-none ${isRTL ? 'right-3' : 'left-3'
+                  }`}
               />
               <input
                 ref={lookupInputRef}
@@ -511,6 +511,15 @@ export default function FamilyHouseLookupPage() {
         )}
       </Card>
 
+      {normalizedSubmittedName && !membersErrorMessage ? (
+        <FamilyHouseProfileInsights
+          members={sortedMembers}
+          lookupType={lookupType}
+          lookupName={submittedLookupName}
+          loading={membersLoading || membersFetching}
+        />
+      ) : null}
+
       <Card padding={false} className="overflow-hidden">
         <div className="border-b border-border px-5 py-4 sm:px-6">
           <div className="flex items-center justify-between gap-4">
@@ -535,7 +544,7 @@ export default function FamilyHouseLookupPage() {
           <div className="p-2 sm:p-3">
             <Table
               columns={columns}
-              data={members}
+              data={sortedMembers}
               loading={membersLoading || membersFetching}
               emptyTitle={t(
                 normalizedSubmittedName

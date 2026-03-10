@@ -37,7 +37,10 @@ function getLocale(language) {
 
 export function getHouseholdSourceLabel(value, language = 'en') {
   const locale = getLocale(language);
-  return TEXT[locale].sourceField[value] || value;
+  if (value === 'familyName' || value === 'singleMember') {
+    return TEXT[locale].sourceField.houseName;
+  }
+  return TEXT[locale].sourceField[value] || TEXT[locale].sourceField.houseName;
 }
 
 export function formatCurrencyEGP(value, language = 'en') {
