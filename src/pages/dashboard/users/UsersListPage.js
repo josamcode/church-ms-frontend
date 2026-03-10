@@ -287,7 +287,7 @@ export default function UsersListPage() {
         <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-              Total users
+              {t('usersListPage.stats.totalUsers')}
             </p>
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Users className="h-4 w-4" />

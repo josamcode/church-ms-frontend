@@ -398,6 +398,7 @@
         usersOnPage: 'Users on this page',
         activeAccounts: 'Active accounts',
         lockedAccounts: 'Locked accounts',
+        totalUsers: "Total users"
       },
       filters: {
         title: 'Filters',
@@ -1728,6 +1729,7 @@
         usersOnPage: 'الافراد في هذه الصفحة',
         activeAccounts: 'الحسابات النشطة',
         lockedAccounts: 'الحسابات المقفلة',
+        totalUsers: "جميع الافراد"
       },
       filters: {
         title: 'عوامل التصفية',
