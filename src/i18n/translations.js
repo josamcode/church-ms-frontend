@@ -46,6 +46,9 @@
       loading: 'Loading...',
       table: {
         actions: 'Actions',
+        viewMode: 'View',
+        cardsView: 'Cards',
+        tableView: 'Table',
       },
     },
     userSearch: {
@@ -219,6 +222,7 @@
         main: "Main",
         manage: "Manage",
         usersManagement: 'Users Management',
+        theLordsBrethren: "The Lord’s Brethren",
         confessions: 'Confessions',
         visitations: 'Visitations',
         divineLiturgies: 'Divine Liturgies',
@@ -235,6 +239,7 @@
         familyHouseDetails: 'Family/House Details',
         householdClassificationResults: "Household Statuses",
         householdClassificationRules: "Household Classification Rules",
+        theLordsBrethren: "The Lord’s Brethren",
         confessionSessions: 'Confession Sessions',
         confessionAlerts: 'Confession Alerts',
         confessionAnalytics: 'Confession Analytics',
@@ -1369,6 +1374,9 @@
       loading: 'جارٍ التحميل...',
       table: {
         actions: 'خيارات',
+        viewMode: 'العرض',
+        cardsView: 'بطاقات',
+        tableView: 'جدول',
       },
     },
     userSearch: {
@@ -1541,6 +1549,7 @@
         main: "الرئيسية",
         manage: "الإدارة",
         usersManagement: 'إدارة المستخدمين',
+        theLordsBrethren: "إخوة الرب",
         confessions: 'الاعترافات',
         visitations: 'الافتقادات',
         divineLiturgies: 'القداسات الإلهية',
@@ -1557,6 +1566,7 @@
         familyHouseDetails: 'تفاصيل العائلة/البيت',
         householdClassificationResults: "حالات الأسر",
         householdClassificationRules: "قواعد تصنيف الأسر",
+        theLordsBrethren: "إخوة الرب",
         confessionSessions: 'جلسات الاعتراف',
         confessionAlerts: 'تنبيهات الاعتراف',
         confessionAnalytics: 'تحليلات الاعتراف',

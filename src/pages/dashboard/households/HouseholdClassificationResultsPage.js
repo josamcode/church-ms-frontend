@@ -111,7 +111,9 @@ function buildCategorySummaryCards(categories, breakdown = []) {
         id: String(category.id),
         name: category.name,
         color: category.color || summaryEntry?.color || '#2563eb',
-        count: summaryEntry?.count || 0,
+        count:
+          summaryEntry?.count ??
+          (Number.isFinite(Number(category.count)) ? Number(category.count) : 0),
         criteriaCount: Number(category.criteriaCount) || 0,
       };
     });
@@ -301,7 +303,6 @@ export default function HouseholdClassificationResultsPage() {
         render: (row) => (
           <div>
             <p className="font-semibold text-heading">{row.householdName}</p>
-            <p className="text-xs text-muted">{row.householdKey}</p>
           </div>
         ),
       },

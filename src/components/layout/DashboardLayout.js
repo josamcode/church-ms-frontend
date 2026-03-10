@@ -175,7 +175,21 @@ export default function DashboardLayout() {
           icon: Building2,
           permission: 'USERS_VIEW',
           matchChildren: false,
-        },
+        }
+      ],
+    },
+    {
+      key: 'users',
+      sectionLabel: t('dashboardLayout.section.theLordsBrethren'),
+      parent: {
+        label: t('dashboardLayout.menu.theLordsBrethren'),
+        icon: Users,
+        href: '/dashboard/under-development',
+        permission: null,
+        matchChildren: false,
+
+      },
+      children: [
         {
           key: 'household-results',
           label: tf('dashboardLayout.menu.householdClassificationResults', 'Household Statuses'),
@@ -195,7 +209,7 @@ export default function DashboardLayout() {
           permission: 'HOUSEHOLD_CLASSIFICATIONS_MANAGE',
           matchChildren: false,
         },
-      ],
+      ]
     },
     {
       key: 'confessions',

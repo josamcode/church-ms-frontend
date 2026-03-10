@@ -249,7 +249,7 @@ export default function SectorDetailsPage() {
             description={tf('meetings.sectorDetails.noLinkedMeetingsDescription', 'No meetings are currently assigned to this sector.')}
           />
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+          <div className="overflow-hidden tttable">
             {meetings.map((meeting, i) => (
               <div
                 key={meeting.id}

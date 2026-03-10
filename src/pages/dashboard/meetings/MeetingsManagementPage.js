@@ -344,7 +344,7 @@ export default function MeetingsManagementPage() {
             <span className="text-xs text-muted">{meetings.length}</span>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+          <div className="overflow-hidden tttable">
             <Table
               columns={meetingColumns}
               data={meetings}

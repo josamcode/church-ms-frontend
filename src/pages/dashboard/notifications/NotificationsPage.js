@@ -29,7 +29,7 @@ function NewsCard({ notification, onOpen, onEdit, canEdit, t }) {
   const detailsCount = Array.isArray(notification?.details) ? notification.details.length : 0;
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card transition-all hover:border-primary/30 hover:shadow-lg">
+    <article className="overflow-hidden tttable shadow-card transition-all hover:border-primary/30 hover:shadow-lg">
       {notification.coverImageUrl ? (
         <img src={notification.coverImageUrl} alt="" className="h-44 w-full object-cover" />
       ) : (

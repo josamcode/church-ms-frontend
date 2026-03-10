@@ -266,7 +266,7 @@ export default function ConfessionAlertsPage() {
           />
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+        <div className="overflow-hidden tttable">
           <Table
             columns={columns}
             data={alerts}

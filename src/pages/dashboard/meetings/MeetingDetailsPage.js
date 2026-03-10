@@ -216,23 +216,23 @@ export default function MeetingDetailsPage() {
 
   const kpiTiles = canViewAllDetails
     ? [
-        { label: t('meetings.fields.assistants'), value: stats.assistantsCount, icon: Users },
-        ...(canViewAllServedUsers
-          ? [{ label: t('meetings.fields.servedUsers'), value: stats.servedUsersCount, icon: UserCircle }]
-          : []),
-        { label: t('meetings.columns.groupsCount'), value: stats.groupsCount, icon: ListChecks },
-        { label: t('meetings.columns.servantsCount'), value: stats.servantsCount, icon: Users },
-        { label: t('meetings.columns.committeesCount'), value: stats.committeesCount, icon: FileText },
-        { label: t('meetings.columns.activitiesCount'), value: stats.activitiesCount, icon: CalendarClock },
-      ]
+      { label: t('meetings.fields.assistants'), value: stats.assistantsCount, icon: Users },
+      ...(canViewAllServedUsers
+        ? [{ label: t('meetings.fields.servedUsers'), value: stats.servedUsersCount, icon: UserCircle }]
+        : []),
+      { label: t('meetings.columns.groupsCount'), value: stats.groupsCount, icon: ListChecks },
+      { label: t('meetings.columns.servantsCount'), value: stats.servantsCount, icon: Users },
+      { label: t('meetings.columns.committeesCount'), value: stats.committeesCount, icon: FileText },
+      { label: t('meetings.columns.activitiesCount'), value: stats.activitiesCount, icon: CalendarClock },
+    ]
     : [
-        { label: t('meetings.columns.groupsCount'), value: stats.groupsCount, icon: ListChecks },
-        {
-          label: tf('meetings.memberDetails.groupsTitle', 'Groups'),
-          value: stats.groupMembersCount,
-          icon: UserCircle,
-        },
-      ];
+      { label: t('meetings.columns.groupsCount'), value: stats.groupsCount, icon: ListChecks },
+      {
+        label: tf('meetings.memberDetails.groupsTitle', 'Groups'),
+        value: stats.groupMembersCount,
+        icon: UserCircle,
+      },
+    ];
 
   return (
     <div className="animate-fade-in space-y-8 pb-10">
@@ -455,7 +455,7 @@ export default function MeetingDetailsPage() {
             {(meeting.committees || []).length === 0 ? (
               <EmptyState icon={FileText} title={t('meetings.empty.noCommitteesYet')} description={tf('meetings.meetingDetails.noCommitteesDescription', 'No committees are defined for this meeting.')} />
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+              <div className="overflow-hidden tttable">
                 {(meeting.committees || []).map((committee, i) => (
                   <div key={committee.id} className={`px-5 py-4 ${i !== (meeting.committees || []).length - 1 ? 'border-b border-border/60' : ''}`}>
                     <div className="flex items-start justify-between gap-3">
@@ -495,7 +495,7 @@ export default function MeetingDetailsPage() {
             {(meeting.activities || []).length === 0 ? (
               <EmptyState icon={CalendarClock} title={t('meetings.empty.noActivitiesYet')} description={tf('meetings.meetingDetails.noActivitiesDescription', 'No activities are planned for this meeting.')} />
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+              <div className="overflow-hidden tttable">
                 {(meeting.activities || []).map((activity, i) => (
                   <div key={activity.id} className={`px-5 py-4 ${i !== (meeting.activities || []).length - 1 ? 'border-b border-border/60' : ''}`}>
                     <div className="flex items-start justify-between gap-3">

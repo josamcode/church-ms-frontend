@@ -196,10 +196,10 @@ function hasDetailedProfile(member) {
 
   return Boolean(
     hasIncome ||
-      hasEmployment ||
-      hasPresence ||
-      getHealthConditions(member).length > 0 ||
-      getCombinedNotes(member).length > 0
+    hasEmployment ||
+    hasPresence ||
+    getHealthConditions(member).length > 0 ||
+    getCombinedNotes(member).length > 0
   );
 }
 
@@ -670,7 +670,7 @@ function ProfileField({ icon: Icon, label, value, ltr = false }) {
         {Icon ? <Icon className="h-3.5 w-3.5 text-muted" /> : null}
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{label}</p>
       </div>
-      <p className={`mt-1 text-sm font-medium text-heading ${ltr ? 'direction-ltr text-left' : ''}`}>
+      <p className={`mt-1 text-sm font-medium text-heading ${ltr ? 'direction-ltr text-left' : 'direction-rtl text-right'}`}>
         {value || EMPTY}
       </p>
     </div>
