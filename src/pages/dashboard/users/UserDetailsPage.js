@@ -95,6 +95,7 @@ const PERMISSION_LABELS_AR = {
   MEETINGS_MEMBERS_NOTES_UPDATE: 'تعديل ملاحظات أعضاء الاجتماع',
   DIVINE_LITURGIES_VIEW: 'عرض جداول القداسات الإلهية',
   DIVINE_LITURGIES_MANAGE: 'إدارة جداول القداسات الإلهية',
+  DIVINE_LITURGIES_ATTENDANCE_MANAGE: 'إدارة حضور القداسات الإلهية',
   DIVINE_LITURGIES_PRIESTS_MANAGE: 'إدارة قائمة كهنة الكنيسة',
 };
 

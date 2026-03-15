@@ -279,7 +279,11 @@ export default function DashboardLayout() {
         label: t('dashboardLayout.menu.divineLiturgies'),
         href: '/dashboard/divine-liturgies',
         icon: Church,
-        permission: 'DIVINE_LITURGIES_VIEW',
+        permission: [
+          'DIVINE_LITURGIES_VIEW',
+          'DIVINE_LITURGIES_MANAGE',
+          'DIVINE_LITURGIES_ATTENDANCE_MANAGE',
+        ],
         matchChildren: true,
       },
       children: [

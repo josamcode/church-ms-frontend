@@ -123,7 +123,10 @@ export default function DivineLiturgiesPage() {
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
 
+  const canView = hasPermission('DIVINE_LITURGIES_VIEW');
   const canManage = hasPermission('DIVINE_LITURGIES_MANAGE');
+  const canManageAttendance =
+    hasPermission('DIVINE_LITURGIES_ATTENDANCE_MANAGE') || canManage;
 
   const [divineEditId, setDivineEditId] = useState(null);
   const [divineForm, setDivineForm] = useState(() => emptyRecurringForm(DIVINE_SERVICE_TYPE));
@@ -328,7 +331,7 @@ export default function DivineLiturgiesPage() {
     return `Exceptional Divine Liturgy (${dateLabel})`;
   };
 
-  const recurringColumns = (includePriests, onEdit, onDelete) => [
+  const recurringColumns = (includePriests, onEdit, onDelete, attendanceEntryType = 'recurring') => [
     {
       key: 'displayName',
       label: t('divineLiturgies.table.displayName'),
@@ -364,6 +367,21 @@ export default function DivineLiturgiesPage() {
             <span className="text-sm text-heading">
               {row.priests?.length ? priestsToLabel(row.priests) : t('common.placeholder.empty')}
             </span>
+          ),
+        },
+      ]
+      : []),
+    ...(canManageAttendance
+      ? [
+        {
+          key: 'attendance',
+          label: t('divineLiturgies.table.attendance'),
+          render: (row) => (
+            <Link to={`/dashboard/divine-liturgies/attendance/${attendanceEntryType}/${row.id}`}>
+              <Button type="button" variant="outline" size="sm">
+                {t('divineLiturgies.actions.openAttendanceCheckIn')}
+              </Button>
+            </Link>
           ),
         },
       ]
@@ -426,6 +444,21 @@ export default function DivineLiturgiesPage() {
         </span>
       ),
     },
+    ...(canManageAttendance
+      ? [
+        {
+          key: 'attendance',
+          label: t('divineLiturgies.table.attendance'),
+          render: (row) => (
+            <Link to={`/dashboard/divine-liturgies/attendance/exception/${row.id}`}>
+              <Button type="button" variant="outline" size="sm">
+                {t('divineLiturgies.actions.openAttendanceCheckIn')}
+              </Button>
+            </Link>
+          ),
+        },
+      ]
+      : []),
     ...(canManage
       ? [
         {
@@ -482,9 +515,11 @@ export default function DivineLiturgiesPage() {
         title={t('divineLiturgies.title')}
         subtitle={t('divineLiturgies.subtitle')}
         actions={(
-          <Link to="/dashboard/divine-liturgies/priests">
-            <Button variant="outline">{t('divineLiturgies.actions.openChurchPriests')}</Button>
-          </Link>
+          canView ? (
+            <Link to="/dashboard/divine-liturgies/priests">
+              <Button variant="outline">{t('divineLiturgies.actions.openChurchPriests')}</Button>
+            </Link>
+          ) : null
         )}
       />
 

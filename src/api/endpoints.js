@@ -87,6 +87,15 @@ export const visitationsApi = {
 
 export const divineLiturgiesApi = {
   getOverview: () => apiClient.get('/divine-liturgies'),
+  getAttendanceContext: (entryType, id) =>
+    apiClient.get(`/divine-liturgies/attendance/${entryType}/${id}/context`),
+  getAttendance: (entryType, id, attendanceDate) =>
+    apiClient.get(`/divine-liturgies/attendance/${entryType}/${id}`, { params: { attendanceDate } }),
+  updateAttendance: (entryType, id, attendanceDate, attendedUserIds) =>
+    apiClient.put(`/divine-liturgies/attendance/${entryType}/${id}`, {
+      attendanceDate,
+      attendedUserIds,
+    }),
   createRecurring: (data) => apiClient.post('/divine-liturgies/recurring', data),
   updateRecurring: (id, data) => apiClient.patch(`/divine-liturgies/recurring/${id}`, data),
   deleteRecurring: (id) => apiClient.delete(`/divine-liturgies/recurring/${id}`),

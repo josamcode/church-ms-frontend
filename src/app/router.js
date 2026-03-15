@@ -42,6 +42,9 @@ const PastoralVisitationDetailsPage = lazy(() => import('../pages/dashboard/visi
 const PastoralVisitationAnalyticsPage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationAnalyticsPage'));
 const DivineLiturgiesPage = lazy(() => import('../pages/dashboard/divineLiturgies/DivineLiturgiesPage'));
 const ChurchPriestsPage = lazy(() => import('../pages/dashboard/divineLiturgies/ChurchPriestsPage'));
+const DivineLiturgyAttendanceCheckInPage = lazy(() =>
+  import('../pages/dashboard/divineLiturgies/DivineLiturgyAttendanceCheckInPage')
+);
 const NotificationsPage = lazy(() => import('../pages/dashboard/notifications/NotificationsPage'));
 const NotificationFormPage = lazy(() => import('../pages/dashboard/notifications/NotificationFormPage'));
 const NotificationDetailsPage = lazy(() => import('../pages/dashboard/notifications/NotificationDetailsPage'));
@@ -233,7 +236,14 @@ const router = createBrowserRouter([
       {
         path: 'divine-liturgies',
         element: (
-          <PermissionGuard required={['DIVINE_LITURGIES_VIEW']}>
+          <PermissionGuard
+            required={[
+              'DIVINE_LITURGIES_VIEW',
+              'DIVINE_LITURGIES_MANAGE',
+              'DIVINE_LITURGIES_ATTENDANCE_MANAGE',
+            ]}
+            mode="any"
+          >
             <Lazy><DivineLiturgiesPage /></Lazy>
           </PermissionGuard>
         ),
@@ -243,6 +253,17 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['DIVINE_LITURGIES_VIEW']}>
             <Lazy><ChurchPriestsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'divine-liturgies/attendance/:entryType/:id',
+        element: (
+          <PermissionGuard
+            required={['DIVINE_LITURGIES_ATTENDANCE_MANAGE', 'DIVINE_LITURGIES_MANAGE']}
+            mode="any"
+          >
+            <Lazy><DivineLiturgyAttendanceCheckInPage /></Lazy>
           </PermissionGuard>
         ),
       },
