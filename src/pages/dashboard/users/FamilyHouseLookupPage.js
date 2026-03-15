@@ -583,7 +583,7 @@ export default function FamilyHouseLookupPage() {
           />
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+            {/* <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
               <SummaryItem
                 label={t('familyHouseLookup.summary.selectedName')}
                 value={submittedLookupName || EMPTY}
@@ -610,7 +610,7 @@ export default function FamilyHouseLookupPage() {
                 label={t('familyHouseLookup.analytics.coverage')}
                 value={`${selectedCoveragePct.toFixed(1)}%`}
               />
-            </div>
+            </div> */}
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
               <RankedBars
@@ -814,7 +814,7 @@ function HouseholdClassificationPanel({
         <>
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
             <SummaryItem label={copy.houseName} value={household.householdName || EMPTY} />
-            <SummaryItem label={copy.source} value={getHouseholdSourceLabel(household.sourceField, language)} />
+            {/* <SummaryItem label={copy.source} value={getHouseholdSourceLabel(household.sourceField, language)} /> */}
             <SummaryItem
               label={copy.primaryClassification}
               value={household.primaryClassification?.name || getStatusText('unclassified', language)}
@@ -832,10 +832,10 @@ function HouseholdClassificationPanel({
               label={copy.averageIncome}
               value={formatCurrencyEGP(household.averageMemberIncome, language)}
             />
-            <SummaryItem
+            {/* <SummaryItem
               label={copy.matchedCategories}
               value={household.matchedCategories?.length || 0}
-            />
+            /> */}
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">

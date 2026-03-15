@@ -32,6 +32,15 @@ const HouseholdClassificationResultsPage = lazy(() =>
 const LordsBrethrenPage = lazy(() =>
   import('../pages/dashboard/households/LordsBrethrenPage')
 );
+const LordsBrethrenAidPage = lazy(() =>
+  import('../pages/dashboard/households/LordsBrethrenAidPage')
+);
+const DisbursedAidsPage = lazy(() =>
+  import('../pages/dashboard/households/DisbursedAidsPage')
+);
+const AidDetailsPage = lazy(() =>
+  import('../pages/dashboard/households/AidDetailsPage')
+);
 const HouseholdClassificationCategoriesPage = lazy(() =>
   import('../pages/dashboard/households/HouseholdClassificationCategoriesPage')
 );
@@ -145,6 +154,30 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['HOUSEHOLD_CLASSIFICATIONS_VIEW']}>
             <Lazy><LordsBrethrenPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'lords-brethren/aid',
+        element: (
+          <PermissionGuard required={['HOUSEHOLD_CLASSIFICATIONS_VIEW']}>
+            <Lazy><LordsBrethrenAidPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'lords-brethren/aid-history',
+        element: (
+          <PermissionGuard required={['HOUSEHOLD_CLASSIFICATIONS_VIEW']}>
+            <Lazy><DisbursedAidsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'lords-brethren/aid-history/details',
+        element: (
+          <PermissionGuard required={['HOUSEHOLD_CLASSIFICATIONS_VIEW']}>
+            <Lazy><AidDetailsPage /></Lazy>
           </PermissionGuard>
         ),
       },

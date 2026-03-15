@@ -185,7 +185,7 @@ export default function DashboardLayout() {
         label: t('dashboardLayout.menu.theLordsBrethren'),
         icon: Users,
         href: '/dashboard/lords-brethren',
-        permission: null,
+        permission: 'HOUSEHOLD_CLASSIFICATIONS_VIEW',
         matchChildren: false,
       },
       children: [
@@ -207,6 +207,14 @@ export default function DashboardLayout() {
           icon: Sparkles,
           permission: 'HOUSEHOLD_CLASSIFICATIONS_MANAGE',
           matchChildren: false,
+        },
+        {
+          key: 'lords-brethren-aid-history',
+          label: tf('dashboardLayout.menu.disbursedAidHistory', 'المساعدات المصروفة'),
+          href: '/dashboard/lords-brethren/aid-history',
+          icon: Users,
+          permission: 'HOUSEHOLD_CLASSIFICATIONS_VIEW',
+          matchChildren: true,
         },
       ]
     },

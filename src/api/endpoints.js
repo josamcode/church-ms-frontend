@@ -57,6 +57,8 @@ export const householdClassificationsApi = {
     }),
   updateHousehold: (data) =>
     apiClient.patch('/household-classifications/households/details', data),
+  searchHouseholds: (data) =>
+    apiClient.post('/household-classifications/households/search', data),
 };
 
 /* â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ Confessions â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ */
@@ -173,6 +175,16 @@ export const meetingsApi = {
   servants: {
     history: (params) => apiClient.get('/meetings/servants/history', { params }),
   },
+};
+
+/* ══════════ Aids ══════════ */
+
+export const aidsApi = {
+  createBulk: (data) => apiClient.post('/aids/bulk', data),
+  getOptions: () => apiClient.get('/aids/options'),
+  getDisbursedAids: (params) => apiClient.get('/aids', { params }),
+  getAidDetails: (params) => apiClient.get('/aids/details', { params }),
+  updateBulk: (data) => apiClient.put('/aids', data),
 };
 
 /* ══════════ Health ══════════ */
