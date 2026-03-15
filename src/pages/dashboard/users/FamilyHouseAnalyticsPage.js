@@ -129,22 +129,11 @@ export default function FamilyHouseAnalyticsPage() {
         ]}
       />
 
-      <Card padding={false} className="relative overflow-hidden border-primary/20">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
-        <div className="relative p-6 lg:p-7">
-          <div className="flex items-start gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <BarChart3 className="h-5 w-5" />
-            </div>
-            <PageHeader
-              contentOnly
-              title={t('familyHouseLookup.analyticsPage.title')}
-              subtitle={t('familyHouseLookup.analyticsPage.subtitle')}
-              titleClassName="mt-0 text-2xl font-bold text-heading"
-            />
-          </div>
-        </div>
-      </Card>
+      <PageHeader
+        title={t('familyHouseLookup.analyticsPage.title')}
+        subtitle={t('familyHouseLookup.analyticsPage.subtitle')}
+        className="border-b border-border pb-6"
+      />
 
       <Card className="space-y-4">
         <div className="flex items-center justify-between gap-3">
@@ -188,9 +177,8 @@ export default function FamilyHouseAnalyticsPage() {
             </label>
             <div className="relative">
               <Search
-                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted pointer-events-none ${
-                  isRTL ? 'right-3' : 'left-3'
-                }`}
+                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted pointer-events-none ${isRTL ? 'right-3' : 'left-3'
+                  }`}
               />
               <input
                 ref={lookupInputRef}

@@ -418,19 +418,14 @@ export default function FamilyHouseLookupPage() {
         ]}
       />
 
-      <Card padding={false} className="relative overflow-hidden border-primary/20">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
+      {/* <Card padding={false} className="relative overflow-hidden">
         <div className="relative p-6 lg:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Building2 className="h-5 w-5" />
-              </div>
               <PageHeader
                 contentOnly
-                title={t('familyHouseLookup.detailsPage.title')}
-                subtitle={t('familyHouseLookup.detailsPage.subtitle')}
-                titleClassName="mt-0 text-2xl font-bold text-heading"
+                // eyebrow={t('visitations.list.page')}
+                className="border-b border-border pb-6"
               />
             </div>
             <Link to={FAMILY_HOUSE_ANALYTICS_PATH}>
@@ -440,7 +435,20 @@ export default function FamilyHouseLookupPage() {
             </Link>
           </div>
         </div>
-      </Card>
+      </Card> */}
+
+      <PageHeader
+        title={t('familyHouseLookup.detailsPage.title')}
+        subtitle={t('familyHouseLookup.detailsPage.subtitle')}
+        className="border-b border-border pb-6"
+        actions={
+          <Link to={FAMILY_HOUSE_ANALYTICS_PATH}>
+            <Button variant="outline" icon={ArrowLeft}>
+              {t('familyHouseLookup.detailsPage.backToAnalytics')}
+            </Button>
+          </Link>
+        }
+      />
 
       <Card className="space-y-4">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[200px_minmax(0,1fr)_auto]">

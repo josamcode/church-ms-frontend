@@ -273,6 +273,19 @@ export default function UserDetailsPage() {
       ),
     },
     {
+      label: tf('userDetails.system.sidebar.divineLiturgies', 'Divine Liturgy & Vespers'),
+      content: (
+        <SystemTab
+          user={user}
+          userId={id}
+          hasPermission={hasPermission}
+          hasAnyPermission={hasAnyPermission}
+          tf={tf}
+          section="divineLiturgies"
+        />
+      ),
+    },
+    {
       label: tf('userDetails.system.sidebar.visitations', 'Visitations'),
       content: (
         <SystemTab
@@ -785,11 +798,26 @@ const MEETING_OVERVIEW_PERMISSIONS = [
   'MEETINGS_ACTIVITIES_MANAGE',
 ];
 
+const MEETING_MEMBER_DETAILS_PERMISSIONS = [
+  'MEETINGS_MEMBERS_VIEW',
+  'MEETINGS_MEMBERS_NOTES_UPDATE',
+  'MEETINGS_UPDATE',
+  'MEETINGS_SERVANTS_MANAGE',
+];
+
+const DIVINE_LITURGY_OVERVIEW_PERMISSIONS = [
+  'DIVINE_LITURGIES_VIEW',
+  'DIVINE_LITURGIES_MANAGE',
+  'DIVINE_LITURGIES_ATTENDANCE_MANAGE',
+];
+
 function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf, section = 'overview' }) {
   const { t, language } = useI18n();
   const canViewConfessions = hasPermission('CONFESSIONS_VIEW');
   const canViewVisitations = hasPermission('PASTORAL_VISITATIONS_VIEW');
   const canViewMeetings = hasAnyPermission(MEETING_OVERVIEW_PERMISSIONS);
+  const canViewMeetingMemberDetails = hasAnyPermission(MEETING_MEMBER_DETAILS_PERMISSIONS);
+  const canViewDivineLiturgies = hasAnyPermission(DIVINE_LITURGY_OVERVIEW_PERMISSIONS);
   const canViewPermissions = hasPermission('USERS_VIEW');
   const houseName = String(user.houseName || '').trim();
 
@@ -893,12 +921,168 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf, section 
         .filter(Boolean),
     [meetings, userId]
   );
+  const memberScopedMeetings = useMemo(
+    () => involvedMeetings.filter(({ involvement }) => involvement.isMember),
+    [involvedMeetings]
+  );
+  const meetingMemberQueries = useQueries({
+    queries: canViewMeetings && canViewMeetingMemberDetails
+      ? memberScopedMeetings.map(({ meeting }) => ({
+        queryKey: ['user-details', userId, 'meetings', meeting.id, 'member'],
+        staleTime: 30000,
+        enabled: Boolean(userId && meeting?.id),
+        queryFn: async () => {
+          const { data } = await meetingsApi.meetings.getMemberById(meeting.id, userId);
+          return data?.data || null;
+        },
+      }))
+      : [],
+  });
+  const meetingMemberDetailsByMeetingId = useMemo(
+    () =>
+      new Map(
+        memberScopedMeetings.map(({ meeting }, index) => [
+          meeting.id,
+          {
+            data: meetingMemberQueries[index]?.data || null,
+            error: meetingMemberQueries[index]?.error || null,
+            isLoading: Boolean(meetingMemberQueries[index]?.isLoading),
+          },
+        ])
+      ),
+    [memberScopedMeetings, meetingMemberQueries]
+  );
+  const meetingAttendanceByMeetingId = useMemo(() => {
+    const grouped = new Map();
+
+    (Array.isArray(user.meetingAttendance) ? user.meetingAttendance : []).forEach((entry) => {
+      const meetingKey = toComparableId(entry?.meeting?.id || entry?.meetingId);
+      if (!meetingKey) return;
+
+      if (!grouped.has(meetingKey)) {
+        grouped.set(meetingKey, []);
+      }
+
+      grouped.get(meetingKey).push(entry);
+    });
+
+    grouped.forEach((entries, key) => {
+      grouped.set(
+        key,
+        [...entries].sort((a, b) => {
+          const attendanceCompare = String(b?.attendanceDate || '').localeCompare(
+            String(a?.attendanceDate || '')
+          );
+          if (attendanceCompare !== 0) return attendanceCompare;
+          return new Date(b?.updatedAt || 0).getTime() - new Date(a?.updatedAt || 0).getTime();
+        })
+      );
+    });
+
+    return grouped;
+  }, [user.meetingAttendance]);
+  const meetingSummary = useMemo(
+    () =>
+      involvedMeetings.reduce(
+        (summary, { meeting, involvement }) => {
+          if (involvement.roles.includes('leadership')) summary.leadershipCount += 1;
+          if (involvement.roles.includes('servant')) summary.servantCount += 1;
+          if (involvement.roles.includes('committee')) summary.committeeCount += involvement.committees.length;
+          summary.activityCount += Array.isArray(meeting.activities) ? meeting.activities.length : 0;
+          summary.attendanceCount += (meetingAttendanceByMeetingId.get(meeting.id) || []).length;
+          summary.noteCount += (meetingMemberDetailsByMeetingId.get(meeting.id)?.data?.notes || []).length;
+          return summary;
+        },
+        {
+          leadershipCount: 0,
+          servantCount: 0,
+          committeeCount: 0,
+          activityCount: 0,
+          attendanceCount: 0,
+          noteCount: 0,
+        }
+      ),
+    [involvedMeetings, meetingAttendanceByMeetingId, meetingMemberDetailsByMeetingId]
+  );
+  const meetingProfiles = useMemo(
+    () =>
+      involvedMeetings.map(({ meeting, involvement }) => ({
+        meeting,
+        involvement,
+        attendance: meetingAttendanceByMeetingId.get(meeting.id) || [],
+        memberDetails: meetingMemberDetailsByMeetingId.get(meeting.id) || {
+          data: null,
+          error: null,
+          isLoading: false,
+        },
+      })),
+    [involvedMeetings, meetingAttendanceByMeetingId, meetingMemberDetailsByMeetingId]
+  );
+  const divineLiturgyAttendanceEntries = useMemo(
+    () => (Array.isArray(user.divineLiturgyAttendance) ? user.divineLiturgyAttendance : []),
+    [user.divineLiturgyAttendance]
+  );
+  const divineLiturgyProfiles = useMemo(() => {
+    const grouped = new Map();
+
+    divineLiturgyAttendanceEntries.forEach((entry) => {
+      const serviceKey =
+        `${String(entry?.entryType || 'recurring').trim().toLowerCase()}:${toComparableId(entry?.service?.id || entry?.serviceId) || 'unknown'}`;
+      if (!grouped.has(serviceKey)) {
+        grouped.set(serviceKey, {
+          key: serviceKey,
+          service: entry?.service || null,
+          attendance: [],
+        });
+      }
+
+      grouped.get(serviceKey).attendance.push(entry);
+    });
+
+    return [...grouped.values()]
+      .map((profile) => ({
+        ...profile,
+        attendance: [...profile.attendance].sort((a, b) => {
+          const attendanceCompare = String(b?.attendanceDate || '').localeCompare(
+            String(a?.attendanceDate || '')
+          );
+          if (attendanceCompare !== 0) return attendanceCompare;
+          return new Date(b?.updatedAt || 0).getTime() - new Date(a?.updatedAt || 0).getTime();
+        }),
+      }))
+      .sort((a, b) =>
+        String(b?.attendance?.[0]?.attendanceDate || '').localeCompare(
+          String(a?.attendance?.[0]?.attendanceDate || '')
+        )
+      );
+  }, [divineLiturgyAttendanceEntries]);
+  const divineLiturgySummary = useMemo(
+    () =>
+      divineLiturgyProfiles.reduce(
+        (summary, profile) => {
+          summary.attendanceCount += profile.attendance.length;
+          if (profile.service?.serviceType === 'VESPERS') {
+            summary.vespersCount += profile.attendance.length;
+          } else {
+            summary.divineLiturgyCount += profile.attendance.length;
+          }
+          return summary;
+        },
+        {
+          attendanceCount: 0,
+          divineLiturgyCount: 0,
+          vespersCount: 0,
+        }
+      ),
+    [divineLiturgyProfiles]
+  );
 
   const permissionsSnapshot = useMemo(() => buildPermissionsSnapshot(user), [user]);
 
   const showOverview = section === 'overview';
   const showConfessions = section === 'confessions';
   const showMeetings = section === 'meetings';
+  const showDivineLiturgies = section === 'divineLiturgies';
   const showVisitations = section === 'visitations';
   const showPermissions = section === 'permissions';
 
@@ -1001,35 +1185,125 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf, section 
               <p className="text-sm text-muted">{t('common.loading')}</p>
             ) : meetingsQuery.error ? (
               <p className="text-sm text-danger">{normalizeApiError(meetingsQuery.error).message}</p>
-            ) : involvedMeetings.length === 0 ? (
+            ) : meetingProfiles.length === 0 ? (
               <p className="text-sm text-muted">{tf('userDetails.system.meetings.empty', 'No meeting records were found for this user.')}</p>
             ) : (
-              <div className="space-y-3">
-                {involvedMeetings.map(({ meeting, involvement }) => (
-                  <div key={meeting.id} className="rounded-xl border border-border/80 bg-surface-alt/40 px-4 py-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-heading">{meeting.name || EMPTY}</p>
-                        <p className="text-xs text-muted">
-                          {formatDayTime(meeting.day, meeting.time)}
-                        </p>
-                      </div>
-                      <Link to={`/dashboard/meetings/list/${meeting.id}`}>
-                        <Button variant="outline" size="sm">{t('common.actions.view')}</Button>
-                      </Link>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {involvement.roles.map((role) => (
-                        <Badge key={`${meeting.id}-${role}`} variant="primary">
-                          {getMeetingRoleLabel(role, tf)}
-                        </Badge>
-                      ))}
-                      {involvement.groups.map((group) => (
-                        <Badge key={`${meeting.id}-group-${group}`} variant="default">{group}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <QuickStat
+                    icon={UsersIcon}
+                    label={tf('userDetails.system.meetings.summaryMeetings', 'Meetings')}
+                    value={meetingProfiles.length}
+                  />
+                  <QuickStat
+                    icon={Shield}
+                    label={tf('userDetails.system.meetings.summaryLeadership', 'Leadership')}
+                    value={meetingSummary.leadershipCount}
+                  />
+                  <QuickStat
+                    icon={UserCircle}
+                    label={tf('userDetails.system.meetings.summaryServant', 'Servant roles')}
+                    value={meetingSummary.servantCount}
+                  />
+                  <QuickStat
+                    icon={Calendar}
+                    label={tf('userDetails.system.meetings.summaryAttendance', 'Attendance records')}
+                    value={meetingSummary.attendanceCount}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <QuickStat
+                    icon={Shield}
+                    label={tf('userDetails.system.meetings.summaryCommittees', 'Committee memberships')}
+                    value={meetingSummary.committeeCount}
+                  />
+                  <QuickStat
+                    icon={Building2}
+                    label={tf('userDetails.system.meetings.summaryActivities', 'Meeting activities')}
+                    value={meetingSummary.activityCount}
+                  />
+                  <QuickStat
+                    icon={MessageCircle}
+                    label={tf('userDetails.system.meetings.summaryNotes', 'Recorded notes')}
+                    value={meetingSummary.noteCount}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  {meetingProfiles.map(({ meeting, involvement, attendance, memberDetails }) => (
+                    <MeetingProfileCard
+                      key={meeting.id}
+                      meeting={meeting}
+                      involvement={involvement}
+                      attendance={attendance}
+                      memberDetails={memberDetails}
+                      tf={tf}
+                      t={t}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {showDivineLiturgies && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <SectionLabel count={canViewDivineLiturgies ? divineLiturgyProfiles.length : null}>
+              {tf('userDetails.system.divineLiturgies.title', 'Divine Liturgy & Vespers')}
+            </SectionLabel>
+            {canViewDivineLiturgies && (
+              <Link to="/dashboard/divine-liturgies">
+                <Button variant="ghost" size="sm">{tf('userDetails.system.actions.openModule', 'Open Module')}</Button>
+              </Link>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            {!canViewDivineLiturgies ? (
+              <NoPermissionBox message={tf('userDetails.system.permissionRequired', 'You do not have permission to view this section.')} />
+            ) : divineLiturgyProfiles.length === 0 ? (
+              <p className="text-sm text-muted">
+                {tf('userDetails.system.divineLiturgies.empty', 'No Divine Liturgy or Vespers attendance records were found for this user.')}
+              </p>
+            ) : (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <QuickStat
+                    icon={Calendar}
+                    label={tf('userDetails.system.divineLiturgies.summaryAttendance', 'Attendance records')}
+                    value={divineLiturgySummary.attendanceCount}
+                  />
+                  <QuickStat
+                    icon={Building2}
+                    label={tf('userDetails.system.divineLiturgies.summaryServices', 'Services')}
+                    value={divineLiturgyProfiles.length}
+                  />
+                  <QuickStat
+                    icon={Clock3}
+                    label={tf('userDetails.system.divineLiturgies.summaryDivine', 'Divine Liturgy')}
+                    value={divineLiturgySummary.divineLiturgyCount}
+                  />
+                  <QuickStat
+                    icon={Clock3}
+                    label={tf('userDetails.system.divineLiturgies.summaryVespers', 'Vespers')}
+                    value={divineLiturgySummary.vespersCount}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  {divineLiturgyProfiles.map((profile) => (
+                    <DivineLiturgyAttendanceCard
+                      key={profile.key}
+                      profile={profile}
+                      tf={tf}
+                      t={t}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -1171,6 +1445,402 @@ function NoPermissionBox({ message }) {
   return (
     <div className="rounded-xl border border-warning/25 bg-warning-light px-4 py-3 text-sm text-warning">
       {message}
+    </div>
+  );
+}
+
+function MeetingProfileCard({ meeting, involvement, attendance, memberDetails, tf, t }) {
+  return (
+    <div className="overflow-hidden rounded-[1.75rem] border border-border bg-gradient-to-br from-surface via-surface to-surface-alt/20 shadow-sm">
+      <div className="border-b border-border/70 bg-surface-alt/30 px-5 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+              {meeting.sector?.name ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2.5 py-1">
+                  <Building2 className="h-3 w-3" />
+                  {meeting.sector.name}
+                </span>
+              ) : null}
+              <span className="inline-flex items-center gap-1">
+                <Clock3 className="h-3.5 w-3.5" />
+                {formatDayTime(meeting.day, meeting.time)}
+              </span>
+            </div>
+            <p className="mt-2 text-lg font-bold tracking-tight text-heading">{meeting.name || EMPTY}</p>
+          </div>
+
+          <Link to={`/dashboard/meetings/list/${meeting.id}`}>
+            <Button variant="outline" size="sm" icon={ExternalLink}>
+              {t('common.actions.view')}
+            </Button>
+          </Link>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {involvement.roles.map((role) => (
+            <Badge key={`${meeting.id}-${role}`} variant="primary">
+              {getMeetingRoleLabel(role, tf)}
+            </Badge>
+          ))}
+          {involvement.groups.map((group) => (
+            <Badge key={`${meeting.id}-group-${group}`} variant="default">
+              {group}
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 p-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="space-y-4">
+          {involvement.leadershipRoles.length > 0 ? (
+            <MeetingInfoBlock title={tf('userDetails.system.meetings.leadershipTitle', 'Leadership')}>
+              <div className="flex flex-wrap gap-2">
+                {involvement.leadershipRoles.map((role) => (
+                  <Badge key={`${meeting.id}-leadership-${role}`} variant="primary">
+                    {getMeetingLeadershipLabel(role, tf)}
+                  </Badge>
+                ))}
+              </div>
+            </MeetingInfoBlock>
+          ) : null}
+
+          {involvement.servantEntries.length > 0 ? (
+            <MeetingInfoBlock title={tf('userDetails.system.meetings.servantTitle', 'Servant Details')}>
+              <div className="space-y-3">
+                {involvement.servantEntries.map((servantEntry) => (
+                  <div key={servantEntry.id || servantEntry.name} className="rounded-2xl border border-border/70 bg-surface px-4 py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold text-heading">
+                          {servantEntry.responsibility || tf('userDetails.system.meetings.servantRoleFallback', 'Servant')}
+                        </p>
+                        {servantEntry.name ? (
+                          <p className="mt-1 text-xs text-muted">{servantEntry.name}</p>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(servantEntry.groupsManaged || []).map((group) => (
+                          <Badge key={`${servantEntry.id || servantEntry.name}-managed-${group}`}>
+                            {group}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    {servantEntry.notes ? (
+                      <p className="mt-2 text-sm text-muted">{servantEntry.notes}</p>
+                    ) : null}
+
+                    {servantEntry.servedUsers.length > 0 ? (
+                      <div className="mt-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                          {tf('userDetails.system.meetings.directServedUsers', 'Directly served users')}
+                        </p>
+                        <MeetingLinkedUserList users={servantEntry.servedUsers} />
+                      </div>
+                    ) : null}
+
+                    {servantEntry.groupAssignments.length > 0 ? (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                          {tf('userDetails.system.meetings.groupAssignmentsTitle', 'Group assignments')}
+                        </p>
+                        {servantEntry.groupAssignments.map((assignment) => (
+                          <div key={`${servantEntry.id || servantEntry.name}-${assignment.group}`} className="rounded-xl border border-border/60 bg-surface-alt/40 px-3 py-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="secondary">{assignment.group || EMPTY}</Badge>
+                              <span className="text-xs text-muted">
+                                {(assignment.servedUsers || []).length} {tf('userDetails.system.meetings.membersLabel', 'members')}
+                              </span>
+                            </div>
+                            <MeetingLinkedUserList users={assignment.servedUsers} className="mt-2" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </MeetingInfoBlock>
+          ) : null}
+
+          {involvement.memberServants.length > 0 ? (
+            <MeetingInfoBlock title={tf('userDetails.system.meetings.memberServantsTitle', 'Servants following this user')}>
+              <div className="space-y-2">
+                {involvement.memberServants.map((servant) => (
+                  <div key={`${meeting.id}-member-servant-${servant.key}`} className="rounded-xl border border-border/60 bg-surface px-3 py-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {servant.userId ? (
+                        <Link
+                          to={`/dashboard/users/${servant.userId}`}
+                          className="text-sm font-semibold text-heading transition hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        >
+                          {servant.name || EMPTY}
+                        </Link>
+                      ) : (
+                        <span className="text-sm font-semibold text-heading">{servant.name || EMPTY}</span>
+                      )}
+                      {servant.responsibility ? <Badge>{servant.responsibility}</Badge> : null}
+                      {servant.viaGroups.map((group) => (
+                        <Badge key={`${servant.key}-${group}`} variant="secondary">
+                          {group}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </MeetingInfoBlock>
+          ) : null}
+
+          {involvement.committees.length > 0 ? (
+            <MeetingInfoBlock title={tf('userDetails.system.meetings.committeesTitle', 'Committees')}>
+              <div className="space-y-3">
+                {involvement.committees.map((committee) => (
+                  <div key={committee.id || committee.name} className="rounded-2xl border border-border/70 bg-surface px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-heading">{committee.name || EMPTY}</p>
+                      {(committee.memberNames || []).length > 0 ? (
+                        <Badge variant="secondary">
+                          {(committee.memberNames || []).length} {tf('userDetails.system.meetings.membersLabel', 'members')}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    {committee.notes ? (
+                      <p className="mt-2 text-sm text-muted">{committee.notes}</p>
+                    ) : null}
+                    {committee.memberNames?.length ? (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {committee.memberNames.map((name) => (
+                          <Badge key={`${committee.id || committee.name}-${name}`}>{name}</Badge>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </MeetingInfoBlock>
+          ) : null}
+
+          {meeting.activities?.length ? (
+            <MeetingInfoBlock title={tf('userDetails.system.meetings.activitiesTitle', 'Activities')}>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                {meeting.activities.map((activity) => (
+                  <div key={activity.id || `${meeting.id}-${activity.name}`} className="rounded-2xl border border-border/70 bg-surface px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-heading">{activity.name || EMPTY}</p>
+                      {activity.type ? <Badge variant="secondary">{activity.type}</Badge> : null}
+                    </div>
+                    {activity.scheduledAt ? (
+                      <p className="mt-2 text-xs text-muted">
+                        {formatDateTime(activity.scheduledAt)}
+                      </p>
+                    ) : null}
+                    {activity.notes ? (
+                      <p className="mt-2 text-sm text-muted">{activity.notes}</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </MeetingInfoBlock>
+          ) : null}
+
+          {meeting.notes ? (
+            <MeetingInfoBlock title={tf('userDetails.system.meetings.meetingNotesTitle', 'Meeting Notes')}>
+              <p className="text-sm leading-6 text-muted">{meeting.notes}</p>
+            </MeetingInfoBlock>
+          ) : null}
+        </div>
+
+        <div className="space-y-4">
+          <MeetingInfoBlock title={tf('userDetails.system.meetings.attendanceTitle', 'Attendance')}>
+            {attendance.length === 0 ? (
+              <p className="text-sm text-muted">
+                {tf('userDetails.system.meetings.attendanceEmpty', 'No attendance records were found for this meeting.')}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {attendance.slice(0, 6).map((entry) => (
+                  <div key={entry.id || `${meeting.id}-${entry.attendanceDate}`} className="rounded-xl border border-border/60 bg-surface px-3 py-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-heading">
+                        {formatDate(entry.attendanceDate)}
+                      </p>
+                      <Badge variant="success">
+                        {tf('userDetails.system.meetings.attendedStatus', 'Attended')}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 space-y-1 text-xs text-muted">
+                      {entry.recordedBy?.fullName ? (
+                        <p>
+                          {tf('userDetails.system.meetings.recordedBy', 'Recorded by')}: {entry.recordedBy.fullName}
+                        </p>
+                      ) : null}
+                      {entry.updatedBy?.fullName ? (
+                        <p>
+                          {tf('userDetails.system.meetings.updatedBy', 'Updated by')}: {entry.updatedBy.fullName}
+                        </p>
+                      ) : null}
+                      {entry.updatedAt ? <p>{formatDateTime(entry.updatedAt)}</p> : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </MeetingInfoBlock>
+
+          <MeetingInfoBlock title={tf('userDetails.system.meetings.memberNotesTitle', 'Member Notes')}>
+            {memberDetails.isLoading ? (
+              <p className="text-sm text-muted">{t('common.loading')}</p>
+            ) : memberDetails.error ? (
+              <p className="text-sm text-muted">
+                {normalizeApiError(memberDetails.error).message}
+              </p>
+            ) : !(memberDetails.data?.notes || []).length ? (
+              <p className="text-sm text-muted">
+                {tf('userDetails.system.meetings.notesEmpty', 'No member notes were recorded for this meeting.')}
+              </p>
+            ) : (
+              <div className="space-y-2.5">
+                {(memberDetails.data?.notes || []).slice(0, 5).map((note) => (
+                  <div key={note.id || `${meeting.id}-${note.updatedAt}`} className="rounded-xl border border-border/60 bg-surface px-3 py-2.5">
+                    <p className="text-sm leading-6 text-heading">{note.note || EMPTY}</p>
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+                      {note.updatedBy?.fullName ? (
+                        <span>
+                          {tf('userDetails.system.meetings.updatedBy', 'Updated by')}: {note.updatedBy.fullName}
+                        </span>
+                      ) : null}
+                      {note.addedBy?.fullName ? (
+                        <span>
+                          {tf('userDetails.system.meetings.addedBy', 'Added by')}: {note.addedBy.fullName}
+                        </span>
+                      ) : null}
+                      {note.updatedAt ? <span>{formatDateTime(note.updatedAt)}</span> : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </MeetingInfoBlock>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MeetingInfoBlock({ title, children }) {
+  return (
+    <div className="rounded-[1.35rem] border border-border/70 bg-surface-alt/25 p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{title}</p>
+      <div className="mt-3">{children}</div>
+    </div>
+  );
+}
+
+function MeetingLinkedUserList({ users = [], className = '' }) {
+  if (!Array.isArray(users) || users.length === 0) return null;
+
+  return (
+    <div className={`mt-2 flex flex-wrap gap-1.5 ${className}`.trim()}>
+      {users.map((linkedUser) => (
+        <Badge key={linkedUser.id || linkedUser.fullName} variant="default">
+          {linkedUser.fullName || linkedUser.name || EMPTY}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
+function DivineLiturgyAttendanceCard({ profile, tf, t }) {
+  const service = profile?.service || null;
+  const attendance = Array.isArray(profile?.attendance) ? profile.attendance : [];
+  const serviceId = toComparableId(service?.id);
+
+  return (
+    <div className="overflow-hidden rounded-[1.75rem] border border-border bg-gradient-to-br from-surface via-surface to-surface-alt/20 shadow-sm">
+      <div className="border-b border-border/70 bg-surface-alt/30 px-5 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+              <Badge variant="primary">
+                {getDivineServiceTypeLabel(service?.serviceType, tf)}
+              </Badge>
+              <Badge variant="secondary">
+                {getDivineEntryTypeLabel(service?.entryType || attendance?.[0]?.entryType, tf)}
+              </Badge>
+              {service?.dayOfWeek ? (
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  {service.dayOfWeek}
+                </span>
+              ) : null}
+              {service?.date ? (
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  {formatDate(service.date)}
+                </span>
+              ) : null}
+              {(service?.startTime || service?.endTime) ? (
+                <span className="inline-flex items-center gap-1">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  {formatServiceWindow(service?.startTime, service?.endTime)}
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-2 text-lg font-bold tracking-tight text-heading">
+              {service?.displayName || service?.name || EMPTY}
+            </p>
+          </div>
+
+          {serviceId ? (
+            <Link to={`/dashboard/divine-liturgies/attendance/${service?.entryType || attendance?.[0]?.entryType || 'recurring'}/${serviceId}`}>
+              <Button variant="outline" size="sm" icon={ExternalLink}>
+                {t('common.actions.view')}
+              </Button>
+            </Link>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="p-5">
+        <MeetingInfoBlock title={tf('userDetails.system.divineLiturgies.attendanceTitle', 'Attendance')}>
+          {attendance.length === 0 ? (
+            <p className="text-sm text-muted">
+              {tf('userDetails.system.divineLiturgies.attendanceEmpty', 'No attendance records were found for this service.')}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {attendance.slice(0, 8).map((entry) => (
+                <div key={entry.id || `${profile.key}-${entry.attendanceDate}`} className="rounded-xl border border-border/60 bg-surface px-3 py-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-heading">
+                      {formatDate(entry.attendanceDate)}
+                    </p>
+                    <Badge variant="success">
+                      {tf('userDetails.system.divineLiturgies.attendedStatus', 'Attended')}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                    {entry.recordedBy?.fullName ? (
+                      <span>
+                        {tf('userDetails.system.divineLiturgies.recordedBy', 'Recorded by')}: {entry.recordedBy.fullName}
+                      </span>
+                    ) : null}
+                    {entry.updatedBy?.fullName ? (
+                      <span>
+                        {tf('userDetails.system.divineLiturgies.updatedBy', 'Updated by')}: {entry.updatedBy.fullName}
+                      </span>
+                    ) : null}
+                    {entry.updatedAt ? <span>{formatDateTime(entry.updatedAt)}</span> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </MeetingInfoBlock>
+      </div>
     </div>
   );
 }
@@ -1530,29 +2200,72 @@ function toComparableId(value) {
 
 function deriveMeetingInvolvement(meeting, userId) {
   const targetId = toComparableId(userId);
-  if (!targetId || !meeting) return { roles: [], groups: [] };
+  if (!targetId || !meeting) {
+    return {
+      roles: [],
+      groups: [],
+      leadershipRoles: [],
+      servantEntries: [],
+      memberServants: [],
+      committees: [],
+      isMember: false,
+    };
+  }
 
   const roles = new Set();
   const groups = new Set();
+  const leadershipRoles = [];
+  const servantEntries = [];
+  const committees = [];
+  const memberServantsMap = new Map();
+  let isMember = false;
   const isTarget = (candidate) => toComparableId(candidate) === targetId;
   const hasTargetUser = (users) =>
     (Array.isArray(users) ? users : []).some((entry) => isTarget(entry?.id || entry?._id || entry));
+  const registerMemberServant = (servant, group = null) => {
+    const key =
+      toComparableId(servant?.user?.id || servant?.id || servant?.name) ||
+      `servant-${String(servant?.name || 'unknown').trim().toLowerCase()}`;
+    if (!memberServantsMap.has(key)) {
+      memberServantsMap.set(key, {
+        key,
+        userId: toComparableId(servant?.user?.id),
+        name: servant?.user?.fullName || servant?.name || '',
+        responsibility: servant?.responsibility || '',
+        viaGroups: [],
+      });
+    }
+
+    if (group) {
+      const current = memberServantsMap.get(key);
+      if (!current.viaGroups.includes(group)) {
+        current.viaGroups.push(group);
+      }
+    }
+  };
+
+  if (isTarget(meeting?.serviceSecretary?.user?.id)) {
+    roles.add('leadership');
+    leadershipRoles.push('serviceSecretary');
+  }
 
   if (
-    isTarget(meeting?.serviceSecretary?.user?.id) ||
-    (Array.isArray(meeting?.assistantSecretaries)
-      && meeting.assistantSecretaries.some((assistant) => isTarget(assistant?.user?.id)))
+    Array.isArray(meeting?.assistantSecretaries) &&
+    meeting.assistantSecretaries.some((assistant) => isTarget(assistant?.user?.id))
   ) {
     roles.add('leadership');
+    leadershipRoles.push('assistantSecretary');
   }
 
   if (hasTargetUser(meeting?.servedUsers)) {
     roles.add('member');
+    isMember = true;
   }
 
   (Array.isArray(meeting?.groupAssignments) ? meeting.groupAssignments : []).forEach((assignment) => {
     if (hasTargetUser(assignment?.servedUsers)) {
       roles.add('member');
+      isMember = true;
       if (assignment?.group) groups.add(assignment.group);
     }
   });
@@ -1561,6 +2274,15 @@ function deriveMeetingInvolvement(meeting, userId) {
     const isServant = isTarget(servant?.user?.id);
     if (isServant) {
       roles.add('servant');
+      servantEntries.push({
+        id: servant?.id || servant?.user?.id || servant?.name,
+        name: servant?.user?.fullName || servant?.name || '',
+        responsibility: servant?.responsibility || '',
+        groupsManaged: Array.isArray(servant?.groupsManaged) ? servant.groupsManaged : [],
+        groupAssignments: Array.isArray(servant?.groupAssignments) ? servant.groupAssignments : [],
+        servedUsers: Array.isArray(servant?.servedUsers) ? servant.servedUsers : [],
+        notes: servant?.notes || '',
+      });
       (Array.isArray(servant?.groupsManaged) ? servant.groupsManaged : []).forEach((group) => {
         if (group) groups.add(group);
       });
@@ -1568,26 +2290,37 @@ function deriveMeetingInvolvement(meeting, userId) {
 
     if (hasTargetUser(servant?.servedUsers)) {
       roles.add('member');
+      isMember = true;
+      registerMemberServant(servant);
     }
 
     (Array.isArray(servant?.groupAssignments) ? servant.groupAssignments : []).forEach((assignment) => {
       if (isServant && assignment?.group) groups.add(assignment.group);
       if (hasTargetUser(assignment?.servedUsers)) {
         roles.add('member');
+        isMember = true;
         if (assignment?.group) groups.add(assignment.group);
+        registerMemberServant(servant, assignment?.group);
       }
     });
   });
 
-  if (
-    (Array.isArray(meeting?.committees) ? meeting.committees : []).some((committee) =>
-      hasTargetUser(committee?.members)
-    )
-  ) {
-    roles.add('committee');
-  }
+  (Array.isArray(meeting?.committees) ? meeting.committees : []).forEach((committee) => {
+    if (hasTargetUser(committee?.members)) {
+      roles.add('committee');
+      committees.push(committee);
+    }
+  });
 
-  return { roles: [...roles], groups: [...groups] };
+  return {
+    roles: [...roles],
+    groups: [...groups],
+    leadershipRoles,
+    servantEntries,
+    memberServants: [...memberServantsMap.values()],
+    committees,
+    isMember,
+  };
 }
 
 function getMeetingRoleLabel(role, tf) {
@@ -1605,9 +2338,45 @@ function getMeetingRoleLabel(role, tf) {
   }
 }
 
+function getMeetingLeadershipLabel(role, tf) {
+  switch (role) {
+    case 'serviceSecretary':
+      return tf('userDetails.system.meetings.serviceSecretaryRole', 'Service Secretary');
+    case 'assistantSecretary':
+      return tf('userDetails.system.meetings.assistantSecretaryRole', 'Assistant Secretary');
+    default:
+      return role;
+  }
+}
+
+function getDivineServiceTypeLabel(serviceType, tf) {
+  switch (serviceType) {
+    case 'VESPERS':
+      return tf('userDetails.system.divineLiturgies.typeVespers', 'Vespers');
+    case 'DIVINE_LITURGY':
+    default:
+      return tf('userDetails.system.divineLiturgies.typeDivine', 'Divine Liturgy');
+  }
+}
+
+function getDivineEntryTypeLabel(entryType, tf) {
+  switch (String(entryType || '').trim().toLowerCase()) {
+    case 'exception':
+      return tf('userDetails.system.divineLiturgies.entryException', 'Exceptional service');
+    case 'recurring':
+    default:
+      return tf('userDetails.system.divineLiturgies.entryRecurring', 'Recurring service');
+  }
+}
+
 function formatDayTime(day, time) {
   if (day && time) return `${day} - ${time}`;
   return day || time || EMPTY;
+}
+
+function formatServiceWindow(startTime, endTime) {
+  if (startTime && endTime) return `${startTime} - ${endTime}`;
+  return startTime || endTime || EMPTY;
 }
 
 function buildPermissionsSnapshot(user) {

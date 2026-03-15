@@ -229,29 +229,21 @@ export default function NotificationsPage() {
         ]}
       />
 
-      <section className="relative overflow-hidden rounded-3xl border border-border bg-surface p-6 lg:p-8">
-        <div className="pointer-events-none absolute -top-24 right-0 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 left-0 h-64 w-64 rounded-full bg-accent/10 blur-3xl" />
-
-        <PageHeader
-          className="relative"
-          contentClassName="max-w-2xl"
-          eyebrow={t('shared.dashboard')}
-          title={t('notifications.title')}
-          subtitle={tf('notifications.news.subtitle', 'Latest church news, announcements, events, and celebrations.')}
-          titleClassName="mt-2 lg:text-4xl"
-          subtitleClassName="mt-2 text-sm text-muted"
-          actions={(
-            <div className="flex flex-wrap gap-2">
-              {canCreate ? (
-                <Button type="button" icon={Plus} onClick={() => navigate('/dashboard/notifications/new')}>
-                  {t('notifications.actions.create')}
-                </Button>
-              ) : null}
-            </div>
-          )}
-        />
-      </section>
+      <PageHeader
+        title={t('notifications.title')}
+        subtitle={tf('notifications.news.subtitle', 'Latest church news, announcements, events, and celebrations.')}
+        titleClassName="mt-2 lg:text-4xl"
+        subtitleClassName="mt-2 text-sm text-muted"
+        actions={(
+          <div className="flex flex-wrap gap-2">
+            {canCreate ? (
+              <Button type="button" icon={Plus} onClick={() => navigate('/dashboard/notifications/new')}>
+                {t('notifications.actions.create')}
+              </Button>
+            ) : null}
+          </div>
+        )}
+      />
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
