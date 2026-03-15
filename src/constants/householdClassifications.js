@@ -4,6 +4,10 @@ import {
   getGenderOptions,
   getPresenceStatusOptions,
 } from './householdProfiles';
+import {
+  getEducationStageGroupOptions,
+  normalizeEducationStageGroupValues,
+} from './education';
 
 export const HOUSEHOLD_CLASSIFICATION_METRICS = {
   HOUSEHOLD_MEMBER_COUNT: 'household.memberCount',
@@ -140,6 +144,7 @@ export function createEmptyCriterion() {
     filters: {
       genders: [],
       ageGroups: [],
+      educationStages: [],
       employmentStatuses: [],
       presenceStatuses: [],
       diseases: [],
@@ -186,6 +191,7 @@ export function normalizeCategoryToDraft(category) {
           filters: {
             genders: criterion.filters?.genders || [],
             ageGroups: criterion.filters?.ageGroups || [],
+            educationStages: normalizeEducationStageGroupValues(criterion.filters?.educationStages),
             employmentStatuses: criterion.filters?.employmentStatuses || [],
             presenceStatuses: criterion.filters?.presenceStatuses || [],
             diseases: criterion.filters?.diseases || [],
@@ -231,6 +237,11 @@ export function buildCategoryPayload(draft) {
         const filters = {};
         if ((criterion.filters?.genders || []).length > 0) filters.genders = criterion.filters.genders;
         if ((criterion.filters?.ageGroups || []).length > 0) filters.ageGroups = criterion.filters.ageGroups;
+        if ((criterion.filters?.educationStages || []).length > 0) {
+          filters.educationStages = normalizeEducationStageGroupValues(
+            criterion.filters.educationStages
+          );
+        }
         if ((criterion.filters?.employmentStatuses || []).length > 0) {
           filters.employmentStatuses = criterion.filters.employmentStatuses;
         }
@@ -262,6 +273,7 @@ export function getCriterionFilterOptionSets(language = 'en') {
   return {
     genderOptions: getGenderOptions(language),
     ageGroupOptions: getAgeGroupOptions(language),
+    educationStageOptions: getEducationStageGroupOptions(language),
     employmentStatusOptions: getEmploymentStatusOptions(language),
     presenceStatusOptions: getPresenceStatusOptions(language),
   };

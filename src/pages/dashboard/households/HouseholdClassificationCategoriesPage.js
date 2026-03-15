@@ -62,6 +62,7 @@ const COPY = {
     filtersTitle: 'Member filters',
     genders: 'Genders',
     ageGroups: 'Age groups',
+    educationStages: 'Educational stages',
     employmentStatuses: 'Employment statuses',
     presenceStatuses: 'Presence statuses',
     diseases: 'Diseases',
@@ -105,6 +106,7 @@ const COPY = {
     filtersTitle: 'فلاتر الأفراد',
     genders: 'النوع',
     ageGroups: 'الفئات العمرية',
+    educationStages: 'المراحل التعليمية',
     employmentStatuses: 'حالة العمل',
     presenceStatuses: 'حالة التواجد',
     diseases: 'الأمراض',
@@ -157,6 +159,7 @@ export default function HouseholdClassificationCategoriesPage() {
   const copy = COPY[language === 'ar' ? 'ar' : 'en'];
   const queryClient = useQueryClient();
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [draft, setDraft] = useState(createEmptyCategoryDraft());
   const [errors, setErrors] = useState({});
 
@@ -172,19 +175,35 @@ export default function HouseholdClassificationCategoriesPage() {
   const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
 
   useEffect(() => {
-    if (!categories.length && !selectedCategoryId) {
+    if (isCreatingNew) {
       setDraft(createEmptyCategoryDraft());
+      setErrors({});
       return;
     }
 
-    const selected =
-      categories.find((category) => category.id === selectedCategoryId) || categories[0];
+    if (!categories.length) {
+      setSelectedCategoryId(null);
+      setDraft(createEmptyCategoryDraft());
+      setErrors({});
+      return;
+    }
 
-    if (!selected) return;
+    const selected = selectedCategoryId
+      ? categories.find((category) => category.id === selectedCategoryId)
+      : categories[0];
+
+    if (!selected) {
+      const firstCategory = categories[0];
+      setSelectedCategoryId(firstCategory.id);
+      setDraft(normalizeCategoryToDraft(firstCategory));
+      setErrors({});
+      return;
+    }
+
     setSelectedCategoryId(selected.id);
     setDraft(normalizeCategoryToDraft(selected));
     setErrors({});
-  }, [categories, selectedCategoryId]);
+  }, [categories, isCreatingNew, selectedCategoryId]);
 
   const saveMutation = useMutation({
     mutationFn: (payload) => {
@@ -193,7 +212,13 @@ export default function HouseholdClassificationCategoriesPage() {
       }
       return householdClassificationsApi.createCategory(payload);
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      const savedCategory = response?.data?.data || null;
+      setIsCreatingNew(false);
+      if (savedCategory?.id) {
+        setSelectedCategoryId(savedCategory.id);
+        setDraft(normalizeCategoryToDraft(savedCategory));
+      }
       toast.success(copy.saveSuccess);
       queryClient.invalidateQueries({ queryKey: ['household-classifications'] });
       setErrors({});
@@ -210,6 +235,7 @@ export default function HouseholdClassificationCategoriesPage() {
   const deleteMutation = useMutation({
     mutationFn: (categoryId) => householdClassificationsApi.deleteCategory(categoryId),
     onSuccess: () => {
+      setIsCreatingNew(false);
       toast.success(copy.deleteSuccess);
       setSelectedCategoryId(null);
       setDraft(createEmptyCategoryDraft());
@@ -232,12 +258,14 @@ export default function HouseholdClassificationCategoriesPage() {
   };
 
   const selectCategory = (category) => {
+    setIsCreatingNew(false);
     setSelectedCategoryId(category.id);
     setDraft(normalizeCategoryToDraft(category));
     setErrors({});
   };
 
   const startNewCategory = () => {
+    setIsCreatingNew(true);
     setSelectedCategoryId(null);
     setDraft(createEmptyCategoryDraft());
     setErrors({});
@@ -515,6 +543,18 @@ export default function HouseholdClassificationCategoriesPage() {
                               updateCriterion(criterion.id, (current) => ({
                                 ...current,
                                 filters: { ...current.filters, ageGroups: next },
+                              }))
+                            }
+                            containerClassName="!mb-0"
+                          />
+                          <MultiSelectChips
+                            label={copy.educationStages}
+                            options={filterOptions.educationStageOptions}
+                            values={criterion.filters.educationStages}
+                            onChange={(next) =>
+                              updateCriterion(criterion.id, (current) => ({
+                                ...current,
+                                filters: { ...current.filters, educationStages: next },
                               }))
                             }
                             containerClassName="!mb-0"

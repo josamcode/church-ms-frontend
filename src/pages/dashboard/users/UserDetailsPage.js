@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Building2, Calendar, Clock3, Edit, ExternalLink, Lock, Mail, MapPin,
+  Building2, Calendar, Clock3, Edit, ExternalLink, GraduationCap, Lock, Mail, MapPin,
   MessageCircle, Phone, Plus, Shield, Tag, Unlock, User,
   UserCircle, Users as UsersIcon,
 } from 'lucide-react';
@@ -28,6 +28,10 @@ import {
   getEmploymentStatusLabel,
   getPresenceStatusLabel,
 } from '../../../constants/householdProfiles';
+import {
+  getEducationStageLabel,
+  getEducationStageMeta,
+} from '../../../constants/education';
 import toast from 'react-hot-toast';
 
 const EMPTY = '---';
@@ -112,6 +116,28 @@ const PERMISSION_GROUP_LABELS_AR = {
 /* ── primitives ──────────────────────────────────────────────────────────── */
 
 function SectionLabel({ children, count }) {
+  const language = 'en';
+  const educationCopy = language === 'ar'
+    ? {
+      title: 'التعليم',
+      stage: 'المرحلة التعليمية',
+      fieldOfStudy: 'مجال الدراسة',
+      kindergartenName: 'اسم الحضانة',
+      schoolName: 'اسم المدرسة',
+      universityName: 'اسم الجامعة',
+      facultyName: 'اسم الكلية',
+    }
+    : {
+      title: 'Education',
+      stage: 'Educational Stage',
+      fieldOfStudy: 'Field of Study',
+      kindergartenName: 'Kindergarten Name',
+      schoolName: 'School Name',
+      universityName: 'University Name',
+      facultyName: 'Faculty Name',
+    };
+
+  void educationCopy;
   return (
     <div className="flex items-center gap-3">
       <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
@@ -423,10 +449,30 @@ function ProfileTab({ user }) {
       .filter(Boolean)
     : [];
   const householdSummary = user.householdClassificationSummary;
+  const educationMeta = getEducationStageMeta(user.education?.stage);
 
   const address =
     [user.address?.governorate, user.address?.city, user.address?.street, user.address?.details]
       .filter(Boolean).join(', ') || EMPTY;
+  const educationCopy = language === 'ar'
+    ? {
+      title: 'التعليم',
+      stage: 'المرحلة التعليمية',
+      fieldOfStudy: 'مجال الدراسة',
+      kindergartenName: 'اسم الحضانة',
+      schoolName: 'اسم المدرسة',
+      universityName: 'اسم الجامعة',
+      facultyName: 'اسم الكلية',
+    }
+    : {
+      title: 'Education',
+      stage: 'Educational Stage',
+      fieldOfStudy: 'Field of Study',
+      kindergartenName: 'Kindergarten Name',
+      schoolName: 'School Name',
+      universityName: 'University Name',
+      facultyName: 'Faculty Name',
+    };
 
   const copy = language === 'ar'
     ? {
@@ -531,6 +577,56 @@ function ProfileTab({ user }) {
       </div>
 
       {/* ── Custom details ── */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="space-y-4 xl:col-span-2">
+          <SectionLabel>{educationCopy.title}</SectionLabel>
+          <div className="rounded-2xl border border-border bg-surface px-6 py-5">
+            <div className="grid grid-cols-1 gap-x-10 gap-y-5 sm:grid-cols-2">
+              <Field
+                icon={GraduationCap}
+                label={educationCopy.stage}
+                value={user.education?.stage ? getEducationStageLabel(user.education.stage, language) : EMPTY}
+              />
+              <Field
+                icon={GraduationCap}
+                label={educationCopy.fieldOfStudy}
+                value={user.education?.fieldOfStudy || EMPTY}
+              />
+              {educationMeta.isKindergarten ? (
+                <Field
+                  icon={Building2}
+                  label={educationCopy.kindergartenName}
+                  value={user.education?.kindergartenName || EMPTY}
+                />
+              ) : null}
+              {educationMeta.isSchool ? (
+                <Field
+                  icon={Building2}
+                  label={educationCopy.schoolName}
+                  value={user.education?.schoolName || EMPTY}
+                />
+              ) : null}
+              {educationMeta.isUniversity ? (
+                <>
+                  <Field
+                    icon={Building2}
+                    label={educationCopy.universityName}
+                    value={user.education?.universityName || EMPTY}
+                  />
+                  <Field
+                    icon={Building2}
+                    label={educationCopy.facultyName}
+                    value={user.education?.facultyName || EMPTY}
+                  />
+                </>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div />
+      </div>
+
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
           <SectionLabel>{copy.socioeconomicTitle}</SectionLabel>

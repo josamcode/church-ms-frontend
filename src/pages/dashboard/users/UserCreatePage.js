@@ -14,6 +14,10 @@ import HouseholdSocioeconomicSection, {
   buildSocioeconomicPayload,
   getSocioeconomicInitialValues,
 } from '../../../components/users/HouseholdSocioeconomicSection';
+import UserEducationSection, {
+  buildEducationPayload,
+  getEducationInitialValues,
+} from '../../../components/users/UserEducationSection';
 import UserFormSectionTabs from '../../../components/users/UserFormSectionTabs';
 import { useI18n } from '../../../i18n/i18n';
 import toast from 'react-hot-toast';
@@ -75,6 +79,24 @@ function getCreateFormSections(language = 'ar') {
 }
 
 /** Minimal combobox — reused for family name and house name */
+function getCreateFormSectionsWithEducation(language = 'ar') {
+  const baseSections = getCreateFormSections(language);
+  const educationSection = {
+    id: 'education',
+    step: 3,
+    label: language === 'ar' ? 'التعليم' : 'Education',
+  };
+
+  return [
+    ...baseSections.slice(0, 2),
+    educationSection,
+    ...baseSections.slice(2).map((section, index) => ({
+      ...section,
+      step: index + 4,
+    })),
+  ];
+}
+
 function NameCombobox({ label, value, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false);
   const filtered = options
@@ -131,6 +153,7 @@ export default function UserCreatePage() {
     gender: 'male', nationalId: '', notes: '', phoneSecondary: '',
     whatsappNumber: '', familyName: '', houseName: '', role: 'USER', password: '',
     governorate: '', city: '', street: '', details: '',
+    ...getEducationInitialValues(),
     ...getSocioeconomicInitialValues(),
   });
   const [avatar, setAvatar] = useState(null);
@@ -141,7 +164,7 @@ export default function UserCreatePage() {
   const [customDetailsRows, setCustomDetailsRows] = useState([{ id: 1, key: '', value: '' }]);
   const fileInputRef = useRef(null);
   const nextCustomDetailId = useRef(2);
-  const formSections = useMemo(() => getCreateFormSections(language), [language]);
+  const formSections = useMemo(() => getCreateFormSectionsWithEducation(language), [language]);
   const activeSectionIndex = formSections.findIndex((section) => section.id === activeSection);
   const previousSection = activeSectionIndex > 0 ? formSections[activeSectionIndex - 1] : null;
   const nextSection =
@@ -250,6 +273,8 @@ export default function UserCreatePage() {
       if (form.details) payload.address.details = form.details;
     }
     if (avatar?.url && avatar?.publicId) payload.avatar = avatar;
+    const educationPayload = buildEducationPayload(form);
+    if (educationPayload) payload.education = educationPayload;
     Object.assign(payload, buildSocioeconomicPayload(form));
 
     const customDetails = customDetailsRows
@@ -504,10 +529,27 @@ export default function UserCreatePage() {
           )}
 
           {/* ── STEP 3 · العنوان ─────────────────────────────────────── */}
-          {activeSection === 'address' && (
+          {activeSection === 'education' && (
             <section className="space-y-4">
               <div className="flex items-center gap-2">
                 <StepBadge n={3} />
+                <SectionLabel>التعليم</SectionLabel>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-surface p-5">
+                <UserEducationSection
+                  form={form}
+                  errors={errors}
+                  onChange={update}
+                />
+              </div>
+            </section>
+          )}
+
+          {activeSection === 'address' && (
+            <section className="space-y-4">
+              <div className="flex items-center gap-2">
+                <StepBadge n={4} />
                 <SectionLabel>العنوان</SectionLabel>
               </div>
 
@@ -550,7 +592,7 @@ export default function UserCreatePage() {
           {activeSection === 'custom' && (
             <section className="space-y-4">
               <div className="flex items-center gap-2">
-                <StepBadge n={4} />
+                <StepBadge n={5} />
                 <SectionLabel>تفاصيل مخصصة</SectionLabel>
               </div>
 
@@ -619,7 +661,7 @@ export default function UserCreatePage() {
           {activeSection === 'socioeconomic' && (
             <section className="space-y-4">
               <div className="flex items-center gap-2">
-                <StepBadge n={5} />
+                <StepBadge n={6} />
                 <SectionLabel>الملف الاقتصادي والصحي</SectionLabel>
               </div>
 
