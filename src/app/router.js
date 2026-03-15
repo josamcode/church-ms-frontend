@@ -50,6 +50,9 @@ const SectorsManagementPage = lazy(() => import('../pages/dashboard/meetings/Sec
 const MeetingsManagementPage = lazy(() => import('../pages/dashboard/meetings/MeetingsManagementPage'));
 const SectorDetailsPage = lazy(() => import('../pages/dashboard/meetings/SectorDetailsPage'));
 const MeetingDetailsPage = lazy(() => import('../pages/dashboard/meetings/MeetingDetailsPage'));
+const MeetingAttendanceCheckInPage = lazy(() =>
+  import('../pages/dashboard/meetings/MeetingAttendanceCheckInPage')
+);
 const MeetingMemberDetailsPage = lazy(() => import('../pages/dashboard/meetings/MeetingMemberDetailsPage'));
 const SectorFormPage = lazy(() => import('../pages/dashboard/meetings/SectorFormPage'));
 const MeetingFormPage = lazy(() => import('../pages/dashboard/meetings/MeetingFormPage'));
@@ -354,13 +357,28 @@ const router = createBrowserRouter([
               'MEETINGS_VIEW_OWN',
               'MEETINGS_MEMBERS_VIEW',
               'MEETINGS_UPDATE',
-              'MEETINGS_SERVANTS_ MANAGE',
+              'MEETINGS_SERVANTS_MANAGE',
               'MEETINGS_COMMITTEES_MANAGE',
               'MEETINGS_ACTIVITIES_MANAGE',
             ]}
             mode="any"
           >
             <Lazy><MeetingMemberDetailsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'meetings/list/:id/attendance',
+        element: (
+          <PermissionGuard
+            required={[
+              'MEETINGS_ATTENDANCE_MANAGE',
+              'MEETINGS_UPDATE',
+              'MEETINGS_SERVANTS_MANAGE',
+            ]}
+            mode="any"
+          >
+            <Lazy><MeetingAttendanceCheckInPage /></Lazy>
           </PermissionGuard>
         ),
       },

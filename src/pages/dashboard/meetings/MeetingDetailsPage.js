@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowUpRight, CalendarClock, CalendarDays, Edit, FileText,
+  ArrowUpRight, CalendarClock, CalendarDays, ClipboardCheck, Edit, FileText,
   Layers3, ListChecks, Phone, UserCircle, Users,
 } from 'lucide-react';
 import { meetingsApi } from '../../../api/endpoints';
@@ -134,6 +134,10 @@ export default function MeetingDetailsPage() {
     hasPermission('MEETINGS_SERVANTS_MANAGE') ||
     hasPermission('MEETINGS_COMMITTEES_MANAGE') ||
     hasPermission('MEETINGS_ACTIVITIES_MANAGE');
+  const canManageAttendance =
+    hasPermission('MEETINGS_ATTENDANCE_MANAGE') ||
+    hasPermission('MEETINGS_UPDATE') ||
+    hasPermission('MEETINGS_SERVANTS_MANAGE');
   const canViewSector = hasPermission('SECTORS_VIEW');
   const canViewUsers = hasPermission('USERS_VIEW');
 
@@ -338,9 +342,18 @@ export default function MeetingDetailsPage() {
 
       {/* ══ GROUPS ════════════════════════════════════════════════════════ */}
       <section className="space-y-4">
-        <SectionLabel count={(meeting.groupAssignments || []).length}>
-          {t('meetings.fields.groups')}
-        </SectionLabel>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <SectionLabel count={(meeting.groupAssignments || []).length}>
+            {t('meetings.fields.groups')}
+          </SectionLabel>
+          {canManageAttendance && canOpenMemberFromGroups && stats.groupMembersCount > 0 && (
+            <Link to={`/dashboard/meetings/list/${id}/attendance`}>
+              <Button variant="outline" size="sm" icon={ClipboardCheck}>
+                {tf('meetings.actions.openAttendanceCheckIn', 'Attendance Check-in')}
+              </Button>
+            </Link>
+          )}
+        </div>
 
         {(meeting.groups || []).length === 0 ? (
           <EmptyState icon={ListChecks} title={tf('meetings.meetingDetails.noGroupsTitle', 'No groups yet')} description={tf('meetings.meetingDetails.noGroupsDescription', 'No groups are defined for this meeting yet.')} />

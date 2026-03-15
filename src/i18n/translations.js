@@ -966,6 +966,25 @@
       meetingDetails: {
         members: "Members"
       },
+      attendance: {
+        pageTitle: 'Attendance Check-in',
+        pageSubtitle: 'Choose a past meeting date and mark the members who attended.',
+        dateLabel: 'Meeting Date',
+        datePlaceholder: 'Select a meeting date',
+        ungroupedLabel: 'Ungrouped',
+        attendeesSelected: 'selected',
+        groupCountLabel: 'selected',
+        selectAll: 'Select all',
+        clearAll: 'Clear all',
+        lastUpdated: 'Last updated',
+        noDatesTitle: 'No eligible dates yet',
+        noDatesDescription: 'There are no past dates available for this meeting day yet.',
+        noMembersTitle: 'No members available',
+        noMembersDescription: 'No accessible meeting members are available for attendance check-in.',
+        messages: {
+          saved: 'Attendance saved successfully.',
+        },
+      },
       memberDetails: {
         pageTitle: 'Member Details',
         meetingFallback: 'Meeting',
@@ -1056,6 +1075,7 @@
         addCommittee: 'Add Committee',
         addActivity: 'Add Activity',
         addMember: 'Add Member',
+        openAttendanceCheckIn: 'Attendance Check-in',
         manageSectors: 'Manage Sectors',
         manageMeetings: 'Manage Meetings',
         openDashboard: 'Open Dashboard',
@@ -2288,6 +2308,25 @@
       meetingDetails: {
         members: "الأعضاء"
       },
+      attendance: {
+        pageTitle: 'تسجيل الحضور',
+        pageSubtitle: 'اختر تاريخ اجتماع سابق ثم حدّد الأعضاء الذين حضروا.',
+        dateLabel: 'تاريخ الاجتماع',
+        datePlaceholder: 'اختر تاريخ الاجتماع',
+        ungroupedLabel: 'بدون مجموعة',
+        attendeesSelected: 'محدد',
+        groupCountLabel: 'محدد',
+        selectAll: 'تحديد الكل',
+        clearAll: 'إلغاء الكل',
+        lastUpdated: 'آخر تحديث',
+        noDatesTitle: 'لا توجد تواريخ متاحة بعد',
+        noDatesDescription: 'لا توجد تواريخ سابقة متاحة لهذا يوم الاجتماع حتى الآن.',
+        noMembersTitle: 'لا يوجد أعضاء متاحون',
+        noMembersDescription: 'لا يوجد أعضاء متاحون لك لتسجيل الحضور في هذا الاجتماع.',
+        messages: {
+          saved: 'تم حفظ الحضور بنجاح.',
+        },
+      },
       memberDetails: {
         pageTitle: 'تفاصيل العضو',
         meetingFallback: 'الاجتماع',
@@ -2378,6 +2417,7 @@
         addCommittee: 'إضافة لجنة',
         addActivity: 'إضافة نشاط',
         addMember: 'إضافة عضو',
+        openAttendanceCheckIn: 'تسجيل الحضور',
         manageSectors: 'إدارة القطاعات',
         manageMeetings: 'إدارة الاجتماعات',
         openDashboard: 'فتح لوحة التحكم',

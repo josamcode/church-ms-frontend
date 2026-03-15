@@ -133,6 +133,10 @@ export const meetingsApi = {
     },
     getById: (id) => apiClient.get(`/meetings/${id}`),
     getMemberById: (meetingId, memberId) => apiClient.get(`/meetings/${meetingId}/members/${memberId}`),
+    getAttendance: (meetingId, attendanceDate) =>
+      apiClient.get(`/meetings/${meetingId}/attendance`, { params: { attendanceDate } }),
+    updateAttendance: (meetingId, attendanceDate, attendedMemberUserIds) =>
+      apiClient.put(`/meetings/${meetingId}/attendance`, { attendanceDate, attendedMemberUserIds }),
     updateMemberNotes: (meetingId, memberId, note) =>
       apiClient.patch(`/meetings/${meetingId}/members/${memberId}/notes`, { note }),
     updateBasic: (id, data) => apiClient.patch(`/meetings/${id}/basic`, data),
