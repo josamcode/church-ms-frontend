@@ -138,6 +138,10 @@ export default function MeetingDetailsPage() {
     hasPermission('MEETINGS_ATTENDANCE_MANAGE') ||
     hasPermission('MEETINGS_UPDATE') ||
     hasPermission('MEETINGS_SERVANTS_MANAGE');
+  const canManageDocumentation =
+    hasPermission('MEETINGS_DOCUMENTATION_MANAGE') ||
+    hasPermission('MEETINGS_UPDATE') ||
+    hasPermission('MEETINGS_SERVANTS_MANAGE');
   const canViewSector = hasPermission('SECTORS_VIEW');
   const canViewUsers = hasPermission('USERS_VIEW');
 
@@ -346,13 +350,22 @@ export default function MeetingDetailsPage() {
           <SectionLabel count={(meeting.groupAssignments || []).length}>
             {t('meetings.fields.groups')}
           </SectionLabel>
-          {canManageAttendance && canOpenMemberFromGroups && stats.groupMembersCount > 0 && (
-            <Link to={`/dashboard/meetings/list/${id}/attendance`}>
-              <Button variant="outline" size="sm" icon={ClipboardCheck}>
-                {tf('meetings.actions.openAttendanceCheckIn', 'Attendance Check-in')}
-              </Button>
-            </Link>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {canManageDocumentation && canOpenMemberFromGroups && (
+              <Link to={`/dashboard/meetings/list/${id}/documentation`}>
+                <Button variant="outline" size="sm" icon={FileText}>
+                  {tf('meetings.actions.openDailyDocumentation', 'Daily Documentation')}
+                </Button>
+              </Link>
+            )}
+            {canManageAttendance && canOpenMemberFromGroups && stats.groupMembersCount > 0 && (
+              <Link to={`/dashboard/meetings/list/${id}/attendance`}>
+                <Button variant="outline" size="sm" icon={ClipboardCheck}>
+                  {tf('meetings.actions.openAttendanceCheckIn', 'Attendance Check-in')}
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
 
         {(meeting.groups || []).length === 0 ? (

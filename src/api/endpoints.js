@@ -137,6 +137,10 @@ export const meetingsApi = {
       apiClient.get(`/meetings/${meetingId}/attendance`, { params: { attendanceDate } }),
     updateAttendance: (meetingId, attendanceDate, attendedMemberUserIds) =>
       apiClient.put(`/meetings/${meetingId}/attendance`, { attendanceDate, attendedMemberUserIds }),
+    getDocumentation: (meetingId, documentationDate) =>
+      apiClient.get(`/meetings/${meetingId}/documentation`, { params: { documentationDate } }),
+    updateDocumentation: (meetingId, payload) =>
+      apiClient.put(`/meetings/${meetingId}/documentation`, payload),
     updateMemberNotes: (meetingId, memberId, note) =>
       apiClient.patch(`/meetings/${meetingId}/members/${memberId}/notes`, { note }),
     updateBasic: (id, data) => apiClient.patch(`/meetings/${id}/basic`, data),
@@ -144,6 +148,15 @@ export const meetingsApi = {
     updateCommittees: (id, committees) => apiClient.patch(`/meetings/${id}/committees`, { committees }),
     updateActivities: (id, activities) => apiClient.patch(`/meetings/${id}/activities`, { activities }),
     remove: (id) => apiClient.delete(`/meetings/${id}`),
+  },
+  documentationSettings: {
+    get: (params) => apiClient.get('/meetings/documentation-settings', { params }),
+    update: (fields) => apiClient.put('/meetings/documentation-settings', { fields }),
+    uploadAsset: (file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return apiClient.post('/meetings/documentation/upload-asset', formData);
+    },
   },
   responsibilities: {
     list: (params) => apiClient.get('/meetings/responsibilities', { params }),

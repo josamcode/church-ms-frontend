@@ -53,6 +53,10 @@ const MeetingDetailsPage = lazy(() => import('../pages/dashboard/meetings/Meetin
 const MeetingAttendanceCheckInPage = lazy(() =>
   import('../pages/dashboard/meetings/MeetingAttendanceCheckInPage')
 );
+const MeetingDailyDocumentationPage = lazy(() =>
+  import('../pages/dashboard/meetings/MeetingDailyDocumentationPage')
+);
+const MeetingSettingsPage = lazy(() => import('../pages/dashboard/meetings/MeetingSettingsPage'));
 const MeetingMemberDetailsPage = lazy(() => import('../pages/dashboard/meetings/MeetingMemberDetailsPage'));
 const SectorFormPage = lazy(() => import('../pages/dashboard/meetings/SectorFormPage'));
 const MeetingFormPage = lazy(() => import('../pages/dashboard/meetings/MeetingFormPage'));
@@ -292,6 +296,8 @@ const router = createBrowserRouter([
               'MEETINGS_ACTIVITIES_MANAGE',
               'MEETINGS_RESPONSIBILITIES_VIEW',
               'MEETINGS_SERVANT_HISTORY_VIEW',
+              'MEETINGS_DOCUMENTATION_MANAGE',
+              'MEETINGS_SETTINGS_MANAGE',
             ]}
             mode="any"
           >
@@ -323,6 +329,8 @@ const router = createBrowserRouter([
               'MEETINGS_SERVANTS_MANAGE',
               'MEETINGS_COMMITTEES_MANAGE',
               'MEETINGS_ACTIVITIES_MANAGE',
+              'MEETINGS_DOCUMENTATION_MANAGE',
+              'MEETINGS_SETTINGS_MANAGE',
             ]}
             mode="any"
           >
@@ -341,6 +349,7 @@ const router = createBrowserRouter([
               'MEETINGS_SERVANTS_MANAGE',
               'MEETINGS_COMMITTEES_MANAGE',
               'MEETINGS_ACTIVITIES_MANAGE',
+              'MEETINGS_DOCUMENTATION_MANAGE',
             ]}
             mode="any"
           >
@@ -379,6 +388,29 @@ const router = createBrowserRouter([
             mode="any"
           >
             <Lazy><MeetingAttendanceCheckInPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'meetings/list/:id/documentation',
+        element: (
+          <PermissionGuard
+            required={[
+              'MEETINGS_DOCUMENTATION_MANAGE',
+              'MEETINGS_UPDATE',
+              'MEETINGS_SERVANTS_MANAGE',
+            ]}
+            mode="any"
+          >
+            <Lazy><MeetingDailyDocumentationPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'meetings/settings',
+        element: (
+          <PermissionGuard required={['MEETINGS_SETTINGS_MANAGE']}>
+            <Lazy><MeetingSettingsPage /></Lazy>
           </PermissionGuard>
         ),
       },
