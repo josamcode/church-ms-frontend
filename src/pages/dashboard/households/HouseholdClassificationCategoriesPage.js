@@ -50,6 +50,7 @@ const COPY = {
     color: 'Color',
     priority: 'Priority',
     active: 'Active',
+    isLordsBrethren: 'Is The Lords Brethren',
     criteriaTitle: 'Criteria',
     addCriterion: 'Add criterion',
     label: 'Internal label',
@@ -94,6 +95,7 @@ const COPY = {
     color: 'اللون',
     priority: 'الأولوية',
     active: 'نشطة',
+    isLordsBrethren: 'تابعة لإخوة الرب',
     criteriaTitle: 'الشروط',
     addCriterion: 'إضافة شرط',
     label: 'اسم داخلي للشرط',
@@ -147,6 +149,11 @@ function CategoryBadge({ category, selected, onClick }) {
         <Badge variant={category.isActive ? 'success' : 'warning'}>
           {category.isActive ? 'Active' : 'Inactive'}
         </Badge>
+        {category.isLordsBrethren && (
+          <Badge variant="primary" className="bg-primary/10 text-primary border-primary/20">
+            Lords Brethren
+          </Badge>
+        )}
         <Badge>{category.priority}</Badge>
         <Badge variant="secondary">{category.criteriaCount}</Badge>
       </div>
@@ -395,11 +402,16 @@ export default function HouseholdClassificationCategoriesPage() {
               onChange={(event) => updateDraft('priority', event.target.value)}
               containerClassName="!mb-0"
             />
-            <div className="rounded-xl border border-border bg-surface-alt/40 px-4 py-3">
+            <div className="rounded-xl flex flex-col gap-2 border border-border bg-surface-alt/40 px-4 py-3">
               <Switch
                 checked={draft.isActive}
                 onChange={(checked) => updateDraft('isActive', checked)}
                 label={copy.active}
+              />
+              <Switch
+                checked={draft.isLordsBrethren}
+                onChange={(checked) => updateDraft('isLordsBrethren', checked)}
+                label={copy.isLordsBrethren}
               />
             </div>
             <div className="md:col-span-2">

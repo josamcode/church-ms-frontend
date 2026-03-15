@@ -164,6 +164,7 @@ export function createEmptyCategoryDraft() {
     color: '#2563eb',
     priority: '100',
     isActive: true,
+    isLordsBrethren: false,
     criteria: [createEmptyCriterion()],
   };
 }
@@ -178,6 +179,7 @@ export function normalizeCategoryToDraft(category) {
     color: category.color || '#2563eb',
     priority: String(category.priority ?? 100),
     isActive: category.isActive !== false,
+    isLordsBrethren: Boolean(category.isLordsBrethren),
     criteria: Array.isArray(category.criteria) && category.criteria.length > 0
       ? category.criteria.map((criterion) => ({
           id: criterion.id || `criterion-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -218,6 +220,7 @@ export function buildCategoryPayload(draft) {
     color: String(draft.color || '#2563eb').trim(),
     priority: Number(draft.priority || 0),
     isActive: Boolean(draft.isActive),
+    isLordsBrethren: Boolean(draft.isLordsBrethren),
     criteria: (draft.criteria || []).map((criterion) => {
       const payload = {
         label: String(criterion.label || '').trim(),

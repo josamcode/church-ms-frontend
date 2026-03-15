@@ -84,7 +84,7 @@ function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function NavDivider({ collapsed }) {
   return (
-      <div className={`my-1.5 ${collapsed ? 'flex justify-center' : ''}`}>
+    <div className={`my-1.5 ${collapsed ? 'flex justify-center' : ''}`}>
       <div className={`h-px bg-border/30 ${collapsed ? 'w-8' : 'w-full'}`} />
     </div>
   );
@@ -184,10 +184,9 @@ export default function DashboardLayout() {
       parent: {
         label: t('dashboardLayout.menu.theLordsBrethren'),
         icon: Users,
-        href: '/dashboard/under-development',
+        href: '/dashboard/lords-brethren',
         permission: null,
         matchChildren: false,
-
       },
       children: [
         {

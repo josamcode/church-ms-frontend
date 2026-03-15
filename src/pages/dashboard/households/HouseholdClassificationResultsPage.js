@@ -307,11 +307,6 @@ export default function HouseholdClassificationResultsPage() {
         ),
       },
       {
-        key: 'sourceField',
-        label: copy.columns.source,
-        render: (row) => getHouseholdSourceLabel(row.sourceField, language),
-      },
-      {
         key: 'memberCount',
         label: copy.columns.members,
         render: (row) => row.memberCount,

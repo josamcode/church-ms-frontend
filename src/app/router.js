@@ -29,6 +29,9 @@ const UserEditPage = lazy(() => import('../pages/dashboard/users/UserEditPage'))
 const HouseholdClassificationResultsPage = lazy(() =>
   import('../pages/dashboard/households/HouseholdClassificationResultsPage')
 );
+const LordsBrethrenPage = lazy(() =>
+  import('../pages/dashboard/households/LordsBrethrenPage')
+);
 const HouseholdClassificationCategoriesPage = lazy(() =>
   import('../pages/dashboard/households/HouseholdClassificationCategoriesPage')
 );
@@ -134,6 +137,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['USERS_VIEW']}>
             <Lazy><FamilyHouseAnalyticsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'lords-brethren',
+        element: (
+          <PermissionGuard required={['HOUSEHOLD_CLASSIFICATIONS_VIEW']}>
+            <Lazy><LordsBrethrenPage /></Lazy>
           </PermissionGuard>
         ),
       },
