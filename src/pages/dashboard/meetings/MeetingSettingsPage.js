@@ -221,7 +221,7 @@ export default function MeetingSettingsPage() {
                       )
                     }
                     className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted transition-colors hover:border-danger/30 hover:bg-danger-light hover:text-danger"
-                    aria-label="Delete field"
+                    aria-label={tf('meetings.settings.deleteField', 'Delete field')}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
