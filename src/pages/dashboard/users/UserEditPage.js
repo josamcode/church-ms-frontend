@@ -100,6 +100,7 @@ const PERMISSION_LABELS_AR = {
   DIVINE_LITURGIES_VIEW: 'عرض جداول القداسات الإلهية',
   DIVINE_LITURGIES_MANAGE: 'إدارة جداول القداسات الإلهية',
   DIVINE_LITURGIES_ATTENDANCE_MANAGE: 'إدارة حضور القداسات الإلهية',
+  DIVINE_LITURGIES_ATTENDANCE_MANAGE_ASSIGNED_USERS: 'إدارة حضور القداسات الإلهية للمستخدمين المخدومين',
   DIVINE_LITURGIES_PRIESTS_MANAGE: 'إدارة قائمة كهنة الكنيسة',
 };
 

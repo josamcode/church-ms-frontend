@@ -304,6 +304,7 @@ const router = createBrowserRouter([
               'DIVINE_LITURGIES_VIEW',
               'DIVINE_LITURGIES_MANAGE',
               'DIVINE_LITURGIES_ATTENDANCE_MANAGE',
+              'DIVINE_LITURGIES_ATTENDANCE_MANAGE_ASSIGNED_USERS',
             ]}
             mode="any"
           >
@@ -323,7 +324,11 @@ const router = createBrowserRouter([
         path: 'divine-liturgies/attendance/:entryType/:id',
         element: (
           <PermissionGuard
-            required={['DIVINE_LITURGIES_ATTENDANCE_MANAGE', 'DIVINE_LITURGIES_MANAGE']}
+            required={[
+              'DIVINE_LITURGIES_ATTENDANCE_MANAGE',
+              'DIVINE_LITURGIES_ATTENDANCE_MANAGE_ASSIGNED_USERS',
+              'DIVINE_LITURGIES_MANAGE',
+            ]}
             mode="any"
           >
             <Lazy><DivineLiturgyAttendanceCheckInPage /></Lazy>

@@ -290,6 +290,7 @@ export default function DashboardLayout() {
           'DIVINE_LITURGIES_VIEW',
           'DIVINE_LITURGIES_MANAGE',
           'DIVINE_LITURGIES_ATTENDANCE_MANAGE',
+          'DIVINE_LITURGIES_ATTENDANCE_MANAGE_ASSIGNED_USERS',
         ],
         matchChildren: true,
       },

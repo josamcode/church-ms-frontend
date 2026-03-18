@@ -32,6 +32,7 @@ import {
   getEducationStageLabel,
   getEducationStageMeta,
 } from '../../../constants/education';
+import { getDayLabel } from '../meetings/meetingsForm.utils';
 import toast from 'react-hot-toast';
 
 const EMPTY = '---';
@@ -102,6 +103,7 @@ const PERMISSION_LABELS_AR = {
   DIVINE_LITURGIES_ATTENDANCE_MANAGE: 'إدارة حضور القداسات الإلهية',
   DIVINE_LITURGIES_PRIESTS_MANAGE: 'إدارة قائمة كهنة الكنيسة',
 };
+
 
 const PERMISSION_GROUP_LABELS_AR = {
   users: 'إدارة المستخدمين',
@@ -809,6 +811,7 @@ const DIVINE_LITURGY_OVERVIEW_PERMISSIONS = [
   'DIVINE_LITURGIES_VIEW',
   'DIVINE_LITURGIES_MANAGE',
   'DIVINE_LITURGIES_ATTENDANCE_MANAGE',
+  'DIVINE_LITURGIES_ATTENDANCE_MANAGE_ASSIGNED_USERS',
 ];
 
 function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf, section = 'overview' }) {
@@ -1754,9 +1757,14 @@ function MeetingLinkedUserList({ users = [], className = '' }) {
 }
 
 function DivineLiturgyAttendanceCard({ profile, tf, t }) {
+  const { language } = useI18n();
   const service = profile?.service || null;
   const attendance = Array.isArray(profile?.attendance) ? profile.attendance : [];
   const serviceId = toComparableId(service?.id);
+  const localizedDisplayName = getDivineServiceDisplayName(service, t, language);
+  const localizedTitle = language === 'ar'
+    ? formatArabicDivineServiceTitle(service, localizedDisplayName, tf)
+    : localizedDisplayName;
 
   return (
     <div className="overflow-hidden rounded-[1.75rem] border border-border bg-gradient-to-br from-surface via-surface to-surface-alt/20 shadow-sm">
@@ -1773,7 +1781,7 @@ function DivineLiturgyAttendanceCard({ profile, tf, t }) {
               {service?.dayOfWeek ? (
                 <span className="inline-flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5" />
-                  {service.dayOfWeek}
+                  {getDayLabel(service.dayOfWeek, t)}
                 </span>
               ) : null}
               {service?.date ? (
@@ -1790,7 +1798,7 @@ function DivineLiturgyAttendanceCard({ profile, tf, t }) {
               ) : null}
             </div>
             <p className="mt-2 text-lg font-bold tracking-tight text-heading">
-              {service?.displayName || service?.name || EMPTY}
+              {localizedTitle || EMPTY}
             </p>
           </div>
 
@@ -2357,6 +2365,41 @@ function getDivineServiceTypeLabel(serviceType, tf) {
     default:
       return tf('userDetails.system.divineLiturgies.typeDivine', 'Divine Liturgy');
   }
+}
+
+function getDivineServiceDisplayName(service, t, language) {
+  const manualName = String(service?.name || '').trim();
+  if (manualName) return service?.displayName || manualName;
+
+  if (String(language || '').trim().toLowerCase() === 'ar') {
+    return getArabicDivineServiceDisplayName(service, t);
+  }
+
+  return service?.displayName || service?.name || '';
+}
+
+function getArabicDivineServiceDisplayName(service, t) {
+  if (!service) return '';
+
+  const dayLabel = getDayLabel(service?.dayOfWeek, t) || service?.dayOfWeek || '';
+  const dateLabel = service?.date ? formatDate(service.date) : '';
+
+  if (String(service?.entryType || '').trim().toLowerCase() === 'exception') {
+    return dateLabel ? `قداس استثنائي (${dateLabel})` : 'قداس استثنائي';
+  }
+
+  if (service?.serviceType === 'VESPERS') {
+    return dayLabel ? `عشية القداس يوم ${dayLabel}` : 'عشية القداس';
+  }
+
+  return dayLabel ? `قداس يوم ${dayLabel}` : 'قداس إلهي';
+}
+
+function formatArabicDivineServiceTitle(service, localizedDisplayName, tf) {
+  const serviceTypeLabel = getDivineServiceTypeLabel(service?.serviceType, tf);
+  if (!localizedDisplayName) return serviceTypeLabel;
+  if (localizedDisplayName === serviceTypeLabel) return serviceTypeLabel;
+  return `${serviceTypeLabel} "${localizedDisplayName}"`;
 }
 
 function getDivineEntryTypeLabel(entryType, tf) {

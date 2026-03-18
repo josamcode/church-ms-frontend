@@ -126,7 +126,9 @@ export default function DivineLiturgiesPage() {
   const canView = hasPermission('DIVINE_LITURGIES_VIEW');
   const canManage = hasPermission('DIVINE_LITURGIES_MANAGE');
   const canManageAttendance =
-    hasPermission('DIVINE_LITURGIES_ATTENDANCE_MANAGE') || canManage;
+    hasPermission('DIVINE_LITURGIES_ATTENDANCE_MANAGE') ||
+    hasPermission('DIVINE_LITURGIES_ATTENDANCE_MANAGE_ASSIGNED_USERS') ||
+    canManage;
 
   const [divineEditId, setDivineEditId] = useState(null);
   const [divineForm, setDivineForm] = useState(() => emptyRecurringForm(DIVINE_SERVICE_TYPE));

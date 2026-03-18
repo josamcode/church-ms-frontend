@@ -3,13 +3,15 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
+  ArrowUpRight,
   Building2,
+  HandCoins,
   Pencil,
   Search,
   ShieldCheck,
   Users as UsersIcon,
 } from 'lucide-react';
-import { householdClassificationsApi, usersApi } from '../../../api/endpoints';
+import { aidsApi, householdClassificationsApi, usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import { useI18n } from '../../../i18n/i18n';
@@ -24,6 +26,7 @@ import Table from '../../../components/ui/Table';
 import FamilyHouseProfileInsights from '../../../components/users/FamilyHouseProfileInsights';
 import HouseholdQuickEditModal from '../../../components/users/HouseholdQuickEditModal';
 import { getGenderLabel } from '../../../utils/formatters';
+import { localizeAidOccurrence } from '../../../utils/aidOccurrenceLocalization';
 import {
   describeCriterionActualValue,
   formatCurrencyEGP,
@@ -79,6 +82,16 @@ const DETAILS_COPY = {
     familyHintDescription:
       'Classification is evaluated per house name. Open one of the houses in this family to review or edit the full house record.',
     openHouseStatus: 'Open house status',
+    aidsHistoryTitle: 'Aid history',
+    aidsHistorySubtitle:
+      'Review the aid groups this selected family or house has already received.',
+    aidsHistoryEmpty: 'No aid records yet',
+    aidsHistoryEmptyDescription:
+      'Aid groups recorded for this family or house will appear here.',
+    beneficiariesLabel: 'Beneficiaries',
+    housesLabel: 'Houses included',
+    notesLabel: 'Notes',
+    openAidDetails: 'Open aid details',
   },
   ar: {
     householdClassificationTitle: 'تصنيف البيت',
@@ -115,8 +128,29 @@ const DETAILS_COPY = {
     familyHintDescription:
       'التصنيف يتم حسابه حسب اسم البيت. افتح أحد البيوت المرتبطة بهذه العائلة لعرض ملف البيت بالكامل وتعديله.',
     openHouseStatus: 'فتح حالة البيت',
+    aidsHistoryTitle: 'سجل المساعدات',
+    aidsHistorySubtitle:
+      'راجع مجموعات المساعدات التي حصلت عليها هذه العائلة أو هذا البيت من قبل.',
+    aidsHistoryEmpty: 'لا توجد سجلات مساعدات',
+    aidsHistoryEmptyDescription:
+      'ستظهر هنا مجموعات المساعدات المسجلة لهذه العائلة أو لهذا البيت.',
+    beneficiariesLabel: 'عدد المستفيدين',
+    housesLabel: 'البيوت المشمولة',
+    notesLabel: 'ملاحظات',
+    openAidDetails: 'فتح تفاصيل المساعدة',
   },
 };
+
+function formatDisplayDate(value, language = 'en') {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value || EMPTY);
+
+  return date.toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
 
 export default function FamilyHouseLookupPage() {
   const { t, isRTL, language } = useI18n();
@@ -136,6 +170,7 @@ export default function FamilyHouseLookupPage() {
   const normalizedLookupName = normalizeText(lookupName);
   const normalizedSubmittedName = normalizeText(submittedLookupName);
   const canViewHouseholdClassification = hasPermission('HOUSEHOLD_CLASSIFICATIONS_VIEW');
+  const canViewAidHistory = hasPermission('HOUSEHOLD_CLASSIFICATIONS_VIEW');
   const canEditHouseholdMembers = hasPermission('USERS_UPDATE');
   const canManageHouseholdClassifications = hasPermission('HOUSEHOLD_CLASSIFICATIONS_MANAGE');
   const canEditHousehold =
@@ -277,6 +312,38 @@ export default function FamilyHouseLookupPage() {
     return (members.length / directoryUsers.length) * 100;
   }, [directoryUsers.length, members.length]);
 
+  const aidHouseNames = useMemo(() => {
+    if (!normalizedSubmittedName) return [];
+
+    if (!isFamilyLookup) {
+      const directHouseName = String(submittedLookupName || '').trim();
+      return directHouseName ? [directHouseName] : [];
+    }
+
+    return [...new Set(
+      members
+        .map((member) => String(member?.houseName || '').trim())
+        .filter(Boolean)
+    )];
+  }, [isFamilyLookup, members, normalizedSubmittedName, submittedLookupName]);
+
+  const aidHistoryKey = useMemo(() => [...aidHouseNames].sort().join('|'), [aidHouseNames]);
+
+  const {
+    data: aidHistoryResponse,
+    isLoading: aidHistoryLoading,
+    isFetching: aidHistoryFetching,
+    error: aidHistoryError,
+  } = useQuery({
+    queryKey: ['aids', 'family-house-history', aidHistoryKey],
+    queryFn: async () => {
+      const { data } = await aidsApi.searchHistory({ houseNames: aidHouseNames });
+      return data?.data ?? [];
+    },
+    enabled: canViewAidHistory && Boolean(normalizedSubmittedName) && aidHouseNames.length > 0,
+    staleTime: 30000,
+  });
+
   useEffect(() => {
     const urlLookupType = searchParams.get('lookupType');
     const urlLookupName = String(searchParams.get('lookupName') || '').trim();
@@ -311,6 +378,13 @@ export default function FamilyHouseLookupPage() {
   const selectedHouseholdErrorMessage = selectedHouseholdError
     ? normalizeApiError(selectedHouseholdError).message
     : null;
+
+  const aidHistoryErrorMessage = aidHistoryError
+    ? normalizeApiError(aidHistoryError).message
+    : null;
+  const aidHistoryItems = Array.isArray(aidHistoryResponse) ? aidHistoryResponse : [];
+  const shouldShowAidHistory =
+    aidHistoryLoading || aidHistoryFetching || !!aidHistoryErrorMessage || aidHistoryItems.length > 0;
 
   const columns = useMemo(
     () => [
@@ -666,6 +740,16 @@ export default function FamilyHouseLookupPage() {
         />
       ) : null}
 
+      {normalizedSubmittedName && canViewAidHistory && !membersErrorMessage && shouldShowAidHistory ? (
+        <AidHistoryPanel
+          items={aidHistoryItems}
+          loading={aidHistoryLoading || aidHistoryFetching}
+          errorMessage={aidHistoryErrorMessage}
+          copy={detailsCopy}
+          language={language}
+        />
+      ) : null}
+
       <Card padding={false} className="overflow-hidden">
         <div className="border-b border-border px-5 py-4 sm:px-6">
           <div className="flex items-center justify-between gap-4">
@@ -760,6 +844,76 @@ function FamilyClassificationHint({ copy, relatedHouses = [] }) {
         </div>
       )}
     </Card>
+  );
+}
+
+function AidHistoryPanel({ items, loading, errorMessage, copy, language }) {
+  return (
+    items.length === 0 && (
+      <Card className="space-y-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-heading">{copy.aidsHistoryTitle}</h2>
+            <p className="mt-1 text-sm text-muted">{copy.aidsHistorySubtitle}</p>
+          </div>
+          <Badge variant="secondary">{items.length}</Badge>
+        </div>
+
+        {errorMessage ? (
+          <EmptyState icon={HandCoins} title={copy.aidsHistoryTitle} description={errorMessage} />
+        ) : loading ? (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {Array.from({ length: 2 }).map((_, index) => (
+              <div key={index} className="h-44 animate-pulse rounded-2xl border border-border bg-surface-alt" />
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon={HandCoins}
+            title={copy.aidsHistoryEmpty}
+            description={copy.aidsHistoryEmptyDescription}
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {items.map((item) => {
+              const params = buildLookupQueryForAidDetails(item);
+
+              return (
+                <Link
+                  key={`${item.date}-${item.category}-${item.description}`}
+                  to={`/dashboard/lords-brethren/aid-history/details?${params}`}
+                  className="group rounded-2xl border border-border bg-surface p-5 transition-all hover:border-primary/30 hover:bg-primary/5"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                        {formatDisplayDate(item.date, language)}
+                      </p>
+                      <h3 className="mt-2 text-lg font-semibold text-heading">{item.description || EMPTY}</h3>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-muted transition-colors group-hover:text-primary" />
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <Badge variant="primary">{item.category || EMPTY}</Badge>
+                    <Badge variant="default">{localizeAidOccurrence(item.occurrence, language)}</Badge>
+                  </div>
+
+                  {item.notes ? (
+                    <div className="mt-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                        {copy.notesLabel}
+                      </p>
+                      <p className="mt-2 line-clamp-3 text-sm text-muted">{item.notes}</p>
+                    </div>
+                  ) : null}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+    )
   );
 }
 
@@ -1037,6 +1191,15 @@ function LookupNameLink({ lookupType, name, emptyValue }) {
       {normalizedName}
     </Link>
   );
+}
+
+function buildLookupQueryForAidDetails(item) {
+  return new URLSearchParams({
+    date: item.date,
+    category: item.category,
+    occurrence: item.occurrence,
+    description: item.description,
+  }).toString();
 }
 
 function getInitial(name) {
