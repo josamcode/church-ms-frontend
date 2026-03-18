@@ -21,6 +21,7 @@ const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
 const DashboardHome = lazy(() => import('../pages/dashboard/DashboardHome'));
 const ProfilePage = lazy(() => import('../pages/dashboard/ProfilePage'));
 const UsersListPage = lazy(() => import('../pages/dashboard/users/UsersListPage'));
+const UsersExplorerPage = lazy(() => import('../pages/dashboard/users/UsersExplorerPage'));
 const FamilyHouseAnalyticsPage = lazy(() => import('../pages/dashboard/users/FamilyHouseAnalyticsPage'));
 const FamilyHouseLookupPage = lazy(() => import('../pages/dashboard/users/FamilyHouseLookupPage'));
 const UserDetailsPage = lazy(() => import('../pages/dashboard/users/UserDetailsPage'));
@@ -117,6 +118,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['USERS_VIEW']}>
             <Lazy><UsersListPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'users/explorer',
+        element: (
+          <PermissionGuard required={['USERS_VIEW']}>
+            <Lazy><UsersExplorerPage /></Lazy>
           </PermissionGuard>
         ),
       },

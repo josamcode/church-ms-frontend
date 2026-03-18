@@ -161,6 +161,14 @@ export default function DashboardLayout() {
         //   matchChildren: false,
         // },
         {
+          key: 'users-explorer',
+          label: tf('dashboardLayout.menu.usersExplorer', 'User Explorer'),
+          href: '/dashboard/users/explorer',
+          icon: Sparkles,
+          permission: 'USERS_VIEW',
+          matchChildren: false,
+        },
+        {
           key: 'family-house-analytics',
           label: tf('dashboardLayout.menu.familyHouseAnalytics', 'Family Analytics'),
           href: '/dashboard/users/family-house/analytics',

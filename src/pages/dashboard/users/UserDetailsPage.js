@@ -2399,7 +2399,7 @@ function formatArabicDivineServiceTitle(service, localizedDisplayName, tf) {
   const serviceTypeLabel = getDivineServiceTypeLabel(service?.serviceType, tf);
   if (!localizedDisplayName) return serviceTypeLabel;
   if (localizedDisplayName === serviceTypeLabel) return serviceTypeLabel;
-  return `${serviceTypeLabel} "${localizedDisplayName}"`;
+  return `${localizedDisplayName}`;
 }
 
 function getDivineEntryTypeLabel(entryType, tf) {

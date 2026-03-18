@@ -202,7 +202,7 @@ export default function PublicLayout() {
       {/* ═══════════════════════════════════════════
           FOOTER – Modern multi-column
           ═══════════════════════════════════════════ */}
-      <footer className="relative bg-gradient-to-b from-surface to-page border-t border-border">
+      <footer className="relative bg-gradient-to-b from-surface to-page border-t border-border hidden md:flex">
         {/* Decorative top line */}
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
