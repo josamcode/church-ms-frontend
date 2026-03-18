@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, CalendarDays, Edit } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { notificationsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
@@ -48,11 +48,13 @@ function DetailBlock({ detail, t }) {
 
 export default function NotificationDetailsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const { t } = useI18n();
   const { hasPermission } = useAuth();
+  const isAidNotificationRoute = location.pathname.startsWith('/dashboard/lords-brethren/aid-history/notifications');
 
-  const canEdit = hasPermission('NOTIFICATIONS_UPDATE');
+  const canEdit = hasPermission('NOTIFICATIONS_UPDATE') && !isAidNotificationRoute;
 
   const { data: detailsRes, isLoading } = useQuery({
     queryKey: ['notifications', 'details', id],
@@ -64,6 +66,13 @@ export default function NotificationDetailsPage() {
   });
 
   const notification = detailsRes?.data || null;
+  const isAidReminder = notification?.sourceType === 'aid_recurring';
+  const listHref = isAidNotificationRoute || isAidReminder
+    ? '/dashboard/lords-brethren/aid-history/notifications'
+    : '/dashboard/notifications';
+  const listLabel = isAidNotificationRoute || isAidReminder
+    ? t('dashboardLayout.menu.disbursedAidHistory')
+    : t('notifications.page');
 
   const detailBlocks = useMemo(
     () => (Array.isArray(notification?.details) ? notification.details : []),
@@ -87,7 +96,7 @@ export default function NotificationDetailsPage() {
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
-          { label: t('notifications.page'), href: '/dashboard/notifications' },
+          { label: listLabel, href: listHref },
           { label: notification.name },
         ]}
       />
@@ -153,10 +162,10 @@ export default function NotificationDetailsPage() {
       </Card>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => navigate('/dashboard/notifications')}>
+        <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => navigate(listHref)}>
           {t('common.actions.back')}
         </Button>
-        {canEdit ? (
+        {canEdit && !isAidReminder ? (
           <Button type="button" icon={Edit} onClick={() => navigate(`/dashboard/notifications/${notification.id}/edit`)}>
             {t('common.actions.edit')}
           </Button>

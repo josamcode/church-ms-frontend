@@ -38,6 +38,9 @@ const LordsBrethrenAidPage = lazy(() =>
 const DisbursedAidsPage = lazy(() =>
   import('../pages/dashboard/households/DisbursedAidsPage')
 );
+const AidNotificationsPage = lazy(() =>
+  import('../pages/dashboard/households/AidNotificationsPage')
+);
 const AidDetailsPage = lazy(() =>
   import('../pages/dashboard/households/AidDetailsPage')
 );
@@ -178,6 +181,22 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['HOUSEHOLD_CLASSIFICATIONS_VIEW']}>
             <Lazy><AidDetailsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'lords-brethren/aid-history/notifications',
+        element: (
+          <PermissionGuard required={['HOUSEHOLD_CLASSIFICATIONS_VIEW']}>
+            <Lazy><AidNotificationsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'lords-brethren/aid-history/notifications/:id',
+        element: (
+          <PermissionGuard required={['HOUSEHOLD_CLASSIFICATIONS_VIEW']}>
+            <Lazy><NotificationDetailsPage /></Lazy>
           </PermissionGuard>
         ),
       },

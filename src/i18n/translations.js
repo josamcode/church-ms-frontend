@@ -1365,6 +1365,7 @@
         generalAnnouncement: 'General Announcement',
         event: 'Event',
         congratulations: 'Congratulations',
+        aidReminder: 'Aid Reminder',
       },
       actions: {
         create: 'Create Notification',
@@ -2851,6 +2852,7 @@
         generalAnnouncement: 'إعلان عام',
         event: 'فعالية',
         congratulations: 'تهنئة',
+        aidReminder: 'تذكير مساعدة',
       },
       actions: {
         create: 'إنشاء إشعار',

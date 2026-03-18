@@ -1,17 +1,8 @@
 const CANONICAL_ALIASES = {
-  generalAnnouncement: [
-    'general announcement',
-    'اعلان عام',
-    'إعلان عام',
-  ],
-  event: [
-    'event',
-    'فعالية',
-  ],
-  congratulations: [
-    'congratulations',
-    'تهنئة',
-  ],
+  generalAnnouncement: ['general announcement'],
+  event: ['event'],
+  congratulations: ['congratulations'],
+  aidReminder: ['aid reminder'],
 };
 
 const ARABIC_DIACRITICS_REGEX = /[\u064B-\u0652]/g;
@@ -41,4 +32,3 @@ export function localizeNotificationTypeName(name, t) {
 
   return t(`notifications.defaultTypeNames.${canonical}`);
 }
-

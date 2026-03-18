@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, HandCoins, History, Search, Plus, Filter } from 'lucide-react';
+import { CalendarDays, HandCoins, History, Search, Plus, Filter, BellRing } from 'lucide-react';
 import { aidsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
 import { useI18n } from '../../../i18n/i18n';
@@ -118,14 +118,23 @@ export default function DisbursedAidsPage() {
         title={copy.title}
         subtitle={copy.subtitle}
         actions={
-          canCreate && (
+          <div className="flex flex-wrap gap-2">
             <Button
-              icon={Plus}
-              onClick={() => navigate('/dashboard/lords-brethren/aid')}
+              variant="outline"
+              icon={BellRing}
+              onClick={() => navigate('/dashboard/lords-brethren/aid-history/notifications')}
             >
-              {copy.addAction}
+              {language === 'ar' ? 'الإشعارات' : 'Notifications'}
             </Button>
-          )
+            {canCreate ? (
+              <Button
+                icon={Plus}
+                onClick={() => navigate('/dashboard/lords-brethren/aid')}
+              >
+                {copy.addAction}
+              </Button>
+            ) : null}
+          </div>
         }
       />
 

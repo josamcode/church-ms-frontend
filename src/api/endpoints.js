@@ -184,6 +184,7 @@ export const aidsApi = {
   getOptions: () => apiClient.get('/aids/options'),
   getDisbursedAids: (params) => apiClient.get('/aids', { params }),
   getAidDetails: (params) => apiClient.get('/aids/details', { params }),
+  approveReminder: (id) => apiClient.post(`/aids/reminders/${id}/approve`),
   updateBulk: (data) => apiClient.put('/aids', data),
 };
 

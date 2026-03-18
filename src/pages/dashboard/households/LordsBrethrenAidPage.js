@@ -1,28 +1,23 @@
-import { useId, useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   Building2,
   CalendarDays,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Filter,
   HandCoins,
   Save,
-  Search,
   Users,
 } from 'lucide-react';
 import { aidsApi, householdClassificationsApi, usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
-import { useAuth } from '../../../auth/auth.hooks';
 import { useI18n } from '../../../i18n/i18n';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
-import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import PageHeader from '../../../components/ui/PageHeader';
@@ -33,6 +28,8 @@ import CreatableTagComboboxInput from '../../../components/ui/CreatableTagCombob
 import TextArea from '../../../components/ui/TextArea';
 import { getCriterionFilterOptionSets } from '../../../constants/householdClassifications';
 import { formatCurrencyEGP, getStatusText } from './householdClassifications.shared';
+
+const DEFAULT_OCCURRENCE_OPTIONS = ['one time', 'weekly', 'monthly', 'yearly'];
 
 const COPY = {
   en: {
@@ -172,6 +169,10 @@ export default function LordsBrethrenAidPage() {
 
   const filterOptions = useMemo(() => getCriterionFilterOptionSets(language), [language]);
   const aidOptions = optionsQuery.data || { categories: [], occurrences: [], descriptions: [] };
+  const occurrenceOptions = useMemo(
+    () => [...new Set([...DEFAULT_OCCURRENCE_OPTIONS, ...(aidOptions.occurrences || [])])],
+    [aidOptions.occurrences]
+  );
 
   const profileOptionsQuery = useQuery({
     queryKey: ['users', 'profile-options'],
@@ -520,7 +521,7 @@ export default function LordsBrethrenAidPage() {
               <CreatableComboboxInput
                 label={copy.aidOccurrence}
                 value={aidDraft.occurrence}
-                options={aidOptions.occurrences}
+                options={occurrenceOptions}
                 required
                 onChange={(v) => setAidDraft({ ...aidDraft, occurrence: v })}
                 containerClassName="!mb-0"

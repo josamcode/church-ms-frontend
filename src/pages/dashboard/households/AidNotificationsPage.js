@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, CalendarDays, Eye, Pencil, Plus } from 'lucide-react';
+import { ArrowRight, BellRing, CalendarClock, CalendarDays, Eye, RotateCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { notificationsApi } from '../../../api/endpoints';
-import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
@@ -25,17 +24,51 @@ function SectionLabel({ children }) {
   );
 }
 
-function NewsCard({ notification, onOpen, onEdit, canEdit, t }) {
+const COPY = {
+  en: {
+    page: 'Aid Notifications',
+    title: 'Recurring Aid Notifications',
+    subtitle: 'Track recurring aid that is due now and see the next date it should be repeated.',
+    latest: 'Latest Aid Reminders',
+    emptyTitle: 'No aid reminders found',
+    emptyDescription: 'Recurring aid reminders will appear here once a repeat date becomes due.',
+    dueDate: 'Due date',
+    nextRepeat: 'Next repeat',
+    originalDate: 'Original date',
+  },
+  ar: {
+    page: 'إشعارات المساعدات',
+    title: 'إشعارات المساعدات المتكررة',
+    subtitle: 'تابع المساعدات المتكررة المستحقة الآن واعرف التاريخ التالي الذي يجب فيه تكرارها.',
+    latest: 'أحدث تذكيرات المساعدات',
+    emptyTitle: 'لا توجد تذكيرات مساعدات',
+    emptyDescription: 'ستظهر تذكيرات المساعدات المتكررة هنا عند حلول موعد التكرار.',
+    dueDate: 'موعد الاستحقاق',
+    nextRepeat: 'موعد التكرار التالي',
+    originalDate: 'التاريخ الأصلي',
+  },
+};
+
+function formatDateLabel(value, language) {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function AidReminderCard({ notification, onOpen, t, copy, language }) {
   const detailsCount = Array.isArray(notification?.details) ? notification.details.length : 0;
+  const sourceData = notification?.sourceData || {};
 
   return (
-    <article className="overflow-hidden tttable shadow-card transition-all hover:border-primary/30 hover:shadow-lg">
-      {notification.coverImageUrl ? (
-        <img src={notification.coverImageUrl} alt="" className="h-44 w-full object-cover" />
-      ) : (
-        <div className="h-44 w-full bg-gradient-to-br from-primary/15 via-accent/10 to-surface-alt" />
-      )}
-
+    <article className="overflow-hidden rounded-3xl border border-border bg-surface shadow-card transition-all hover:border-primary/30 hover:shadow-lg">
+      <div className="h-2 bg-gradient-to-r from-primary via-accent to-primary/60" />
       <div className="space-y-4 p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="primary">{localizeNotificationTypeName(notification.type?.name, t)}</Badge>
@@ -50,9 +83,31 @@ function NewsCard({ notification, onOpen, onEdit, canEdit, t }) {
 
         <div>
           <h3 className="text-xl font-bold leading-snug text-heading">{notification.name}</h3>
-          {notification.summary ? (
-            <p className="mt-2 line-clamp-3 text-sm text-muted">{notification.summary}</p>
-          ) : null}
+          {notification.summary ? <p className="mt-2 text-sm text-muted">{notification.summary}</p> : null}
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 rounded-2xl bg-surface-alt/70 p-4 text-sm sm:grid-cols-3">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{copy.originalDate}</p>
+            <div className="flex items-center gap-2 text-heading">
+              <CalendarDays className="h-4 w-4 text-primary" />
+              <span>{formatDateLabel(sourceData.originalDate, language)}</span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{copy.dueDate}</p>
+            <div className="flex items-center gap-2 text-heading">
+              <CalendarClock className="h-4 w-4 text-primary" />
+              <span>{formatDateLabel(sourceData.dueDate || notification.eventDate, language)}</span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{copy.nextRepeat}</p>
+            <div className="flex items-center gap-2 text-heading">
+              <RotateCw className="h-4 w-4 text-primary" />
+              <span>{formatDateLabel(sourceData.nextDueDate, language)}</span>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-3 text-xs text-muted">
@@ -62,89 +117,20 @@ function NewsCard({ notification, onOpen, onEdit, canEdit, t }) {
           <span>{formatDateTime(notification.updatedAt)}</span>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" icon={Eye} onClick={onOpen}>
-            {t('notifications.actions.readFull')}
-          </Button>
-          {canEdit ? (
-            <Button type="button" size="sm" variant="ghost" icon={Pencil} onClick={onEdit}>
-              {t('common.actions.edit')}
-            </Button>
-          ) : null}
-        </div>
+        <Button type="button" size="sm" icon={Eye} onClick={onOpen}>
+          {t('notifications.actions.readFull')}
+        </Button>
       </div>
     </article>
   );
 }
 
-function FeaturedNewsCard({ notification, onOpen, onEdit, canEdit, t, tf }) {
-  const detailsCount = Array.isArray(notification?.details) ? notification.details.length : 0;
+const AID_REMINDER_SOURCE = 'aid_recurring';
 
-  return (
-    <article className="overflow-hidden rounded-3xl border border-border bg-surface shadow-card">
-      <div className="grid grid-cols-1 lg:grid-cols-2">
-        <div className="relative min-h-[260px]">
-          {notification.coverImageUrl ? (
-            <img src={notification.coverImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-accent/15 to-surface-alt" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-black/5" />
-          <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center gap-2">
-            <Badge variant="primary" className='bg-primary text-white'>{localizeNotificationTypeName(notification.type?.name, t)}</Badge>
-            <Badge variant={notification.isActive ? 'success' : 'default'}>
-              {notification.isActive ? t('notifications.status.active') : t('notifications.status.inactive')}
-            </Badge>
-          </div>
-        </div>
-
-        <div className="space-y-4 p-6 lg:p-8">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            {tf('notifications.news.featured', 'Featured News')}
-          </p>
-          <h2 className="text-2xl font-bold leading-tight text-heading">{notification.name}</h2>
-          {notification.summary ? (
-            <p className="line-clamp-4 text-sm text-muted">{notification.summary}</p>
-          ) : null}
-
-          <div className="flex flex-wrap gap-4 text-xs text-muted">
-            <span>
-              <CalendarDays className="mb-0.5 me-1 inline h-3 w-3" />
-              {notification.eventDate ? formatDateTime(notification.eventDate) : formatDateTime(notification.createdAt)}
-            </span>
-            <span>
-              {t('notifications.columns.detailsCount')}: {detailsCount}
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" icon={Eye} onClick={onOpen}>
-              {t('notifications.actions.readFull')}
-            </Button>
-            {canEdit ? (
-              <Button type="button" variant="ghost" icon={Pencil} onClick={onEdit}>
-                {t('common.actions.edit')}
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-export default function NotificationsPage() {
+export default function AidNotificationsPage() {
   const navigate = useNavigate();
-  const { t } = useI18n();
-  const { hasPermission } = useAuth();
-
-  const tf = (key, fallback) => {
-    const value = t(key);
-    return value === key ? fallback : value;
-  };
-
-  const canCreate = hasPermission('NOTIFICATIONS_CREATE');
-  const canEdit = hasPermission('NOTIFICATIONS_UPDATE');
+  const { language, t } = useI18n();
+  const copy = COPY[language === 'ar' ? 'ar' : 'en'];
 
   const [filters, setFilters] = useState({ q: '', typeId: '', isActive: 'all' });
   const [cursor, setCursor] = useState(null);
@@ -177,7 +163,7 @@ export default function NotificationsPage() {
     const params = {
       limit,
       order: 'desc',
-      excludeSourceType: 'aid_recurring',
+      sourceType: AID_REMINDER_SOURCE,
       ...(cursor && { cursor }),
       ...(filters.q.trim() && { q: filters.q.trim() }),
       ...(filters.typeId && { typeId: filters.typeId }),
@@ -190,7 +176,7 @@ export default function NotificationsPage() {
   }, [cursor, filters, limit]);
 
   const { data: listRes, isLoading } = useQuery({
-    queryKey: ['notifications', 'list', listParams],
+    queryKey: ['aid-notifications', listParams],
     queryFn: async () => {
       const { data } = await notificationsApi.list(listParams);
       return data;
@@ -201,10 +187,6 @@ export default function NotificationsPage() {
 
   const notifications = Array.isArray(listRes?.data) ? listRes.data : [];
   const meta = listRes?.meta || null;
-
-  const featuredNotification = notifications[0] || null;
-  const regularNotifications = featuredNotification ? notifications.slice(1) : [];
-
   const hasActiveFilters = Boolean(filters.q || filters.typeId || filters.isActive !== 'all');
 
   const handleNext = () => {
@@ -226,24 +208,17 @@ export default function NotificationsPage() {
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
-          { label: t('notifications.page') },
+          { label: t('dashboardLayout.menu.theLordsBrethren'), href: '/dashboard/lords-brethren' },
+          { label: t('dashboardLayout.menu.disbursedAidHistory'), href: '/dashboard/lords-brethren/aid-history' },
+          { label: copy.page },
         ]}
       />
 
       <PageHeader
-        title={t('notifications.title')}
-        subtitle={tf('notifications.news.subtitle', 'Latest church news, announcements, events, and celebrations.')}
+        title={copy.title}
+        subtitle={copy.subtitle}
         titleClassName="mt-2 lg:text-4xl"
         subtitleClassName="mt-2 text-sm text-muted"
-        actions={(
-          <div className="flex flex-wrap gap-2">
-            {canCreate ? (
-              <Button type="button" icon={Plus} onClick={() => navigate('/dashboard/notifications/new')}>
-                {t('notifications.actions.create')}
-              </Button>
-            ) : null}
-          </div>
-        )}
       />
 
       <section className="space-y-3">
@@ -288,49 +263,51 @@ export default function NotificationsPage() {
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <SectionLabel>{tf('notifications.news.latest', 'Latest News')}</SectionLabel>
+          <SectionLabel>{copy.latest}</SectionLabel>
           {meta?.count != null ? <span className="text-xs text-muted">{meta.count}</span> : null}
         </div>
 
         {isLoading ? (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-64 animate-pulse rounded-2xl border border-border bg-surface-alt" />
+              <div key={index} className="h-56 animate-pulse rounded-2xl border border-border bg-surface-alt" />
             ))}
           </div>
         ) : notifications.length === 0 ? (
           <div className="rounded-2xl border border-border bg-surface p-10 text-center">
-            <h3 className="text-lg font-semibold text-heading">{t('notifications.empty.title')}</h3>
-            <p className="mt-2 text-sm text-muted">{t('notifications.empty.description')}</p>
+            <BellRing className="mx-auto h-8 w-8 text-muted" />
+            <h3 className="mt-4 text-lg font-semibold text-heading">{copy.emptyTitle}</h3>
+            <p className="mt-2 text-sm text-muted">
+              {copy.emptyDescription}
+            </p>
           </div>
         ) : (
-          <>
-            {featuredNotification ? (
-              <FeaturedNewsCard
-                notification={featuredNotification}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {notifications.map((notification) => (
+              <AidReminderCard
+                key={notification.id}
+                notification={notification}
                 t={t}
-                tf={tf}
-                canEdit={canEdit}
-                onOpen={() => navigate(`/dashboard/notifications/${featuredNotification.id}`)}
-                onEdit={() => navigate(`/dashboard/notifications/${featuredNotification.id}/edit`)}
-              />
-            ) : null}
+                copy={copy}
+                language={language}
+                onOpen={() => {
+                  const sourceData = notification?.sourceData || {};
+                  const params = new URLSearchParams({
+                    date: sourceData.originalDate || '',
+                    category: sourceData.category || '',
+                    occurrence: sourceData.occurrence || '',
+                    description: sourceData.description || '',
+                  });
 
-            {regularNotifications.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {regularNotifications.map((notification) => (
-                  <NewsCard
-                    key={notification.id}
-                    notification={notification}
-                    t={t}
-                    canEdit={canEdit}
-                    onOpen={() => navigate(`/dashboard/notifications/${notification.id}`)}
-                    onEdit={() => navigate(`/dashboard/notifications/${notification.id}/edit`)}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </>
+                  if (notification.id) params.set('reminderId', notification.id);
+                  if (sourceData.dueDate) params.set('dueDate', sourceData.dueDate);
+                  if (sourceData.nextDueDate) params.set('nextDueDate', sourceData.nextDueDate);
+
+                  navigate(`/dashboard/lords-brethren/aid-history/details?${params.toString()}`);
+                }}
+              />
+            ))}
+          </div>
         )}
 
         <div className="rounded-2xl border border-border bg-surface px-4 pb-4 pt-3">
@@ -345,7 +322,12 @@ export default function NotificationsPage() {
       </section>
 
       <div className="flex justify-end">
-        <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => navigate('/dashboard')}>
+        <Button
+          type="button"
+          variant="ghost"
+          icon={ArrowRight}
+          onClick={() => navigate('/dashboard/lords-brethren/aid-history')}
+        >
           {t('common.actions.back')}
         </Button>
       </div>
