@@ -21,7 +21,29 @@ import { buildDivineLiturgyAttendanceDateOptions } from './divineLiturgyAttendan
 const EMPTY = '---';
 
 function sortUsersByName(users = []) {
-  return [...users].sort((a, b) => String(a.fullName || '').localeCompare(String(b.fullName || '')));
+  return [...users].sort((a, b) => String(a.fullName || '').localeCompare(String(b.fullName || ''), undefined, {
+    sensitivity: 'base',
+  }));
+}
+
+function getUserInitial(user) {
+  const normalizedName = String(user?.fullName || '').trim();
+  return normalizedName ? normalizedName.charAt(0).toUpperCase() : '#';
+}
+
+function groupUsersByInitial(users = []) {
+  return users.reduce((groups, user) => {
+    const initial = getUserInitial(user);
+    const currentGroup = groups[groups.length - 1];
+
+    if (currentGroup?.initial === initial) {
+      currentGroup.users.push(user);
+      return groups;
+    }
+
+    groups.push({ initial, users: [user] });
+    return groups;
+  }, []);
 }
 
 function UserAttendanceCard({ user, selected = false, onToggle }) {
@@ -38,6 +60,33 @@ function UserAttendanceCard({ user, selected = false, onToggle }) {
     >
       <p className="text-sm font-semibold text-heading">{user.fullName || EMPTY}</p>
     </button>
+  );
+}
+
+function UserAttendanceGroups({ groups = [], selected = false, onToggle }) {
+  return (
+    <div className="space-y-5">
+      {groups.map((group) => (
+        <section key={group.initial} className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/20 bg-primary/8 text-sm font-bold text-primary">
+              {group.initial}
+            </div>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {group.users.map((user) => (
+              <UserAttendanceCard
+                key={user.id}
+                user={user}
+                selected={selected}
+                onToggle={onToggle}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }
 
@@ -135,6 +184,10 @@ export default function DivineLiturgyAttendanceCheckInPage() {
       )),
     [users, selectedUserIdSet, normalizedSearchTerm]
   );
+  const availableUserGroups = useMemo(
+    () => groupUsersByInitial(availableUsers),
+    [availableUsers]
+  );
   const selectedUsers = useMemo(
     () =>
       users.filter((user) => (
@@ -145,6 +198,10 @@ export default function DivineLiturgyAttendanceCheckInPage() {
         )
       )),
     [users, selectedUserIdSet, normalizedSearchTerm]
+  );
+  const selectedUserGroups = useMemo(
+    () => groupUsersByInitial(selectedUsers),
+    [selectedUsers]
   );
 
   const toggleUser = (userId) => {
@@ -347,15 +404,7 @@ export default function DivineLiturgyAttendanceCheckInPage() {
                   {tf('divineLiturgies.attendance.noAvailableUsers', 'No users match the current search or filter.')}
                 </p>
               ) : (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {availableUsers.map((user) => (
-                    <UserAttendanceCard
-                      key={user.id}
-                      user={user}
-                      onToggle={toggleUser}
-                    />
-                  ))}
-                </div>
+                <UserAttendanceGroups groups={availableUserGroups} onToggle={toggleUser} />
               )}
             </Card>
           )}
@@ -375,16 +424,7 @@ export default function DivineLiturgyAttendanceCheckInPage() {
                   {tf('divineLiturgies.attendance.noSelectedUsers', 'No users are checked in for this date yet.')}
                 </p>
               ) : (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {selectedUsers.map((user) => (
-                    <UserAttendanceCard
-                      key={user.id}
-                      user={user}
-                      selected
-                      onToggle={toggleUser}
-                    />
-                  ))}
-                </div>
+                <UserAttendanceGroups groups={selectedUserGroups} selected onToggle={toggleUser} />
               )}
             </Card>
           )}
