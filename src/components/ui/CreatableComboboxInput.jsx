@@ -6,10 +6,23 @@ function normalizeValue(value) {
   return String(value || '').trim();
 }
 
+function normalizeOption(option) {
+  if (option && typeof option === 'object') {
+    const value = normalizeValue(option.value);
+    const label = normalizeValue(option.label || option.value);
+    return value ? { value, label } : null;
+  }
+
+  const value = normalizeValue(option);
+  return value ? { value, label: value } : null;
+}
+
 function normalizeOptions(options = []) {
-  return [...new Set((Array.isArray(options) ? options : [])
-    .map(normalizeValue)
-    .filter(Boolean))];
+  const mappedOptions = (Array.isArray(options) ? options : [])
+    .map(normalizeOption)
+    .filter(Boolean);
+
+  return Array.from(new Map(mappedOptions.map((option) => [option.value.toLowerCase(), option])).values());
 }
 
 export default function CreatableComboboxInput({
@@ -28,14 +41,21 @@ export default function CreatableComboboxInput({
   const { isRTL } = useI18n();
   const [open, setOpen] = useState(false);
   const normalizedOptions = useMemo(() => normalizeOptions(options), [options]);
-  const normalizedValue = normalizeValue(value).toLowerCase();
+  const normalizedInputValue = normalizeValue(value);
+  const normalizedValue = normalizedInputValue.toLowerCase();
   const filteredOptions = useMemo(
     () =>
       normalizedOptions
-        .filter((option) => !normalizedValue || option.toLowerCase().includes(normalizedValue))
+        .filter(
+          (option) =>
+            !normalizedValue ||
+            option.value.toLowerCase().includes(normalizedValue) ||
+            option.label.toLowerCase().includes(normalizedValue)
+        )
         .slice(0, 20),
     [normalizedOptions, normalizedValue],
   );
+  const selectedOption = normalizedOptions.find((option) => option.value.toLowerCase() === normalizedValue);
 
   return (
     <div className={`mb-4 ${containerClassName}`.trim()}>
@@ -56,7 +76,7 @@ export default function CreatableComboboxInput({
         >
           <input
             type="text"
-            value={value}
+            value={selectedOption ? selectedOption.label : value}
             disabled={disabled}
             onChange={(event) => {
               onChange?.(event.target.value);
@@ -82,15 +102,15 @@ export default function CreatableComboboxInput({
             className="absolute z-30 mt-1 max-h-52 w-full overflow-auto rounded-xl border border-border bg-surface py-1 shadow-lg"
           >
             {filteredOptions.map((option) => {
-              const isSelected = option.toLowerCase() === normalizedValue;
+              const isSelected = option.value.toLowerCase() === normalizedValue;
               return (
                 <li
-                  key={option}
+                  key={option.value}
                   role="option"
                   aria-selected={isSelected}
                   onMouseDown={(event) => {
                     event.preventDefault();
-                    onChange?.(option);
+                    onChange?.(option.value);
                     setOpen(false);
                   }}
                   className={`cursor-pointer px-3 py-2 text-sm transition-colors ${
@@ -99,7 +119,7 @@ export default function CreatableComboboxInput({
                       : 'text-heading hover:bg-primary/8 hover:text-primary'
                   }`}
                 >
-                  {option}
+                  {option.label}
                 </li>
               );
             })}

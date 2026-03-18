@@ -26,6 +26,7 @@ import Table from '../../../components/ui/Table';
 import CreatableComboboxInput from '../../../components/ui/CreatableComboboxInput';
 import CreatableTagComboboxInput from '../../../components/ui/CreatableTagComboboxInput';
 import TextArea from '../../../components/ui/TextArea';
+import { localizeAidOccurrence } from '../../../utils/aidOccurrenceLocalization';
 import { getCriterionFilterOptionSets } from '../../../constants/householdClassifications';
 import { formatCurrencyEGP, getStatusText } from './householdClassifications.shared';
 
@@ -170,8 +171,12 @@ export default function LordsBrethrenAidPage() {
   const filterOptions = useMemo(() => getCriterionFilterOptionSets(language), [language]);
   const aidOptions = optionsQuery.data || { categories: [], occurrences: [], descriptions: [] };
   const occurrenceOptions = useMemo(
-    () => [...new Set([...DEFAULT_OCCURRENCE_OPTIONS, ...(aidOptions.occurrences || [])])],
-    [aidOptions.occurrences]
+    () =>
+      [...new Set([...DEFAULT_OCCURRENCE_OPTIONS, ...(aidOptions.occurrences || [])])].map((value) => ({
+        value,
+        label: localizeAidOccurrence(value, language),
+      })),
+    [aidOptions.occurrences, language]
   );
 
   const profileOptionsQuery = useQuery({

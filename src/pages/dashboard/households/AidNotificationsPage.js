@@ -12,6 +12,7 @@ import Badge from '../../../components/ui/Badge';
 import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
+import { localizeAidOccurrence } from '../../../utils/aidOccurrenceLocalization';
 import { formatDateTime } from '../../../utils/formatters';
 import { localizeNotificationTypeName } from '../../../utils/notificationTypeLocalization';
 
@@ -35,6 +36,9 @@ const COPY = {
     dueDate: 'Due date',
     nextRepeat: 'Next repeat',
     originalDate: 'Original date',
+    reminderTitle: 'Aid reminder',
+    reminderSummary: '{category} aid ({occurrence}) is due on {dueDate}. Next repeat: {nextDueDate}.',
+    reminderSummaryNoNext: '{category} aid ({occurrence}) is due on {dueDate}.',
   },
   ar: {
     page: 'إشعارات المساعدات',
@@ -46,6 +50,9 @@ const COPY = {
     dueDate: 'موعد الاستحقاق',
     nextRepeat: 'موعد التكرار التالي',
     originalDate: 'التاريخ الأصلي',
+    reminderTitle: 'تذكير مساعدة',
+    reminderSummary: 'مساعدة {category} ({occurrence}) مستحقة في {dueDate}. موعد التكرار التالي: {nextDueDate}.',
+    reminderSummaryNoNext: 'مساعدة {category} ({occurrence}) مستحقة في {dueDate}.',
   },
 };
 
@@ -62,9 +69,30 @@ function formatDateLabel(value, language) {
   });
 }
 
+function formatTemplate(template, values) {
+  return Object.entries(values).reduce(
+    (result, [key, value]) => result.replaceAll(`{${key}}`, value ?? ''),
+    template
+  );
+}
+
 function AidReminderCard({ notification, onOpen, t, copy, language }) {
   const detailsCount = Array.isArray(notification?.details) ? notification.details.length : 0;
   const sourceData = notification?.sourceData || {};
+  const reminderTitle = sourceData.description
+    ? `${copy.reminderTitle}: ${sourceData.description}`
+    : notification.name;
+  const reminderSummary = sourceData.dueDate
+    ? formatTemplate(
+        sourceData.nextDueDate ? copy.reminderSummary : copy.reminderSummaryNoNext,
+        {
+          category: sourceData.category || '-',
+          occurrence: localizeAidOccurrence(sourceData.occurrence || '-', language),
+          dueDate: formatDateLabel(sourceData.dueDate || notification.eventDate, language),
+          nextDueDate: formatDateLabel(sourceData.nextDueDate, language),
+        }
+      )
+    : notification.summary;
 
   return (
     <article className="overflow-hidden rounded-3xl border border-border bg-surface shadow-card transition-all hover:border-primary/30 hover:shadow-lg">
@@ -82,8 +110,8 @@ function AidReminderCard({ notification, onOpen, t, copy, language }) {
         </div>
 
         <div>
-          <h3 className="text-xl font-bold leading-snug text-heading">{notification.name}</h3>
-          {notification.summary ? <p className="mt-2 text-sm text-muted">{notification.summary}</p> : null}
+          <h3 className="text-xl font-bold leading-snug text-heading">{reminderTitle}</h3>
+          {reminderSummary ? <p className="mt-2 text-sm text-muted">{reminderSummary}</p> : null}
         </div>
 
         <div className="grid grid-cols-1 gap-3 rounded-2xl bg-surface-alt/70 p-4 text-sm sm:grid-cols-3">

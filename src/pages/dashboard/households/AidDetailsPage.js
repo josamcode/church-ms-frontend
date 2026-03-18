@@ -16,6 +16,7 @@ import { aidsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import { useI18n } from '../../../i18n/i18n';
+import { localizeAidOccurrence } from '../../../utils/aidOccurrenceLocalization';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
@@ -223,7 +224,7 @@ export default function AidDetailsPage() {
 
               <div>
                 <p className="mb-1 text-xs font-medium text-muted">{copy.fields.occurrence}</p>
-                <div className="font-medium text-heading">{queryOccurrence || '-'}</div>
+                <div className="font-medium text-heading">{localizeAidOccurrence(queryOccurrence || '-', language)}</div>
               </div>
 
               <div>
