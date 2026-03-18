@@ -49,10 +49,11 @@ apiClient.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
+    const responseCode = error.response?.data?.error?.code;
 
     if (
       error.response?.status === 401 &&
-      error.response?.data?.error?.code === 'AUTH_TOKEN_EXPIRED' &&
+      responseCode === 'AUTH_TOKEN_EXPIRED' &&
       !originalRequest._retry
     ) {
       if (isRefreshing) {
@@ -94,6 +95,14 @@ apiClient.interceptors.response.use(
       } finally {
         isRefreshing = false;
       }
+    }
+
+    if (
+      error.response?.status === 401 &&
+      ['AUTH_TOKEN_BLACKLISTED', 'AUTH_SESSION_INVALIDATED', 'AUTH_REFRESH_TOKEN_INVALID', 'AUTH_TOKEN_INVALID'].includes(responseCode)
+    ) {
+      clearAuth();
+      window.location.href = '/auth/login';
     }
 
     return Promise.reject(error);
