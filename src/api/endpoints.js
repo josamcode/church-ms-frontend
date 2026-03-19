@@ -134,6 +134,30 @@ export const notificationsApi = {
   },
 };
 
+export const bookingsApi = {
+  public: {
+    listTypes: () => apiClient.get('/bookings/public/types'),
+    getSlots: (id, params) => apiClient.get(`/bookings/public/types/${id}/slots`, { params }),
+    create: (data) => apiClient.post('/bookings/public', data),
+    uploadImage: (file) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      return apiClient.post('/bookings/public/upload-image', formData);
+    },
+  },
+  self: {
+    list: (params) => apiClient.get('/bookings/mine', { params }),
+  },
+  admin: {
+    listTypes: () => apiClient.get('/bookings/types'),
+    createType: (data) => apiClient.post('/bookings/types', data),
+    updateType: (id, data) => apiClient.patch(`/bookings/types/${id}`, data),
+    list: (params) => apiClient.get('/bookings', { params }),
+    getById: (id) => apiClient.get(`/bookings/${id}`),
+    update: (id, data) => apiClient.patch(`/bookings/${id}`, data),
+  },
+};
+
 export const meetingsApi = {
   sectors: {
     list: (params) => apiClient.get('/meetings/sectors', { params }),

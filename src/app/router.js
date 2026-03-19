@@ -17,6 +17,7 @@ const Lazy = ({ children }) => <Suspense fallback={<PageLoader />}>{children}</S
 
 /* Lazy-loaded pages */
 const LandingPage = lazy(() => import('../pages/public/LandingPage'));
+const BookingPublicPage = lazy(() => import('../pages/public/BookingPublicPage'));
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
 const DashboardHome = lazy(() => import('../pages/dashboard/DashboardHome'));
 const ProfilePage = lazy(() => import('../pages/dashboard/ProfilePage'));
@@ -65,6 +66,10 @@ const DivineLiturgyAttendanceCheckInPage = lazy(() =>
 const NotificationsPage = lazy(() => import('../pages/dashboard/notifications/NotificationsPage'));
 const NotificationFormPage = lazy(() => import('../pages/dashboard/notifications/NotificationFormPage'));
 const NotificationDetailsPage = lazy(() => import('../pages/dashboard/notifications/NotificationDetailsPage'));
+const BookingsIndexPage = lazy(() => import('../pages/dashboard/bookings/BookingsIndexPage'));
+const BookingsRequestsPage = lazy(() => import('../pages/dashboard/bookings/BookingsRequestsPage'));
+const BookingTypesPage = lazy(() => import('../pages/dashboard/bookings/BookingTypesPage'));
+const MyBookingsPage = lazy(() => import('../pages/dashboard/bookings/MyBookingsPage'));
 const MeetingsDashboardPage = lazy(() => import('../pages/dashboard/meetings/MeetingsDashboardPage'));
 const SectorsManagementPage = lazy(() => import('../pages/dashboard/meetings/SectorsManagementPage'));
 const MeetingsManagementPage = lazy(() => import('../pages/dashboard/meetings/MeetingsManagementPage'));
@@ -90,6 +95,8 @@ const router = createBrowserRouter([
     element: <PublicLayout />,
     children: [
       { index: true, element: <Lazy><LandingPage /></Lazy> },
+      { path: 'bookings', element: <Lazy><BookingPublicPage /></Lazy> },
+      { path: 'bookings/new', element: <Lazy><BookingPublicPage /></Lazy> },
     ],
   },
 
@@ -391,6 +398,47 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['NOTIFICATIONS_VIEW']}>
             <Lazy><NotificationDetailsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'bookings',
+        element: (
+          <PermissionGuard
+            required={['BOOKINGS_VIEW_OWN', 'BOOKINGS_VIEW', 'BOOKINGS_MANAGE', 'BOOKINGS_TYPES_MANAGE']}
+            mode="any"
+          >
+            <Lazy><BookingsIndexPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'bookings/requests',
+        element: (
+          <PermissionGuard
+            required={['BOOKINGS_VIEW', 'BOOKINGS_MANAGE']}
+            mode="any"
+          >
+            <Lazy><BookingsRequestsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'bookings/types',
+        element: (
+          <PermissionGuard required={['BOOKINGS_TYPES_MANAGE']}>
+            <Lazy><BookingTypesPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'bookings/mine',
+        element: (
+          <PermissionGuard
+            required={['BOOKINGS_VIEW_OWN', 'BOOKINGS_VIEW', 'BOOKINGS_MANAGE']}
+            mode="any"
+          >
+            <Lazy><MyBookingsPage /></Lazy>
           </PermissionGuard>
         ),
       },

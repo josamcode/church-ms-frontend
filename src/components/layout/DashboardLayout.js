@@ -21,6 +21,7 @@ import {
   Layers3,
   Settings2,
   X,
+  CalendarClock,
 } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
 import Tooltip from '../ui/Tooltip';
@@ -332,6 +333,43 @@ export default function DashboardLayout() {
         matchChildren: true,
       },
       children: [],
+    },
+    {
+      key: 'bookings',
+      sectionLabel: tf('dashboardLayout.section.bookings', 'Bookings'),
+      parent: {
+        label: tf('dashboardLayout.menu.bookings', 'Bookings'),
+        href: '/dashboard/bookings',
+        icon: CalendarClock,
+        permission: ['BOOKINGS_VIEW_OWN', 'BOOKINGS_VIEW', 'BOOKINGS_MANAGE', 'BOOKINGS_TYPES_MANAGE'],
+        matchChildren: true,
+      },
+      children: [
+        {
+          key: 'bookings-requests',
+          label: tf('dashboardLayout.menu.bookingRequests', 'Booking requests'),
+          href: '/dashboard/bookings/requests',
+          icon: CalendarClock,
+          permission: ['BOOKINGS_VIEW', 'BOOKINGS_MANAGE'],
+          matchChildren: false,
+        },
+        {
+          key: 'booking-types',
+          label: tf('dashboardLayout.menu.bookingTypes', 'Booking types'),
+          href: '/dashboard/bookings/types',
+          icon: Settings2,
+          permission: 'BOOKINGS_TYPES_MANAGE',
+          matchChildren: false,
+        },
+        {
+          key: 'my-bookings',
+          label: tf('dashboardLayout.menu.myBookings', 'My bookings'),
+          href: '/dashboard/bookings/mine',
+          icon: CalendarCheck2,
+          permission: ['BOOKINGS_VIEW_OWN', 'BOOKINGS_VIEW', 'BOOKINGS_MANAGE'],
+          matchChildren: false,
+        },
+      ],
     },
     {
       key: 'meetings',

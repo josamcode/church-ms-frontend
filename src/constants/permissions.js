@@ -55,6 +55,10 @@ export const PERMISSIONS = [
   'NOTIFICATIONS_CREATE',
   'NOTIFICATIONS_UPDATE',
   'NOTIFICATIONS_TYPES_MANAGE',
+  'BOOKINGS_VIEW_OWN',
+  'BOOKINGS_VIEW',
+  'BOOKINGS_MANAGE',
+  'BOOKINGS_TYPES_MANAGE',
 ];
 
 export const ROLE_PERMISSIONS = {
@@ -110,6 +114,10 @@ export const ROLE_PERMISSIONS = {
     'NOTIFICATIONS_CREATE',
     'NOTIFICATIONS_UPDATE',
     'NOTIFICATIONS_TYPES_MANAGE',
+    'BOOKINGS_VIEW_OWN',
+    'BOOKINGS_VIEW',
+    'BOOKINGS_MANAGE',
+    'BOOKINGS_TYPES_MANAGE',
   ],
   USER: [
     'AUTH_VIEW_SELF',
@@ -123,6 +131,7 @@ export const ROLE_PERMISSIONS = {
     'MEETINGS_DOCUMENTATION_MANAGE',
     'MEETINGS_MEMBERS_NOTES_UPDATE',
     'DIVINE_LITURGIES_VIEW',
+    'BOOKINGS_VIEW_OWN',
     'NOTIFICATIONS_VIEW',
   ],
 };
@@ -184,6 +193,10 @@ export const PERMISSION_LABELS = {
   NOTIFICATIONS_CREATE: 'Create notifications',
   NOTIFICATIONS_UPDATE: 'Update notifications',
   NOTIFICATIONS_TYPES_MANAGE: 'Manage notification types',
+  BOOKINGS_VIEW_OWN: 'View own bookings',
+  BOOKINGS_VIEW: 'View bookings',
+  BOOKINGS_MANAGE: 'Manage bookings',
+  BOOKINGS_TYPES_MANAGE: 'Manage booking types',
 };
 
 export const PERMISSION_GROUPS = [
@@ -283,6 +296,16 @@ export const PERMISSION_GROUPS = [
       'NOTIFICATIONS_CREATE',
       'NOTIFICATIONS_UPDATE',
       'NOTIFICATIONS_TYPES_MANAGE',
+    ],
+  },
+  {
+    id: 'bookings',
+    label: 'Bookings',
+    permissions: [
+      'BOOKINGS_VIEW_OWN',
+      'BOOKINGS_VIEW',
+      'BOOKINGS_MANAGE',
+      'BOOKINGS_TYPES_MANAGE',
     ],
   },
 ];
