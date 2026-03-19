@@ -805,9 +805,18 @@ export function buildUsersExplorerAnalytics(totalUsers = [], filteredUsers = [])
 }
 
 export function countActiveUsersExplorerFilters(filters = DEFAULT_USERS_EXPLORER_FILTERS) {
-  return Object.entries(filters).reduce((count, [, value]) => {
-    if (Array.isArray(value)) return count + (value.length > 0 ? 1 : 0);
-    return count + (String(value || '').trim() ? 1 : 0);
+  return Object.entries(DEFAULT_USERS_EXPLORER_FILTERS).reduce((count, [key, defaultValue]) => {
+    const value = filters?.[key];
+
+    if (Array.isArray(defaultValue)) {
+      return count + (Array.isArray(value) && value.length > 0 ? 1 : 0);
+    }
+
+    if (typeof defaultValue === 'string') {
+      return count + (String(value ?? '').trim() !== String(defaultValue).trim() ? 1 : 0);
+    }
+
+    return count + (value !== defaultValue ? 1 : 0);
   }, 0);
 }
 

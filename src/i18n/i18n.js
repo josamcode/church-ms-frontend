@@ -36,8 +36,7 @@ export function getStoredLanguage() {
   if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
   const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
   if (stored) return normalizeLanguage(stored);
-  const browserLanguage = window.navigator?.language || DEFAULT_LANGUAGE;
-  return normalizeLanguage(browserLanguage);
+  return DEFAULT_LANGUAGE;
 }
 
 export function applyDocumentLanguage(language) {

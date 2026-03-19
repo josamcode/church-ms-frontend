@@ -472,6 +472,33 @@ export const translations = {
         averageIncomeValue: '{value} EGP',
         averageIncomeHint: 'Only users with monthly income data',
       },
+      overview: {
+        title: 'Focused explorer',
+        subtitle: 'Start with a few high-signal fields, then open the side workspace for deeper filtering without overwhelming the page.',
+        pending: 'Refreshing results',
+        activeFilters: 'Active filters',
+        noActiveFilters: 'No filters applied yet.',
+        moreFilters: '+{count} more',
+      },
+      workspace: {
+        title: 'Filter workspace',
+        subtitle: 'Show one advanced filter group at a time so the directory stays readable.',
+        tabs: {
+          search: 'Search',
+          household: 'Household',
+          profile: 'Profile',
+          system: 'System',
+        },
+      },
+      support: {
+        title: 'Explorer panels',
+        subtitle: 'Keep summaries, presets, and insights nearby without crowding the table.',
+        tabs: {
+          summary: 'Summary',
+          presets: 'Presets',
+          insights: 'Insights',
+        },
+      },
       sections: {
         globalQuery: {
           title: 'Global query',
