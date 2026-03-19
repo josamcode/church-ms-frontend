@@ -363,25 +363,20 @@ export default function DashboardLayout() {
       children: [],
     },
     {
-      key: 'bookings',
+      // key: 'bookings',
+      key: 'bookings-requests',
       sectionLabel: tf('dashboardLayout.section.bookings', 'Bookings'),
       parent: {
-        label: tf('dashboardLayout.menu.bookings', 'Bookings'),
-        href: '/dashboard/bookings',
+        // label: tf('dashboardLayout.menu.bookings', 'Bookings'),
+        // href: '/dashboard/bookings',
+        label: tf('dashboardLayout.menu.bookingRequests', 'Booking requests'),
+        href: '/dashboard/bookings/requests',
+        badge: pendingBookingsBadge,
         icon: CalendarClock,
-        permission: ['BOOKINGS_VIEW_OWN', 'BOOKINGS_VIEW', 'BOOKINGS_MANAGE', 'BOOKINGS_TYPES_MANAGE'],
+        permission: ['BOOKINGS_VIEW', 'BOOKINGS_MANAGE', 'BOOKINGS_TYPES_MANAGE'],
         matchChildren: true,
       },
       children: [
-        {
-          key: 'bookings-requests',
-          label: tf('dashboardLayout.menu.bookingRequests', 'Booking requests'),
-          href: '/dashboard/bookings/requests',
-          icon: CalendarClock,
-          badge: pendingBookingsBadge,
-          permission: ['BOOKINGS_VIEW', 'BOOKINGS_MANAGE'],
-          matchChildren: false,
-        },
         {
           key: 'booking-types',
           label: tf('dashboardLayout.menu.bookingTypes', 'Booking types'),
