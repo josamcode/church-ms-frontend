@@ -279,12 +279,18 @@ export default function ConfessionSessionCreatePage() {
   const createSessionMutation = useMutation({
     mutationFn: (payload) => confessionsApi.createSession(payload),
     onSuccess: () => {
+      const attendeeId =
+        selectedAttendee?._id || selectedAttendee?.id || user?._id || user?.id || null;
       toast.success(t('confessions.sessions.successCreated'));
       setForm((prev) => ({ ...prev, scheduledAt: toDateTimeInputValue(), nextSessionAt: '', notes: '' }));
       if (canAssign) setSelectedAttendee(null);
       queryClient.invalidateQueries({ queryKey: ['confessions', 'sessions'] });
       queryClient.invalidateQueries({ queryKey: ['confessions', 'alerts'] });
       queryClient.invalidateQueries({ queryKey: ['confessions', 'analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      if (attendeeId) {
+        queryClient.invalidateQueries({ queryKey: ['users', attendeeId] });
+      }
     },
     onError: (err) => toast.error(normalizeApiError(err).message),
   });

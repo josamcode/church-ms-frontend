@@ -20,6 +20,7 @@ const LandingPage = lazy(() => import('../pages/public/LandingPage'));
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
 const DashboardHome = lazy(() => import('../pages/dashboard/DashboardHome'));
 const ProfilePage = lazy(() => import('../pages/dashboard/ProfilePage'));
+const AccountSettingsPage = lazy(() => import('../pages/dashboard/settings/AccountSettingsPage'));
 const UsersListPage = lazy(() => import('../pages/dashboard/users/UsersListPage'));
 const UsersExplorerPage = lazy(() => import('../pages/dashboard/users/UsersExplorerPage'));
 const FamilyHouseAnalyticsPage = lazy(() => import('../pages/dashboard/users/FamilyHouseAnalyticsPage'));
@@ -79,6 +80,7 @@ const MeetingSettingsPage = lazy(() => import('../pages/dashboard/meetings/Meeti
 const MeetingMemberDetailsPage = lazy(() => import('../pages/dashboard/meetings/MeetingMemberDetailsPage'));
 const SectorFormPage = lazy(() => import('../pages/dashboard/meetings/SectorFormPage'));
 const MeetingFormPage = lazy(() => import('../pages/dashboard/meetings/MeetingFormPage'));
+const LandingContentPage = lazy(() => import('../pages/dashboard/publicSite/LandingContentPage'));
 const UnderDevelopmentPage = lazy(() => import('../pages/shared/UnderDevelopmentPage'));
 const NotFoundPage = lazy(() => import('../pages/shared/NotFoundPage'));
 
@@ -110,6 +112,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['AUTH_VIEW_SELF']}>
             <Lazy><ProfilePage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'settings/account',
+        element: (
+          <PermissionGuard required={['AUTH_VIEW_SELF']}>
+            <Lazy><AccountSettingsPage /></Lazy>
           </PermissionGuard>
         ),
       },
@@ -341,6 +351,14 @@ const router = createBrowserRouter([
             mode="any"
           >
             <Lazy><DivineLiturgyAttendanceCheckInPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'public-site/landing',
+        element: (
+          <PermissionGuard required={['LANDING_CONTENT_MANAGE']}>
+            <Lazy><LandingContentPage /></Lazy>
           </PermissionGuard>
         ),
       },

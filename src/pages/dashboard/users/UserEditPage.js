@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { usersApi } from '../../../api/endpoints';
+import { divineLiturgiesApi, usersApi } from '../../../api/endpoints';
 import { normalizeApiError, mapFieldErrors } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import {
@@ -496,6 +496,51 @@ export default function UserEditPage() {
   });
   const houseNames = Array.isArray(houseNamesRes) ? houseNamesRes : [];
 
+  const { data: divineLiturgiesOverview } = useQuery({
+    queryKey: ['divine-liturgies', 'overview', 'spiritual-father-options'],
+    queryFn: async () => {
+      const { data } = await divineLiturgiesApi.getOverview();
+      return data?.data || null;
+    },
+    staleTime: 60000,
+  });
+  const churchPriests = useMemo(
+    () =>
+      Array.isArray(divineLiturgiesOverview?.churchPriests)
+        ? divineLiturgiesOverview.churchPriests
+        : [],
+    [divineLiturgiesOverview]
+  );
+  const churchPriestLookup = useMemo(
+    () =>
+      new Map(
+        churchPriests
+          .map((entry) => entry?.user)
+          .filter((entry) => entry?.id)
+          .map((entry) => [
+            entry.id,
+            { _id: entry.id, fullName: entry.fullName || '', phonePrimary: entry.phonePrimary || '' },
+          ])
+      ),
+    [churchPriests]
+  );
+  const churchPriestOptions = useMemo(
+    () => [
+      {
+        value: '',
+        label: language === 'ar' ? 'بدون أب روحي' : 'No Spiritual Father',
+      },
+      ...churchPriests
+        .map((entry) => entry?.user)
+        .filter((entry) => entry?.id && entry?.fullName)
+        .map((entry) => ({
+          value: entry.id,
+          label: entry.fullName,
+        })),
+    ],
+    [churchPriests, language]
+  );
+
   const { data: relationRolesRes } = useQuery({
     queryKey: ['users', 'relation-roles'],
     queryFn: async () => { const { data } = await usersApi.getRelationRoles(); return data?.data ?? data ?? []; },
@@ -600,6 +645,13 @@ export default function UserEditPage() {
         whatsappNumber: user.whatsappNumber || '',
         familyName: user.familyName || '',
         houseName: user.houseName || '',
+        confessionFather:
+          user.confessionFatherUserId || user.confessionFatherName
+            ? {
+                _id: user.confessionFatherUserId || null,
+                fullName: user.confessionFatherName || '',
+              }
+            : null,
         role: user.role || 'USER',
         hasLogin: Boolean(user.hasLogin),
         password: '',
@@ -760,6 +812,17 @@ export default function UserEditPage() {
     if (form.whatsappNumber !== (user.whatsappNumber || '')) payload.whatsappNumber = form.whatsappNumber;
     if (form.familyName !== (user.familyName || '')) payload.familyName = form.familyName;
     if (form.houseName !== (user.houseName || '')) payload.houseName = form.houseName;
+    const nextConfessionFatherId = form.confessionFather?._id || form.confessionFather?.id || null;
+    const currentConfessionFatherId = user.confessionFatherUserId || null;
+    const nextConfessionFatherName = form.confessionFather?.fullName || '';
+    const currentConfessionFatherName = user.confessionFatherName || '';
+    if (
+      nextConfessionFatherId !== currentConfessionFatherId ||
+      nextConfessionFatherName !== currentConfessionFatherName
+    ) {
+      payload.confessionFatherUserId = nextConfessionFatherId;
+      payload.confessionFatherName = nextConfessionFatherName || null;
+    }
     if (form.role !== user.role) payload.role = form.role;
     if (form.hasLogin !== Boolean(user.hasLogin)) payload.hasLogin = Boolean(form.hasLogin);
     if (form.hasLogin && (form.password || '').trim()) payload.password = form.password.trim();
@@ -979,6 +1042,16 @@ export default function UserEditPage() {
                 <NameCombobox label="اسم العائلة" value={form.familyName} onChange={(v) => update('familyName', v)} options={familyNames} placeholder="ابحث أو اكتب اسم العائلة" />
                 <NameCombobox label="اسم البيت" value={form.houseName} onChange={(v) => update('houseName', v)} options={houseNames} placeholder="ابحث أو اكتب اسم البيت" />
                 <Select label="الدور" options={roleOptionsForEditor} value={form.role} onChange={(e) => update('role', e.target.value)} containerClassName="!mb-0" />
+                <Select
+                  label={language === 'ar' ? 'الأب الروحي' : 'Spiritual Father'}
+                  value={form.confessionFather?._id || form.confessionFather?.id || ''}
+                  onChange={(event) =>
+                    update('confessionFather', churchPriestLookup.get(event.target.value) || null)
+                  }
+                  options={churchPriestOptions}
+                  placeholder={language === 'ar' ? 'اختر الأب الروحي' : 'Select Spiritual Father'}
+                  containerClassName="!mb-0"
+                />
                 <Input
                   label="كلمة المرور"
                   type="password"

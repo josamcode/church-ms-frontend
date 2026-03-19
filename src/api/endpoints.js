@@ -8,6 +8,7 @@ export const authApi = {
   refresh: (refreshToken) => apiClient.post('/auth/refresh', { refreshToken }),
   logout: (refreshToken) => apiClient.post('/auth/logout', { refreshToken }),
   me: () => apiClient.get('/auth/me'),
+  updateMySettings: (data) => apiClient.patch('/auth/me/settings', data),
   changePassword: (data) => apiClient.post('/auth/change-password', data),
 };
 
@@ -105,6 +106,18 @@ export const divineLiturgiesApi = {
   updateException: (id, data) => apiClient.patch(`/divine-liturgies/exceptions/${id}`, data),
   deleteException: (id) => apiClient.delete(`/divine-liturgies/exceptions/${id}`),
   setChurchPriests: (priestUserIds) => apiClient.put('/divine-liturgies/priests', { priestUserIds }),
+};
+
+export const landingContentApi = {
+  getPublic: () => apiClient.get('/landing-content/public'),
+  getManage: () => apiClient.get('/landing-content/manage'),
+  update: (data) => apiClient.put('/landing-content/manage', data),
+  uploadHeroImage: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return apiClient.post('/landing-content/hero-image', formData);
+  },
+  deleteHeroImage: () => apiClient.delete('/landing-content/hero-image'),
 };
 
 export const notificationsApi = {

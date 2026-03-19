@@ -10,6 +10,45 @@ import {
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import { useI18n } from '../../i18n/i18n';
+import { useLandingPublicContent } from '../../hooks/useLandingContent';
+import { getLocalizedValue } from '../../utils/landingContent';
+
+const DEFAULT_DIRECTIONS_URL = 'https://maps.app.goo.gl/g24SscQHQKMYSq6M9';
+
+const SOCIAL_META = {
+  facebook: {
+    icon: Facebook,
+    color: '#1877F2',
+    bgFrom: 'rgba(24,119,242,0.1)',
+    bgTo: 'rgba(24,119,242,0.04)',
+    border: 'rgba(24,119,242,0.2)',
+  },
+  instagram: {
+    icon: Instagram,
+    color: '#E1306C',
+    bgFrom: 'rgba(225,48,108,0.1)',
+    bgTo: 'rgba(225,48,108,0.04)',
+    border: 'rgba(225,48,108,0.2)',
+  },
+  youtube: {
+    icon: Youtube,
+    color: '#FF0000',
+    bgFrom: 'rgba(255,0,0,0.1)',
+    bgTo: 'rgba(255,0,0,0.04)',
+    border: 'rgba(255,0,0,0.18)',
+  },
+  twitter: {
+    icon: Twitter,
+    color: '#111',
+    bgFrom: 'rgba(0,0,0,0.07)',
+    bgTo: 'rgba(0,0,0,0.02)',
+    border: 'rgba(100,100,100,0.15)',
+  },
+};
+
+function buildDefaultMapEmbedUrl(placeName) {
+  return `https://maps.google.com/maps?ll=28.3705542%2C30.6619377&q=${encodeURIComponent(placeName)}&z=18&t=k&output=embed`;
+}
 
 /* ════════════════════════════════
    HOOKS
@@ -246,7 +285,7 @@ function PriestMiniCard({ priest, isRTL, isCenter }) {
 /* ══════════════════════════════════════════════════════
    MOBILE MORE MENU (sheet from bottom, triggered by tab)
    ══════════════════════════════════════════════════════ */
-function MobileMoreSheet({ open, onClose, isRTL, toggleLanguage }) {
+function MobileMoreSheet({ open, onClose, isRTL, toggleLanguage, t }) {
   const items = [
     {
       icon: LogIn,
@@ -261,6 +300,18 @@ function MobileMoreSheet({ open, onClose, isRTL, toggleLanguage }) {
       desc: isRTL ? 'Switch to English' : 'التبديل إلى العربية',
       action: toggleLanguage,
       accent: 'bg-secondary/10 text-primary',
+    },
+  ];
+  const translatedItems = [
+    {
+      ...items[0],
+      label: t('landing.mobile.moreSheet.loginLabel'),
+      desc: t('landing.mobile.moreSheet.loginDescription'),
+    },
+    {
+      ...items[1],
+      label: t('landing.mobile.moreSheet.languageLabel'),
+      desc: t('landing.mobile.moreSheet.languageDescription'),
     },
   ];
 
@@ -286,14 +337,14 @@ function MobileMoreSheet({ open, onClose, isRTL, toggleLanguage }) {
         </div>
         {/* Title */}
         <div className={`px-5 pt-2 pb-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <h3 className="text-base font-black text-heading">{isRTL ? 'المزيد' : 'More'}</h3>
+          <h3 className="text-base font-black text-heading">{t('landing.mobile.moreSheet.title')}</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-page flex items-center justify-center" style={{ WebkitTapHighlightColor: 'transparent' }}>
             <X className="h-4 w-4 text-muted" />
           </button>
         </div>
         {/* Items */}
         <div className="px-4 pb-4 space-y-2.5" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-          {items.map((item, i) => (
+          {translatedItems.map((item, i) => (
             item.to ? (
               <Link key={i} to={item.to} onClick={onClose}>
                 <div className={`flex items-center gap-4 p-4 rounded-2xl bg-page border border-border active:scale-[0.98] transition-transform ${isRTL ? 'flex-row-reverse text-right' : ''}`} style={{ WebkitTapHighlightColor: 'transparent' }}>
@@ -334,15 +385,16 @@ function MobileSectionLabel({ label, isRTL }) {
 /* ══════════════════════════════════════════════════════
    MOBILE HOME SCREEN
    ══════════════════════════════════════════════════════ */
-function MobileHomeScreen({ t, isRTL, priests, stats, verses, getOptional }) {
+function MobileHomeScreen({ t, isRTL, priests, stats, verses, heroImageSrc, quickActionsData }) {
   const [statsRef, statsInView] = useInView(0.1);
 
   const quickActions = [
-    { icon: MapPin, label: isRTL ? 'الموقع' : 'Location', color: 'text-blue-600', bg: 'bg-blue-500/10', href: '#' },
-    { icon: Phone, label: isRTL ? 'اتصل' : 'Call', color: 'text-emerald-600', bg: 'bg-emerald-500/10', href: 'tel:+' },
-    { icon: Mail, label: isRTL ? 'راسلنا' : 'Email', color: 'text-amber-600', bg: 'bg-amber-500/10', href: 'mailto:' },
-    { icon: Clock3, label: isRTL ? 'المواعيد' : 'Hours', color: 'text-rose-600', bg: 'bg-rose-500/10', href: '#' },
+    { icon: MapPin, label: t('landing.mobile.quickActions.location'), color: 'text-blue-600', bg: 'bg-blue-500/10', href: '#' },
+    { icon: Phone, label: t('landing.mobile.quickActions.call'), color: 'text-emerald-600', bg: 'bg-emerald-500/10', href: 'tel:+' },
+    { icon: Mail, label: t('landing.mobile.quickActions.email'), color: 'text-amber-600', bg: 'bg-amber-500/10', href: 'mailto:' },
+    { icon: Clock3, label: t('landing.mobile.quickActions.hours'), color: 'text-rose-600', bg: 'bg-rose-500/10', href: '#' },
   ];
+  const renderedQuickActions = quickActionsData || quickActions;
 
   const lifeItems = [
     { icon: ShieldCheck, title: t('landing.life.items.one.title'), desc: t('landing.life.items.one.description'), gradient: 'from-blue-500 to-indigo-600', num: '01' },
@@ -355,7 +407,7 @@ function MobileHomeScreen({ t, isRTL, priests, stats, verses, getOptional }) {
       {/* ── Church hero banner ── */}
       <div className="relative mx-3 mt-3 rounded-[1.5rem] overflow-hidden" style={{ height: 220 }}>
         <img
-          src={getOptional('landing.hero.churchImage') || '/images/church.webp'}
+          src={heroImageSrc || '/images/church.webp'}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
           onError={(e) => { e.target.style.display = 'none'; }}
@@ -372,24 +424,51 @@ function MobileHomeScreen({ t, isRTL, priests, stats, verses, getOptional }) {
             {t('landing.hero.title')}{' '}
             <span className="text-white/65">{t('landing.hero.highlight')}</span>
           </h1>
+          <p className="mt-2 text-[11px] leading-relaxed text-white/80">
+            {t('landing.hero.description')}
+          </p>
         </div>
       </div>
 
       {/* ── Quick action grid — full width 2×2 ── */}
       <div className="px-3 mt-3 grid grid-cols-4 gap-2">
-        {quickActions.map((a, i) => (
-          <a
-            key={i}
-            href={a.href}
-            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl ${a.bg} active:scale-95 transition-transform`}
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            <div className={`w-8 h-8 rounded-xl bg-white/60 dark:bg-surface/60 flex items-center justify-center ${a.color}`}>
-              <a.icon className="h-4 w-4" />
-            </div>
-            <span className={`text-[10px] font-bold ${a.color}`}>{a.label}</span>
-          </a>
-        ))}
+        {renderedQuickActions.map((action, index) => {
+          const content = (
+            <>
+              <div className={`w-8 h-8 rounded-xl bg-white/60 dark:bg-surface/60 flex items-center justify-center ${action.color}`}>
+                <action.icon className="h-4 w-4" />
+              </div>
+              <span className={`text-[10px] font-bold ${action.color}`}>{action.label}</span>
+            </>
+          );
+
+          if (typeof action.onClick === 'function') {
+            return (
+              <button
+                key={index}
+                type="button"
+                onClick={action.onClick}
+                className={`flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl ${action.bg} active:scale-95 transition-transform`}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                {content}
+              </button>
+            );
+          }
+
+          return (
+            <a
+              key={index}
+              href={action.href}
+              target={action.external ? '_blank' : undefined}
+              rel={action.external ? 'noopener noreferrer' : undefined}
+              className={`flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl ${action.bg} active:scale-95 transition-transform`}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              {content}
+            </a>
+          );
+        })}
       </div>
 
       {/* ── Stats — clean 2×2 cards, no internal dividers ── */}
@@ -523,8 +602,9 @@ function MobileAboutScreen({ t, isRTL }) {
 /* ══════════════════════════════════════════════════════
    MOBILE VISIT SCREEN
    ══════════════════════════════════════════════════════ */
-function MobileVisitScreen({ t, isRTL, contacts, churchPlaceName, churchPlusCode, churchAddressLine, locationMapEmbedUrl, directionsUrl, verses }) {
+function MobileVisitScreen({ t, isRTL, contacts, churchPlaceName, churchPlusCode, churchAddressLine, locationMapEmbedUrl, directionsUrl, verses, locationDirectionsLabel }) {
   const ta = isRTL ? 'text-right' : 'text-left';
+  const managedLocationMetaLine = [churchPlusCode, churchAddressLine].filter(Boolean).join(' | ');
   return (
     <div className="pb-28">
       <div className={`px-5 pt-0 pb-3 ${ta}`}>
@@ -535,15 +615,17 @@ function MobileVisitScreen({ t, isRTL, contacts, churchPlaceName, churchPlusCode
         {/* Map */}
         <div className="rounded-2xl overflow-hidden border border-border bg-surface">
           <div className="h-52 relative">
-            <iframe title="Church Location" src={locationMapEmbedUrl} className="h-full w-full border-0" loading="lazy" allowFullScreen referrerPolicy="no-referrer-when-downgrade" />
+            <iframe title={t('landing.location.title')} src={locationMapEmbedUrl} className="h-full w-full border-0" loading="lazy" allowFullScreen referrerPolicy="no-referrer-when-downgrade" />
           </div>
           <div className={`p-4 border-t border-border ${ta}`}>
             <p className="text-xs font-extrabold text-heading">{churchPlaceName}</p>
-            <p className="text-[10px] text-muted mt-0.5">{churchPlusCode} · {churchAddressLine}</p>
+            {managedLocationMetaLine ? (
+              <p className="text-[10px] text-muted mt-0.5">{managedLocationMetaLine}</p>
+            ) : null}
             <a href={directionsUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block">
               <button className="w-full bg-primary text-white text-xs font-bold rounded-xl py-2.5 flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-lg shadow-primary/20" style={{ WebkitTapHighlightColor: 'transparent' }}>
                 <ExternalLink className="h-3.5 w-3.5" />
-                {isRTL ? 'احصل على الاتجاهات' : 'Get Directions'}
+                {locationDirectionsLabel}
               </button>
             </a>
           </div>
@@ -578,20 +660,43 @@ function MobileVisitScreen({ t, isRTL, contacts, churchPlaceName, churchPlusCode
 /* ══════════════════════════════════════════════════════
    MOBILE SOCIAL SCREEN
    ══════════════════════════════════════════════════════ */
-function MobileSocialScreen({ t, isRTL }) {
+function MobileSocialScreen({ t, isRTL, socialLinks = [] }) {
   const ta = isRTL ? 'text-right' : 'text-left';
-  const socials = [
-    { icon: Facebook, name: 'Facebook', handle: '@churchmichael', color: '#1877F2', bgFrom: 'rgba(24,119,242,0.1)', bgTo: 'rgba(24,119,242,0.04)', border: 'rgba(24,119,242,0.2)', url: '#', desc: isRTL ? 'تابعنا على فيسبوك' : 'Follow us on Facebook' },
-    { icon: Instagram, name: 'Instagram', handle: '@church.michael', color: '#E1306C', bgFrom: 'rgba(225,48,108,0.1)', bgTo: 'rgba(225,48,108,0.04)', border: 'rgba(225,48,108,0.2)', url: '#', desc: isRTL ? 'صورنا وأنشطتنا' : 'Our photos & activities' },
-    { icon: Youtube, name: 'YouTube', handle: 'Church Michael', color: '#FF0000', bgFrom: 'rgba(255,0,0,0.1)', bgTo: 'rgba(255,0,0,0.04)', border: 'rgba(255,0,0,0.18)', url: '#', desc: isRTL ? 'قداسات مباشرة' : 'Live liturgies & sermons' },
-    { icon: Twitter, name: 'X / Twitter', handle: '@churchmichael', color: '#111', bgFrom: 'rgba(0,0,0,0.07)', bgTo: 'rgba(0,0,0,0.02)', border: 'rgba(100,100,100,0.15)', url: '#', desc: isRTL ? 'آخر الأخبار' : 'Latest news & updates' },
-  ];
+  const socials = (socialLinks || [])
+    .filter((entry) => entry?.enabled && entry?.url && SOCIAL_META[entry.platform])
+    .map((entry) => {
+      const meta = SOCIAL_META[entry.platform];
+      return {
+        ...meta,
+        icon: meta.icon,
+        name: t(`landing.social.items.${entry.platform}.name`),
+        handle: entry.handle || entry.url.replace(/^https?:\/\//, ''),
+        url: entry.url,
+        desc: t(`landing.social.items.${entry.platform}.description`),
+      };
+    });
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: t('publicLayout.brandPrimary'),
+          url: window.location.href,
+        });
+        return;
+      }
+
+      window.open(window.location.href, '_blank', 'noopener,noreferrer');
+    } catch (_error) {
+      // Ignore cancelled share attempts.
+    }
+  };
 
   return (
     <div className="pb-28">
       <div className={`px-5 pt-0 pb-3 ${ta}`}>
-        <p className="text-[10px] font-black uppercase tracking-widest text-primary">{isRTL ? 'تواصل معنا' : 'CONNECT WITH US'}</p>
-        <h1 className="text-2xl font-black text-heading tracking-tight mt-0.5">{isRTL ? 'وسائل التواصل' : 'Social Media'}</h1>
+        <p className="text-[10px] font-black uppercase tracking-widest text-primary">{t('landing.social.label')}</p>
+        <h1 className="text-2xl font-black text-heading tracking-tight mt-0.5">{t('landing.social.title')}</h1>
       </div>
       <div className="px-3 space-y-2.5">
         {socials.map((s, i) => (
@@ -617,14 +722,14 @@ function MobileSocialScreen({ t, isRTL }) {
         {/* Share card */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary-dark to-primary p-5">
           <div className="absolute top-0 right-0 w-20 h-20 rounded-bl-full bg-white/5 pointer-events-none" />
-          <p className={`text-white/60 text-[10px] font-black uppercase tracking-widest ${ta}`}>{isRTL ? 'شارك الكنيسة' : 'SHARE'}</p>
-          <p className={`text-white font-extrabold text-base mt-1 leading-tight ${ta}`}>{isRTL ? 'شارك مع أصدقائك' : 'Share with friends'}</p>
+          <p className={`text-white/60 text-[10px] font-black uppercase tracking-widest ${ta}`}>{t('landing.social.shareLabel')}</p>
+          <p className={`text-white font-extrabold text-base mt-1 leading-tight ${ta}`}>{t('landing.social.shareTitle')}</p>
           <button
-            onClick={() => navigator.share?.({ title: 'Church', url: window.location.href })}
+            onClick={handleShare}
             className={`mt-3 bg-white/15 border border-white/20 text-white text-xs font-bold rounded-xl px-4 py-2.5 flex items-center gap-2 active:scale-95 transition-transform ${isRTL ? 'flex-row-reverse' : ''}`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <Share2 className="h-3.5 w-3.5" />{isRTL ? 'مشاركة' : 'Share'}
+            <Share2 className="h-3.5 w-3.5" />{t('landing.social.shareButton')}
           </button>
         </div>
       </div>
@@ -668,7 +773,16 @@ function MobileTabBar({ active, onTab, tabs, onMore }) {
    MAIN EXPORT
    ══════════════════════════════════════════════════════ */
 export default function LandingPage() {
-  const { t, isRTL, toggleLanguage } = useI18n();
+  const { language, isRTL, toggleLanguage } = useI18n();
+  const {
+    text: t,
+    getOptionalText,
+    heroImageUrl,
+    priests: contentPriests,
+    stats: contentStats,
+    location,
+    socialLinks,
+  } = useLandingPublicContent();
   const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
   const textAlignClass = isRTL ? 'text-right' : 'text-left';
   const [statsRef, statsInView] = useInView(0.2);
@@ -677,31 +791,40 @@ export default function LandingPage() {
   const [activeTab, setActiveTab] = useState('home');
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const getOptional = (k) => { const v = t(k); return v === k ? '' : v; };
-  const getOpt = (k, fb) => { const v = getOptional(k); return v || fb; };
+  const getOptional = (k) => getOptionalText(k, '');
+  const getOpt = (k, fb) => getOptionalText(k, fb);
 
   /* ── Shared data ── */
-  const priests = [
-    { name: t('landing.priests.items.one.name'), role: t('landing.priests.items.one.role'), bio: t('landing.priests.items.one.bio'), alt: t('landing.priests.items.one.alt'), image: getOptional('landing.priests.items.one.image') },
-    { name: t('landing.priests.items.two.name'), role: t('landing.priests.items.two.role'), bio: t('landing.priests.items.two.bio'), alt: t('landing.priests.items.two.alt'), image: getOptional('landing.priests.items.two.image') },
-    { name: t('landing.priests.items.three.name'), role: t('landing.priests.items.three.role'), bio: t('landing.priests.items.three.bio'), alt: t('landing.priests.items.three.alt'), image: getOptional('landing.priests.items.three.image') },
-  ];
-  const stats = [
-    { icon: Users, value: t('landing.stats.items.families.value'), label: t('landing.stats.items.families.label'), accent: 'from-blue-400 to-blue-500' },
-    { icon: Heart, value: t('landing.stats.items.members.value'), label: t('landing.stats.items.members.label'), accent: 'from-rose-400 to-rose-500' },
-    { icon: Church, value: t('landing.stats.items.services.value'), label: t('landing.stats.items.services.label'), accent: 'from-amber-400 to-amber-500' },
-    { icon: HandHeart, value: t('landing.stats.items.servants.value'), label: t('landing.stats.items.servants.label'), accent: 'from-emerald-400 to-emerald-500' },
-  ];
+  const priests = (contentPriests || []).length
+    ? contentPriests.map((entry) => ({
+        name: entry?.user?.fullName || '',
+        role: getLocalizedValue(entry?.role, language, 'en', ''),
+        bio: getLocalizedValue(entry?.bio, language, 'en', ''),
+        alt: getLocalizedValue(entry?.alt, language, 'en', entry?.user?.fullName || ''),
+        image: entry?.user?.avatar?.url || '',
+      }))
+    : [
+        { name: t('landing.priests.items.one.name'), role: t('landing.priests.items.one.role'), bio: t('landing.priests.items.one.bio'), alt: t('landing.priests.items.one.alt'), image: getOptional('landing.priests.items.one.image') },
+        { name: t('landing.priests.items.two.name'), role: t('landing.priests.items.two.role'), bio: t('landing.priests.items.two.bio'), alt: t('landing.priests.items.two.alt'), image: getOptional('landing.priests.items.two.image') },
+        { name: t('landing.priests.items.three.name'), role: t('landing.priests.items.three.role'), bio: t('landing.priests.items.three.bio'), alt: t('landing.priests.items.three.alt'), image: getOptional('landing.priests.items.three.image') },
+      ];
+  const stats = (contentStats || []).length
+    ? [
+        { icon: Users, value: contentStats.find((entry) => entry.id === 'families')?.resolvedValue || '0', label: t('landing.stats.items.families.label'), accent: 'from-blue-400 to-blue-500' },
+        { icon: Heart, value: contentStats.find((entry) => entry.id === 'members')?.resolvedValue || '0', label: t('landing.stats.items.members.label'), accent: 'from-rose-400 to-rose-500' },
+        { icon: Church, value: contentStats.find((entry) => entry.id === 'services')?.resolvedValue || '0', label: t('landing.stats.items.services.label'), accent: 'from-amber-400 to-amber-500' },
+        { icon: HandHeart, value: contentStats.find((entry) => entry.id === 'servants')?.resolvedValue || '0', label: t('landing.stats.items.servants.label'), accent: 'from-emerald-400 to-emerald-500' },
+      ]
+    : [
+        { icon: Users, value: t('landing.stats.items.families.value'), label: t('landing.stats.items.families.label'), accent: 'from-blue-400 to-blue-500' },
+        { icon: Heart, value: t('landing.stats.items.members.value'), label: t('landing.stats.items.members.label'), accent: 'from-rose-400 to-rose-500' },
+        { icon: Church, value: t('landing.stats.items.services.value'), label: t('landing.stats.items.services.label'), accent: 'from-amber-400 to-amber-500' },
+        { icon: HandHeart, value: t('landing.stats.items.servants.value'), label: t('landing.stats.items.servants.label'), accent: 'from-emerald-400 to-emerald-500' },
+      ];
   const verses = [
     { text: t('landing.verses.items.one.text'), reference: t('landing.verses.items.one.reference') },
     { text: t('landing.verses.items.two.text'), reference: t('landing.verses.items.two.reference') },
     { text: t('landing.verses.items.three.text'), reference: t('landing.verses.items.three.reference') },
-  ];
-  const contacts = [
-    { icon: MapPin, label: t('landing.visit.addressLabel'), value: t('landing.visit.addressValue'), ltr: false, color: 'bg-blue-500/10 text-blue-600' },
-    { icon: Phone, label: t('landing.visit.phoneLabel'), value: t('landing.visit.phoneValue'), ltr: true, color: 'bg-emerald-500/10 text-emerald-600' },
-    { icon: Mail, label: t('landing.visit.emailLabel'), value: t('landing.visit.emailValue'), ltr: false, color: 'bg-amber-500/10 text-amber-600' },
-    { icon: Clock3, label: t('landing.visit.hoursLabel'), value: t('landing.visit.hoursValue'), ltr: false, color: 'bg-rose-500/10 text-rose-600' },
   ];
   const lifeCards = [
     { icon: ShieldCheck, title: t('landing.life.items.one.title'), description: t('landing.life.items.one.description'), gradient: 'from-blue-500 to-indigo-600', lightGrad: 'from-blue-500/10 to-indigo-500/5' },
@@ -709,11 +832,45 @@ export default function LandingPage() {
     { icon: Sparkles, title: t('landing.life.items.three.title'), description: t('landing.life.items.three.description'), gradient: 'from-rose-500 to-pink-600', lightGrad: 'from-rose-500/10 to-pink-500/5' },
   ];
 
-  const churchPlaceName = 'Church of the Archangel Michael Balqtoshh';
-  const churchPlusCode = '9MC6+6QG';
-  const churchAddressLine = 'Astal, West Samalout, Minya Governorate 2477363';
-  const locationMapEmbedUrl = `https://maps.google.com/maps?ll=28.3705542%2C30.6619377&q=${encodeURIComponent(churchPlaceName)}&z=18&t=k&output=embed`;
-  const directionsUrl = `https://maps.app.goo.gl/g24SscQHQKMYSq6M9`;
+  const managedHeroImageSrc = heroImageUrl || getOptional('landing.hero.churchImage') || '/images/church.webp';
+  const managedPhoneValue = t('landing.visit.phoneValue');
+  const managedEmailValue = t('landing.visit.emailValue');
+  const managedChurchPlaceName = location?.placeName || t('publicLayout.brandPrimary');
+  const managedChurchPlusCode = location?.plusCode || '';
+  const managedChurchAddressLine = location?.addressLine || t('landing.visit.addressValue');
+  /* eslint-disable no-unused-vars */
+  const churchPlusCode = managedChurchPlusCode;
+  const churchAddressLine = managedChurchAddressLine;
+  const managedLocationMetaLine = [churchPlusCode, churchAddressLine].filter(Boolean).join(' | ');
+  const locationMetaLine = [churchPlusCode, churchAddressLine].filter(Boolean).join(' · ');
+  const managedLocationMapEmbedUrl =
+    location?.mapEmbedUrl || buildDefaultMapEmbedUrl(managedChurchPlaceName);
+  const managedDirectionsUrl = location?.directionsUrl || DEFAULT_DIRECTIONS_URL;
+  const managedLocationTitle = getOpt('landing.location.title', 'Our Location');
+  const managedLocationLabel = getOpt('landing.location.label', 'Come Visit Us');
+  const managedLocationSubtitle = getOpt('landing.location.subtitle', 'We would love to welcome you');
+  const managedLocationDirections = getOpt('landing.location.directions', 'Get Directions');
+  const managedLifeCta = getOpt('landing.life.cta', 'Learn More');
+  const managedContacts = [
+    { icon: MapPin, label: t('landing.visit.addressLabel'), value: managedChurchAddressLine, ltr: false, color: 'bg-blue-500/10 text-blue-600' },
+    { icon: Phone, label: t('landing.visit.phoneLabel'), value: managedPhoneValue, ltr: true, color: 'bg-emerald-500/10 text-emerald-600' },
+    { icon: Mail, label: t('landing.visit.emailLabel'), value: managedEmailValue, ltr: false, color: 'bg-amber-500/10 text-amber-600' },
+    { icon: Clock3, label: t('landing.visit.hoursLabel'), value: t('landing.visit.hoursValue'), ltr: false, color: 'bg-rose-500/10 text-rose-600' },
+  ];
+  const mobileQuickActions = [
+    { icon: MapPin, label: t('landing.mobile.quickActions.location'), color: 'text-blue-600', bg: 'bg-blue-500/10', onClick: () => setActiveTab('visit') },
+    { icon: Phone, label: t('landing.mobile.quickActions.call'), color: 'text-emerald-600', bg: 'bg-emerald-500/10', href: managedPhoneValue ? `tel:${managedPhoneValue}` : '#', external: false },
+    { icon: Mail, label: t('landing.mobile.quickActions.email'), color: 'text-amber-600', bg: 'bg-amber-500/10', href: managedEmailValue ? `mailto:${managedEmailValue}` : '#', external: false },
+    { icon: Clock3, label: t('landing.mobile.quickActions.hours'), color: 'text-rose-600', bg: 'bg-rose-500/10', onClick: () => setActiveTab('visit') },
+  ];
+  const managedMobileTabs = [
+    { id: 'home', label: t('landing.mobile.tabs.home'), icon: Home },
+    { id: 'about', label: t('landing.mobile.tabs.about'), icon: Church },
+    { id: 'visit', label: t('landing.mobile.tabs.visit'), icon: MapPin },
+    { id: 'social', label: t('landing.mobile.tabs.social'), icon: Share2 },
+    { id: 'more', label: t('landing.mobile.tabs.more'), icon: MoreHorizontal },
+  ];
+
   const locationTitle = getOpt('landing.location.title', isRTL ? 'موقعنا' : 'Our Location');
   const locationLabel = getOpt('landing.location.label', isRTL ? 'تعال زورنا' : 'COME VISIT US');
   const locationSubtitle = getOpt('landing.location.subtitle', isRTL ? 'يسعدنا استقبالكم' : 'We would love to welcome you');
@@ -729,20 +886,21 @@ export default function LandingPage() {
   ];
 
   /* ══ MOBILE ══ */
+  /* eslint-enable no-unused-vars */
   if (isMobile) {
     return (
       <div className="bg-page mt-16" dir={isRTL ? 'rtl' : 'ltr'}>
         {/* Screen */}
         <div key={activeTab} style={{ animation: 'appIn 0.2s ease' }}>
-          {activeTab === 'home' && <MobileHomeScreen t={t} isRTL={isRTL} priests={priests} stats={stats} verses={verses} getOptional={getOptional} />}
+          {activeTab === 'home' && <MobileHomeScreen t={t} isRTL={isRTL} priests={priests} stats={stats} verses={verses} heroImageSrc={managedHeroImageSrc} quickActionsData={mobileQuickActions} />}
           {activeTab === 'about' && <MobileAboutScreen t={t} isRTL={isRTL} />}
-          {activeTab === 'visit' && <MobileVisitScreen t={t} isRTL={isRTL} contacts={contacts} churchPlaceName={churchPlaceName} churchPlusCode={churchPlusCode} churchAddressLine={churchAddressLine} locationMapEmbedUrl={locationMapEmbedUrl} directionsUrl={directionsUrl} verses={verses} />}
-          {activeTab === 'social' && <MobileSocialScreen t={t} isRTL={isRTL} />}
+          {activeTab === 'visit' && <MobileVisitScreen t={t} isRTL={isRTL} contacts={managedContacts} churchPlaceName={managedChurchPlaceName} churchPlusCode={managedChurchPlusCode} churchAddressLine={managedChurchAddressLine} locationMapEmbedUrl={managedLocationMapEmbedUrl} directionsUrl={managedDirectionsUrl} verses={verses} locationDirectionsLabel={managedLocationDirections} />}
+          {activeTab === 'social' && <MobileSocialScreen t={t} isRTL={isRTL} socialLinks={socialLinks} />}
         </div>
         {/* More bottom sheet */}
-        <MobileMoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} isRTL={isRTL} toggleLanguage={toggleLanguage} />
+        <MobileMoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} isRTL={isRTL} toggleLanguage={toggleLanguage} t={t} />
         {/* Tab bar */}
-        <MobileTabBar active={activeTab} onTab={setActiveTab} tabs={mobileTabs} onMore={() => setMoreOpen(true)} />
+        <MobileTabBar active={activeTab} onTab={setActiveTab} tabs={managedMobileTabs} onMore={() => setMoreOpen(true)} />
         <style>{`
           @keyframes appIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
           .scrollbar-hide { -ms-overflow-style:none; scrollbar-width:none; }
@@ -759,7 +917,7 @@ export default function LandingPage() {
       {/* HERO */}
       <section id="home" className="relative min-h-screen flex flex-col overflow-hidden">
         <div className="absolute inset-0">
-          <img src={getOptional('landing.hero.churchImage') || '/images/church.webp'} alt={isRTL ? 'كنيسة الملاك ميخائيل' : 'Archangel Michael Church'} className="h-full w-full object-cover object-center" loading="eager" onError={(e) => { e.target.style.display = 'none'; }} />
+          <img src={managedHeroImageSrc} alt={t('publicLayout.brandPrimary')} className="h-full w-full object-cover object-center" loading="eager" onError={(e) => { e.target.style.display = 'none'; }} />
           <div className="absolute inset-0 bg-black/10" />
           <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-page to-secondary/10" />
         </div>
@@ -792,6 +950,11 @@ export default function LandingPage() {
                 </svg>
               </span>
             </h1>
+          </Reveal>
+          <Reveal delay={0.28}>
+            <p className="mx-auto -mt-5 max-w-2xl px-4 text-center text-sm sm:text-base lg:text-lg leading-relaxed text-muted">
+              {t('landing.hero.description')}
+            </p>
           </Reveal>
           <Reveal delay={0.4}>
             <div className="mt-7 sm:mt-8 flex flex-col gap-3 sm:flex-row sm:items-center justify-center w-full px-4 sm:px-0">
@@ -908,7 +1071,7 @@ export default function LandingPage() {
                     <h3 className="text-lg sm:text-xl font-extrabold text-heading leading-tight">{item.title}</h3>
                     <p className="mt-3 text-sm leading-relaxed text-muted">{item.description}</p>
                     <div className={`mt-5 sm:mt-6 flex items-center gap-1.5 text-primary/40 group-hover:text-primary group-hover:gap-2.5 transition-all duration-300 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <span className="text-xs font-bold uppercase tracking-wider">{isRTL ? 'المزيد' : 'Learn More'}</span>
+                      <span className="text-xs font-bold uppercase tracking-wider">{managedLifeCta}</span>
                       <ArrowIcon className="h-3.5 w-3.5" />
                     </div>
                   </div>
@@ -924,7 +1087,7 @@ export default function LandingPage() {
         <div className="page-container">
           <SectionHeader label={t('landing.visit.label')} title={t('landing.visit.title')} subtitle={t('landing.visit.subtitle')} centered />
           <StaggerChildren className="mt-12 sm:mt-16 grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2" stagger={0.08}>
-            {contacts.map((item) => (
+            {managedContacts.map((item) => (
               <div key={item.label} className={`group relative overflow-hidden rounded-2xl border border-primary/6 bg-page p-5 sm:p-6 hover:border-primary/15 hover:shadow-lg hover:shadow-primary/5 transition-all duration-400 ${textAlignClass}`}>
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
                 <div className={`relative flex items-start gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -943,11 +1106,11 @@ export default function LandingPage() {
       {/* LOCATION */}
       <section id="location" className="py-20 sm:py-28 lg:py-32">
         <div className="page-container">
-          <SectionHeader label={locationLabel} title={locationTitle} subtitle={locationSubtitle} centered />
+          <SectionHeader label={managedLocationLabel} title={managedLocationTitle} subtitle={managedLocationSubtitle} centered />
           <Reveal className="mt-12 sm:mt-16">
             <div className="relative overflow-hidden rounded-[1.75rem] sm:rounded-[2rem] border border-primary/10 bg-surface shadow-xl shadow-primary/5">
               <div className="relative h-[280px] sm:h-[380px] lg:h-[450px] w-full">
-                <iframe title={isRTL ? 'موقع الكنيسة' : 'Church Location'} src={locationMapEmbedUrl} className="h-full w-full border-0" loading="lazy" allowFullScreen referrerPolicy="no-referrer-when-downgrade" />
+                <iframe title={managedLocationTitle} src={managedLocationMapEmbedUrl} className="h-full w-full border-0" loading="lazy" allowFullScreen referrerPolicy="no-referrer-when-downgrade" />
                 <div className="pointer-events-none absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-surface to-transparent" />
               </div>
               <div className="relative border-t border-border bg-surface px-5 py-4 sm:px-8 sm:py-5">
@@ -956,13 +1119,14 @@ export default function LandingPage() {
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><MapPin className="h-5 w-5" /></div>
                     <div className={textAlignClass}>
                       <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary">{t('landing.visit.addressLabel')}</p>
-                      <p className="mt-0.5 text-sm sm:text-base font-semibold text-heading">{churchPlaceName}</p>
-                      <p className="mt-0.5 text-xs sm:text-sm text-muted">{churchPlusCode} · {churchAddressLine}</p>
-                      <p className="mt-0.5 text-xs sm:text-sm text-muted">{t('landing.visit.addressValue')}</p>
+                      <p className="mt-0.5 text-sm sm:text-base font-semibold text-heading">{managedChurchPlaceName}</p>
+                      {managedLocationMetaLine ? (
+                        <p className="mt-0.5 text-xs sm:text-sm text-muted">{managedLocationMetaLine}</p>
+                      ) : null}
                     </div>
                   </div>
-                  <a href={directionsUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
-                    <Button variant="outline" size="md" icon={ExternalLink} iconPosition="end" className="!rounded-full !font-bold !w-full sm:!w-auto">{locationDirections}</Button>
+                  <a href={managedDirectionsUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                    <Button variant="outline" size="md" icon={ExternalLink} iconPosition="end" className="!rounded-full !font-bold !w-full sm:!w-auto">{managedLocationDirections}</Button>
                   </a>
                 </div>
               </div>

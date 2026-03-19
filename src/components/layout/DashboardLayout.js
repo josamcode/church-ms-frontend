@@ -19,6 +19,7 @@ import {
   Building2,
   CalendarDays,
   Layers3,
+  Settings2,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
@@ -183,6 +184,14 @@ export default function DashboardLayout() {
           icon: Building2,
           permission: 'USERS_VIEW',
           matchChildren: false,
+        },
+        {
+          key: 'birthdays',
+          label: tf('dashboardLayout.menu.birthdays', 'Birthdays'),
+          href: '/dashboard/under-development',
+          icon: Building2,
+          // permission: '',
+          // matchChildren: false,
         }
       ],
     },
@@ -393,6 +402,26 @@ export default function DashboardLayout() {
           href: '/dashboard/meetings/settings',
           icon: Sparkles,
           permission: 'MEETINGS_SETTINGS_MANAGE',
+          matchChildren: false,
+        },
+      ],
+    },
+    {
+      key: 'settings',
+      sectionLabel: t('dashboardLayout.section.settings'),
+      parent: {
+        label: tf('dashboardLayout.menu.accountSettings', 'Account Settings'),
+        href: '/dashboard/settings/account',
+        icon: Settings2,
+        permission: 'AUTH_VIEW_SELF',
+        matchChildren: false,
+      },
+      children: [
+        {
+          label: t('dashboardLayout.menu.landingContent'),
+          href: '/dashboard/public-site/landing',
+          icon: Church,
+          permission: 'LANDING_CONTENT_MANAGE',
           matchChildren: false,
         },
       ],

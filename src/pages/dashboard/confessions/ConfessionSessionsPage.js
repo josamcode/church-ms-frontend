@@ -28,19 +28,35 @@ function SectionLabel({ children }) {
 }
 
 export default function ConfessionSessionsPage() {
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
   const navigateToUser = useNavigateToUser();
   const canCreate = hasPermission('CONFESSIONS_CREATE');
+  const currentUserId = user?._id || user?.id || null;
+  const tf = (key, fallback) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
 
   const [cursor, setCursor] = useState(null);
   const [cursorStack, setCursorStack] = useState([null]);
   const [limit] = useState(20);
+  const [showMineOnly, setShowMineOnly] = useState(false);
+
+  const resetPagination = () => {
+    setCursor(null);
+    setCursorStack([null]);
+  };
 
   const sessionQueryParams = useMemo(
-    () => ({ limit, order: 'desc', ...(cursor && { cursor }) }),
-    [cursor, limit]
+    () => ({
+      limit,
+      order: 'desc',
+      ...(cursor && { cursor }),
+      ...(showMineOnly && currentUserId ? { createdByUserId: currentUserId } : {}),
+    }),
+    [cursor, currentUserId, limit, showMineOnly]
   );
 
   const { data: sessionsRes, isLoading: sessionsLoading } = useQuery({
@@ -55,6 +71,18 @@ export default function ConfessionSessionsPage() {
 
   const sessions = sessionsRes?.data ?? [];
   const sessionsMeta = sessionsRes?.meta ?? null;
+  const sectionTitle = showMineOnly
+    ? tf('confessions.sessions.mineTitle', 'My Created Sessions')
+    : t('confessions.sessions.recentTitle');
+  const emptyTitle = showMineOnly
+    ? tf('confessions.sessions.emptyMineTitle', 'No created confession sessions yet')
+    : t('confessions.sessions.emptyTitle');
+  const emptyDescription = showMineOnly
+    ? tf(
+        'confessions.sessions.emptyMineDescription',
+        'Sessions created by your account will appear here.'
+      )
+    : t('confessions.sessions.emptyDescription');
 
   const handleNext = () => {
     if (sessionsMeta?.nextCursor) {
@@ -143,22 +171,39 @@ export default function ConfessionSessionsPage() {
         className="border-b border-border pb-6"
         title={t('confessions.sessions.recentTitle')}
         subtitle={t('confessions.sessions.recentSubtitle')}
-        actions={
-          canCreate ? (
-            <Button
-              icon={CalendarPlus}
-              onClick={() => navigate('/dashboard/confessions/new')}
-            >
-              {t('confessions.sessions.createAction')}
-            </Button>
-          ) : null
-        }
+        actions={(
+          <div className="flex flex-wrap gap-2">
+            {currentUserId ? (
+              <Button
+                type="button"
+                size="sm"
+                variant={showMineOnly ? 'primary' : 'outline'}
+                onClick={() => {
+                  setShowMineOnly((prev) => !prev);
+                  resetPagination();
+                }}
+              >
+                {showMineOnly
+                  ? tf('confessions.sessions.showAllAction', 'Show all sessions')
+                  : tf('confessions.sessions.showMineAction', 'My created sessions')}
+              </Button>
+            ) : null}
+            {canCreate ? (
+              <Button
+                icon={CalendarPlus}
+                onClick={() => navigate('/dashboard/confessions/new')}
+              >
+                {t('confessions.sessions.createAction')}
+              </Button>
+            ) : null}
+          </div>
+        )}
       />
 
       {/* ══ TABLE SECTION ═════════════════════════════════════════════════ */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <SectionLabel>{t('confessions.sessions.recentTitle')}</SectionLabel>
+          <SectionLabel>{sectionTitle}</SectionLabel>
           {sessionsMeta?.count != null && (
             <span className="text-xs text-muted">{sessionsMeta.count}</span>
           )}
@@ -169,8 +214,8 @@ export default function ConfessionSessionsPage() {
             columns={columns}
             data={sessions}
             loading={sessionsLoading}
-            emptyTitle={t('confessions.sessions.emptyTitle')}
-            emptyDescription={t('confessions.sessions.emptyDescription')}
+            emptyTitle={emptyTitle}
+            emptyDescription={emptyDescription}
           />
 
           <div className="border-t border-border px-4 pb-4 pt-2">

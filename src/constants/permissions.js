@@ -50,6 +50,7 @@ export const PERMISSIONS = [
   'DIVINE_LITURGIES_ATTENDANCE_MANAGE',
   'DIVINE_LITURGIES_ATTENDANCE_MANAGE_ASSIGNED_USERS',
   'DIVINE_LITURGIES_PRIESTS_MANAGE',
+  'LANDING_CONTENT_MANAGE',
   'NOTIFICATIONS_VIEW',
   'NOTIFICATIONS_CREATE',
   'NOTIFICATIONS_UPDATE',
@@ -178,6 +179,7 @@ export const PERMISSION_LABELS = {
   DIVINE_LITURGIES_ATTENDANCE_MANAGE: 'Manage divine liturgy attendance',
   DIVINE_LITURGIES_ATTENDANCE_MANAGE_ASSIGNED_USERS: 'Manage divine liturgy attendance for assigned meeting users',
   DIVINE_LITURGIES_PRIESTS_MANAGE: 'Manage church priests list',
+  LANDING_CONTENT_MANAGE: 'Manage landing page content',
   NOTIFICATIONS_VIEW: 'View notifications',
   NOTIFICATIONS_CREATE: 'Create notifications',
   NOTIFICATIONS_UPDATE: 'Update notifications',
@@ -242,6 +244,11 @@ export const PERMISSION_GROUPS = [
       'DIVINE_LITURGIES_ATTENDANCE_MANAGE_ASSIGNED_USERS',
       'DIVINE_LITURGIES_PRIESTS_MANAGE',
     ],
+  },
+  {
+    id: 'publicSite',
+    label: 'Public site',
+    permissions: ['LANDING_CONTENT_MANAGE'],
   },
   {
     id: 'meetings',

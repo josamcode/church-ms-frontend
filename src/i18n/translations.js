@@ -1,4 +1,4 @@
-export const translations = {
+﻿export const translations = {
   en: {
     common: {
       appName: 'Church Management',
@@ -26,6 +26,7 @@ export const translations = {
       },
       status: {
         active: 'Active',
+        inactive: 'In Active',
         locked: 'Locked',
       },
       theme: {
@@ -76,6 +77,8 @@ export const translations = {
       rightsReserved: 'All rights reserved',
     },
     publicLayout: {
+      brandPrimary: 'Archangel Michael Church',
+      brandSecondary: 'El Qatousha Village - Matay Diocese',
       home: 'Home',
       about: 'Our Church',
       priests: 'Priests',
@@ -89,7 +92,12 @@ export const translations = {
       contactUs: 'Contact Us',
       contactDesc: 'For church inquiries and pastoral support, please contact church administration.',
       location: 'El Qatousha Village - Matay Diocese',
+      followUs: 'Follow Us',
       rightsReserved: 'All rights reserved',
+      footerCreditPrefix: 'Developed by',
+      footerCreditName: 'Eng. Gerges Samuel',
+      footerCreditSuffix: 'under the guidance of the Priests',
+      scrollTop: 'Scroll to top',
     },
     landing: {
       hero: {
@@ -182,6 +190,7 @@ export const translations = {
         label: 'Church Family Life',
         title: 'What You Will Find in Our Community',
         subtitle: 'A welcoming church life built on prayer, care, and practical discipleship.',
+        cta: 'Learn More',
         items: {
           one: {
             title: 'Pastoral Care',
@@ -210,6 +219,59 @@ export const translations = {
         hoursLabel: 'Office & Service Hours',
         hoursValue: 'Daily: 9:00 AM - 8:00 PM',
       },
+      location: {
+        label: 'Come Visit Us',
+        title: 'Our Location',
+        subtitle: 'We would love to welcome you at the church.',
+        directions: 'Get Directions',
+      },
+      social: {
+        label: 'Connect With Us',
+        title: 'Social Media',
+        shareLabel: 'Share The Church',
+        shareTitle: 'Share with friends',
+        shareButton: 'Share',
+        items: {
+          facebook: {
+            name: 'Facebook',
+            description: 'Follow us on Facebook',
+          },
+          instagram: {
+            name: 'Instagram',
+            description: 'Our photos & activities',
+          },
+          youtube: {
+            name: 'YouTube',
+            description: 'Live liturgies & sermons',
+          },
+          twitter: {
+            name: 'X / Twitter',
+            description: 'Latest news & updates',
+          },
+        },
+      },
+      mobile: {
+        tabs: {
+          home: 'Home',
+          about: 'About',
+          visit: 'Visit',
+          social: 'Social',
+          more: 'More',
+        },
+        quickActions: {
+          location: 'Location',
+          call: 'Call',
+          email: 'Email',
+          hours: 'Hours',
+        },
+        moreSheet: {
+          title: 'More',
+          loginLabel: 'Login',
+          loginDescription: 'Access the church portal',
+          languageLabel: 'Arabic',
+          languageDescription: 'Switch to Arabic',
+        },
+      },
       portal: {
         label: 'Members And Servants',
         title: 'Member Portal Access',
@@ -229,6 +291,7 @@ export const translations = {
         notifications: 'Notifications',
         meetings: 'Meetings',
         other: "Other",
+        settings: "Settings"
       },
       menu: {
         dashboard: 'Dashboard',
@@ -238,6 +301,7 @@ export const translations = {
         familyHouseLookup: 'Family & House Lookup',
         familyHouseAnalytics: 'Family Analytics',
         familyHouseDetails: 'Family/House Details',
+        birthdays: 'Birthdays',
         householdClassificationResults: "Household Statuses",
         householdClassificationRules: "Household Classification Rules",
         theLordsBrethren: "The Lord’s Brethren",
@@ -251,6 +315,7 @@ export const translations = {
         pastoralVisitationsAnalytics: 'Visitation Analytics',
         divineLiturgies: 'Divine Liturgy & Vespers',
         churchPriests: 'Church Priests',
+        landingContent: 'Landing Page Content',
         notifications: 'Notifications',
         notificationTypes: 'Notification Types',
         meetingsAndSectors: 'Meetings & Sectors',
@@ -258,10 +323,86 @@ export const translations = {
         sectorsManagement: 'Sectors Management',
         meetingsManagement: 'Meetings Management',
         meetingSettings: 'Meeting Settings',
+        accountSettings: 'Account Settings',
         underDevelopment: 'Under Development',
       },
       expandSidebar: 'Expand sidebar',
       collapseSidebar: 'Collapse sidebar',
+    },
+    landingContentPage: {
+      title: 'Landing Page Content',
+      subtitle: 'Manage public landing texts, hero media, priests, stats, social links, and location data from one place.',
+      actions: {
+        save: 'Save Landing Content',
+        viewSite: 'Open Landing Page',
+        uploadHero: 'Upload Hero Image',
+        changeHero: 'Change Hero Image',
+        deleteHero: 'Delete Hero Image',
+      },
+      sections: {
+        hero: {
+          title: 'Hero Image',
+          subtitle: 'Upload or remove the main hero image shown on the landing page.',
+        },
+        stats: {
+          title: 'Stats Source',
+          subtitle: 'Choose whether each stat comes from live system data or a manual value.',
+        },
+        location: {
+          title: 'Location Data',
+          subtitle: 'Manage map and directions data used in the visit and location sections.',
+        },
+        social: {
+          title: 'Social Links',
+          subtitle: 'Control which social platforms appear and where they link.',
+        },
+        priests: {
+          title: 'Priest Details',
+          subtitle: 'Names and avatars come from church priests. Manage landing-specific role, bio, and alt text here.',
+          empty: 'No church priests are configured yet. Add them first from the Church Priests page.',
+          manageLink: 'Open Church Priests',
+        },
+        texts: {
+          title: 'Landing Texts',
+          subtitle: 'These fields are generated from the translation structure used by the landing page.',
+        },
+      },
+      fields: {
+        statSource: 'Source',
+        statMetric: 'System metric',
+        statManualValue: 'Manual value',
+        socialEnabled: 'Show this platform',
+        socialHandle: 'Handle',
+        socialUrl: 'URL',
+        locationPlaceName: 'Place name',
+        locationPlusCode: 'Plus code',
+        locationAddressLine: 'Address line',
+        locationMapEmbedUrl: 'Map embed URL',
+        locationDirectionsUrl: 'Directions URL',
+        priestRole: 'Role',
+        priestBio: 'Bio',
+        priestAlt: 'Image alt text',
+      },
+      languages: {
+        ar: 'Arabic',
+        en: 'English',
+      },
+      sources: {
+        manual: 'Manual',
+        system: 'System',
+      },
+      states: {
+        loading: 'Loading landing content...',
+      },
+      messages: {
+        saved: 'Landing content saved successfully.',
+        heroUploaded: 'Hero image uploaded successfully.',
+        heroDeleted: 'Hero image deleted successfully.',
+        imageTypeError: 'Please choose an image file.',
+      },
+      hints: {
+        heroImageEmpty: 'No hero image uploaded yet.',
+      },
     },
     dashboardHome: {
       welcome: 'Welcome, {name}',
@@ -546,8 +687,8 @@ export const translations = {
           placeholder: 'Search user, financial, employment, or health notes',
         },
         confessionFatherQuery: {
-          label: 'Confession Father',
-          placeholder: 'Confession father name',
+          label: 'Spiritual Father',
+          placeholder: 'Spiritual father name',
         },
         role: {
           label: 'Role',
@@ -782,7 +923,7 @@ export const translations = {
         customDetailKeys: 'Custom keys: {value}',
         customDetailValue: 'Custom value: {value}',
         notes: 'Notes: {value}',
-        confessionFather: 'Confession father: {value}',
+        confessionFather: 'Spiritual father: {value}',
       },
       table: {
         columns: {
@@ -982,6 +1123,7 @@ export const translations = {
         address: 'Address',
         familyName: 'Family name',
         houseName: 'House name',
+        spiritualFather: 'Spiritual father',
         notes: 'Notes',
       },
       family: {
@@ -1143,8 +1285,13 @@ export const translations = {
         createAction: 'Create Session',
         recentTitle: 'Recent Confession Sessions',
         recentSubtitle: 'Latest scheduled confession sessions',
+        mineTitle: 'My Created Sessions',
+        showMineAction: 'My created sessions',
+        showAllAction: 'Show all sessions',
         emptyTitle: 'No confession sessions yet',
         emptyDescription: 'Create the first confession session to start tracking.',
+        emptyMineTitle: 'No created confession sessions yet',
+        emptyMineDescription: 'Sessions created by your account will appear here.',
         successCreated: 'Confession session created successfully.',
         successTypeCreated: 'Session type added successfully.',
         errors: {
@@ -1756,6 +1903,22 @@ export const translations = {
         noAvatar: 'No Image',
       },
     },
+    accountSettings: {
+      pageTitle: 'Account Settings',
+      pageSubtitle: 'Manage privacy and preference options for your account.',
+      messages: {
+        saved: 'Account settings saved successfully.',
+      },
+      confessions: {
+        title: 'Confession Session Privacy',
+        subtitle: 'Control whether other users can view confession sessions created by your account.',
+        visibilityLabel: 'Allow others to view confession sessions I created',
+        visibilityHelp:
+          'When disabled, other users will not see sessions recorded by your account. You will still see your own created sessions.',
+        noCreatePermission:
+          'Your account cannot create confession sessions right now, so this setting may not affect any records yet.',
+      },
+    },
     notifications: {
       page: 'Notifications',
       title: 'Notifications Center',
@@ -1921,6 +2084,7 @@ export const translations = {
       },
       status: {
         active: 'نشط',
+        inactive: 'غير نشط',
         locked: 'مغلق',
       },
       theme: {
@@ -1971,6 +2135,8 @@ export const translations = {
       rightsReserved: 'جميع الحقوق محفوظة',
     },
     publicLayout: {
+      brandPrimary: 'كنيسة الملاك ميخائيل',
+      brandSecondary: 'قرية القطوشة - التابعة لإيبارشية مطاي',
       home: 'الرئيسية',
       about: 'عن الكنيسة',
       priests: 'الكهنة',
@@ -1984,7 +2150,12 @@ export const translations = {
       contactUs: 'تواصل معنا',
       contactDesc: 'للاستفسارات الكنسية والرعوية يرجى التواصل مع إدارة الكنيسة.',
       location: 'قرية القطوشة - التابعة لإيبارشية مطاي',
+      followUs: 'تابعنا',
       rightsReserved: 'جميع الحقوق محفوظة',
+      footerCreditPrefix: 'تم التطوير بواسطة',
+      footerCreditName: 'م/جرجس صموئيل',
+      footerCreditSuffix: 'وارشاد الاباء الكهنة',
+      scrollTop: 'العودة للأعلى',
     },
     landing: {
       hero: {
@@ -2076,6 +2247,7 @@ export const translations = {
         label: 'حياة العائلة الكنسية',
         title: 'ماذا ستجد في مجتمعنا الكنسي',
         subtitle: 'حياة كنسية دافئة مبنية على الصلاة والرعاية والتلمذة العملية.',
+        cta: 'المزيد',
         items: {
           one: {
             title: 'رعاية رعوية',
@@ -2104,6 +2276,59 @@ export const translations = {
         hoursLabel: 'مواعيد المكتب والخدمات',
         hoursValue: 'يوميًا: 9:00 ص - 8:00 م',
       },
+      location: {
+        label: 'تعال زورنا',
+        title: 'موقعنا',
+        subtitle: 'يسعدنا استقبالكم في الكنيسة.',
+        directions: 'احصل على الاتجاهات',
+      },
+      social: {
+        label: 'تواصل معنا',
+        title: 'وسائل التواصل',
+        shareLabel: 'شارك الكنيسة',
+        shareTitle: 'شارك مع أصدقائك',
+        shareButton: 'مشاركة',
+        items: {
+          facebook: {
+            name: 'فيسبوك',
+            description: 'تابعنا على فيسبوك',
+          },
+          instagram: {
+            name: 'إنستجرام',
+            description: 'صورنا وأنشطتنا',
+          },
+          youtube: {
+            name: 'يوتيوب',
+            description: 'قداسات مباشرة وعظات',
+          },
+          twitter: {
+            name: 'إكس / تويتر',
+            description: 'آخر الأخبار والتحديثات',
+          },
+        },
+      },
+      mobile: {
+        tabs: {
+          home: 'الرئيسية',
+          about: 'عن الكنيسة',
+          visit: 'زيارة',
+          social: 'تواصل',
+          more: 'المزيد',
+        },
+        quickActions: {
+          location: 'الموقع',
+          call: 'اتصل',
+          email: 'راسلنا',
+          hours: 'المواعيد',
+        },
+        moreSheet: {
+          title: 'المزيد',
+          loginLabel: 'تسجيل الدخول',
+          loginDescription: 'الوصول إلى بوابة الكنيسة',
+          languageLabel: 'English',
+          languageDescription: 'Switch to English',
+        },
+      },
       portal: {
         label: 'الأعضاء والخدام',
         title: 'دخول بوابة الأعضاء',
@@ -2123,6 +2348,7 @@ export const translations = {
         notifications: 'الإشعارات',
         meetings: 'الاجتماعات',
         other: "أخرى",
+        settings: "الإعدادات"
       },
       menu: {
         dashboard: 'لوحة التحكم',
@@ -2132,6 +2358,7 @@ export const translations = {
         familyHouseLookup: 'العائلات والمنازل',
         familyHouseAnalytics: 'تحليلات العائلات',
         familyHouseDetails: 'تفاصيل العائلة/البيت',
+        birthdays: 'أعياد الميلاد',
         householdClassificationResults: "حالات الأسر",
         householdClassificationRules: "قواعد تصنيف الأسر",
         theLordsBrethren: "إخوة الرب",
@@ -2145,6 +2372,7 @@ export const translations = {
         pastoralVisitationsAnalytics: 'تحليلات الزيارات الرعوية',
         divineLiturgies: 'القداسات الإلهية وصلوات العشية',
         churchPriests: 'كهنة الكنيسة',
+        landingContent: 'محتوى الصفحة الرئيسية',
         notifications: 'الإشعارات',
         notificationTypes: 'أنواع الإشعارات',
         meetingsAndSectors: 'الاجتماعات والقطاعات',
@@ -2152,11 +2380,87 @@ export const translations = {
         sectorsManagement: 'إدارة القطاعات',
         meetingsManagement: 'إدارة الاجتماعات',
         meetingSettings: 'إعدادات الاجتماع',
+        accountSettings: 'إعدادات الحساب',
         underDevelopment: 'قيد التطوير',
       },
 
       expandSidebar: 'توسيع الشريط الجانبي',
       collapseSidebar: 'طي الشريط الجانبي',
+    },
+    landingContentPage: {
+      title: 'محتوى الصفحة الرئيسية',
+      subtitle: 'تحكم في نصوص الصفحة العامة والصورة الرئيسية والكهنة والإحصائيات وروابط التواصل وبيانات الموقع من مكان واحد.',
+      actions: {
+        save: 'حفظ محتوى الصفحة',
+        viewSite: 'فتح الصفحة العامة',
+        uploadHero: 'رفع الصورة الرئيسية',
+        changeHero: 'تغيير الصورة الرئيسية',
+        deleteHero: 'حذف الصورة الرئيسية',
+      },
+      sections: {
+        hero: {
+          title: 'الصورة الرئيسية',
+          subtitle: 'ارفع أو احذف الصورة الرئيسية الظاهرة في أعلى الصفحة.',
+        },
+        stats: {
+          title: 'مصدر الإحصائيات',
+          subtitle: 'اختر هل تأتي كل إحصائية من النظام مباشرة أم من قيمة تكتبها يدويًا.',
+        },
+        location: {
+          title: 'بيانات الموقع',
+          subtitle: 'تحكم في بيانات الخريطة والاتجاهات المستخدمة في أقسام الزيارة والموقع.',
+        },
+        social: {
+          title: 'روابط التواصل',
+          subtitle: 'تحكم في المنصات الظاهرة وروابطها.',
+        },
+        priests: {
+          title: 'بيانات الكهنة',
+          subtitle: 'الأسماء والصور تأتي من قائمة كهنة الكنيسة، ويمكنك هنا إدارة الدور والوصف والنص البديل الخاص بالصفحة.',
+          empty: 'لا يوجد كهنة كنيسة محددون حاليًا. أضفهم أولًا من صفحة كهنة الكنيسة.',
+          manageLink: 'فتح صفحة كهنة الكنيسة',
+        },
+        texts: {
+          title: 'نصوص الصفحة',
+          subtitle: 'هذه الحقول يتم توليدها من بنية الترجمة المستخدمة في الصفحة العامة.',
+        },
+      },
+      fields: {
+        statSource: 'المصدر',
+        statMetric: 'مقياس النظام',
+        statManualValue: 'القيمة اليدوية',
+        socialEnabled: 'إظهار هذه المنصة',
+        socialHandle: 'المعرف',
+        socialUrl: 'الرابط',
+        locationPlaceName: 'اسم المكان',
+        locationPlusCode: 'الكود المختصر',
+        locationAddressLine: 'سطر العنوان',
+        locationMapEmbedUrl: 'رابط تضمين الخريطة',
+        locationDirectionsUrl: 'رابط الاتجاهات',
+        priestRole: 'الدور',
+        priestBio: 'الوصف',
+        priestAlt: 'النص البديل للصورة',
+      },
+      languages: {
+        ar: 'العربية',
+        en: 'الإنجليزية',
+      },
+      sources: {
+        manual: 'يدوي',
+        system: 'من النظام',
+      },
+      states: {
+        loading: 'جارٍ تحميل محتوى الصفحة...',
+      },
+      messages: {
+        saved: 'تم حفظ محتوى الصفحة بنجاح.',
+        heroUploaded: 'تم رفع الصورة الرئيسية بنجاح.',
+        heroDeleted: 'تم حذف الصورة الرئيسية بنجاح.',
+        imageTypeError: 'يرجى اختيار ملف صورة.',
+      },
+      hints: {
+        heroImageEmpty: 'لا توجد صورة رئيسية مرفوعة حاليًا.',
+      },
     },
     dashboardHome: {
       welcome: 'مرحبًا، {name}',
@@ -2842,6 +3146,7 @@ export const translations = {
         familyName: 'اسم العائلة',
         houseName: 'اسم البيت',
         notes: 'ملاحظات',
+        spiritualFather: 'أب الاعتراف'
       },
       family: {
         title: 'شبكة العائلة',
@@ -3002,8 +3307,13 @@ export const translations = {
         createAction: 'إنشاء جلسة إعتراف',
         recentTitle: 'أحدث جلسات الاعتراف',
         recentSubtitle: 'آخر جلسات الاعتراف المجدولة',
+        mineTitle: 'الجلسات التي أنشأتها',
+        showMineAction: 'جلساتي المنشأة',
+        showAllAction: 'عرض كل الجلسات',
         emptyTitle: 'لا توجد جلسات اعتراف بعد',
         emptyDescription: 'أنشئ أول جلسة اعتراف لبدء المتابعة.',
+        emptyMineTitle: 'لا توجد جلسات أنشأتها بعد',
+        emptyMineDescription: 'ستظهر هنا الجلسات التي يسجلها حسابك.',
         successCreated: 'تم إنشاء جلسة الاعتراف بنجاح.',
         successTypeCreated: 'تمت إضافة نوع الجلسة بنجاح.',
         errors: {
@@ -3613,6 +3923,22 @@ export const translations = {
         noCommitteesYet: 'لم يتم إضافة لجان بعد.',
         noActivitiesYet: 'لم يتم إضافة أنشطة بعد.',
         noAvatar: 'لا توجد صورة',
+      },
+    },
+    accountSettings: {
+      pageTitle: 'إعدادات الحساب',
+      pageSubtitle: 'إدارة خيارات الخصوصية والتفضيلات الخاصة بحسابك.',
+      messages: {
+        saved: 'تم حفظ إعدادات الحساب بنجاح.',
+      },
+      confessions: {
+        title: 'خصوصية جلسات الاعتراف',
+        subtitle: 'تحكم في إمكانية رؤية الآخرين لجلسات الاعتراف التي يسجلها حسابك.',
+        visibilityLabel: 'السماح للآخرين برؤية جلسات الاعتراف التي أنشأتها',
+        visibilityHelp:
+          'عند التعطيل، لن يتمكن الآخرون من رؤية الجلسات التي سجلها حسابك. وستظل أنت ترى جلساتك التي أنشأتها.',
+        noCreatePermission:
+          'حسابك لا يملك حالياً صلاحية إنشاء جلسات اعتراف، لذلك قد لا يؤثر هذا الإعداد على أي سجلات الآن.',
       },
     },
     notifications: {

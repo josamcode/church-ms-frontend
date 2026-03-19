@@ -71,6 +71,10 @@ export function I18nProvider({ children }) {
     setLanguageState(normalizeLanguage(nextLanguage));
   }, []);
 
+  const toggleLanguage = useCallback(() => {
+    setLanguageState((current) => (current === 'ar' ? 'en' : 'ar'));
+  }, []);
+
   const t = useCallback(
     (key, values) => {
       const localizedValue = getByPath(translations[language], key);
@@ -85,11 +89,12 @@ export function I18nProvider({ children }) {
     () => ({
       language,
       setLanguage,
+      toggleLanguage,
       dir: isRtlLanguage(language) ? 'rtl' : 'ltr',
       isRTL: isRtlLanguage(language),
       t,
     }),
-    [language, setLanguage, t]
+    [language, setLanguage, toggleLanguage, t]
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

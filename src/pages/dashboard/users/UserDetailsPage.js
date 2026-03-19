@@ -453,6 +453,10 @@ function QuickStat({ icon: Icon, label, value }) {
 
 function ProfileTab({ user }) {
   const { t, language } = useI18n();
+  const tf = (key, fallback) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
   const tags = Array.isArray(user.tags) ? user.tags : [];
   const customDetails =
     user.customDetails && typeof user.customDetails === 'object'
@@ -534,6 +538,7 @@ function ProfileTab({ user }) {
             <div className="grid grid-cols-1 gap-x-10 gap-y-5 sm:grid-cols-2">
               <Field icon={UserCircle} label={t('userDetails.fields.fullName')} value={user.fullName} />
               <Field icon={Shield} label={t('userDetails.fields.role')} value={getRoleLabel(user.role)} />
+              <Field icon={UserCircle} label={tf('userDetails.fields.spiritualFather', 'Spiritual Father')} value={user.confessionFatherName || EMPTY} />
               <Field icon={User} label={t('userDetails.fields.gender')} value={getGenderLabel(user.gender)} />
               <Field icon={Calendar} label={t('userDetails.fields.birthDate')} value={formatDate(user.birthDate)} />
               <Field icon={User} label={t('userDetails.fields.ageGroup')} value={user.ageGroup || EMPTY} />
@@ -1134,34 +1139,56 @@ function SystemTab({ user, userId, hasPermission, hasAnyPermission, tf, section 
           <div className="rounded-2xl border border-border bg-surface p-5">
             {!canViewConfessions ? (
               <NoPermissionBox message={tf('userDetails.system.permissionRequired', 'You do not have permission to view this section.')} />
-            ) : confessionsQuery.isLoading ? (
-              <p className="text-sm text-muted">{t('common.loading')}</p>
-            ) : confessionsQuery.error ? (
-              <p className="text-sm text-danger">{normalizeApiError(confessionsQuery.error).message}</p>
-            ) : confessions.length === 0 ? (
-              <p className="text-sm text-muted">{tf('userDetails.system.confessions.empty', 'No confession sessions were found for this user.')}</p>
             ) : (
-              <div className="space-y-2.5">
-                {confessions.slice(0, 12).map((session) => (
-                  <div key={session.id} className="rounded-xl border border-border/80 bg-surface-alt/40 px-3.5 py-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-heading">
-                        {localizeSessionTypeName(session.sessionType?.name, t)}
-                      </p>
-                      <p className="text-xs text-muted">
-                        {formatDateTime(session.scheduledAt)}
-                      </p>
-                    </div>
-                    <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-                      <span>
-                        {tf('userDetails.system.confessions.nextLabel', 'Next')}: {formatDateTime(session.nextSessionAt)}
-                      </span>
-                      <span>
-                        {tf('userDetails.system.confessions.createdByLabel', 'Created by')}: {session.createdByUser?.fullName || EMPTY}
-                      </span>
+              <div className="space-y-3">
+                {user.confessionFatherName ? (
+                  <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/12 text-primary">
+                        <UserCircle className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                          {tf('userDetails.fields.spiritualFather', 'Spiritual Father')}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-heading">
+                          {user.confessionFatherName}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                ))}
+                ) : null}
+
+                {confessionsQuery.isLoading ? (
+                  <p className="text-sm text-muted">{t('common.loading')}</p>
+                ) : confessionsQuery.error ? (
+                  <p className="text-sm text-danger">{normalizeApiError(confessionsQuery.error).message}</p>
+                ) : confessions.length === 0 ? (
+                  <p className="text-sm text-muted">{tf('userDetails.system.confessions.empty', 'No confession sessions were found for this user.')}</p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {confessions.slice(0, 12).map((session) => (
+                      <div key={session.id} className="rounded-xl border border-border/80 bg-surface-alt/40 px-3.5 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-heading">
+                            {localizeSessionTypeName(session.sessionType?.name, t)}
+                          </p>
+                          <p className="text-xs text-muted">
+                            {formatDateTime(session.scheduledAt)}
+                          </p>
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                          <span>
+                            {tf('userDetails.system.confessions.nextLabel', 'Next')}: {formatDateTime(session.nextSessionAt)}
+                          </span>
+                          <span>
+                            {tf('userDetails.system.confessions.createdByLabel', 'Created by')}: {session.createdByUser?.fullName || EMPTY}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { usersApi } from '../../../api/endpoints';
+import { divineLiturgiesApi, usersApi } from '../../../api/endpoints';
 import { normalizeApiError, mapFieldErrors } from '../../../api/errors';
 import Input from '../../../components/ui/Input';
 import PhoneInput from '../../../components/ui/PhoneInput';
@@ -152,6 +152,7 @@ export default function UserCreatePage() {
     fullName: '', phonePrimary: '', email: '', birthDate: '',
     gender: 'male', nationalId: '', notes: '', phoneSecondary: '',
     whatsappNumber: '', familyName: '', houseName: '', role: 'USER', password: '',
+    confessionFather: null,
     governorate: '', city: '', street: '', details: '',
     ...getEducationInitialValues(),
     ...getSocioeconomicInitialValues(),
@@ -205,6 +206,51 @@ export default function UserCreatePage() {
     },
   });
   const houseNames = Array.isArray(houseNamesRes) ? houseNamesRes : [];
+
+  const { data: divineLiturgiesOverview } = useQuery({
+    queryKey: ['divine-liturgies', 'overview', 'spiritual-father-options'],
+    queryFn: async () => {
+      const { data } = await divineLiturgiesApi.getOverview();
+      return data?.data || null;
+    },
+    staleTime: 60000,
+  });
+  const churchPriests = useMemo(
+    () =>
+      Array.isArray(divineLiturgiesOverview?.churchPriests)
+        ? divineLiturgiesOverview.churchPriests
+        : [],
+    [divineLiturgiesOverview]
+  );
+  const churchPriestLookup = useMemo(
+    () =>
+      new Map(
+        churchPriests
+          .map((entry) => entry?.user)
+          .filter((entry) => entry?.id)
+          .map((entry) => [
+            entry.id,
+            { _id: entry.id, fullName: entry.fullName || '', phonePrimary: entry.phonePrimary || '' },
+          ])
+      ),
+    [churchPriests]
+  );
+  const churchPriestOptions = useMemo(
+    () => [
+      {
+        value: '',
+        label: language === 'ar' ? 'بدون أب روحي' : 'No Spiritual Father',
+      },
+      ...churchPriests
+        .map((entry) => entry?.user)
+        .filter((entry) => entry?.id && entry?.fullName)
+        .map((entry) => ({
+          value: entry.id,
+          label: entry.fullName,
+        })),
+    ],
+    [churchPriests, language]
+  );
 
   /* ── mutation ── */
   const mutation = useMutation({
@@ -265,6 +311,10 @@ export default function UserCreatePage() {
     if (form.familyName) payload.familyName = form.familyName;
     if (form.houseName) payload.houseName = form.houseName;
     if (form.password) payload.password = form.password;
+    if (form.confessionFather?._id || form.confessionFather?.id) {
+      payload.confessionFatherUserId = form.confessionFather._id || form.confessionFather.id;
+      payload.confessionFatherName = form.confessionFather.fullName || '';
+    }
     if (form.governorate || form.city || form.street || form.details) {
       payload.address = {};
       if (form.governorate) payload.address.governorate = form.governorate;
@@ -497,6 +547,17 @@ export default function UserCreatePage() {
                     onChange={(val) => update('houseName', val)}
                     options={houseNames}
                     placeholder="ابحث أو اكتب اسم البيت"
+                  />
+
+                  <Select
+                    label={language === 'ar' ? 'الأب الروحي' : 'Spiritual Father'}
+                    value={form.confessionFather?._id || form.confessionFather?.id || ''}
+                    onChange={(event) =>
+                      update('confessionFather', churchPriestLookup.get(event.target.value) || null)
+                    }
+                    options={churchPriestOptions}
+                    placeholder={language === 'ar' ? 'اختر الأب الروحي' : 'Select Spiritual Father'}
+                    containerClassName="!mb-0"
                   />
 
                   <Select
