@@ -40,14 +40,14 @@ const WEEK_DAYS = [
 ];
 
 const AVAILABILITY_MODES = [
-  { value: 'NONE', label: 'No availability' },
-  { value: 'ALWAYS', label: 'Always available' },
-  { value: 'DATE_RANGE', label: 'Within a date range' },
-  { value: 'DATE_TIME_RANGE', label: 'Within a date and time range' },
-  { value: 'SPECIFIC_DAYS', label: 'Specific days' },
-  { value: 'SPECIFIC_DAYS_TIME', label: 'Specific days and times' },
-  { value: 'SPECIFIC_DATES', label: 'Specific dates' },
-  { value: 'SPECIFIC_DATES_TIME', label: 'Specific dates and times' },
+  { value: 'NONE' },
+  { value: 'ALWAYS' },
+  { value: 'DATE_RANGE' },
+  { value: 'DATE_TIME_RANGE' },
+  { value: 'SPECIFIC_DAYS' },
+  { value: 'SPECIFIC_DAYS_TIME' },
+  { value: 'SPECIFIC_DATES' },
+  { value: 'SPECIFIC_DATES_TIME' },
 ];
 
 const FIELD_TYPES = [
@@ -121,6 +121,8 @@ function modeUsesExactTimes(mode) {
 
 function statusVariant(status) {
   switch (status) {
+    case 'pending':
+      return 'warning';
     case 'confirmed':
       return 'primary';
     case 'completed':
@@ -128,7 +130,7 @@ function statusVariant(status) {
     case 'cancelled':
       return 'danger';
     default:
-      return 'default';
+      return 'warning';
   }
 }
 
@@ -146,11 +148,28 @@ function statusLabel(status, tf) {
   }
 }
 
-function availabilityLabel(mode) {
-  if (mode === 'DATE_TIME') {
-    return AVAILABILITY_MODES.find((option) => option.value === 'SPECIFIC_DATES_TIME')?.label || mode;
+function availabilityLabel(mode, tf) {
+  switch (mode) {
+    case 'NONE':
+      return tf('bookings.public.modes.none', 'No availability');
+    case 'ALWAYS':
+      return tf('bookings.public.modes.always', 'Always available');
+    case 'DATE_RANGE':
+      return tf('bookings.public.modes.dateRange', 'Within a date range');
+    case 'DATE_TIME_RANGE':
+      return tf('bookings.public.modes.dateTimeRange', 'Within a date and time range');
+    case 'SPECIFIC_DAYS':
+      return tf('bookings.public.modes.specificDays', 'Specific days');
+    case 'SPECIFIC_DAYS_TIME':
+      return tf('bookings.public.modes.specificDaysTime', 'Specific days and times');
+    case 'SPECIFIC_DATES':
+      return tf('bookings.public.modes.specificDates', 'Specific dates');
+    case 'SPECIFIC_DATES_TIME':
+    case 'DATE_TIME':
+      return tf('bookings.public.modes.specificDatesTime', 'Specific dates and times');
+    default:
+      return mode;
   }
-  return AVAILABILITY_MODES.find((option) => option.value === mode)?.label || mode;
 }
 
 function TimeChipsInput({ label, values = [], onChange, tf }) {
@@ -398,7 +417,9 @@ function BookingCard({ booking, canManage, onOpen, tf }) {
             {tf('bookings.dashboard.slot', 'Slot')}
           </p>
           <p className="mt-2 font-semibold text-heading">
-            {booking.scheduledDate} • {booking.scheduledTime}
+            {booking.scheduledTime
+              ? `${booking.scheduledDate} • ${booking.scheduledTime}`
+              : booking.scheduledDate}
           </p>
         </div>
       </div>
@@ -476,6 +497,10 @@ export default function BookingsManagementPage({ mode = 'all' }) {
 
   const bookingTypes = Array.isArray(typesQuery.data?.data) ? typesQuery.data.data : [];
   const typeOptions = bookingTypes.map((type) => ({ value: type.id, label: type.name }));
+  const availabilityModeOptions = AVAILABILITY_MODES.map((option) => ({
+    value: option.value,
+    label: availabilityLabel(option.value, tf),
+  }));
 
   const bookingsQuery = useQuery({
     queryKey: ['bookings', 'list', cursor, filters],
@@ -705,7 +730,7 @@ export default function BookingsManagementPage({ mode = 'all' }) {
                       },
                     }))
                   }
-                  options={AVAILABILITY_MODES}
+                  options={availabilityModeOptions}
                   containerClassName="mb-0"
                 />
               </div>
@@ -1267,7 +1292,7 @@ export default function BookingsManagementPage({ mode = 'all' }) {
                     <div>
                       <p className="text-lg font-bold text-heading">{type.name}</p>
                       <p className="mt-1 text-sm text-muted">
-                        {availabilityLabel(type.availabilityMode)}
+                        {availabilityLabel(type.availabilityMode, tf)}
                       </p>
                     </div>
                     <Badge variant={type.isActive ? 'success' : 'default'}>
@@ -1463,7 +1488,9 @@ export default function BookingsManagementPage({ mode = 'all' }) {
                   {tf('bookings.dashboard.slot', 'Slot')}
                 </p>
                 <p className="mt-2 text-sm font-semibold text-heading">
-                  {selectedBooking.scheduledDate} • {selectedBooking.scheduledTime}
+                  {selectedBooking.scheduledTime
+                    ? `${selectedBooking.scheduledDate} • ${selectedBooking.scheduledTime}`
+                    : selectedBooking.scheduledDate}
                 </p>
                 <p className="mt-1 text-sm text-muted">{selectedBooking.bookingType?.name || '—'}</p>
               </Card>
@@ -1499,9 +1526,13 @@ export default function BookingsManagementPage({ mode = 'all' }) {
                           href={field.value.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="mt-2 inline-block text-sm text-primary hover:underline"
+                          className="mt-2 inline-block"
                         >
-                          {field.value.url}
+                          <img
+                            src={field.value.url}
+                            alt={field.label}
+                            className="max-h-56 rounded-2xl border border-border object-contain shadow-sm transition-transform duration-200 hover:scale-[1.01]"
+                          />
                         </a>
                       ) : (
                         <p className="mt-2 text-sm text-muted">

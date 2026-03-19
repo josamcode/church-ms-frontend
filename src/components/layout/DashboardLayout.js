@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMemo, useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Church,
   LayoutDashboard,
@@ -24,6 +25,7 @@ import {
   CalendarClock,
 } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
+import { bookingsApi } from '../../api/endpoints';
 import Tooltip from '../ui/Tooltip';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
 import { useI18n } from '../../i18n/i18n';
@@ -47,6 +49,11 @@ function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick }) {
           ].join(' ')}
         >
           <item.icon className="h-[18px] w-[18px]" />
+          {item.badge ? (
+            <span className={`absolute -top-1 flex min-w-[18px] items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[10px] font-bold leading-none text-white ${isRTL ? '-left-1' : '-right-1'}`}>
+              {item.badge}
+            </span>
+          ) : null}
           {active && (
             <span className={`absolute inset-y-2.5 w-0.5 rounded-full bg-primary-light/60 ${isRTL ? 'right-0.5' : 'left-0.5'}`} />
           )}
@@ -77,7 +84,14 @@ function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick }) {
       ].join(' ')}>
         <item.icon className="h-4 w-4" />
       </span>
-      <span className="truncate">{item.label}</span>
+      <span className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="truncate">{item.label}</span>
+        {item.badge ? (
+          <span className="inline-flex flex-shrink-0 items-center justify-center rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold leading-none text-white">
+            {item.badge}
+          </span>
+        ) : null}
+      </span>
     </Link>
   );
 }
@@ -116,12 +130,26 @@ export default function DashboardLayout() {
     const value = t(key);
     return value === key ? fallback : value;
   }, [t]);
+  const canViewBookingRequests =
+    hasPermission('BOOKINGS_VIEW') || hasPermission('BOOKINGS_MANAGE');
   const hasFullMeetingsView = hasPermission('MEETINGS_VIEW');
   const hasOwnMeetingsViewOnly = hasPermission('MEETINGS_VIEW_OWN') && !hasFullMeetingsView;
   const hasAssignedMeetings = useMemo(
     () => Array.isArray(user?.meetingIds) && user.meetingIds.length > 0,
     [user?.meetingIds]
   );
+  const pendingBookingsQuery = useQuery({
+    queryKey: ['dashboard', 'sidebar', 'bookings', 'pending-count'],
+    enabled: canViewBookingRequests,
+    staleTime: 30000,
+    queryFn: async () => {
+      const { data } = await bookingsApi.admin.list({ status: 'pending', limit: 1 });
+      return data;
+    },
+  });
+  const pendingBookingsCount = pendingBookingsQuery.data?.meta?.totalCount ?? 0;
+  const pendingBookingsBadge =
+    pendingBookingsCount > 99 ? '99+' : pendingBookingsCount > 0 ? String(pendingBookingsCount) : null;
 
   // ── Menu definitions ──────────────────────────────────────────────────────
 
@@ -350,6 +378,7 @@ export default function DashboardLayout() {
           label: tf('dashboardLayout.menu.bookingRequests', 'Booking requests'),
           href: '/dashboard/bookings/requests',
           icon: CalendarClock,
+          badge: pendingBookingsBadge,
           permission: ['BOOKINGS_VIEW', 'BOOKINGS_MANAGE'],
           matchChildren: false,
         },
@@ -464,7 +493,7 @@ export default function DashboardLayout() {
         },
       ],
     },
-  ], [t, tf, hasOwnMeetingsViewOnly]);
+  ], [t, tf, hasOwnMeetingsViewOnly, pendingBookingsBadge]);
 
   const bottomItems = useMemo(() => [
     {

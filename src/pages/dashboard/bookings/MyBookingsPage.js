@@ -14,6 +14,8 @@ import { useI18n } from '../../../i18n/i18n';
 
 function statusVariant(status) {
   switch (status) {
+    case 'pending':
+      return 'warning';
     case 'confirmed':
       return 'primary';
     case 'completed':
@@ -21,7 +23,7 @@ function statusVariant(status) {
     case 'cancelled':
       return 'danger';
     default:
-      return 'default';
+      return 'warning';
   }
 }
 
@@ -153,7 +155,9 @@ export default function MyBookingsPage() {
                     {booking.bookingType?.name || tf('bookings.dashboard.bookingType', 'Booking type')}
                   </p>
                   <p className="mt-1 text-sm text-muted">
-                    {booking.scheduledDate} • {booking.scheduledTime}
+                    {booking.scheduledTime
+                      ? `${booking.scheduledDate} • ${booking.scheduledTime}`
+                      : booking.scheduledDate}
                   </p>
                 </div>
                 <Badge variant={statusVariant(booking.status)}>
@@ -201,9 +205,13 @@ export default function MyBookingsPage() {
                           href={field.value.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="mt-2 inline-block text-sm text-primary hover:underline"
+                          className="mt-2 inline-block"
                         >
-                          {field.value.url}
+                          <img
+                            src={field.value.url}
+                            alt={field.label}
+                            className="max-h-56 rounded-2xl border border-border object-contain shadow-sm transition-transform duration-200 hover:scale-[1.01]"
+                          />
                         </a>
                       ) : (
                         <p className="mt-2 text-sm text-muted">

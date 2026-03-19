@@ -12,7 +12,9 @@ import Card, { CardHeader } from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import TextArea from '../../components/ui/TextArea';
-import { useI18n } from '../../i18n/i18n';
+import { getLanguageLocale, useI18n } from '../../i18n/i18n';
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function emptyForm() {
   return {
@@ -55,6 +57,10 @@ function isExactTimeMode(mode) {
   return mode === 'SPECIFIC_DATES_TIME' || mode === 'DATE_TIME';
 }
 
+function hasTimeScope(mode) {
+  return mode === 'DATE_TIME_RANGE' || mode === 'SPECIFIC_DAYS_TIME' || isExactTimeMode(mode);
+}
+
 function getSpecificDates(type) {
   if (!type) return [];
 
@@ -73,14 +79,99 @@ function getSpecificDates(type) {
   return [...new Set([...datesFromSpecificDates, ...datesFromLegacyDateTimes])].sort();
 }
 
+function parseDateString(dateStr) {
+  if (!DATE_PATTERN.test(String(dateStr || ''))) return null;
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setHours(0, 0, 0, 0);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDateString(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getTodayDateString() {
+  return formatDateString(new Date());
+}
+
+function addDays(dateStr, days) {
+  const date = parseDateString(dateStr);
+  if (!date) return null;
+  date.setDate(date.getDate() + days);
+  return formatDateString(date);
+}
+
+function buildDateRange(startDate, endDate) {
+  if (!DATE_PATTERN.test(String(startDate || '')) || !DATE_PATTERN.test(String(endDate || ''))) return [];
+  if (startDate > endDate) return [];
+
+  const result = [];
+  let current = parseDateString(startDate);
+  const last = parseDateString(endDate);
+  if (!current || !last) return [];
+
+  while (current <= last) {
+    result.push(formatDateString(current));
+    current = new Date(current);
+    current.setDate(current.getDate() + 1);
+    current.setHours(0, 0, 0, 0);
+  }
+
+  return result;
+}
+
+function formatDateOptionLabel(dateStr, locale) {
+  const date = parseDateString(dateStr);
+  if (!date) return dateStr;
+  return new Intl.DateTimeFormat(locale, {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+}
+
+function getBookingWindow(type) {
+  const min = getTodayDateString();
+  const horizonDays = Math.max(Number(type?.bookingHorizonDays) || 60, 1);
+  return {
+    min,
+    max: addDays(min, horizonDays - 1) || min,
+  };
+}
+
+function isWithinDateBounds(dateStr, bounds) {
+  if (!DATE_PATTERN.test(String(dateStr || ''))) return false;
+  if (bounds?.min && dateStr < bounds.min) return false;
+  if (bounds?.max && dateStr > bounds.max) return false;
+  return true;
+}
+
 function getDateInputConstraints(type) {
   const mode = type?.availabilityMode;
   if (!type || !mode) return {};
 
+  const bookingWindow = getBookingWindow(type);
+
+  if (
+    mode === 'ALWAYS' ||
+    mode === 'SPECIFIC_DAYS' ||
+    mode === 'SPECIFIC_DAYS_TIME'
+  ) {
+    return bookingWindow;
+  }
+
   if (mode === 'DATE_RANGE' || mode === 'DATE_TIME_RANGE') {
+    const configuredStart = type.availabilityConfig?.dateRange?.startDate || bookingWindow.min;
+    const configuredEnd = type.availabilityConfig?.dateRange?.endDate || bookingWindow.max;
     return {
-      min: type.availabilityConfig?.dateRange?.startDate || undefined,
-      max: type.availabilityConfig?.dateRange?.endDate || undefined,
+      min: configuredStart > bookingWindow.min ? configuredStart : bookingWindow.min,
+      max: configuredEnd < bookingWindow.max ? configuredEnd : bookingWindow.max,
     };
   }
 
@@ -99,6 +190,82 @@ function getTimeInputConstraints(type) {
   }
 
   return {};
+}
+
+function getVisibleSpecificDates(type) {
+  if (!type) return [];
+  const bookingWindow = getBookingWindow(type);
+  return getSpecificDates(type).filter((date) => isWithinDateBounds(date, bookingWindow));
+}
+
+function getSelectableDates(type) {
+  if (!type) return [];
+
+  switch (type.availabilityMode) {
+    case 'SPECIFIC_DAYS':
+    case 'SPECIFIC_DAYS_TIME': {
+      const bookingWindow = getBookingWindow(type);
+      const allowedDays = new Set(
+        Array.isArray(type.availabilityConfig?.specificDays)
+          ? type.availabilityConfig.specificDays.map(Number)
+          : []
+      );
+      return buildDateRange(bookingWindow.min, bookingWindow.max).filter((dateStr) => {
+        const date = parseDateString(dateStr);
+        return date && allowedDays.has(date.getDay());
+      });
+    }
+    case 'SPECIFIC_DATES':
+      return getVisibleSpecificDates(type);
+    default:
+      return [];
+  }
+}
+
+function isDateAllowedForType(type, scheduledDate) {
+  if (!type || !DATE_PATTERN.test(String(scheduledDate || ''))) return false;
+
+  const bookingWindow = getBookingWindow(type);
+  if (!isWithinDateBounds(scheduledDate, bookingWindow)) return false;
+
+  switch (type.availabilityMode) {
+    case 'ALWAYS':
+      return true;
+    case 'DATE_RANGE':
+    case 'DATE_TIME_RANGE': {
+      const bounds = getDateInputConstraints(type);
+      return isWithinDateBounds(scheduledDate, bounds);
+    }
+    case 'SPECIFIC_DAYS':
+    case 'SPECIFIC_DAYS_TIME': {
+      const allowedDays = new Set(
+        Array.isArray(type.availabilityConfig?.specificDays)
+          ? type.availabilityConfig.specificDays.map(Number)
+          : []
+      );
+      const date = parseDateString(scheduledDate);
+      return Boolean(date) && allowedDays.has(date.getDay());
+    }
+    case 'SPECIFIC_DATES':
+    case 'SPECIFIC_DATES_TIME':
+    case 'DATE_TIME':
+      return getVisibleSpecificDates(type).includes(scheduledDate);
+    case 'NONE':
+    default:
+      return false;
+  }
+}
+
+function hasBookableAvailability(type, { exactTimeMode, dateGroups, selectableDates, dateConstraints }) {
+  if (!type || type.availabilityMode === 'NONE') return false;
+  if (exactTimeMode) return dateGroups.length > 0;
+  if (['SPECIFIC_DAYS', 'SPECIFIC_DAYS_TIME', 'SPECIFIC_DATES'].includes(type.availabilityMode)) {
+    return selectableDates.length > 0;
+  }
+  if (dateConstraints?.min && dateConstraints?.max && dateConstraints.min > dateConstraints.max) {
+    return false;
+  }
+  return true;
 }
 
 function DynamicFieldInput({
@@ -232,12 +399,13 @@ function DynamicFieldInput({
 }
 
 export default function BookingPublicPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { user, isAuthenticated } = useAuth();
   const tf = (key, fallback) => {
     const value = t(key);
     return value === key ? fallback : value;
   };
+  const locale = getLanguageLocale(language);
 
   const [form, setForm] = useState(emptyForm);
   const [formErrors, setFormErrors] = useState({});
@@ -258,10 +426,10 @@ export default function BookingPublicPage() {
     [typesQuery.data]
   );
   const selectedType = bookingTypes.find((type) => type.id === form.bookingTypeId) || null;
-  const exactTimeMode = isExactTimeMode(selectedType?.availabilityMode);
-  const specificDateOptions = getSpecificDates(selectedType).map((date) => ({
+  const timeScopedMode = hasTimeScope(selectedType?.availabilityMode);
+  const selectableDateOptions = getSelectableDates(selectedType).map((date) => ({
     value: date,
-    label: date,
+    label: formatDateOptionLabel(date, locale),
   }));
   const dateInputConstraints = getDateInputConstraints(selectedType);
   const timeInputConstraints = getTimeInputConstraints(selectedType);
@@ -284,9 +452,11 @@ export default function BookingPublicPage() {
 
   const slotsQuery = useQuery({
     queryKey: ['bookings', 'public', 'slots', form.bookingTypeId],
-    enabled: Boolean(form.bookingTypeId && exactTimeMode),
+    enabled: Boolean(form.bookingTypeId && timeScopedMode),
     queryFn: async () => {
-      const { data } = await bookingsApi.public.getSlots(form.bookingTypeId, { days: 60 });
+      const { data } = await bookingsApi.public.getSlots(form.bookingTypeId, {
+        days: Number(selectedType?.bookingHorizonDays) || 60,
+      });
       return data;
     },
     staleTime: 30000,
@@ -298,16 +468,22 @@ export default function BookingPublicPage() {
   );
   const dateOptions = dateGroups.map((entry) => ({
     value: entry.date,
-    label: entry.date,
+    label: formatDateOptionLabel(entry.date, locale),
   }));
   const selectedDateGroup = dateGroups.find((entry) => entry.date === form.scheduledDate) || null;
   const timeOptions = (selectedDateGroup?.slots || []).map((slot) => ({
     value: slot.time,
     label: `${slot.time} • ${tf('bookings.public.remaining', 'Remaining')} ${slot.remaining}`,
   }));
+  const canBookSelectedType = hasBookableAvailability(selectedType, {
+    exactTimeMode: timeScopedMode,
+    dateGroups,
+    selectableDates: selectableDateOptions,
+    dateConstraints: dateInputConstraints,
+  });
 
   useEffect(() => {
-    if (!exactTimeMode) return;
+    if (!timeScopedMode) return;
 
     if (!dateGroups.length) {
       setForm((current) => ({ ...current, scheduledDate: '', scheduledTime: '' }));
@@ -328,7 +504,7 @@ export default function BookingPublicPage() {
         scheduledTime: nextTime,
       }));
     }
-  }, [dateGroups, exactTimeMode, form.scheduledDate, form.scheduledTime]);
+  }, [dateGroups, timeScopedMode, form.scheduledDate, form.scheduledTime]);
 
   useEffect(() => {
     setForm((current) => ({
@@ -340,21 +516,69 @@ export default function BookingPublicPage() {
   }, [form.bookingTypeId]);
 
   useEffect(() => {
-    if (exactTimeMode || !selectedType) return;
+    if (timeScopedMode || !selectedType) return;
 
     if (
-      (selectedType.availabilityMode === 'SPECIFIC_DATES' ||
-        selectedType.availabilityMode === 'SPECIFIC_DATES_TIME' ||
-        selectedType.availabilityMode === 'DATE_TIME') &&
-      specificDateOptions.length > 0 &&
+      ['SPECIFIC_DAYS', 'SPECIFIC_DAYS_TIME', 'SPECIFIC_DATES'].includes(selectedType.availabilityMode) &&
+      selectableDateOptions.length > 0 &&
       !form.scheduledDate
     ) {
       setForm((current) => ({
         ...current,
-        scheduledDate: specificDateOptions[0].value,
+        scheduledDate: selectableDateOptions[0].value,
       }));
     }
-  }, [exactTimeMode, selectedType, specificDateOptions, form.scheduledDate]);
+  }, [timeScopedMode, selectedType, selectableDateOptions, form.scheduledDate]);
+
+  useEffect(() => {
+    if (!selectedType || timeScopedMode) return;
+
+    setForm((current) => {
+      let nextDate = current.scheduledDate;
+      let nextTime = current.scheduledTime;
+      let changed = false;
+
+      if (['SPECIFIC_DAYS', 'SPECIFIC_DAYS_TIME', 'SPECIFIC_DATES'].includes(selectedType.availabilityMode)) {
+        const allowedDates = selectableDateOptions.map((option) => option.value);
+        if (!allowedDates.length) {
+          if (nextDate || nextTime) {
+            nextDate = '';
+            nextTime = '';
+            changed = true;
+          }
+        } else if (!allowedDates.includes(nextDate)) {
+          nextDate = allowedDates[0];
+          changed = true;
+        }
+      } else if (nextDate && !isDateAllowedForType(selectedType, nextDate)) {
+        nextDate = '';
+        changed = true;
+      }
+
+      if (nextTime && timeInputConstraints.min && nextTime < timeInputConstraints.min) {
+        nextTime = '';
+        changed = true;
+      }
+
+      if (nextTime && timeInputConstraints.max && nextTime > timeInputConstraints.max) {
+        nextTime = '';
+        changed = true;
+      }
+
+      if (!changed) return current;
+      return {
+        ...current,
+        scheduledDate: nextDate,
+        scheduledTime: nextTime,
+      };
+    });
+  }, [
+    timeScopedMode,
+    selectedType,
+    selectableDateOptions,
+    timeInputConstraints.max,
+    timeInputConstraints.min,
+  ]);
 
   const createBookingMutation = useMutation({
     mutationFn: (payload) => bookingsApi.public.create(payload),
@@ -420,8 +644,44 @@ export default function BookingPublicPage() {
     if (!form.bookingTypeId) nextErrors.bookingTypeId = tf('bookings.public.typeRequired', 'Please choose a booking type.');
     if (!form.requesterName.trim()) nextErrors.requesterName = tf('bookings.public.nameRequired', 'Your name is required.');
     if (!form.requesterPhone.trim()) nextErrors.requesterPhone = tf('bookings.public.phoneRequired', 'A phone number is required.');
+    if (selectedType && !canBookSelectedType) {
+      nextErrors.bookingTypeId = tf(
+        'bookings.public.noAvailability',
+        'There are no available slots for this booking type right now.'
+      );
+    }
     if (!form.scheduledDate) nextErrors.scheduledDate = tf('bookings.public.dateRequired', 'Please choose a date.');
-    if (!form.scheduledTime) nextErrors.scheduledTime = tf('bookings.public.timeRequired', 'Please choose a time.');
+    if (timeScopedMode && !form.scheduledTime) {
+      nextErrors.scheduledTime = tf('bookings.public.timeRequired', 'Please choose a time.');
+    }
+    if (form.scheduledDate && selectedType && !isDateAllowedForType(selectedType, form.scheduledDate)) {
+      nextErrors.scheduledDate = tf(
+        'bookings.public.invalidDate',
+        'The selected date is not available for this booking type.'
+      );
+    }
+    if (
+      timeScopedMode &&
+      form.scheduledTime &&
+      timeInputConstraints.min &&
+      form.scheduledTime < timeInputConstraints.min
+    ) {
+      nextErrors.scheduledTime = tf(
+        'bookings.public.invalidTime',
+        'The selected time is not available for this booking type.'
+      );
+    }
+    if (
+      timeScopedMode &&
+      form.scheduledTime &&
+      timeInputConstraints.max &&
+      form.scheduledTime > timeInputConstraints.max
+    ) {
+      nextErrors.scheduledTime = tf(
+        'bookings.public.invalidTime',
+        'The selected time is not available for this booking type.'
+      );
+    }
 
     for (const field of selectedType?.dynamicFields || []) {
       const value = form.dynamicFields[field.key];
@@ -453,11 +713,17 @@ export default function BookingPublicPage() {
       requesterPhone: form.requesterPhone.trim(),
       requesterEmail: form.requesterEmail.trim() || null,
       scheduledDate: form.scheduledDate,
-      scheduledTime: form.scheduledTime,
+      scheduledTime: timeScopedMode ? form.scheduledTime : null,
       notes: form.notes.trim() || null,
       dynamicFields: Object.entries(form.dynamicFields).map(([key, value]) => ({ key, value })),
     });
   };
+
+  const usesDateSelect =
+    timeScopedMode ||
+    ['SPECIFIC_DAYS', 'SPECIFIC_DATES'].includes(selectedType?.availabilityMode);
+  const isTypeUnavailable = Boolean(selectedType) && !canBookSelectedType;
+  const isTimeDisabled = !selectedType || isTypeUnavailable || !timeScopedMode || !form.scheduledDate;
 
   return (
     <div className="relative overflow-hidden bg-page">
@@ -525,23 +791,24 @@ export default function BookingPublicPage() {
                   />
                 </div>
 
-                <Input
+                {/* <Input
                   label={tf('bookings.public.requesterEmail', 'Email')}
                   type="email"
                   value={form.requesterEmail}
                   onChange={(event) => updateField('requesterEmail', event.target.value)}
                   containerClassName="!mb-0"
-                />
+                /> */}
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {exactTimeMode || selectedType?.availabilityMode === 'SPECIFIC_DATES' ? (
+                <div className={`grid grid-cols-1 gap-4 ${timeScopedMode ? 'md:grid-cols-2' : ''}`}>
+                  {usesDateSelect ? (
                     <Select
                       label={tf('bookings.public.date', 'Date')}
                       value={form.scheduledDate}
                       onChange={(event) => updateField('scheduledDate', event.target.value)}
                       error={formErrors.scheduledDate}
-                      options={exactTimeMode ? dateOptions : specificDateOptions}
+                      options={timeScopedMode ? dateOptions : selectableDateOptions}
                       placeholder={tf('bookings.public.datePlaceholder', 'Choose a date')}
+                      disabled={!selectedType || isTypeUnavailable}
                     />
                   ) : (
                     <Input
@@ -552,11 +819,12 @@ export default function BookingPublicPage() {
                       error={formErrors.scheduledDate}
                       min={dateInputConstraints.min}
                       max={dateInputConstraints.max}
+                      disabled={!selectedType || isTypeUnavailable}
                       containerClassName="!mb-0"
                     />
                   )}
 
-                  {exactTimeMode ? (
+                  {timeScopedMode ? (
                     <Select
                       label={tf('bookings.public.time', 'Time')}
                       value={form.scheduledTime}
@@ -564,19 +832,9 @@ export default function BookingPublicPage() {
                       error={formErrors.scheduledTime}
                       options={timeOptions}
                       placeholder={tf('bookings.public.timePlaceholder', 'Choose a time')}
+                      disabled={isTimeDisabled}
                     />
-                  ) : (
-                    <Input
-                      label={tf('bookings.public.time', 'Time')}
-                      type="time"
-                      value={form.scheduledTime}
-                      onChange={(event) => updateField('scheduledTime', event.target.value)}
-                      error={formErrors.scheduledTime}
-                      min={timeInputConstraints.min}
-                      max={timeInputConstraints.max}
-                      containerClassName="!mb-0"
-                    />
-                  )}
+                  ) : null}
                 </div>
 
                 <TextArea
@@ -619,6 +877,7 @@ export default function BookingPublicPage() {
                   type="submit"
                   size="lg"
                   loading={createBookingMutation.isPending}
+                  disabled={!selectedType || isTypeUnavailable}
                   className="w-full rounded-2xl !py-4 text-sm font-bold"
                   icon={NotebookPen}
                 >
@@ -638,7 +897,7 @@ export default function BookingPublicPage() {
                   }
                 />
 
-                {typesQuery.isLoading || (exactTimeMode && slotsQuery.isLoading) ? (
+                {typesQuery.isLoading || (timeScopedMode && slotsQuery.isLoading) ? (
                   <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface-alt/40 p-4 text-sm text-muted">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     {tf('bookings.public.loading', 'Loading availability...')}
@@ -655,7 +914,7 @@ export default function BookingPublicPage() {
                 ) : null}
 
                 <div className="mt-4 space-y-3">
-                  {exactTimeMode && dateGroups.length > 0 ? (
+                  {timeScopedMode && dateGroups.length > 0 ? (
                     dateGroups.slice(0, 4).map((group) => (
                       <div key={group.date} className="rounded-2xl border border-border p-4">
                         <div className="mb-3 flex items-center justify-between">
@@ -702,7 +961,8 @@ export default function BookingPublicPage() {
                     <div>
                       <p className="text-sm font-bold text-heading">{tf('bookings.public.successTitle', 'Booking submitted')}</p>
                       <p className="mt-1 text-sm text-muted">
-                        {lastCreatedBooking.bookingType?.name} • {lastCreatedBooking.scheduledDate} • {lastCreatedBooking.scheduledTime}
+                        {lastCreatedBooking.bookingType?.name} • {lastCreatedBooking.scheduledDate}
+                        {lastCreatedBooking.scheduledTime ? ` • ${lastCreatedBooking.scheduledTime}` : ''}
                       </p>
                       <p className="mt-2 text-xs text-muted">
                         {tf('bookings.public.successBody', 'An administrator can now review and manage your booking from the dashboard.')}
