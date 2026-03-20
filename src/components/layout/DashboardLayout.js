@@ -23,6 +23,7 @@ import {
   Settings2,
   X,
   CalendarClock,
+  Image,
 } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
 import { bookingsApi } from '../../api/endpoints';
@@ -463,6 +464,20 @@ export default function DashboardLayout() {
         matchChildren: false,
       },
       children: [
+        {
+          label: tf('dashboardLayout.menu.archive', 'Archive'),
+          href: '/dashboard/archive',
+          icon: Image,
+          permission: [
+            'ARCHIVE_VIEW',
+            'ARCHIVE_UPLOAD',
+            'ARCHIVE_COLLECTIONS_MANAGE',
+            'ARCHIVE_STORIES_MANAGE',
+            'ARCHIVE_HONOREES_MANAGE',
+            'ARCHIVE_PUBLISH',
+          ],
+          matchChildren: false,
+        },
         {
           label: t('dashboardLayout.menu.landingContent'),
           href: '/dashboard/public-site/landing',

@@ -113,6 +113,25 @@ export const divineLiturgiesApi = {
   setChurchPriests: (priestUserIds) => apiClient.put('/divine-liturgies/priests', { priestUserIds }),
 };
 
+export const archiveApi = {
+  getPublic: () => apiClient.get('/archive/public'),
+  getManage: () => apiClient.get('/archive/manage'),
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return apiClient.post('/archive/upload-image', formData);
+  },
+  createCollection: (data) => apiClient.post('/archive/collections', data),
+  updateCollection: (id, data) => apiClient.patch(`/archive/collections/${id}`, data),
+  removeCollection: (id) => apiClient.delete(`/archive/collections/${id}`),
+  createStory: (data) => apiClient.post('/archive/stories', data),
+  updateStory: (id, data) => apiClient.patch(`/archive/stories/${id}`, data),
+  removeStory: (id) => apiClient.delete(`/archive/stories/${id}`),
+  createHonoree: (data) => apiClient.post('/archive/honorees', data),
+  updateHonoree: (id, data) => apiClient.patch(`/archive/honorees/${id}`, data),
+  removeHonoree: (id) => apiClient.delete(`/archive/honorees/${id}`),
+};
+
 export const landingContentApi = {
   getPublic: () => apiClient.get('/landing-content/public'),
   getManage: () => apiClient.get('/landing-content/manage'),

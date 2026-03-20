@@ -60,6 +60,7 @@ const PastoralVisitationDetailsPage = lazy(() => import('../pages/dashboard/visi
 const PastoralVisitationAnalyticsPage = lazy(() => import('../pages/dashboard/visitations/PastoralVisitationAnalyticsPage'));
 const DivineLiturgiesPage = lazy(() => import('../pages/dashboard/divineLiturgies/DivineLiturgiesPage'));
 const ChurchPriestsPage = lazy(() => import('../pages/dashboard/divineLiturgies/ChurchPriestsPage'));
+const ArchiveManagementPage = lazy(() => import('../pages/dashboard/archive/ArchiveManagementPage'));
 const DivineLiturgyAttendanceCheckInPage = lazy(() =>
   import('../pages/dashboard/divineLiturgies/DivineLiturgyAttendanceCheckInPage')
 );
@@ -359,6 +360,24 @@ const router = createBrowserRouter([
             mode="any"
           >
             <Lazy><DivineLiturgyAttendanceCheckInPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'archive',
+        element: (
+          <PermissionGuard
+            required={[
+              'ARCHIVE_VIEW',
+              'ARCHIVE_UPLOAD',
+              'ARCHIVE_COLLECTIONS_MANAGE',
+              'ARCHIVE_STORIES_MANAGE',
+              'ARCHIVE_HONOREES_MANAGE',
+              'ARCHIVE_PUBLISH',
+            ]}
+            mode="any"
+          >
+            <Lazy><ArchiveManagementPage /></Lazy>
           </PermissionGuard>
         ),
       },
