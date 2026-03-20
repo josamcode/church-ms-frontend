@@ -2,9 +2,9 @@ import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  AlertTriangle,
   ArrowUpRight,
   BarChart3,
+  CalendarDays,
   CalendarPlus,
   Layers3,
   ListChecks,
@@ -18,30 +18,24 @@ import { useAuth } from '../../../auth/auth.hooks';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
 import { DAY_VALUES, getDayLabel } from './meetingsForm.utils';
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Constants
-───────────────────────────────────────────────────────────────────────────── */
-
-const SECTOR_PERMISSIONS = ['SECTORS_VIEW', 'SECTORS_CREATE', 'SECTORS_UPDATE', 'SECTORS_DELETE'];
-const MEETING_PERMISSIONS = [
-  'MEETINGS_VIEW', 'MEETINGS_CREATE', 'MEETINGS_UPDATE', 'MEETINGS_DELETE',
-  'MEETINGS_SERVANTS_MANAGE', 'MEETINGS_COMMITTEES_MANAGE', 'MEETINGS_ACTIVITIES_MANAGE',
-  'MEETINGS_RESPONSIBILITIES_VIEW', 'MEETINGS_SERVANT_HISTORY_VIEW',
-  'MEETINGS_DOCUMENTATION_MANAGE', 'MEETINGS_SETTINGS_MANAGE',
+const SECTOR_ACTION_PERMISSIONS = ['SECTORS_CREATE', 'SECTORS_UPDATE', 'SECTORS_DELETE'];
+const MEETING_ACTION_PERMISSIONS = [
+  'MEETINGS_CREATE',
+  'MEETINGS_UPDATE',
+  'MEETINGS_DELETE',
+  'MEETINGS_SERVANTS_MANAGE',
+  'MEETINGS_COMMITTEES_MANAGE',
+  'MEETINGS_ACTIVITIES_MANAGE',
+  'MEETINGS_DOCUMENTATION_MANAGE',
+  'MEETINGS_SETTINGS_MANAGE',
 ];
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Sub-components
-───────────────────────────────────────────────────────────────────────────── */
-
-/** A single large KPI tile */
 function KpiCard({ label, value, variant = 'default', icon: Icon }) {
   const accentMap = {
     default: 'bg-surface-alt text-muted',
@@ -53,33 +47,33 @@ function KpiCard({ label, value, variant = 'default', icon: Icon }) {
 
   return (
     <div className="group relative flex flex-col justify-between rounded-2xl border border-border bg-surface p-5 transition-shadow hover:shadow-sm">
-      {/* top row */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium uppercase tracking-widest text-muted">{label}</span>
-        {Icon && (
+        {Icon ? (
           <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${accentMap[variant]}`}>
             <Icon className="h-4 w-4" />
           </span>
-        )}
+        ) : null}
       </div>
 
-      {/* big number */}
       <p className="mt-4 text-4xl font-bold tracking-tight text-heading">{value}</p>
 
-      {/* bottom accent bar */}
       <div
-        className={`mt-4 h-0.5 w-10 rounded-full transition-all group-hover:w-16 ${variant === 'primary' ? 'bg-primary' :
-            variant === 'warning' ? 'bg-warning' :
-              variant === 'danger' ? 'bg-danger' :
-                variant === 'success' ? 'bg-success' :
-                  'bg-border'
+        className={`mt-4 h-0.5 w-10 rounded-full transition-all group-hover:w-16 ${variant === 'primary'
+          ? 'bg-primary'
+          : variant === 'warning'
+            ? 'bg-warning'
+            : variant === 'danger'
+              ? 'bg-danger'
+              : variant === 'success'
+                ? 'bg-success'
+                : 'bg-border'
           }`}
       />
     </div>
   );
 }
 
-/** Divider with a label */
 function SectionLabel({ children }) {
   return (
     <div className="flex items-center gap-3 pt-2">
@@ -89,24 +83,20 @@ function SectionLabel({ children }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Main page
-───────────────────────────────────────────────────────────────────────────── */
-
 export default function MeetingsDashboardPage() {
   const { t, isRTL } = useI18n();
   const navigate = useNavigate();
-  const { hasPermission, hasAnyPermission } = useAuth();
+  const { hasPermission, hasAnyPermission, isAuthenticated } = useAuth();
 
   const canViewSectors = hasPermission('SECTORS_VIEW');
   const canViewMeetings = hasPermission('MEETINGS_VIEW');
   const canViewResponsibilities = hasPermission('MEETINGS_RESPONSIBILITIES_VIEW');
   const canCreateSectors = hasPermission('SECTORS_CREATE');
   const canCreateMeetings = hasPermission('MEETINGS_CREATE');
-  const canManageSectors = hasAnyPermission(SECTOR_PERMISSIONS);
-  const canManageMeetings = hasAnyPermission(MEETING_PERMISSIONS);
+  const canManageSectors = hasAnyPermission(SECTOR_ACTION_PERMISSIONS);
+  const canManageMeetings = hasAnyPermission(MEETING_ACTION_PERMISSIONS);
+  const canTakeActions = canManageSectors || canManageMeetings;
 
-  /* queries */
   const sectorsQuery = useQuery({
     queryKey: ['meetings', 'dashboard', 'sectors'],
     enabled: canViewSectors,
@@ -119,7 +109,7 @@ export default function MeetingsDashboardPage() {
 
   const meetingsQuery = useQuery({
     queryKey: ['meetings', 'dashboard', 'meetings'],
-    enabled: canViewMeetings,
+    enabled: isAuthenticated,
     staleTime: 60000,
     queryFn: async () => {
       const { data } = await meetingsApi.meetings.list({ limit: 100, order: 'desc' });
@@ -137,11 +127,19 @@ export default function MeetingsDashboardPage() {
     },
   });
 
-  const sectors = useMemo(() => (Array.isArray(sectorsQuery.data) ? sectorsQuery.data : []), [sectorsQuery.data]);
-  const meetings = useMemo(() => (Array.isArray(meetingsQuery.data) ? meetingsQuery.data : []), [meetingsQuery.data]);
-  const responsibilities = useMemo(() => (Array.isArray(responsibilitiesQuery.data) ? responsibilitiesQuery.data : []), [responsibilitiesQuery.data]);
+  const sectors = useMemo(
+    () => (Array.isArray(sectorsQuery.data) ? sectorsQuery.data : []),
+    [sectorsQuery.data]
+  );
+  const meetings = useMemo(
+    () => (Array.isArray(meetingsQuery.data) ? meetingsQuery.data : []),
+    [meetingsQuery.data]
+  );
+  const responsibilities = useMemo(
+    () => (Array.isArray(responsibilitiesQuery.data) ? responsibilitiesQuery.data : []),
+    [responsibilitiesQuery.data]
+  );
 
-  /* derived stats */
   const summary = useMemo(() => {
     const result = {
       totalSectors: sectors.length,
@@ -158,54 +156,64 @@ export default function MeetingsDashboardPage() {
 
     const servedUsers = new Set();
 
-    sectors.forEach((s) => {
-      if (!(s.officials || []).length) result.sectorsWithoutOfficials += 1;
+    sectors.forEach((sector) => {
+      if (!(sector.officials || []).length) result.sectorsWithoutOfficials += 1;
     });
 
-    meetings.forEach((m) => {
-      const sc = (m.servants || []).length;
-      const cc = (m.committees || []).length;
-      const ac = (m.activities || []).length;
-      result.totalServants += sc;
-      result.totalCommittees += cc;
-      result.totalActivities += ac;
-      if (!sc) result.meetingsWithoutServants += 1;
-      if (!cc) result.meetingsWithoutCommittees += 1;
-      if (!ac) result.meetingsWithoutActivities += 1;
-      (m.servedUsers || []).forEach((u) => {
-        const id = u?.id || u?._id;
+    meetings.forEach((meeting) => {
+      const servantsCount = (meeting.servants || []).length;
+      const committeesCount = (meeting.committees || []).length;
+      const activitiesCount = (meeting.activities || []).length;
+
+      result.totalServants += servantsCount;
+      result.totalCommittees += committeesCount;
+      result.totalActivities += activitiesCount;
+
+      if (!servantsCount) result.meetingsWithoutServants += 1;
+      if (!committeesCount) result.meetingsWithoutCommittees += 1;
+      if (!activitiesCount) result.meetingsWithoutActivities += 1;
+
+      (meeting.servedUsers || []).forEach((user) => {
+        const id = user?.id || user?._id;
         if (id) servedUsers.add(String(id));
       });
     });
 
     result.uniqueServedUsers = servedUsers.size;
     return result;
-  }, [sectors, meetings]);
+  }, [meetings, sectors]);
 
   const sectorHealth = useMemo(() => {
     const bySector = new Map();
-    const getKey = (s) => String(s?.id || s?._id || s?.name || 'unknown');
-    const getName = (s) => s?.name || t('common.placeholder.empty');
+    const getKey = (sector) => String(sector?.id || sector?._id || sector?.name || 'unknown');
+    const getName = (sector) => sector?.name || t('common.placeholder.empty');
 
-    sectors.forEach((s) => {
-      bySector.set(getKey(s), {
-        id: s.id || s._id || getKey(s),
-        name: s.name,
-        officialsCount: (s.officials || []).length,
-        meetingsCount: 0, servantsCount: 0, activitiesCount: 0,
+    sectors.forEach((sector) => {
+      bySector.set(getKey(sector), {
+        id: sector.id || sector._id || getKey(sector),
+        name: sector.name,
+        officialsCount: (sector.officials || []).length,
+        meetingsCount: 0,
+        servantsCount: 0,
+        activitiesCount: 0,
       });
     });
 
-    meetings.forEach((m) => {
-      const key = getKey(m.sector || {});
-      const cur = bySector.get(key) || {
-        id: m.sector?.id || key, name: getName(m.sector),
-        officialsCount: 0, meetingsCount: 0, servantsCount: 0, activitiesCount: 0,
+    meetings.forEach((meeting) => {
+      const key = getKey(meeting.sector || {});
+      const current = bySector.get(key) || {
+        id: meeting.sector?.id || key,
+        name: getName(meeting.sector),
+        officialsCount: 0,
+        meetingsCount: 0,
+        servantsCount: 0,
+        activitiesCount: 0,
       };
-      cur.meetingsCount += 1;
-      cur.servantsCount += (m.servants || []).length;
-      cur.activitiesCount += (m.activities || []).length;
-      bySector.set(key, cur);
+
+      current.meetingsCount += 1;
+      current.servantsCount += (meeting.servants || []).length;
+      current.activitiesCount += (meeting.activities || []).length;
+      bySector.set(key, current);
     });
 
     return [...bySector.values()].sort((a, b) =>
@@ -213,49 +221,145 @@ export default function MeetingsDashboardPage() {
         ? b.meetingsCount - a.meetingsCount
         : b.servantsCount - a.servantsCount
     );
-  }, [sectors, meetings, t]);
+  }, [meetings, sectors, t]);
 
   const weeklyLoad = useMemo(() => {
-    const counts = meetings.reduce((acc, m) => {
-      if (m?.day) acc[m.day] = (acc[m.day] || 0) + 1;
+    const counts = meetings.reduce((acc, meeting) => {
+      if (meeting?.day) acc[meeting.day] = (acc[meeting.day] || 0) + 1;
       return acc;
     }, {});
-    return DAY_VALUES.map((day) => ({ day, label: getDayLabel(day, t), count: counts[day] || 0 }));
+
+    return DAY_VALUES.map((day) => ({
+      day,
+      label: getDayLabel(day, t),
+      count: counts[day] || 0,
+    }));
   }, [meetings, t]);
 
-  const maxDailyLoad = Math.max(...weeklyLoad.map((e) => e.count), 1);
+  const maxDailyLoad = Math.max(...weeklyLoad.map((entry) => entry.count), 1);
+  const dayOrder = useMemo(() => new Map(DAY_VALUES.map((day, index) => [day, index])), []);
+
+  const meetingsSchedule = useMemo(
+    () =>
+      [...meetings].sort((a, b) => {
+        const dayA = dayOrder.get(a?.day) ?? Number.MAX_SAFE_INTEGER;
+        const dayB = dayOrder.get(b?.day) ?? Number.MAX_SAFE_INTEGER;
+        if (dayA !== dayB) return dayA - dayB;
+        return String(a?.time || '').localeCompare(String(b?.time || ''));
+      }),
+    [dayOrder, meetings]
+  );
 
   const kpiCards = [
-    canViewSectors ? { key: 'sectors', label: t('meetings.dashboard.cards.totalSectors'), value: summary.totalSectors, variant: 'default', icon: Layers3 } : null,
-    canViewMeetings ? { key: 'meetings', label: t('meetings.dashboard.cards.totalMeetings'), value: summary.totalMeetings, variant: 'default', icon: CalendarPlus } : null,
-    canViewMeetings ? { key: 'servants', label: t('meetings.dashboard.cards.totalServants'), value: summary.totalServants, variant: 'primary', icon: Users } : null,
-    canViewMeetings ? { key: 'servedUsers', label: t('meetings.dashboard.cards.servedUsers'), value: summary.uniqueServedUsers, variant: 'primary', icon: TrendingUp } : null,
-    canViewSectors ? { key: 'noOfficials', label: t('meetings.dashboard.cards.sectorsWithoutOfficials'), value: summary.sectorsWithoutOfficials, variant: summary.sectorsWithoutOfficials > 0 ? 'warning' : 'success', icon: Shield } : null,
-    canViewMeetings ? { key: 'noServants', label: t('meetings.dashboard.cards.meetingsWithoutServants'), value: summary.meetingsWithoutServants, variant: summary.meetingsWithoutServants > 0 ? 'danger' : 'success', icon: Activity } : null,
+    canViewSectors
+      ? {
+        key: 'sectors',
+        label: t('meetings.dashboard.cards.totalSectors'),
+        value: summary.totalSectors,
+        variant: 'default',
+        icon: Layers3,
+      }
+      : null,
+    canViewMeetings
+      ? {
+        key: 'meetings',
+        label: t('meetings.dashboard.cards.totalMeetings'),
+        value: summary.totalMeetings,
+        variant: 'default',
+        icon: CalendarPlus,
+      }
+      : null,
+    canViewMeetings
+      ? {
+        key: 'servants',
+        label: t('meetings.dashboard.cards.totalServants'),
+        value: summary.totalServants,
+        variant: 'primary',
+        icon: Users,
+      }
+      : null,
+    canViewMeetings
+      ? {
+        key: 'servedUsers',
+        label: t('meetings.dashboard.cards.servedUsers'),
+        value: summary.uniqueServedUsers,
+        variant: 'primary',
+        icon: TrendingUp,
+      }
+      : null,
+    canViewSectors
+      ? {
+        key: 'noOfficials',
+        label: t('meetings.dashboard.cards.sectorsWithoutOfficials'),
+        value: summary.sectorsWithoutOfficials,
+        variant: summary.sectorsWithoutOfficials > 0 ? 'warning' : 'success',
+        icon: Shield,
+      }
+      : null,
+    canViewMeetings
+      ? {
+        key: 'noServants',
+        label: t('meetings.dashboard.cards.meetingsWithoutServants'),
+        value: summary.meetingsWithoutServants,
+        variant: summary.meetingsWithoutServants > 0 ? 'danger' : 'success',
+        icon: Activity,
+      }
+      : null,
   ].filter(Boolean);
 
   const actionItems = [
-    canViewSectors ? { key: 'noOfficials', title: t('meetings.dashboard.actionItems.sectorsWithoutOfficialsTitle'), description: t('meetings.dashboard.actionItems.sectorsWithoutOfficialsDesc', { count: summary.sectorsWithoutOfficials }), count: summary.sectorsWithoutOfficials, href: '/dashboard/meetings/sectors', variant: summary.sectorsWithoutOfficials > 0 ? 'warning' : 'success' } : null,
-    canViewMeetings ? { key: 'noServants', title: t('meetings.dashboard.actionItems.meetingsWithoutServantsTitle'), description: t('meetings.dashboard.actionItems.meetingsWithoutServantsDesc', { count: summary.meetingsWithoutServants }), count: summary.meetingsWithoutServants, href: '/dashboard/meetings/list', variant: summary.meetingsWithoutServants > 0 ? 'danger' : 'success' } : null,
-    canViewMeetings ? { key: 'noActivities', title: t('meetings.dashboard.actionItems.meetingsWithoutActivitiesTitle'), description: t('meetings.dashboard.actionItems.meetingsWithoutActivitiesDesc', { count: summary.meetingsWithoutActivities }), count: summary.meetingsWithoutActivities, href: '/dashboard/meetings/list', variant: summary.meetingsWithoutActivities > 0 ? 'warning' : 'success' } : null,
-    canViewMeetings ? { key: 'noCommittees', title: t('meetings.dashboard.actionItems.meetingsWithoutCommitteesTitle'), description: t('meetings.dashboard.actionItems.meetingsWithoutCommitteesDesc', { count: summary.meetingsWithoutCommittees }), count: summary.meetingsWithoutCommittees, href: '/dashboard/meetings/list', variant: summary.meetingsWithoutCommittees > 0 ? 'warning' : 'success' } : null,
+    canTakeActions && canViewSectors
+      ? {
+        key: 'noOfficials',
+        title: t('meetings.dashboard.actionItems.sectorsWithoutOfficialsTitle'),
+        description: t('meetings.dashboard.actionItems.sectorsWithoutOfficialsDesc', {
+          count: summary.sectorsWithoutOfficials,
+        }),
+        count: summary.sectorsWithoutOfficials,
+        href: '/dashboard/meetings/sectors',
+        variant: summary.sectorsWithoutOfficials > 0 ? 'warning' : 'success',
+      }
+      : null,
+    canTakeActions && canViewMeetings
+      ? {
+        key: 'noServants',
+        title: t('meetings.dashboard.actionItems.meetingsWithoutServantsTitle'),
+        description: t('meetings.dashboard.actionItems.meetingsWithoutServantsDesc', {
+          count: summary.meetingsWithoutServants,
+        }),
+        count: summary.meetingsWithoutServants,
+        href: '/dashboard/meetings/list',
+        variant: summary.meetingsWithoutServants > 0 ? 'danger' : 'success',
+      }
+      : null,
+    canTakeActions && canViewMeetings
+      ? {
+        key: 'noActivities',
+        title: t('meetings.dashboard.actionItems.meetingsWithoutActivitiesTitle'),
+        description: t('meetings.dashboard.actionItems.meetingsWithoutActivitiesDesc', {
+          count: summary.meetingsWithoutActivities,
+        }),
+        count: summary.meetingsWithoutActivities,
+        href: '/dashboard/meetings/list',
+        variant: summary.meetingsWithoutActivities > 0 ? 'warning' : 'success',
+      }
+      : null,
+    canTakeActions && canViewMeetings
+      ? {
+        key: 'noCommittees',
+        title: t('meetings.dashboard.actionItems.meetingsWithoutCommitteesTitle'),
+        description: t('meetings.dashboard.actionItems.meetingsWithoutCommitteesDesc', {
+          count: summary.meetingsWithoutCommittees,
+        }),
+        count: summary.meetingsWithoutCommittees,
+        href: '/dashboard/meetings/list',
+        variant: summary.meetingsWithoutCommittees > 0 ? 'warning' : 'success',
+      }
+      : null,
   ].filter(Boolean);
 
-  /* guard */
-  if (!canManageSectors && !canManageMeetings) {
-    return (
-      <div className="animate-fade-in space-y-6">
-        <Breadcrumbs items={[{ label: t('shared.dashboard'), href: '/dashboard' }, { label: t('meetings.dashboardTitle') }]} />
-        <EmptyState title={t('meetings.dashboard.status.noPermissionsTitle')} description={t('meetings.dashboard.status.noPermissionsDescription')} />
-      </div>
-    );
-  }
-
-  /* ── render ─────────────────────────────────────────────────────────────── */
   return (
     <div className="animate-fade-in space-y-8 pb-10">
-
-      {/* ── Breadcrumbs ── */}
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
@@ -263,63 +367,144 @@ export default function MeetingsDashboardPage() {
         ]}
       />
 
-      {/* ══════════════════════════════════════════════
-          HERO HEADER — clean, no background gradient
-      ══════════════════════════════════════════════ */}
       <PageHeader
         className="border-b border-border pb-6"
         title={t('meetings.dashboardTitle')}
         subtitle={t('meetings.dashboardSubtitle')}
         titleClassName="mt-1 text-3xl font-bold tracking-tight text-heading"
         subtitleClassName="mt-1.5 max-w-md text-sm text-muted"
-        actions={(
-          <div className="flex flex-wrap items-center gap-2">
-            {canManageSectors && (
-              <Button variant="ghost" icon={Layers3} onClick={() => navigate('/dashboard/meetings/sectors')}>
-                {t('meetings.actions.manageSectors')}
-              </Button>
-            )}
-            {canManageMeetings && (
-              <Button variant="outline" icon={ListChecks} onClick={() => navigate('/dashboard/meetings/list')}>
-                {t('meetings.actions.manageMeetings')}
-              </Button>
-            )}
-            {canCreateSectors && (
-              <Button variant="ghost" icon={Layers3} onClick={() => navigate('/dashboard/meetings/sectors/new')}>
-                {t('meetings.actions.addSector')}
-              </Button>
-            )}
-            {canCreateMeetings && (
-              <Button icon={CalendarPlus} onClick={() => navigate('/dashboard/meetings/new')}>
-                {t('meetings.actions.addMeeting')}
-              </Button>
-            )}
-          </div>
-        )}
+        actions={
+          canTakeActions ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {canManageSectors ? (
+                <Button variant="ghost" icon={Layers3} onClick={() => navigate('/dashboard/meetings/sectors')}>
+                  {t('meetings.actions.manageSectors')}
+                </Button>
+              ) : null}
+              {canManageMeetings ? (
+                <Button variant="outline" icon={ListChecks} onClick={() => navigate('/dashboard/meetings/list')}>
+                  {t('meetings.actions.manageMeetings')}
+                </Button>
+              ) : null}
+              {canCreateSectors ? (
+                <Button variant="ghost" icon={Layers3} onClick={() => navigate('/dashboard/meetings/sectors/new')}>
+                  {t('meetings.actions.addSector')}
+                </Button>
+              ) : null}
+              {canCreateMeetings ? (
+                <Button icon={CalendarPlus} onClick={() => navigate('/dashboard/meetings/new')}>
+                  {t('meetings.actions.addMeeting')}
+                </Button>
+              ) : null}
+            </div>
+          ) : null
+        }
       />
 
-      {/* ══════════════════════════════════════════════
-          KPI GRID — 3 cols on xl, 2 on sm
-      ══════════════════════════════════════════════ */}
-      {kpiCards.length > 0 && (
+      {!canTakeActions ? (
+        <div className="rounded-2xl border border-border bg-surface-alt/40 px-4 py-3">
+          <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.status.readOnlyTitle')}</p>
+          <p className="mt-1 text-xs text-muted">{t('meetings.dashboard.status.readOnlyDescription')}</p>
+        </div>
+      ) : null}
+
+      {kpiCards.length > 0 ? (
         <section className="space-y-4">
-          <SectionLabel>{t('meetings.dashboard.cards.totalSectors') && 'Overview'}</SectionLabel>
+          <SectionLabel>Overview</SectionLabel>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {kpiCards.map((item) => (
-              <KpiCard key={item.key} label={item.label} value={item.value} variant={item.variant} icon={item.icon} />
+              <KpiCard
+                key={item.key}
+                label={item.label}
+                value={item.value}
+                variant={item.variant}
+                icon={item.icon}
+              />
             ))}
           </div>
         </section>
-      )}
+      ) : null}
 
-      {/* ══════════════════════════════════════════════
-          ANALYTICS ROW — Sector Health + Weekly Load
-      ══════════════════════════════════════════════ */}
       <section className="space-y-4">
-        <SectionLabel>{t('meetings.dashboard.sections.sectorHealth')}</SectionLabel>
+        <SectionLabel>{t('meetings.dashboard.sections.meetingSchedule')}</SectionLabel>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="rounded-2xl border border-border bg-surface p-6">
+            <div className="mb-5">
+              <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.sections.meetingSchedule')}</p>
+              <p className="mt-0.5 text-xs text-muted">{t('meetings.dashboard.sections.meetingScheduleSubtitle')}</p>
+            </div>
 
-          {/* ── Sector Health ── */}
+            {meetingsQuery.isLoading ? (
+              <p className="text-sm text-muted">{t('common.loading')}</p>
+            ) : meetingsSchedule.length === 0 ? (
+              <EmptyState
+                title={t('meetings.empty.noDashboardDataTitle')}
+                description={t('meetings.empty.noDashboardDataDescription')}
+              />
+            ) : (
+              <div className="divide-y divide-border/60">
+                {meetingsSchedule.slice(0, 8).map((meeting) => (
+                  <div key={meeting.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-heading">{meeting.name}</p>
+                      <p className="mt-0.5 text-xs text-muted">
+                        {getDayLabel(meeting.day, t)}
+                        {meeting.time ? ` - ${meeting.time}` : ''}
+                      </p>
+                    </div>
+                    <div className="ms-3 flex shrink-0 items-center gap-2">
+                      {meeting.sector?.name ? (
+                        <Badge variant="default">{meeting.sector.name}</Badge>
+                      ) : null}
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <CalendarDays className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-border bg-surface p-6">
+            <div className="mb-5">
+              <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.sections.weeklyLoad')}</p>
+              <p className="mt-0.5 text-xs text-muted">{t('meetings.dashboard.sections.weeklyLoadSubtitle')}</p>
+            </div>
+
+            {meetingsQuery.isLoading ? (
+              <p className="text-sm text-muted">{t('common.loading')}</p>
+            ) : weeklyLoad.every((entry) => entry.count === 0) ? (
+              <EmptyState
+                title={t('meetings.empty.noDashboardDataTitle')}
+                description={t('meetings.empty.noDashboardDataDescription')}
+              />
+            ) : (
+              <div className="space-y-3.5">
+                {weeklyLoad.map((entry) => {
+                  const pct = Math.max((entry.count / maxDailyLoad) * 100, entry.count ? 6 : 0);
+                  return (
+                    <div key={entry.day} className="flex items-center gap-3">
+                      <span className="w-20 shrink-0 text-right text-xs font-medium text-muted">{entry.label}</span>
+                      <div className="relative h-1.5 flex-1 rounded-full bg-surface-alt">
+                        <div
+                          className="absolute inset-y-0 start-0 rounded-full bg-primary transition-all duration-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="w-5 shrink-0 text-xs font-semibold text-heading">{entry.count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {sectorHealth.length > 0 ? (
+        <section className="space-y-4">
+          <SectionLabel>{t('meetings.dashboard.sections.sectorHealth')}</SectionLabel>
           <div className="rounded-2xl border border-border bg-surface p-6">
             <div className="mb-5">
               <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.sections.sectorHealth')}</p>
@@ -328,8 +513,6 @@ export default function MeetingsDashboardPage() {
 
             {sectorsQuery.isLoading || meetingsQuery.isLoading ? (
               <p className="text-sm text-muted">{t('common.loading')}</p>
-            ) : sectorHealth.length === 0 ? (
-              <EmptyState title={t('meetings.empty.noDashboardDataTitle')} description={t('meetings.empty.noDashboardDataDescription')} />
             ) : (
               <div className="divide-y divide-border/60">
                 {sectorHealth.slice(0, 8).map((sector) => (
@@ -338,9 +521,9 @@ export default function MeetingsDashboardPage() {
                       <p className="truncate text-sm font-medium text-heading">{sector.name}</p>
                       <p className="mt-0.5 text-xs text-muted">
                         {sector.officialsCount} {t('meetings.dashboard.labels.officials')}
-                        {' · '}
+                        {' - '}
                         {sector.servantsCount} {t('meetings.dashboard.labels.servants')}
-                        {' · '}
+                        {' - '}
                         {sector.activitiesCount} {t('meetings.dashboard.labels.activities')}
                       </p>
                     </div>
@@ -352,74 +535,39 @@ export default function MeetingsDashboardPage() {
               </div>
             )}
           </div>
+        </section>
+      ) : null}
 
-          {/* ── Weekly Load ── */}
-          <div className="rounded-2xl border border-border bg-surface p-6">
-            <div className="mb-5">
-              <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.sections.weeklyLoad')}</p>
-              <p className="mt-0.5 text-xs text-muted">{t('meetings.dashboard.sections.weeklyLoadSubtitle')}</p>
-            </div>
-
-            {meetingsQuery.isLoading ? (
-              <p className="text-sm text-muted">{t('common.loading')}</p>
-            ) : weeklyLoad.every((e) => e.count === 0) ? (
-              <EmptyState title={t('meetings.empty.noDashboardDataTitle')} description={t('meetings.empty.noDashboardDataDescription')} />
-            ) : (
-              <div className="space-y-3.5">
-                {weeklyLoad.map((entry) => {
-                  const pct = Math.max((entry.count / maxDailyLoad) * 100, entry.count ? 6 : 0);
-                  return (
-                    <div key={entry.day} className="flex items-center gap-3">
-                      {/* day label — fixed width so bars align */}
-                      <span className="w-20 shrink-0 text-right text-xs font-medium text-muted">{entry.label}</span>
-                      {/* track */}
-                      <div className="relative flex-1 h-1.5 rounded-full bg-surface-alt">
-                        <div
-                          className="absolute inset-y-0 start-0 rounded-full bg-primary transition-all duration-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      {/* count */}
-                      <span className="w-5 shrink-0 text-xs font-semibold text-heading">{entry.count}</span>
-                    </div>
-                  );
-                })}
+      {/* {!canTakeActions && (
+        <section className="space-y-4">
+          <SectionLabel>{t('meetings.dashboard.sections.actionCenter')}</SectionLabel>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <div className="rounded-2xl border border-border bg-surface p-6">
+              <div className="mb-5">
+                <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.sections.actionCenter')}</p>
+                <p className="mt-0.5 text-xs text-muted">{t('meetings.dashboard.sections.actionCenterSubtitle')}</p>
               </div>
-            )}
-          </div>
-        </div>
-      </section>
 
-      {/* ══════════════════════════════════════════════
-          BOTTOM ROW — Action Center + Responsibilities
-      ══════════════════════════════════════════════ */}
-      <section className="space-y-4">
-        <SectionLabel>{t('meetings.dashboard.sections.actionCenter')}</SectionLabel>
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-
-          {/* ── Action Center ── */}
-          <div className="rounded-2xl border border-border bg-surface p-6">
-            <div className="mb-5">
-              <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.sections.actionCenter')}</p>
-              <p className="mt-0.5 text-xs text-muted">{t('meetings.dashboard.sections.actionCenterSubtitle')}</p>
-            </div>
-
-            {actionItems.length === 0 ? (
-              <EmptyState title={t('meetings.dashboard.status.noData')} description={t('meetings.dashboard.status.noData')} />
-            ) : (
-              <div className="space-y-2">
-                {actionItems.map((item) => {
-                  const isAlert = item.variant === 'danger' || item.variant === 'warning';
-                  return (
+              {!canTakeActions ? (
+                <EmptyState
+                  title={t('meetings.dashboard.status.readOnlyTitle')}
+                  description={t('meetings.dashboard.status.readOnlyDescription')}
+                />
+              ) : actionItems.length === 0 ? (
+                <EmptyState
+                  title={t('meetings.dashboard.status.noData')}
+                  description={t('meetings.dashboard.status.noData')}
+                />
+              ) : (
+                <div className="space-y-2">
+                  {actionItems.map((item) => (
                     <Link
                       key={item.key}
                       to={item.href}
                       className="group flex items-center justify-between rounded-xl border border-border/80 bg-surface-alt/30 px-4 py-3 transition-colors hover:border-primary/30 hover:bg-surface-alt"
                     >
                       <div className="min-w-0">
-                        <p className={`text-sm font-medium ${isAlert && item.count > 0 ? 'text-heading' : 'text-heading'}`}>
-                          {item.title}
-                        </p>
+                        <p className="text-sm font-medium text-heading">{item.title}</p>
                         <p className="mt-0.5 truncate text-xs text-muted">{item.description}</p>
                       </div>
                       <div className="ms-3 flex shrink-0 items-center gap-2">
@@ -430,75 +578,78 @@ export default function MeetingsDashboardPage() {
                         />
                       </div>
                     </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* ── Responsibilities ── */}
-          <div className="rounded-2xl border border-border bg-surface p-6">
-            <div className="mb-5">
-              <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.sections.responsibilities')}</p>
-              <p className="mt-0.5 text-xs text-muted">{t('meetings.dashboard.sections.responsibilitiesSubtitle')}</p>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {!canViewResponsibilities ? (
-              <EmptyState title={t('meetings.dashboard.status.noData')} description={t('meetings.dashboard.status.noData')} />
-            ) : responsibilitiesQuery.isLoading ? (
-              <p className="text-sm text-muted">{t('common.loading')}</p>
-            ) : responsibilities.length === 0 ? (
-              <EmptyState title={t('meetings.dashboard.status.noResponsibilities')} description={t('meetings.dashboard.status.noResponsibilities')} />
-            ) : (
-              <div className="divide-y divide-border/60">
-                {responsibilities.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-heading">{item.label}</p>
-                      <p className="mt-0.5 text-xs text-muted">
-                        {item.lastUsedAt ? formatDateTime(item.lastUsedAt) : t('common.placeholder.empty')}
-                      </p>
-                    </div>
-                    <Badge variant="primary">
-                      {t('meetings.dashboard.labels.usageCount', { count: item.usageCount || 0 })}
-                    </Badge>
-                  </div>
-                ))}
+            <div className="rounded-2xl border border-border bg-surface p-6">
+              <div className="mb-5">
+                <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.sections.responsibilities')}</p>
+                <p className="mt-0.5 text-xs text-muted">{t('meetings.dashboard.sections.responsibilitiesSubtitle')}</p>
               </div>
-            )}
-          </div>
-        </div>
-      </section>
 
-      {/* ══════════════════════════════════════════════
-          QUICK ACTIONS FOOTER — slim, no warning icon clutter
-      ══════════════════════════════════════════════ */}
-      <section className="rounded-2xl border border-border/60 bg-surface-alt/40 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.sections.quickActions')}</p>
-            <p className="mt-0.5 text-xs text-muted">{t('meetings.dashboardSubtitle')}</p>
+              {!canViewResponsibilities ? (
+                <EmptyState
+                  title={t('meetings.dashboard.status.noData')}
+                  description={t('meetings.dashboard.status.noData')}
+                />
+              ) : responsibilitiesQuery.isLoading ? (
+                <p className="text-sm text-muted">{t('common.loading')}</p>
+              ) : responsibilities.length === 0 ? (
+                <EmptyState
+                  title={t('meetings.dashboard.status.noResponsibilities')}
+                  description={t('meetings.dashboard.status.noResponsibilities')}
+                />
+              ) : (
+                <div className="divide-y divide-border/60">
+                  {responsibilities.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-heading">{item.label}</p>
+                        <p className="mt-0.5 text-xs text-muted">
+                          {item.lastUsedAt ? formatDateTime(item.lastUsedAt) : t('common.placeholder.empty')}
+                        </p>
+                      </div>
+                      <Badge variant="primary">
+                        {t('meetings.dashboard.labels.usageCount', { count: item.usageCount || 0 })}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {canManageSectors && (
-              <Button size="sm" variant="outline" icon={Layers3} onClick={() => navigate('/dashboard/meetings/sectors')}>
-                {t('meetings.actions.manageSectors')}
-              </Button>
-            )}
-            {canManageMeetings && (
-              <Button size="sm" variant="outline" icon={BarChart3} onClick={() => navigate('/dashboard/meetings/list')}>
-                {t('meetings.actions.manageMeetings')}
-              </Button>
-            )}
-            {canCreateMeetings && (
-              <Button size="sm" icon={Users} onClick={() => navigate('/dashboard/meetings/new')}>
-                {t('meetings.actions.addMeeting')}
-              </Button>
-            )}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
+      {canTakeActions ? (
+        <section className="rounded-2xl border border-border/60 bg-surface-alt/40 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.sections.quickActions')}</p>
+              <p className="mt-0.5 text-xs text-muted">{t('meetings.dashboardSubtitle')}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {canManageSectors ? (
+                <Button size="sm" variant="outline" icon={Layers3} onClick={() => navigate('/dashboard/meetings/sectors')}>
+                  {t('meetings.actions.manageSectors')}
+                </Button>
+              ) : null}
+              {canManageMeetings ? (
+                <Button size="sm" variant="outline" icon={BarChart3} onClick={() => navigate('/dashboard/meetings/list')}>
+                  {t('meetings.actions.manageMeetings')}
+                </Button>
+              ) : null}
+              {canCreateMeetings ? (
+                <Button size="sm" icon={Users} onClick={() => navigate('/dashboard/meetings/new')}>
+                  {t('meetings.actions.addMeeting')}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null} */}
     </div>
   );
 }

@@ -461,30 +461,7 @@ const router = createBrowserRouter([
       },
       {
         path: 'meetings',
-        element: (
-          <PermissionGuard
-            required={[
-              'SECTORS_VIEW',
-              'SECTORS_CREATE',
-              'SECTORS_UPDATE',
-              'SECTORS_DELETE',
-              'MEETINGS_VIEW',
-              'MEETINGS_CREATE',
-              'MEETINGS_UPDATE',
-              'MEETINGS_DELETE',
-              'MEETINGS_SERVANTS_MANAGE',
-              'MEETINGS_COMMITTEES_MANAGE',
-              'MEETINGS_ACTIVITIES_MANAGE',
-              'MEETINGS_RESPONSIBILITIES_VIEW',
-              'MEETINGS_SERVANT_HISTORY_VIEW',
-              'MEETINGS_DOCUMENTATION_MANAGE',
-              'MEETINGS_SETTINGS_MANAGE',
-            ]}
-            mode="any"
-          >
-            <Lazy><MeetingsDashboardPage /></Lazy>
-          </PermissionGuard>
-        ),
+        element: <Lazy><MeetingsDashboardPage /></Lazy>,
       },
       {
         path: 'meetings/sectors',

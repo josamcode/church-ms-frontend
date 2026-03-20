@@ -1706,6 +1706,8 @@
           meetingsWithoutServants: 'Meetings Without Servants',
         },
         sections: {
+          meetingSchedule: 'Meeting Schedule',
+          meetingScheduleSubtitle: 'Read-only weekly meeting days and times for all users.',
           sectorHealth: 'Sector Health Overview',
           sectorHealthSubtitle: 'Meetings load, distribution, and services inside each sector.',
           weeklyLoad: 'Weekly Load Distribution',
@@ -1729,6 +1731,9 @@
         status: {
           noData: 'No data available within the current permission scope.',
           noResponsibilities: 'No responsibilities saved yet.',
+          readOnlyTitle: 'Read-only access',
+          readOnlyDescription:
+            'You can review meeting schedules and weekly load here, but actions stay hidden until you receive meetings permissions.',
           noPermissionsTitle: 'No Access to Meetings Module',
           noPermissionsDescription:
             'You currently do not have permission to view sectors or meetings.',
@@ -3945,6 +3950,8 @@
           meetingsWithoutServants: 'اجتماعات بدون خدام',
         },
         sections: {
+          meetingSchedule: 'مواعيد الاجتماعات',
+          meetingScheduleSubtitle: 'عرض للقراءة فقط لأيام وأوقات الاجتماعات الأسبوعية لجميع المستخدمين.',
           sectorHealth: 'نظرة عامة على حالة القطاعات',
           sectorHealthSubtitle: 'عبء الاجتماعات والتوزيع والخدمات داخل كل قطاع.',
           weeklyLoad: 'توزيع العبء الأسبوعي',
@@ -3968,6 +3975,9 @@
         status: {
           noData: 'لا توجد بيانات متاحة ضمن نطاق الصلاحيات الحالي.',
           noResponsibilities: 'لا توجد مسؤوليات محفوظة بعد.',
+          readOnlyTitle: 'وصول للقراءة فقط',
+          readOnlyDescription:
+            'يمكنك مراجعة مواعيد الاجتماعات وتوزيع العبء الأسبوعي هنا، لكن تظل الإجراءات مخفية حتى تحصل على صلاحيات الاجتماعات.',
           noPermissionsTitle: 'لا يوجد وصول لوحدة الاجتماعات',
           noPermissionsDescription:
             'ليس لديك حالياً صلاحية عرض القطاعات أو الاجتماعات.',
@@ -4149,18 +4159,47 @@
     },
     accountSettings: {
       pageTitle: 'إعدادات الحساب',
-      pageSubtitle: 'إدارة خيارات الخصوصية والتفضيلات الخاصة بحسابك.',
+      pageSubtitle: 'إدارة الخصوصية والأمان وخيارات الملف الشخصي لحسابك.',
       messages: {
         saved: 'تم حفظ إعدادات الحساب بنجاح.',
+        avatarUploaded: 'تم تحديث الصورة الشخصية بنجاح.',
+        passwordChanged: 'تم تحديث كلمة المرور بنجاح.',
+      },
+      tabs: {
+        avatar: 'الصورة الشخصية',
+        password: 'كلمة المرور',
+        confessions: 'الاعترافات',
+      },
+      avatar: {
+        title: 'الصورة الشخصية',
+        subtitle: 'قم برفع صورة لملفك الشخصي.',
+        uploadButton: 'رفع صورة',
+        changeButton: 'تغيير الصورة',
+        currentLabel: 'الصورة الحالية',
+        help: 'استخدم صورة مربعة وواضحة للحصول على أفضل نتيجة في لوحة التحكم.',
+        requirements: 'الصيغ المقبولة: JPEG, PNG, GIF, WEBP. الحد الأقصى للحجم: 5 ميجابايت.',
+        invalidFile: 'يرجى اختيار ملف صورة.',
+        fileTooLarge: 'يرجى اختيار صورة أصغر من 5 ميجابايت.',
+      },
+      password: {
+        title: 'تغيير كلمة المرور',
+        subtitle: 'قم بتحديث كلمة المرور باستخدام كلمة المرور الحالية.',
+        saveButton: 'تحديث كلمة المرور',
+        currentLabel: 'كلمة المرور الحالية',
+        newLabel: 'كلمة المرور الجديدة',
+        confirmLabel: 'تأكيد كلمة المرور الجديدة',
+        rules:
+          'استخدم 8 أحرف على الأقل، تتضمن حروفًا كبيرة وصغيرة وأرقامًا ورمزًا خاصًا.',
+        confirmMismatch: 'كلمة المرور الجديدة وتأكيدها غير متطابقين.',
       },
       confessions: {
         title: 'خصوصية جلسات الاعتراف',
-        subtitle: 'تحكم في إمكانية رؤية الآخرين لجلسات الاعتراف التي يسجلها حسابك.',
+        subtitle: 'تحكم في إمكانية رؤية المستخدمين الآخرين لجلسات الاعتراف التي أنشأتها.',
         visibilityLabel: 'السماح للآخرين برؤية جلسات الاعتراف التي أنشأتها',
         visibilityHelp:
-          'عند التعطيل، لن يتمكن الآخرون من رؤية الجلسات التي سجلها حسابك. وستظل أنت ترى جلساتك التي أنشأتها.',
+          'عند إيقاف هذا الخيار، لن يتمكن المستخدمون الآخرون من رؤية الجلسات التي تم تسجيلها بواسطة حسابك. ستظل قادرًا على رؤية جلساتك الخاصة.',
         noCreatePermission:
-          'حسابك لا يملك حالياً صلاحية إنشاء جلسات اعتراف، لذلك قد لا يؤثر هذا الإعداد على أي سجلات الآن.',
+          'لا يمكن لحسابك إنشاء جلسات اعتراف حاليًا، لذلك قد لا يؤثر هذا الإعداد على أي بيانات حتى الآن.',
       },
     },
     notifications: {
