@@ -75,7 +75,7 @@ export default function AccountSettingsPage() {
           'accountSettings.pageSubtitle',
           'Manage privacy and preference options for your account.'
         )}
-        actions={(
+        actions={canCreateConfessionSessions ? (
           <Button
             type="button"
             size="sm"
@@ -92,54 +92,48 @@ export default function AccountSettingsPage() {
           >
             {t('common.actions.save')}
           </Button>
-        )}
+        ) : null}
       />
 
-      <Card className="rounded-2xl">
-        <CardHeader
-          title={tf('accountSettings.confessions.title', 'Confession Session Privacy')}
-          subtitle={tf(
-            'accountSettings.confessions.subtitle',
-            'Control whether other users can view confession sessions created by your account.'
-          )}
-        />
+      {canCreateConfessionSessions ? (
+        <Card className="rounded-2xl">
+          <CardHeader
+            title={tf('accountSettings.confessions.title', 'Confession Session Privacy')}
+            subtitle={tf(
+              'accountSettings.confessions.subtitle',
+              'Control whether other users can view confession sessions created by your account.'
+            )}
+          />
 
-        <div className="rounded-2xl border border-border bg-surface-alt/40 p-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-semibold text-heading">
-                <Shield className="h-4 w-4 text-primary" />
-                <span>
+          <div className="rounded-2xl border border-border bg-surface-alt/40 p-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-semibold text-heading">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <span>
+                    {tf(
+                      'accountSettings.confessions.visibilityLabel',
+                      'Allow others to view confession sessions I created'
+                    )}
+                  </span>
+                </div>
+                <p className="text-sm text-muted">
                   {tf(
-                    'accountSettings.confessions.visibilityLabel',
-                    'Allow others to view confession sessions I created'
-                  )}
-                </span>
-              </div>
-              <p className="text-sm text-muted">
-                {tf(
-                  'accountSettings.confessions.visibilityHelp',
-                  'When disabled, other users will not see sessions recorded by your account. You will still see your own created sessions.'
-                )}
-              </p>
-              {!canCreateConfessionSessions ? (
-                <p className="text-xs text-muted">
-                  {tf(
-                    'accountSettings.confessions.noCreatePermission',
-                    'Your account cannot create confession sessions right now, so this setting may not affect any records yet.'
+                    'accountSettings.confessions.visibilityHelp',
+                    'When disabled, other users will not see sessions recorded by your account. You will still see your own created sessions.'
                   )}
                 </p>
-              ) : null}
-            </div>
+              </div>
 
-            <Switch
-              checked={allowOthersToViewCreatedConfessionSessions}
-              onChange={setAllowOthersToViewCreatedConfessionSessions}
-              label={allowOthersToViewCreatedConfessionSessions ? t('common.status.active') : t('common.status.inactive')}
-            />
+              <Switch
+                checked={allowOthersToViewCreatedConfessionSessions}
+                onChange={setAllowOthersToViewCreatedConfessionSessions}
+                label={allowOthersToViewCreatedConfessionSessions ? t('common.status.active') : t('common.status.inactive')}
+              />
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      ) : null}
     </div>
   );
 }
