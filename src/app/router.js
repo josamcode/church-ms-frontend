@@ -69,6 +69,7 @@ const NotificationDetailsPage = lazy(() => import('../pages/dashboard/notificati
 const BookingsIndexPage = lazy(() => import('../pages/dashboard/bookings/BookingsIndexPage'));
 const BookingsRequestsPage = lazy(() => import('../pages/dashboard/bookings/BookingsRequestsPage'));
 const BookingTypesPage = lazy(() => import('../pages/dashboard/bookings/BookingTypesPage'));
+const BookingTypeFormPage = lazy(() => import('../pages/dashboard/bookings/BookingTypeFormPage'));
 const MyBookingsPage = lazy(() => import('../pages/dashboard/bookings/MyBookingsPage'));
 const MeetingsDashboardPage = lazy(() => import('../pages/dashboard/meetings/MeetingsDashboardPage'));
 const SectorsManagementPage = lazy(() => import('../pages/dashboard/meetings/SectorsManagementPage'));
@@ -428,6 +429,22 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['BOOKINGS_TYPES_MANAGE']}>
             <Lazy><BookingTypesPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'bookings/types/new',
+        element: (
+          <PermissionGuard required={['BOOKINGS_TYPES_MANAGE']}>
+            <Lazy><BookingTypeFormPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'bookings/types/:id/edit',
+        element: (
+          <PermissionGuard required={['BOOKINGS_TYPES_MANAGE']}>
+            <Lazy><BookingTypeFormPage /></Lazy>
           </PermissionGuard>
         ),
       },

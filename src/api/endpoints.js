@@ -39,6 +39,11 @@ export const usersApi = {
     return apiClient.post(`/users/${id}/avatar`, formData);
   },
   lock: (id, lockReason) => apiClient.post(`/users/${id}/lock`, { lockReason }),
+  uploadMyAvatar: (file) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    return apiClient.post('/users/me/avatar', formData);
+  },
   unlock: (id) => apiClient.post(`/users/${id}/unlock`),
   manageTags: (id, data) => apiClient.post(`/users/${id}/tags`, data),
   linkFamily: (id, data) => apiClient.post(`/users/${id}/family/link`, data),
@@ -231,3 +236,5 @@ export const aidsApi = {
 export const healthApi = {
   check: () => apiClient.get('/health'),
 };
+
+

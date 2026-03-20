@@ -1910,9 +1910,38 @@
     },
     accountSettings: {
       pageTitle: 'Account Settings',
-      pageSubtitle: 'Manage privacy and preference options for your account.',
+      pageSubtitle: 'Manage privacy, security, and profile options for your account.',
       messages: {
         saved: 'Account settings saved successfully.',
+        avatarUploaded: 'Avatar updated successfully.',
+        passwordChanged: 'Password updated successfully.',
+      },
+      tabs: {
+        avatar: 'Avatar',
+        password: 'Password',
+        confessions: 'Confessions',
+      },
+      avatar: {
+        title: 'Profile Avatar',
+        subtitle: 'Upload a profile image for your account.',
+        uploadButton: 'Upload Avatar',
+        changeButton: 'Change Avatar',
+        currentLabel: 'Current avatar',
+        help: 'Use a clear square image for the best result across the dashboard.',
+        requirements: 'Accepted formats: JPEG, PNG, GIF, WEBP. Maximum size: 5 MB.',
+        invalidFile: 'Please choose an image file.',
+        fileTooLarge: 'Please choose an image smaller than 5 MB.',
+      },
+      password: {
+        title: 'Change Password',
+        subtitle: 'Update your account password using your current password.',
+        saveButton: 'Update Password',
+        currentLabel: 'Current password',
+        newLabel: 'New password',
+        confirmLabel: 'Confirm new password',
+        rules:
+          'Use at least 8 characters with uppercase, lowercase, number, and special character.',
+        confirmMismatch: 'New password and confirmation do not match.',
       },
       confessions: {
         title: 'Confession Session Privacy',
@@ -2127,6 +2156,8 @@
         typesTitle: 'Booking types',
         typesSubtitle:
           'Create and edit the booking types, instructions, availability rules, and dynamic fields shown on the public booking page.',
+        typesListSubtitle:
+          'Review existing booking types and open the dedicated form to create or edit them.',
         myPage: 'My bookings',
         myEyebrow: 'Booking tracking',
         myTitle: 'My bookings',
@@ -2155,7 +2186,14 @@
         viewBooking: 'View booking',
         createTypeTitle: 'Create booking type',
         editTypeTitle: 'Edit booking type',
+        createNewType: 'Create new type',
         typeSubtitle: 'Control public instructions, fields, and slot-generation rules from one place.',
+        noTypesTitle: 'No booking types yet',
+        noTypesBody:
+          'Create the first booking type to configure availability rules and public fields.',
+        typeNotFoundTitle: 'Booking type not found',
+        typeNotFoundBody:
+          'The requested booking type could not be loaded. It may have been removed.',
         newType: 'New type',
         typeName: 'Type name',
         mode: 'Availability mode',
@@ -4336,6 +4374,8 @@
         typesTab: 'أنواع الحجز',
         managePermission: 'إدارة الحجوزات مفعلة',
         typePermission: 'إعداد أنواع الحجز مفعل',
+        typesListSubtitle:
+          'استعرض أنواع الحجز الحالية وافتح النموذج المخصص لإنشاء نوع جديد أو تعديل نوع موجود.',
         bookingFilters: 'تصفية الحجوزات',
         bookingFiltersSubtitle: 'ابحث باسم مقدم الطلب أو النوع أو الحالة الحالية.',
         search: 'بحث',
@@ -4352,7 +4392,14 @@
         viewBooking: 'عرض الحجز',
         createTypeTitle: 'إنشاء نوع حجز',
         editTypeTitle: 'تعديل نوع الحجز',
+        createNewType: 'إنشاء نوع جديد',
         typeSubtitle: 'تحكم في التعليمات العامة والحقول وقواعد إنشاء المواعيد من مكان واحد.',
+        noTypesTitle: 'لا توجد أنواع حجز بعد',
+        noTypesBody:
+          'أنشئ أول نوع حجز لإعداد قواعد الإتاحة والحقول التي ستظهر في الصفحة العامة.',
+        typeNotFoundTitle: 'تعذر العثور على نوع الحجز',
+        typeNotFoundBody:
+          'تعذر تحميل نوع الحجز المطلوب، وربما تم حذفه.',
         newType: 'نوع جديد',
         typeName: 'اسم النوع',
         mode: 'وضع الإتاحة',
