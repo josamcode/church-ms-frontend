@@ -1151,7 +1151,7 @@ export default function LandingPage() {
                   <Sparkles className="h-3 w-3" />{t('landing.portal.label')}
                 </div>
                 <h3 className="mt-5 sm:mt-6 text-2xl sm:text-3xl lg:text-4xl font-extrabold">{t('landing.portal.title')}</h3>
-                <p className="mx-auto mt-4 max-w-2xl text-sm sm:text-base lg:text-lg text-white/80">{t('landing.portal.description')}</p>
+                <p className="mx-auto mt-4 max-w-2xl text-sm lg:text-lg text-white/70">{t('landing.portal.description')}</p>
                 <div className="mt-7 sm:mt-8">
                   <Link to="/auth/login">
                     <Button variant="outline" size="lg" icon={ArrowIcon} iconPosition="end" className="!rounded-full !border-white/25 !bg-white/10 !px-7 sm:!px-8 !text-white !shadow-lg !font-bold hover:!bg-white/20 hover:!border-white/40">
