@@ -1,14 +1,14 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Award,
+  ExternalLink,
   FileText,
   FolderOpen,
   ImagePlus,
+  Images,
   Pencil,
   Save,
-  ShieldCheck,
-  ShieldOff,
   Trash2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -84,32 +84,11 @@ function getStatusBadgeVariant(status) {
   return status === 'published' ? 'success' : 'warning';
 }
 
-function formatDateValue(value) {
-  if (!value) return 'No date';
+function formatDateValue(value, locale, emptyLabel) {
+  if (!value) return emptyLabel;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString();
-}
-
-function PermissionPill({ label, enabled }) {
-  return (
-    <div className="rounded-2xl border border-border bg-page/60 p-4">
-      <div className="flex items-center gap-3">
-        <div
-          className={[
-            'flex h-10 w-10 items-center justify-center rounded-2xl',
-            enabled ? 'bg-success-light text-success' : 'bg-danger-light text-danger',
-          ].join(' ')}
-        >
-          {enabled ? <ShieldCheck className="h-5 w-5" /> : <ShieldOff className="h-5 w-5" />}
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-heading">{label}</p>
-          <p className="text-xs text-muted">{enabled ? 'Enabled' : 'Not granted'}</p>
-        </div>
-      </div>
-    </div>
-  );
+  return date.toLocaleDateString(locale);
 }
 
 function PhotoGalleryEditor({
@@ -121,6 +100,7 @@ function PhotoGalleryEditor({
   canUpload,
   readOnly,
 }) {
+  const { t } = useI18n();
   const inputRef = useRef(null);
 
   const updateCaption = (index, caption) => {
@@ -137,22 +117,36 @@ function PhotoGalleryEditor({
   };
 
   const handleFileChange = async (event) => {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files || []);
     event.target.value = '';
-    if (!file) return;
+    if (!files.length) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please choose a valid image file.');
+    const validFiles = files.filter((file) => file.type.startsWith('image/'));
+
+    if (!validFiles.length) {
+      toast.error(t('archivePage.gallery.invalidImage'));
       return;
     }
 
-    try {
-      const uploaded = await onUpload(file);
-      if (uploaded?.url) {
-        onChange([...(photos || []), uploaded]);
+    if (validFiles.length !== files.length) {
+      toast.error(t('archivePage.gallery.invalidImage'));
+    }
+
+    const uploadedPhotos = [];
+
+    for (const file of validFiles) {
+      try {
+        const uploaded = await onUpload(file);
+        if (uploaded?.url) {
+          uploadedPhotos.push(uploaded);
+        }
+      } catch (_error) {
+        // Upload errors are already handled by the mutation.
       }
-    } catch (_error) {
-      // Upload errors are already handled by the mutation.
+    }
+
+    if (uploadedPhotos.length) {
+      onChange([...(photos || []), ...uploadedPhotos]);
     }
   };
 
@@ -166,6 +160,7 @@ function PhotoGalleryEditor({
               ref={inputRef}
               type="file"
               accept="image/jpeg,image/png,image/gif,image/webp"
+              multiple
               className="hidden"
               onChange={handleFileChange}
             />
@@ -177,7 +172,7 @@ function PhotoGalleryEditor({
               loading={uploading}
               onClick={() => inputRef.current?.click()}
             >
-              Upload image
+              {t('archivePage.gallery.uploadImage')}
             </Button>
           </>
         ) : null}
@@ -185,13 +180,13 @@ function PhotoGalleryEditor({
 
       {!canUpload && !readOnly ? (
         <p className="text-xs text-muted">
-          You can edit details here, but image uploads require the archive upload permission.
+          {t('archivePage.gallery.uploadPermissionHint')}
         </p>
       ) : null}
 
       {!photos?.length ? (
         <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted">
-          No photos added yet.
+          {t('archivePage.gallery.noPhotos')}
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
@@ -203,11 +198,11 @@ function PhotoGalleryEditor({
                 className="mb-3 h-40 w-full rounded-xl object-cover"
               />
               {readOnly ? (
-                <p className="text-xs text-muted">{photo.caption || 'No caption'}</p>
+                <p className="text-xs text-muted">{photo.caption || '---'}</p>
               ) : (
                 <div className="space-y-3">
                   <Input
-                    label="Caption"
+                    label={t('archivePage.gallery.caption')}
                     value={photo.caption || ''}
                     onChange={(event) => updateCaption(index, event.target.value)}
                     containerClassName="!mb-0"
@@ -220,7 +215,7 @@ function PhotoGalleryEditor({
                     className="text-danger"
                     onClick={() => removePhoto(index)}
                   >
-                    Remove photo
+                    {t('archivePage.gallery.removePhoto')}
                   </Button>
                 </div>
               )}
@@ -238,14 +233,28 @@ function ArchiveListItem({
   subtitle,
   description,
   status,
+  canView,
   canEdit,
   canDelete,
+  onView,
   onEdit,
   onDelete,
   photosCount,
+  active = false,
 }) {
+  const { t } = useI18n();
+  const statusKey = `archivePage.status.${status}`;
+  const translatedStatus = t(statusKey);
+  const statusLabel = translatedStatus === statusKey ? status : translatedStatus;
+  const showActions = Boolean((canView && onView) || (canEdit && onEdit) || (canDelete && onDelete));
+
   return (
-    <div className="rounded-2xl border border-border p-4">
+    <div
+      className={[
+        'rounded-2xl border p-4 transition-colors duration-200',
+        active ? 'border-primary/40 bg-primary/5' : 'border-border',
+      ].join(' ')}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -256,44 +265,162 @@ function ArchiveListItem({
             {subtitle ? <p className="mt-1 text-xs text-muted">{subtitle}</p> : null}
           </div>
         </div>
-        <Badge variant={getStatusBadgeVariant(status)}>{status}</Badge>
+        <Badge variant={getStatusBadgeVariant(status)}>{statusLabel}</Badge>
       </div>
-      <p className="mt-3 text-sm text-muted">{description || 'No summary provided yet.'}</p>
+      <p className="mt-3 text-sm text-muted">{description || t('archivePage.list.noSummary')}</p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Badge variant="default">{photosCount} photos</Badge>
+        <Badge variant="default">{t('archivePage.list.photosCount', { count: photosCount })}</Badge>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" icon={Pencil} disabled={!canEdit} onClick={onEdit}>
-          Edit
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          icon={Trash2}
-          className="text-danger"
-          disabled={!canDelete}
-          onClick={onDelete}
-        >
-          Delete
-        </Button>
+      {showActions ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {canView && onView ? (
+            <Button type="button" variant="outline" size="sm" icon={Images} onClick={onView}>
+              {t('common.actions.view')}
+            </Button>
+          ) : null}
+          {canEdit && onEdit ? (
+            <Button type="button" variant="outline" size="sm" icon={Pencil} onClick={onEdit}>
+              {t('common.actions.edit')}
+            </Button>
+          ) : null}
+          {canDelete && onDelete ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              icon={Trash2}
+              className="text-danger"
+              onClick={onDelete}
+            >
+              {t('common.actions.delete')}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CollectionBrowserPanel({
+  collection,
+  selectedPhotoIndex,
+  onSelectPhoto,
+  onOpenImage,
+  storyCount,
+  honoreeCount,
+}) {
+  const { t } = useI18n();
+  const featuredPhoto = collection?.photos?.[selectedPhotoIndex] || collection?.photos?.[0] || null;
+
+  if (!collection) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-page/50 p-5 text-sm text-muted">
+        {t('archivePage.collections.browser.empty')}
       </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 rounded-2xl border border-border bg-page/50 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            {t('archivePage.collections.browser.label')}
+          </p>
+          <div>
+            <h4 className="text-lg font-semibold text-heading">{collection.title}</h4>
+            <p className="mt-1 text-sm text-muted">
+              {collection.description || t('archivePage.list.noSummary')}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="default">
+            {t('archivePage.collections.browser.mediaCount', { count: collection.photos.length })}
+          </Badge>
+          <Badge variant="default">
+            {t('archivePage.collections.browser.storyCount', { count: storyCount })}
+          </Badge>
+          <Badge variant="default">
+            {t('archivePage.collections.browser.honoreeCount', { count: honoreeCount })}
+          </Badge>
+        </div>
+      </div>
+
+      <p className="text-sm leading-7 text-muted">
+        {collection.narrative || t('archivePage.collections.browser.noNarrative')}
+      </p>
+
+      {featuredPhoto ? (
+        <>
+          <div className="overflow-hidden rounded-2xl border border-border bg-black/5">
+            <img
+              src={featuredPhoto.url}
+              alt={featuredPhoto.caption || collection.title}
+              className="h-72 w-full object-cover md:h-96"
+            />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted">
+              {featuredPhoto.caption || '---'}
+            </p>
+            <Button type="button" variant="outline" size="sm" icon={ExternalLink} onClick={onOpenImage}>
+              {t('archivePage.collections.browser.openImage')}
+            </Button>
+          </div>
+          {collection.photos.length > 1 ? (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {collection.photos.map((photo, index) => (
+                <button
+                  key={`${photo.publicId || photo.url}-${index}`}
+                  type="button"
+                  onClick={() => onSelectPhoto(index)}
+                  className={[
+                    'overflow-hidden rounded-2xl border text-start transition-colors duration-200',
+                    index === selectedPhotoIndex ? 'border-primary/50 ring-2 ring-primary/10' : 'border-border',
+                  ].join(' ')}
+                >
+                  <img
+                    src={photo.url}
+                    alt={photo.caption || collection.title}
+                    className="h-28 w-full object-cover"
+                  />
+                  <div className="p-3">
+                    <p className="line-clamp-2 text-xs text-muted">
+                      {photo.caption || '---'}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted">
+          {t('archivePage.collections.browser.noMedia')}
+        </div>
+      )}
     </div>
   );
 }
 
 export default function ArchiveManagementPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
   const [collectionForm, setCollectionForm] = useState(createEmptyCollectionForm);
   const [storyForm, setStoryForm] = useState(createEmptyStoryForm);
   const [honoreeForm, setHonoreeForm] = useState(createEmptyHonoreeForm);
+  const [activeCollectionId, setActiveCollectionId] = useState(null);
+  const [activeCollectionPhotoIndex, setActiveCollectionPhotoIndex] = useState(0);
 
-  const tx = (key, fallback) => {
+  const tx = useCallback((key, fallback) => {
     const value = t(key);
     return value === key ? fallback : value;
-  };
+  }, [t]);
+  const ta = useCallback((key, values) => t(`archivePage.${key}`, values), [t]);
+  const locale = language === 'ar' ? 'ar-EG' : 'en-US';
+  const formatArchiveDate = (value) => formatDateValue(value, locale, ta('placeholders.noDate'));
 
   const canView = hasPermission('ARCHIVE_VIEW');
   const canUpload = hasPermission('ARCHIVE_UPLOAD');
@@ -313,22 +440,42 @@ export default function ArchiveManagementPage() {
   const archiveData = archiveQuery.data || DEFAULT_ARCHIVE_DATA;
 
   const statusOptions = useMemo(() => {
-    const base = [{ value: 'draft', label: 'Draft' }];
+    const base = [{ value: 'draft', label: ta('status.draft') }];
     if (canPublish) {
-      base.push({ value: 'published', label: 'Published' });
+      base.push({ value: 'published', label: ta('status.published') });
     }
     return base;
-  }, [canPublish]);
+  }, [canPublish, ta]);
 
   const collectionOptions = useMemo(
     () => [
-      { value: '', label: 'No collection' },
+      { value: '', label: ta('placeholders.noCollection') },
       ...archiveData.collections.map((collection) => ({
         value: collection.id,
         label: collection.title,
       })),
     ],
-    [archiveData.collections]
+    [archiveData.collections, ta]
+  );
+  const activeCollection = useMemo(
+    () =>
+      archiveData.collections.find((collection) => collection.id === activeCollectionId) ||
+      archiveData.collections[0] ||
+      null,
+    [activeCollectionId, archiveData.collections]
+  );
+  const normalizedActiveCollectionPhotoIndex = activeCollection?.photos?.[activeCollectionPhotoIndex]
+    ? activeCollectionPhotoIndex
+    : 0;
+  const activeCollectionPhoto =
+    activeCollection?.photos?.[normalizedActiveCollectionPhotoIndex] || null;
+  const activeCollectionStoryCount = useMemo(
+    () => archiveData.stories.filter((story) => story.collectionId === activeCollection?.id).length,
+    [activeCollection?.id, archiveData.stories]
+  );
+  const activeCollectionHonoreeCount = useMemo(
+    () => archiveData.honorees.filter((honoree) => honoree.collectionId === activeCollection?.id).length,
+    [activeCollection?.id, archiveData.honorees]
   );
 
   const syncPayload = (payload) => {
@@ -361,7 +508,7 @@ export default function ArchiveManagementPage() {
     onSuccess: (payload) => {
       syncPayload(payload);
       resetCollectionForm();
-      toast.success('Collection saved successfully.');
+      toast.success(ta('messages.collectionSaved'));
     },
     onError: (error) => {
       toast.error(normalizeApiError(error).message);
@@ -378,7 +525,7 @@ export default function ArchiveManagementPage() {
       if (collectionForm.id && !payload.collections.some((entry) => entry.id === collectionForm.id)) {
         resetCollectionForm();
       }
-      toast.success('Collection deleted successfully.');
+      toast.success(ta('messages.collectionDeleted'));
     },
     onError: (error) => {
       toast.error(normalizeApiError(error).message);
@@ -397,7 +544,7 @@ export default function ArchiveManagementPage() {
     onSuccess: (payload) => {
       syncPayload(payload);
       resetStoryForm();
-      toast.success('Story saved successfully.');
+      toast.success(ta('messages.storySaved'));
     },
     onError: (error) => {
       toast.error(normalizeApiError(error).message);
@@ -414,7 +561,7 @@ export default function ArchiveManagementPage() {
       if (storyForm.id && !payload.stories.some((entry) => entry.id === storyForm.id)) {
         resetStoryForm();
       }
-      toast.success('Story deleted successfully.');
+      toast.success(ta('messages.storyDeleted'));
     },
     onError: (error) => {
       toast.error(normalizeApiError(error).message);
@@ -433,7 +580,7 @@ export default function ArchiveManagementPage() {
     onSuccess: (payload) => {
       syncPayload(payload);
       resetHonoreeForm();
-      toast.success('Honoree entry saved successfully.');
+      toast.success(ta('messages.honoreeSaved'));
     },
     onError: (error) => {
       toast.error(normalizeApiError(error).message);
@@ -450,7 +597,7 @@ export default function ArchiveManagementPage() {
       if (honoreeForm.id && !payload.honorees.some((entry) => entry.id === honoreeForm.id)) {
         resetHonoreeForm();
       }
-      toast.success('Honoree entry deleted successfully.');
+      toast.success(ta('messages.honoreeDeleted'));
     },
     onError: (error) => {
       toast.error(normalizeApiError(error).message);
@@ -458,13 +605,17 @@ export default function ArchiveManagementPage() {
   });
 
   const uploadArchivePhoto = async (file) => uploadImageMutation.mutateAsync(file);
+  const openCollectionBrowser = (collection) => {
+    setActiveCollectionId(collection.id);
+    setActiveCollectionPhotoIndex(0);
+  };
 
   const selectCollectionForEdit = (collection) => {
     if (collection.status === 'published' && !canPublish) {
-      toast.error('Published collections can only be edited by users with archive publish permission.');
       return;
     }
 
+    openCollectionBrowser(collection);
     setCollectionForm({
       id: collection.id,
       title: collection.title || '',
@@ -478,7 +629,6 @@ export default function ArchiveManagementPage() {
 
   const selectStoryForEdit = (story) => {
     if (story.status === 'published' && !canPublish) {
-      toast.error('Published stories can only be edited by users with archive publish permission.');
       return;
     }
 
@@ -497,7 +647,6 @@ export default function ArchiveManagementPage() {
 
   const selectHonoreeForEdit = (honoree) => {
     if (honoree.status === 'published' && !canPublish) {
-      toast.error('Published honoree entries can only be edited by users with archive publish permission.');
       return;
     }
 
@@ -516,30 +665,27 @@ export default function ArchiveManagementPage() {
 
   const confirmDeleteCollection = (collection) => {
     if (collection.status === 'published' && !canPublish) {
-      toast.error('Published collections require archive publish permission to delete.');
       return;
     }
-    if (window.confirm(`Delete collection "${collection.title}"?`)) {
+    if (window.confirm(ta('confirmations.deleteCollection', { title: collection.title }))) {
       deleteCollectionMutation.mutate(collection.id);
     }
   };
 
   const confirmDeleteStory = (story) => {
     if (story.status === 'published' && !canPublish) {
-      toast.error('Published stories require archive publish permission to delete.');
       return;
     }
-    if (window.confirm(`Delete story "${story.title}"?`)) {
+    if (window.confirm(ta('confirmations.deleteStory', { title: story.title }))) {
       deleteStoryMutation.mutate(story.id);
     }
   };
 
   const confirmDeleteHonoree = (honoree) => {
     if (honoree.status === 'published' && !canPublish) {
-      toast.error('Published honoree entries require archive publish permission to delete.');
       return;
     }
-    if (window.confirm(`Delete honoree entry for "${honoree.fullName}"?`)) {
+    if (window.confirm(ta('confirmations.deleteHonoree', { name: honoree.fullName }))) {
       deleteHonoreeMutation.mutate(honoree.id);
     }
   };
@@ -584,27 +730,18 @@ export default function ArchiveManagementPage() {
     });
   };
 
-  const permissionCards = [
-    { label: 'Archive view', enabled: canView },
-    { label: 'Archive upload', enabled: canUpload },
-    { label: 'Collections manage', enabled: canManageCollections },
-    { label: 'Stories manage', enabled: canManageStories },
-    { label: 'Honorees manage', enabled: canManageHonorees },
-    { label: 'Archive publish', enabled: canPublish },
-  ];
-
   if (archiveQuery.isLoading) {
     return (
       <div className="animate-fade-in space-y-6 pb-10">
         <Breadcrumbs
           items={[
             { label: tx('shared.dashboard', 'Dashboard'), href: '/dashboard' },
-            { label: 'Archive' },
+            { label: ta('title') },
           ]}
         />
         <PageHeader
-          title="Archive"
-          subtitle="Loading archive workspace and permission rules..."
+          title={ta('title')}
+          subtitle={ta('loadingSubtitle')}
         />
       </div>
     );
@@ -616,12 +753,12 @@ export default function ArchiveManagementPage() {
         <Breadcrumbs
           items={[
             { label: tx('shared.dashboard', 'Dashboard'), href: '/dashboard' },
-            { label: 'Archive' },
+            { label: ta('title') },
           ]}
         />
         <PageHeader
-          title="Archive"
-          subtitle="The archive workspace could not be loaded."
+          title={ta('title')}
+          subtitle={ta('loadErrorSubtitle')}
         />
         <Card>
           <p className="text-sm text-danger">{normalizeApiError(archiveQuery.error).message}</p>
@@ -635,19 +772,19 @@ export default function ArchiveManagementPage() {
       <Breadcrumbs
         items={[
           { label: tx('shared.dashboard', 'Dashboard'), href: '/dashboard' },
-          { label: 'Archive' },
+          { label: ta('title') },
         ]}
       />
 
       <PageHeader
         className="border-b border-border pb-6"
-        eyebrow="Permissions-first content workspace"
-        title="Archive"
-        subtitle="Collections, photo stories, and honored people all live here, with separate permissions for viewing, uploads, section management, and publishing."
+        eyebrow={ta('eyebrow')}
+        title={ta('title')}
+        subtitle={ta('subtitle')}
         actions={(
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => archiveQuery.refetch()}>
-              Refresh
+              {ta('actions.refresh')}
             </Button>
           </div>
         )}
@@ -655,118 +792,131 @@ export default function ArchiveManagementPage() {
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <p className="text-sm text-muted">Collections</p>
+          <p className="text-sm text-muted">{ta('stats.collections')}</p>
           <p className="mt-2 text-3xl font-bold text-heading">{archiveData.counts.collections}</p>
-          <p className="mt-1 text-xs text-muted">{archiveData.counts.publishedCollections} published</p>
+          <p className="mt-1 text-xs text-muted">
+            {ta('stats.published', { count: archiveData.counts.publishedCollections })}
+          </p>
         </Card>
         <Card>
-          <p className="text-sm text-muted">Stories</p>
+          <p className="text-sm text-muted">{ta('stats.stories')}</p>
           <p className="mt-2 text-3xl font-bold text-heading">{archiveData.counts.stories}</p>
-          <p className="mt-1 text-xs text-muted">{archiveData.counts.publishedStories} published</p>
+          <p className="mt-1 text-xs text-muted">
+            {ta('stats.published', { count: archiveData.counts.publishedStories })}
+          </p>
         </Card>
         <Card>
-          <p className="text-sm text-muted">Honorees</p>
+          <p className="text-sm text-muted">{ta('stats.honorees')}</p>
           <p className="mt-2 text-3xl font-bold text-heading">{archiveData.counts.honorees}</p>
-          <p className="mt-1 text-xs text-muted">{archiveData.counts.publishedHonorees} published</p>
+          <p className="mt-1 text-xs text-muted">
+            {ta('stats.published', { count: archiveData.counts.publishedHonorees })}
+          </p>
         </Card>
       </div>
 
       <Card>
         <CardHeader
-          title="Collections"
-          subtitle="Collections are the archive containers. Stories and honored people can reference them, and collections can keep their own photo sets and narrative."
+          title={ta('collections.title')}
+          subtitle={ta('collections.subtitle')}
         />
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,400px)_1fr]">
-          <div className="space-y-4 rounded-2xl border border-border bg-page/50 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-heading">
-                {collectionForm.id ? 'Edit collection' : 'New collection'}
-              </p>
-              {collectionForm.id ? (
-                <Button type="button" variant="ghost" size="sm" onClick={resetCollectionForm}>
-                  Cancel
-                </Button>
-              ) : null}
-            </div>
-            {canManageCollections ? (
-              <>
-                <Input
-                  label="Collection title"
-                  value={collectionForm.title}
-                  onChange={(event) =>
-                    setCollectionForm((current) => ({ ...current, title: event.target.value }))
-                  }
-                  containerClassName="!mb-0"
-                />
-                <Input
-                  label="Slug"
-                  value={collectionForm.slug}
-                  onChange={(event) =>
-                    setCollectionForm((current) => ({ ...current, slug: event.target.value }))
-                  }
-                  hint="Leave blank to generate from the title."
-                  containerClassName="!mb-0"
-                />
-                <TextArea
-                  label="Short description"
-                  value={collectionForm.description}
-                  onChange={(event) =>
-                    setCollectionForm((current) => ({ ...current, description: event.target.value }))
-                  }
-                  rows={3}
-                  containerClassName="!mb-0"
-                />
-                <TextArea
-                  label="Narrative"
-                  value={collectionForm.narrative}
-                  onChange={(event) =>
-                    setCollectionForm((current) => ({ ...current, narrative: event.target.value }))
-                  }
-                  rows={6}
-                  containerClassName="!mb-0"
-                />
-                <Select
-                  label="Status"
-                  value={collectionForm.status}
-                  options={statusOptions}
-                  onChange={(event) =>
-                    setCollectionForm((current) => ({ ...current, status: event.target.value }))
-                  }
-                />
-                <PhotoGalleryEditor
-                  label="Collection photos"
-                  photos={collectionForm.photos}
-                  onChange={(photos) =>
-                    setCollectionForm((current) => ({ ...current, photos }))
-                  }
-                  onUpload={uploadArchivePhoto}
-                  uploading={uploadImageMutation.isPending}
-                  canUpload={canUpload}
-                  readOnly={false}
-                />
-                <Button
-                  type="button"
-                  icon={Save}
-                  loading={saveCollectionMutation.isPending}
-                  onClick={handleCollectionSubmit}
-                >
-                  {collectionForm.id ? 'Update collection' : 'Create collection'}
-                </Button>
-              </>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted">
-                You can view archive collections, but collection editing is hidden until the
-                archive collections permission is granted.
+        <div className={`grid gap-6 ${canManageCollections ? 'xl:grid-cols-[minmax(0,400px)_1fr]' : ''}`}>
+          {canManageCollections ? (
+            <div className="space-y-4 rounded-2xl border border-border bg-page/50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-heading">
+                  {collectionForm.id ? ta('collections.form.editTitle') : ta('collections.form.newTitle')}
+                </p>
+                {collectionForm.id ? (
+                  <Button type="button" variant="ghost" size="sm" onClick={resetCollectionForm}>
+                    {t('common.actions.cancel')}
+                  </Button>
+                ) : null}
               </div>
-            )}
-          </div>
+              <Input
+                label={ta('collections.form.title')}
+                value={collectionForm.title}
+                onChange={(event) =>
+                  setCollectionForm((current) => ({ ...current, title: event.target.value }))
+                }
+                containerClassName="!mb-0"
+              />
+              <Input
+                label={ta('collections.form.slug')}
+                value={collectionForm.slug}
+                onChange={(event) =>
+                  setCollectionForm((current) => ({ ...current, slug: event.target.value }))
+                }
+                hint={ta('collections.form.slugHint')}
+                containerClassName="!mb-0"
+              />
+              <TextArea
+                label={ta('collections.form.description')}
+                value={collectionForm.description}
+                onChange={(event) =>
+                  setCollectionForm((current) => ({ ...current, description: event.target.value }))
+                }
+                rows={3}
+                containerClassName="!mb-0"
+              />
+              <TextArea
+                label={ta('collections.form.narrative')}
+                value={collectionForm.narrative}
+                onChange={(event) =>
+                  setCollectionForm((current) => ({ ...current, narrative: event.target.value }))
+                }
+                rows={6}
+                containerClassName="!mb-0"
+              />
+              <Select
+                label={ta('collections.form.status')}
+                value={collectionForm.status}
+                options={statusOptions}
+                onChange={(event) =>
+                  setCollectionForm((current) => ({ ...current, status: event.target.value }))
+                }
+              />
+              <PhotoGalleryEditor
+                label={ta('collections.form.photos')}
+                photos={collectionForm.photos}
+                onChange={(photos) =>
+                  setCollectionForm((current) => ({ ...current, photos }))
+                }
+                onUpload={uploadArchivePhoto}
+                uploading={uploadImageMutation.isPending}
+                canUpload={canUpload}
+                readOnly={false}
+              />
+              <Button
+                type="button"
+                icon={Save}
+                loading={saveCollectionMutation.isPending}
+                onClick={handleCollectionSubmit}
+              >
+                {collectionForm.id ? ta('actions.updateCollection') : ta('actions.createCollection')}
+              </Button>
+            </div>
+          ) : null}
 
           <div className="space-y-4">
+            {archiveData.collections.length ? (
+              <CollectionBrowserPanel
+                collection={activeCollection}
+                selectedPhotoIndex={normalizedActiveCollectionPhotoIndex}
+                onSelectPhoto={setActiveCollectionPhotoIndex}
+                onOpenImage={() => {
+                  if (activeCollectionPhoto?.url) {
+                    window.open(activeCollectionPhoto.url, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                storyCount={activeCollectionStoryCount}
+                honoreeCount={activeCollectionHonoreeCount}
+              />
+            ) : null}
             {!archiveData.collections.length ? (
               <EmptyState
                 icon={FolderOpen}
-                title="No collections yet"
-                description="Create the first collection to start organizing archive photos and narratives."
+                title={ta('collections.empty.title')}
+                description={ta('collections.empty.description')}
               />
             ) : (
               archiveData.collections.map((collection) => (
@@ -774,14 +924,20 @@ export default function ArchiveManagementPage() {
                   key={collection.id}
                   icon={FolderOpen}
                   title={collection.title}
-                  subtitle={`${collection.storyCount} stories, ${collection.honoreeCount} honorees`}
+                  subtitle={ta('collections.list.itemSubtitle', {
+                    stories: collection.storyCount,
+                    honorees: collection.honoreeCount,
+                  })}
                   description={collection.description || collection.narrative}
                   status={collection.status}
                   photosCount={collection.photos.length}
+                  canView={canView}
                   canEdit={canManageCollections && (canPublish || collection.status !== 'published')}
                   canDelete={canManageCollections && (canPublish || collection.status !== 'published')}
+                  onView={() => openCollectionBrowser(collection)}
                   onEdit={() => selectCollectionForEdit(collection)}
                   onDelete={() => confirmDeleteCollection(collection)}
+                  active={activeCollection?.id === collection.id}
                 />
               ))
             )}
@@ -791,115 +947,108 @@ export default function ArchiveManagementPage() {
 
       <Card>
         <CardHeader
-          title="Stories"
-          subtitle="Stories keep their own narrative and photos. Attach them to a collection when you want them grouped in a larger archive track."
+          title={ta('stories.title')}
+          subtitle={ta('stories.subtitle')}
         />
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,400px)_1fr]">
-          <div className="space-y-4 rounded-2xl border border-border bg-page/50 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-heading">
-                {storyForm.id ? 'Edit story' : 'New story'}
-              </p>
-              {storyForm.id ? (
-                <Button type="button" variant="ghost" size="sm" onClick={resetStoryForm}>
-                  Cancel
-                </Button>
-              ) : null}
-            </div>
-            {canManageStories ? (
-              <>
-                <Input
-                  label="Story title"
-                  value={storyForm.title}
-                  onChange={(event) =>
-                    setStoryForm((current) => ({ ...current, title: event.target.value }))
-                  }
-                  containerClassName="!mb-0"
-                />
-                <Input
-                  label="Slug"
-                  value={storyForm.slug}
-                  onChange={(event) =>
-                    setStoryForm((current) => ({ ...current, slug: event.target.value }))
-                  }
-                  hint="Leave blank to generate from the story title."
-                  containerClassName="!mb-0"
-                />
-                <Select
-                  label="Collection"
-                  value={storyForm.collectionId}
-                  options={collectionOptions}
-                  onChange={(event) =>
-                    setStoryForm((current) => ({ ...current, collectionId: event.target.value }))
-                  }
-                />
-                <Input
-                  label="Event date"
-                  type="date"
-                  value={storyForm.eventDate}
-                  onChange={(event) =>
-                    setStoryForm((current) => ({ ...current, eventDate: event.target.value }))
-                  }
-                  containerClassName="!mb-0"
-                />
-                <TextArea
-                  label="Summary"
-                  value={storyForm.summary}
-                  onChange={(event) =>
-                    setStoryForm((current) => ({ ...current, summary: event.target.value }))
-                  }
-                  rows={3}
-                  containerClassName="!mb-0"
-                />
-                <TextArea
-                  label="Narrative"
-                  value={storyForm.narrative}
-                  onChange={(event) =>
-                    setStoryForm((current) => ({ ...current, narrative: event.target.value }))
-                  }
-                  rows={6}
-                  containerClassName="!mb-0"
-                />
-                <Select
-                  label="Status"
-                  value={storyForm.status}
-                  options={statusOptions}
-                  onChange={(event) =>
-                    setStoryForm((current) => ({ ...current, status: event.target.value }))
-                  }
-                />
-                <PhotoGalleryEditor
-                  label="Story photos"
-                  photos={storyForm.photos}
-                  onChange={(photos) => setStoryForm((current) => ({ ...current, photos }))}
-                  onUpload={uploadArchivePhoto}
-                  uploading={uploadImageMutation.isPending}
-                  canUpload={canUpload}
-                  readOnly={false}
-                />
-                <Button
-                  type="button"
-                  icon={Save}
-                  loading={saveStoryMutation.isPending}
-                  onClick={handleStorySubmit}
-                >
-                  {storyForm.id ? 'Update story' : 'Create story'}
-                </Button>
-              </>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted">
-                You can view stories here, but story creation and editing require the archive stories
-                permission.
+        <div className={`grid gap-6 ${canManageStories ? 'xl:grid-cols-[minmax(0,400px)_1fr]' : ''}`}>
+          {canManageStories ? (
+            <div className="space-y-4 rounded-2xl border border-border bg-page/50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-heading">
+                  {storyForm.id ? ta('stories.form.editTitle') : ta('stories.form.newTitle')}
+                </p>
+                {storyForm.id ? (
+                  <Button type="button" variant="ghost" size="sm" onClick={resetStoryForm}>
+                    {t('common.actions.cancel')}
+                  </Button>
+                ) : null}
               </div>
-            )}
-          </div>
+              <Input
+                label={ta('stories.form.title')}
+                value={storyForm.title}
+                onChange={(event) =>
+                  setStoryForm((current) => ({ ...current, title: event.target.value }))
+                }
+                containerClassName="!mb-0"
+              />
+              <Input
+                label={ta('stories.form.slug')}
+                value={storyForm.slug}
+                onChange={(event) =>
+                  setStoryForm((current) => ({ ...current, slug: event.target.value }))
+                }
+                hint={ta('stories.form.slugHint')}
+                containerClassName="!mb-0"
+              />
+              <Select
+                label={ta('stories.form.collection')}
+                value={storyForm.collectionId}
+                options={collectionOptions}
+                onChange={(event) =>
+                  setStoryForm((current) => ({ ...current, collectionId: event.target.value }))
+                }
+              />
+              <Input
+                label={ta('stories.form.eventDate')}
+                type="date"
+                value={storyForm.eventDate}
+                onChange={(event) =>
+                  setStoryForm((current) => ({ ...current, eventDate: event.target.value }))
+                }
+                containerClassName="!mb-0"
+              />
+              <TextArea
+                label={ta('stories.form.summary')}
+                value={storyForm.summary}
+                onChange={(event) =>
+                  setStoryForm((current) => ({ ...current, summary: event.target.value }))
+                }
+                rows={3}
+                containerClassName="!mb-0"
+              />
+              <TextArea
+                label={ta('stories.form.narrative')}
+                value={storyForm.narrative}
+                onChange={(event) =>
+                  setStoryForm((current) => ({ ...current, narrative: event.target.value }))
+                }
+                rows={6}
+                containerClassName="!mb-0"
+              />
+              <Select
+                label={ta('stories.form.status')}
+                value={storyForm.status}
+                options={statusOptions}
+                onChange={(event) =>
+                  setStoryForm((current) => ({ ...current, status: event.target.value }))
+                }
+              />
+              <PhotoGalleryEditor
+                label={ta('stories.form.photos')}
+                photos={storyForm.photos}
+                onChange={(photos) => setStoryForm((current) => ({ ...current, photos }))}
+                onUpload={uploadArchivePhoto}
+                uploading={uploadImageMutation.isPending}
+                canUpload={canUpload}
+                readOnly={false}
+              />
+              <Button
+                type="button"
+                icon={Save}
+                loading={saveStoryMutation.isPending}
+                onClick={handleStorySubmit}
+              >
+                {storyForm.id ? ta('actions.updateStory') : ta('actions.createStory')}
+              </Button>
+            </div>
+          ) : null}
 
           <div className="space-y-4">
             {!archiveData.stories.length ? (
               <EmptyState
                 icon={FileText}
-                title="No stories yet"
-                description="Archive stories will appear here once the first narrative is created."
+                title={ta('stories.empty.title')}
+                description={ta('stories.empty.description')}
               />
             ) : (
               archiveData.stories.map((story) => (
@@ -908,8 +1057,8 @@ export default function ArchiveManagementPage() {
                   icon={FileText}
                   title={story.title}
                   subtitle={[
-                    story.collectionTitle || 'No collection',
-                    formatDateValue(story.eventDate),
+                    story.collectionTitle || ta('placeholders.noCollection'),
+                    formatArchiveDate(story.eventDate),
                   ].join(' | ')}
                   description={story.summary || story.narrative}
                   status={story.status}
@@ -927,114 +1076,107 @@ export default function ArchiveManagementPage() {
 
       <Card>
         <CardHeader
-          title="Honored People"
-          subtitle="Use this section for people being honored, with their own photos, context, and optional collection placement."
+          title={ta('honorees.title')}
+          subtitle={ta('honorees.subtitle')}
         />
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,400px)_1fr]">
-          <div className="space-y-4 rounded-2xl border border-border bg-page/50 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-heading">
-                {honoreeForm.id ? 'Edit honoree entry' : 'New honoree entry'}
-              </p>
-              {honoreeForm.id ? (
-                <Button type="button" variant="ghost" size="sm" onClick={resetHonoreeForm}>
-                  Cancel
-                </Button>
-              ) : null}
-            </div>
-            {canManageHonorees ? (
-              <>
-                <Input
-                  label="Full name"
-                  value={honoreeForm.fullName}
-                  onChange={(event) =>
-                    setHonoreeForm((current) => ({ ...current, fullName: event.target.value }))
-                  }
-                  containerClassName="!mb-0"
-                />
-                <Input
-                  label="Honor title"
-                  value={honoreeForm.honorTitle}
-                  onChange={(event) =>
-                    setHonoreeForm((current) => ({ ...current, honorTitle: event.target.value }))
-                  }
-                  containerClassName="!mb-0"
-                />
-                <Select
-                  label="Collection"
-                  value={honoreeForm.collectionId}
-                  options={collectionOptions}
-                  onChange={(event) =>
-                    setHonoreeForm((current) => ({ ...current, collectionId: event.target.value }))
-                  }
-                />
-                <Input
-                  label="Honor date"
-                  type="date"
-                  value={honoreeForm.honorDate}
-                  onChange={(event) =>
-                    setHonoreeForm((current) => ({ ...current, honorDate: event.target.value }))
-                  }
-                  containerClassName="!mb-0"
-                />
-                <TextArea
-                  label="Summary"
-                  value={honoreeForm.summary}
-                  onChange={(event) =>
-                    setHonoreeForm((current) => ({ ...current, summary: event.target.value }))
-                  }
-                  rows={3}
-                  containerClassName="!mb-0"
-                />
-                <TextArea
-                  label="Narrative"
-                  value={honoreeForm.narrative}
-                  onChange={(event) =>
-                    setHonoreeForm((current) => ({ ...current, narrative: event.target.value }))
-                  }
-                  rows={6}
-                  containerClassName="!mb-0"
-                />
-                <Select
-                  label="Status"
-                  value={honoreeForm.status}
-                  options={statusOptions}
-                  onChange={(event) =>
-                    setHonoreeForm((current) => ({ ...current, status: event.target.value }))
-                  }
-                />
-                <PhotoGalleryEditor
-                  label="Honoree photos"
-                  photos={honoreeForm.photos}
-                  onChange={(photos) => setHonoreeForm((current) => ({ ...current, photos }))}
-                  onUpload={uploadArchivePhoto}
-                  uploading={uploadImageMutation.isPending}
-                  canUpload={canUpload}
-                  readOnly={false}
-                />
-                <Button
-                  type="button"
-                  icon={Save}
-                  loading={saveHonoreeMutation.isPending}
-                  onClick={handleHonoreeSubmit}
-                >
-                  {honoreeForm.id ? 'Update honoree entry' : 'Create honoree entry'}
-                </Button>
-              </>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted">
-                You can view honoree entries here, but this section stays read-only until the
-                archive honorees permission is granted.
+        <div className={`grid gap-6 ${canManageHonorees ? 'xl:grid-cols-[minmax(0,400px)_1fr]' : ''}`}>
+          {canManageHonorees ? (
+            <div className="space-y-4 rounded-2xl border border-border bg-page/50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-heading">
+                  {honoreeForm.id ? ta('honorees.form.editTitle') : ta('honorees.form.newTitle')}
+                </p>
+                {honoreeForm.id ? (
+                  <Button type="button" variant="ghost" size="sm" onClick={resetHonoreeForm}>
+                    {t('common.actions.cancel')}
+                  </Button>
+                ) : null}
               </div>
-            )}
-          </div>
+              <Input
+                label={ta('honorees.form.fullName')}
+                value={honoreeForm.fullName}
+                onChange={(event) =>
+                  setHonoreeForm((current) => ({ ...current, fullName: event.target.value }))
+                }
+                containerClassName="!mb-0"
+              />
+              <Input
+                label={ta('honorees.form.honorTitle')}
+                value={honoreeForm.honorTitle}
+                onChange={(event) =>
+                  setHonoreeForm((current) => ({ ...current, honorTitle: event.target.value }))
+                }
+                containerClassName="!mb-0"
+              />
+              <Select
+                label={ta('honorees.form.collection')}
+                value={honoreeForm.collectionId}
+                options={collectionOptions}
+                onChange={(event) =>
+                  setHonoreeForm((current) => ({ ...current, collectionId: event.target.value }))
+                }
+              />
+              <Input
+                label={ta('honorees.form.honorDate')}
+                type="date"
+                value={honoreeForm.honorDate}
+                onChange={(event) =>
+                  setHonoreeForm((current) => ({ ...current, honorDate: event.target.value }))
+                }
+                containerClassName="!mb-0"
+              />
+              <TextArea
+                label={ta('honorees.form.summary')}
+                value={honoreeForm.summary}
+                onChange={(event) =>
+                  setHonoreeForm((current) => ({ ...current, summary: event.target.value }))
+                }
+                rows={3}
+                containerClassName="!mb-0"
+              />
+              <TextArea
+                label={ta('honorees.form.narrative')}
+                value={honoreeForm.narrative}
+                onChange={(event) =>
+                  setHonoreeForm((current) => ({ ...current, narrative: event.target.value }))
+                }
+                rows={6}
+                containerClassName="!mb-0"
+              />
+              <Select
+                label={ta('honorees.form.status')}
+                value={honoreeForm.status}
+                options={statusOptions}
+                onChange={(event) =>
+                  setHonoreeForm((current) => ({ ...current, status: event.target.value }))
+                }
+              />
+              <PhotoGalleryEditor
+                label={ta('honorees.form.photos')}
+                photos={honoreeForm.photos}
+                onChange={(photos) => setHonoreeForm((current) => ({ ...current, photos }))}
+                onUpload={uploadArchivePhoto}
+                uploading={uploadImageMutation.isPending}
+                canUpload={canUpload}
+                readOnly={false}
+              />
+              <Button
+                type="button"
+                icon={Save}
+                loading={saveHonoreeMutation.isPending}
+                onClick={handleHonoreeSubmit}
+              >
+                {honoreeForm.id ? ta('actions.updateHonoree') : ta('actions.createHonoree')}
+              </Button>
+            </div>
+          ) : null}
 
           <div className="space-y-4">
             {!archiveData.honorees.length ? (
               <EmptyState
                 icon={Award}
-                title="No honoree entries yet"
-                description="Add the first honored person entry when the archive is ready to record recognitions."
+                title={ta('honorees.empty.title')}
+                description={ta('honorees.empty.description')}
               />
             ) : (
               archiveData.honorees.map((honoree) => (
@@ -1043,9 +1185,9 @@ export default function ArchiveManagementPage() {
                   icon={Award}
                   title={honoree.fullName}
                   subtitle={[
-                    honoree.honorTitle || 'No title',
-                    honoree.collectionTitle || 'No collection',
-                    formatDateValue(honoree.honorDate),
+                    honoree.honorTitle || ta('placeholders.noTitle'),
+                    honoree.collectionTitle || ta('placeholders.noCollection'),
+                    formatArchiveDate(honoree.honorDate),
                   ].join(' | ')}
                   description={honoree.summary || honoree.narrative}
                   status={honoree.status}

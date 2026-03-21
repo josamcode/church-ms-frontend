@@ -316,6 +316,7 @@
         pastoralVisitationsAnalytics: 'Visitation Analytics',
         divineLiturgies: 'Divine Liturgy & Vespers',
         churchPriests: 'Church Priests',
+        archive: 'Archive',
         landingContent: 'Landing Page Content',
         notifications: 'Notifications',
         notificationTypes: 'Notification Types',
@@ -407,6 +408,176 @@
       },
       hints: {
         heroImageEmpty: 'No hero image uploaded yet.',
+      },
+    },
+    archivePage: {
+      title: 'Archive',
+      eyebrow: 'Permissions-first content workspace',
+      subtitle:
+        'Collections, photo stories, and honored people all live here, with separate permissions for viewing, uploads, section management, and publishing.',
+      loadingSubtitle: 'Loading archive workspace and permission rules...',
+      loadErrorSubtitle: 'The archive workspace could not be loaded.',
+      actions: {
+        refresh: 'Refresh',
+        createCollection: 'Create collection',
+        updateCollection: 'Update collection',
+        createStory: 'Create story',
+        updateStory: 'Update story',
+        createHonoree: 'Create honoree entry',
+        updateHonoree: 'Update honoree entry',
+      },
+      stats: {
+        collections: 'Collections',
+        stories: 'Stories',
+        honorees: 'Honorees',
+        published: '{count} published',
+      },
+      status: {
+        draft: 'Draft',
+        published: 'Published',
+      },
+      placeholders: {
+        noDate: 'No date',
+        noCollection: 'No collection',
+        noTitle: 'No title',
+      },
+      permissions: {
+        title: 'Permission coverage',
+        subtitle:
+          'This page is intentionally split by permission so archive work can be delegated without giving one broad admin capability.',
+        draftNotice:
+          'Drafts can still be created and edited with the section-specific manage permissions, but published archive items stay locked until the archive publish permission is granted.',
+        enabled: 'Enabled',
+        notGranted: 'Not granted',
+        cards: {
+          view: 'Archive view',
+          upload: 'Archive upload',
+          collections: 'Collections manage',
+          stories: 'Stories manage',
+          honorees: 'Honorees manage',
+          publish: 'Archive publish',
+        },
+      },
+      gallery: {
+        uploadImage: 'Upload images',
+        uploadPermissionHint:
+          'You can edit details here, but image uploads require the archive upload permission.',
+        noPhotos: 'No photos added yet.',
+        noCaption: 'No caption',
+        caption: 'Caption',
+        removePhoto: 'Remove photo',
+        invalidImage: 'Please choose valid image files.',
+      },
+      list: {
+        noSummary: 'No summary provided yet.',
+        photosCount: '{count} photos',
+      },
+      messages: {
+        collectionSaved: 'Collection saved successfully.',
+        collectionDeleted: 'Collection deleted successfully.',
+        storySaved: 'Story saved successfully.',
+        storyDeleted: 'Story deleted successfully.',
+        honoreeSaved: 'Honoree entry saved successfully.',
+        honoreeDeleted: 'Honoree entry deleted successfully.',
+        collectionEditDenied:
+          'Published collections can only be edited by users with archive publish permission.',
+        storyEditDenied:
+          'Published stories can only be edited by users with archive publish permission.',
+        honoreeEditDenied:
+          'Published honoree entries can only be edited by users with archive publish permission.',
+        collectionDeleteDenied:
+          'Published collections require archive publish permission to delete.',
+        storyDeleteDenied: 'Published stories require archive publish permission to delete.',
+        honoreeDeleteDenied:
+          'Published honoree entries require archive publish permission to delete.',
+      },
+      confirmations: {
+        deleteCollection: 'Delete collection "{title}"?',
+        deleteStory: 'Delete story "{title}"?',
+        deleteHonoree: 'Delete honoree entry for "{name}"?',
+      },
+      collections: {
+        title: 'Collections',
+        subtitle:
+          'Collections are the archive containers. Stories and honored people can reference them, and collections can keep their own photo sets and narrative.',
+        form: {
+          editTitle: 'Edit collection',
+          newTitle: 'New collection',
+          title: 'Collection title',
+          slug: 'Slug',
+          slugHint: 'Leave blank to generate from the title.',
+          description: 'Short description',
+          narrative: 'Narrative',
+          status: 'Status',
+          photos: 'Collection photos',
+          readOnly:
+            'You can view archive collections, but collection editing is hidden until the archive collections permission is granted.',
+        },
+        empty: {
+          title: 'No collections yet',
+          description: 'Create the first collection to start organizing archive photos and narratives.',
+        },
+        list: {
+          itemSubtitle: '{stories} stories, {honorees} honorees',
+        },
+        browser: {
+          label: 'Collection browser',
+          empty: 'Open a collection to browse its media and narrative.',
+          mediaCount: '{count} media items',
+          storyCount: '{count} stories',
+          honoreeCount: '{count} honorees',
+          noNarrative: 'No collection narrative has been added yet.',
+          noMedia: 'This collection has no media yet.',
+          openImage: 'Open image',
+        },
+      },
+      stories: {
+        title: 'Stories',
+        subtitle:
+          'Stories keep their own narrative and photos. Attach them to a collection when you want them grouped in a larger archive track.',
+        form: {
+          editTitle: 'Edit story',
+          newTitle: 'New story',
+          title: 'Story title',
+          slug: 'Slug',
+          slugHint: 'Leave blank to generate from the story title.',
+          collection: 'Collection',
+          eventDate: 'Event date',
+          summary: 'Summary',
+          narrative: 'Narrative',
+          status: 'Status',
+          photos: 'Story photos',
+          readOnly:
+            'You can view stories here, but story creation and editing require the archive stories permission.',
+        },
+        empty: {
+          title: 'No stories yet',
+          description: 'Archive stories will appear here once the first narrative is created.',
+        },
+      },
+      honorees: {
+        title: 'Honored People',
+        subtitle:
+          'Use this section for people being honored, with their own photos, context, and optional collection placement.',
+        form: {
+          editTitle: 'Edit honoree entry',
+          newTitle: 'New honoree entry',
+          fullName: 'Full name',
+          honorTitle: 'Honor title',
+          collection: 'Collection',
+          honorDate: 'Honor date',
+          summary: 'Summary',
+          narrative: 'Narrative',
+          status: 'Status',
+          photos: 'Honoree photos',
+          readOnly:
+            'You can view honoree entries here, but this section stays read-only until the archive honorees permission is granted.',
+        },
+        empty: {
+          title: 'No honoree entries yet',
+          description:
+            'Add the first honored person entry when the archive is ready to record recognitions.',
+        },
       },
     },
     dashboardHome: {
@@ -2595,6 +2766,7 @@
         pastoralVisitationsAnalytics: 'تحليلات الزيارات الرعوية',
         divineLiturgies: 'القداسات الإلهية وصلوات العشية',
         churchPriests: 'كهنة الكنيسة',
+        archive: 'الأرشيف',
         landingContent: 'محتوى الصفحة الرئيسية',
         notifications: 'الإشعارات',
         notificationTypes: 'أنواع الإشعارات',
@@ -2687,6 +2859,175 @@
       },
       hints: {
         heroImageEmpty: 'لا توجد صورة رئيسية مرفوعة حاليًا.',
+      },
+    },
+    archivePage: {
+      title: 'الأرشيف',
+      eyebrow: 'مساحة محتوى مبنية على الصلاحيات',
+      subtitle:
+        'تجميعات الصور والقصص وصور المكرمين كلها موجودة هنا، مع فصل واضح بين صلاحيات العرض والرفع والإدارة والنشر.',
+      loadingSubtitle: 'جارٍ تحميل مساحة الأرشيف وقواعد الصلاحيات...',
+      loadErrorSubtitle: 'تعذر تحميل مساحة الأرشيف.',
+      actions: {
+        refresh: 'تحديث',
+        createCollection: 'إنشاء تجميعة',
+        updateCollection: 'تحديث التجميعة',
+        createStory: 'إنشاء قصة',
+        updateStory: 'تحديث القصة',
+        createHonoree: 'إنشاء سجل تكريم',
+        updateHonoree: 'تحديث سجل التكريم',
+      },
+      stats: {
+        collections: 'التجميعات',
+        stories: 'القصص',
+        honorees: 'المكرمون',
+        published: '{count} منشور',
+      },
+      status: {
+        draft: 'مسودة',
+        published: 'منشور',
+      },
+      placeholders: {
+        noDate: 'بدون تاريخ',
+        noCollection: 'بدون تجميعة',
+        noTitle: 'بدون عنوان',
+      },
+      permissions: {
+        title: 'تغطية الصلاحيات',
+        subtitle:
+          'تم تقسيم هذه الصفحة حسب الصلاحيات حتى يمكن توزيع عمل الأرشيف دون منح صلاحية إدارية واسعة واحدة.',
+        draftNotice:
+          'يمكن إنشاء المسودات وتعديلها حسب صلاحيات الإدارة الخاصة بكل قسم، لكن العناصر المنشورة تظل مقيدة حتى يتم منح صلاحية نشر الأرشيف.',
+        enabled: 'مفعل',
+        notGranted: 'غير ممنوح',
+        cards: {
+          view: 'عرض الأرشيف',
+          upload: 'رفع صور الأرشيف',
+          collections: 'إدارة التجميعات',
+          stories: 'إدارة القصص',
+          honorees: 'إدارة المكرمين',
+          publish: 'نشر الأرشيف',
+        },
+      },
+      gallery: {
+        uploadImage: 'رفع صور',
+        uploadPermissionHint:
+          'يمكنك تعديل البيانات هنا، لكن رفع الصور يتطلب صلاحية رفع صور الأرشيف.',
+        noPhotos: 'لا توجد صور مضافة بعد.',
+        noCaption: 'بدون تعليق',
+        caption: 'تعليق الصورة',
+        removePhoto: 'إزالة الصورة',
+        invalidImage: 'يرجى اختيار ملفات صور صالحة.',
+      },
+      list: {
+        noSummary: 'لا يوجد ملخص حتى الآن.',
+        photosCount: '{count} صورة',
+      },
+      messages: {
+        collectionSaved: 'تم حفظ التجميعة بنجاح.',
+        collectionDeleted: 'تم حذف التجميعة بنجاح.',
+        storySaved: 'تم حفظ القصة بنجاح.',
+        storyDeleted: 'تم حذف القصة بنجاح.',
+        honoreeSaved: 'تم حفظ سجل التكريم بنجاح.',
+        honoreeDeleted: 'تم حذف سجل التكريم بنجاح.',
+        collectionEditDenied:
+          'لا يمكن تعديل التجميعات المنشورة إلا للمستخدمين الذين لديهم صلاحية نشر الأرشيف.',
+        storyEditDenied:
+          'لا يمكن تعديل القصص المنشورة إلا للمستخدمين الذين لديهم صلاحية نشر الأرشيف.',
+        honoreeEditDenied:
+          'لا يمكن تعديل سجلات التكريم المنشورة إلا للمستخدمين الذين لديهم صلاحية نشر الأرشيف.',
+        collectionDeleteDenied:
+          'حذف التجميعات المنشورة يتطلب صلاحية نشر الأرشيف.',
+        storyDeleteDenied: 'حذف القصص المنشورة يتطلب صلاحية نشر الأرشيف.',
+        honoreeDeleteDenied:
+          'حذف سجلات التكريم المنشورة يتطلب صلاحية نشر الأرشيف.',
+      },
+      confirmations: {
+        deleteCollection: 'هل تريد حذف التجميعة "{title}"؟',
+        deleteStory: 'هل تريد حذف القصة "{title}"؟',
+        deleteHonoree: 'هل تريد حذف سجل التكريم الخاص بـ "{name}"؟',
+      },
+      collections: {
+        title: 'التجميعات',
+        subtitle:
+          'التجميعات هي الحاويات الرئيسية للأرشيف. يمكن ربط القصص والمكرمين بها، كما يمكن أن تحتوي على صورها وسردها الخاص.',
+        form: {
+          editTitle: 'تعديل التجميعة',
+          newTitle: 'تجميعة جديدة',
+          title: 'عنوان التجميعة',
+          slug: 'المعرف النصي',
+          slugHint: 'اتركه فارغًا ليتم توليده من العنوان.',
+          description: 'وصف مختصر',
+          narrative: 'السرد',
+          status: 'الحالة',
+          photos: 'صور التجميعة',
+          readOnly:
+            'يمكنك عرض تجميعات الأرشيف، لكن تعديلها مخفي حتى يتم منح صلاحية إدارة التجميعات.',
+        },
+        empty: {
+          title: 'لا توجد تجميعات بعد',
+          description: 'أنشئ أول تجميعة لتبدأ في تنظيم صور الأرشيف وسرده.',
+        },
+        list: {
+          itemSubtitle: '{stories} قصة، {honorees} مكرم',
+        },
+        browser: {
+          label: 'متصفح التجميعة',
+          empty: 'افتح تجميعة لتصفح الوسائط والسرد الخاص بها.',
+          mediaCount: '{count} عنصر وسائط',
+          storyCount: '{count} قصة',
+          honoreeCount: '{count} مكرم',
+          noNarrative: 'لم تتم إضافة سرد لهذه التجميعة بعد.',
+          noMedia: 'لا تحتوي هذه التجميعة على وسائط بعد.',
+          openImage: 'فتح الصورة',
+        },
+      },
+      stories: {
+        title: 'القصص',
+        subtitle:
+          'لكل قصة سردها وصورها الخاصة. اربطها بتجميعة عندما تريد وضعها داخل مسار أرشيفي أكبر.',
+        form: {
+          editTitle: 'تعديل القصة',
+          newTitle: 'قصة جديدة',
+          title: 'عنوان القصة',
+          slug: 'المعرف النصي',
+          slugHint: 'اتركه فارغًا ليتم توليده من عنوان القصة.',
+          collection: 'التجميعة',
+          eventDate: 'تاريخ الحدث',
+          summary: 'ملخص',
+          narrative: 'السرد',
+          status: 'الحالة',
+          photos: 'صور القصة',
+          readOnly:
+            'يمكنك عرض القصص هنا، لكن إنشاءها وتعديلها يتطلب صلاحية إدارة القصص.',
+        },
+        empty: {
+          title: 'لا توجد قصص بعد',
+          description: 'ستظهر قصص الأرشيف هنا بمجرد إنشاء أول سرد.',
+        },
+      },
+      honorees: {
+        title: 'المكرمون',
+        subtitle:
+          'استخدم هذا القسم للأشخاص الذين يتم تكريمهم، مع صورهم وسياقهم وإمكانية ربطهم بتجميعة إن لزم.',
+        form: {
+          editTitle: 'تعديل سجل التكريم',
+          newTitle: 'سجل تكريم جديد',
+          fullName: 'الاسم الكامل',
+          honorTitle: 'عنوان التكريم',
+          collection: 'التجميعة',
+          honorDate: 'تاريخ التكريم',
+          summary: 'ملخص',
+          narrative: 'السرد',
+          status: 'الحالة',
+          photos: 'صور التكريم',
+          readOnly:
+            'يمكنك عرض سجلات التكريم هنا، لكن هذا القسم يظل للقراءة فقط حتى يتم منح صلاحية إدارة المكرمين.',
+        },
+        empty: {
+          title: 'لا توجد سجلات تكريم بعد',
+          description: 'أضف أول سجل تكريم عندما يصبح الأرشيف جاهزًا لتوثيق التكريمات.',
+        },
       },
     },
     dashboardHome: {
