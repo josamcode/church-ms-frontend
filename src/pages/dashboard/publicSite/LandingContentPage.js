@@ -78,6 +78,18 @@ function TextFieldControl({ label, value, onChange, fieldPath }) {
   );
 }
 
+function EditorCard({ children, className = '', ...props }) {
+  return (
+    <Card
+      padding={false}
+      className={['min-w-0 rounded-2xl p-4 sm:p-6', className].filter(Boolean).join(' ')}
+      {...props}
+    >
+      {children}
+    </Card>
+  );
+}
+
 export default function LandingContentPage() {
   const { t, language } = useI18n();
   const queryClient = useQueryClient();
@@ -275,7 +287,7 @@ export default function LandingContentPage() {
   };
 
   const renderPriestsEditor = (lang) => (
-    <Card>
+    <EditorCard>
       <CardHeader
         title={t('landingContentPage.sections.priests.title')}
         subtitle={t('landingContentPage.sections.priests.subtitle')}
@@ -290,7 +302,7 @@ export default function LandingContentPage() {
       ) : (
         <div className="space-y-5">
           {form.priests.map((entry) => (
-            <div key={entry.priestUserId} className="rounded-2xl border border-border p-4">
+            <div key={entry.priestUserId} className="rounded-2xl border border-border p-3 sm:p-4">
               <div className="mb-4 flex items-center gap-3">
                 {entry?.user?.avatar?.url ? (
                   <img
@@ -343,14 +355,14 @@ export default function LandingContentPage() {
           ))}
         </div>
       )}
-    </Card>
+    </EditorCard>
   );
 
   const buildLanguageSectionTabs = (lang) =>
     (textSections?.[lang] || []).map((section) => ({
       label: section.title,
       content: (
-        <Card>
+        <EditorCard>
           <CardHeader title={section.title} />
           <div className="grid gap-4">
             {section.fields.map((field) => (
@@ -363,7 +375,7 @@ export default function LandingContentPage() {
               />
             ))}
           </div>
-        </Card>
+        </EditorCard>
       ),
     }));
 
@@ -381,11 +393,11 @@ export default function LandingContentPage() {
   const textLanguageTabs = [
     {
       label: t('landingContentPage.languages.ar'),
-      content: <Tabs tabs={buildLanguageSectionTabs('ar')} />,
+      content: <Tabs variant="inline" tabs={buildLanguageSectionTabs('ar')} />,
     },
     {
       label: t('landingContentPage.languages.en'),
-      content: <Tabs tabs={buildLanguageSectionTabs('en')} />,
+      content: <Tabs variant="inline" tabs={buildLanguageSectionTabs('en')} />,
     },
   ];
 
@@ -393,7 +405,7 @@ export default function LandingContentPage() {
     {
       label: t('landingContentPage.sections.hero.title'),
       content: (
-        <Card>
+        <EditorCard>
           <CardHeader
             title={t('landingContentPage.sections.hero.title')}
             subtitle={t('landingContentPage.sections.hero.subtitle')}
@@ -448,20 +460,20 @@ export default function LandingContentPage() {
               </Button>
             </div>
           </div>
-        </Card>
+        </EditorCard>
       ),
     },
     {
       label: t('landingContentPage.sections.stats.title'),
       content: (
-        <Card>
+        <EditorCard>
           <CardHeader
             title={t('landingContentPage.sections.stats.title')}
             subtitle={t('landingContentPage.sections.stats.subtitle')}
           />
           <div className="grid gap-4 lg:grid-cols-2">
             {Object.entries(form.stats || {}).map(([itemId, entry]) => (
-              <div key={itemId} className="rounded-2xl border border-border p-4">
+              <div key={itemId} className="rounded-2xl border border-border p-3 sm:p-4">
                 <p className="mb-4 text-sm font-semibold text-heading">{statLabelForItem(itemId)}</p>
                 <div className="grid gap-4">
                   <Select
@@ -486,13 +498,13 @@ export default function LandingContentPage() {
               </div>
             ))}
           </div>
-        </Card>
+        </EditorCard>
       ),
     },
     {
       label: t('landingContentPage.sections.location.title'),
       content: (
-        <Card>
+        <EditorCard>
           <CardHeader
             title={t('landingContentPage.sections.location.title')}
             subtitle={t('landingContentPage.sections.location.subtitle')}
@@ -531,20 +543,20 @@ export default function LandingContentPage() {
               />
             </div>
           </div>
-        </Card>
+        </EditorCard>
       ),
     },
     {
       label: t('landingContentPage.sections.social.title'),
       content: (
-        <Card>
+        <EditorCard>
           <CardHeader
             title={t('landingContentPage.sections.social.title')}
             subtitle={t('landingContentPage.sections.social.subtitle')}
           />
           <div className="grid gap-4 lg:grid-cols-2">
             {(form.socialLinks || []).map((entry) => (
-              <div key={entry.platform} className="rounded-2xl border border-border p-4">
+              <div key={entry.platform} className="rounded-2xl border border-border p-3 sm:p-4">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-heading">{humanizeKey(entry.platform)}</p>
@@ -573,16 +585,16 @@ export default function LandingContentPage() {
               </div>
             ))}
           </div>
-        </Card>
+        </EditorCard>
       ),
     },
     {
       label: t('landingContentPage.sections.priests.title'),
-      content: <Tabs tabs={priestsLanguageTabs} />,
+      content: <Tabs variant="inline" tabs={priestsLanguageTabs} />,
     },
     {
       label: t('landingContentPage.sections.texts.title'),
-      content: <Tabs tabs={textLanguageTabs} />,
+      content: <Tabs variant="inline" tabs={textLanguageTabs} />,
     },
   ];
 
@@ -601,7 +613,7 @@ export default function LandingContentPage() {
   }
 
   return (
-    <div className="animate-fade-in space-y-8 pb-10">
+    <div className="min-w-0 animate-fade-in space-y-8 pb-10">
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
@@ -631,7 +643,7 @@ export default function LandingContentPage() {
         )}
       />
 
-      <Tabs tabs={editorTabs} />
+      <Tabs tabs={editorTabs} framedPanel={false} bodyClassName="p-3 sm:p-4" />
     </div>
   );
 }
