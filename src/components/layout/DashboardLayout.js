@@ -364,6 +364,25 @@ export default function DashboardLayout() {
       children: [],
     },
     {
+      key: 'archive',
+      sectionLabel: tf('dashboardLayout.menu.archive', 'Archive'),
+      parent: {
+        label: tf('dashboardLayout.menu.archive', 'Archive'),
+        href: '/dashboard/archive',
+        icon: Image,
+        permission: [
+          'ARCHIVE_VIEW',
+          'ARCHIVE_UPLOAD',
+          'ARCHIVE_COLLECTIONS_MANAGE',
+          'ARCHIVE_STORIES_MANAGE',
+          'ARCHIVE_HONOREES_MANAGE',
+          'ARCHIVE_PUBLISH',
+        ],
+        matchChildren: false,
+      },
+      children: [],
+    },
+    {
       // key: 'bookings',
       key: 'bookings-requests',
       sectionLabel: tf('dashboardLayout.section.bookings', 'Bookings'),
@@ -464,20 +483,6 @@ export default function DashboardLayout() {
         matchChildren: false,
       },
       children: [
-        {
-          label: tf('dashboardLayout.menu.archive', 'Archive'),
-          href: '/dashboard/archive',
-          icon: Image,
-          permission: [
-            'ARCHIVE_VIEW',
-            'ARCHIVE_UPLOAD',
-            'ARCHIVE_COLLECTIONS_MANAGE',
-            'ARCHIVE_STORIES_MANAGE',
-            'ARCHIVE_HONOREES_MANAGE',
-            'ARCHIVE_PUBLISH',
-          ],
-          matchChildren: false,
-        },
         {
           label: t('dashboardLayout.menu.landingContent'),
           href: '/dashboard/public-site/landing',
