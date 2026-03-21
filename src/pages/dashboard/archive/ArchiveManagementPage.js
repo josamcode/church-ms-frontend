@@ -1,15 +1,17 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Award,
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
   FileText,
   FolderOpen,
   ImagePlus,
-  Images,
   Pencil,
   Save,
   Trash2,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { archiveApi } from '../../../api/endpoints';
@@ -82,6 +84,12 @@ function createEmptyHonoreeForm() {
 
 function getStatusBadgeVariant(status) {
   return status === 'published' ? 'success' : 'warning';
+}
+
+function getStatusLabel(status, t) {
+  const statusKey = `archivePage.status.${status}`;
+  const translatedStatus = t(statusKey);
+  return translatedStatus === statusKey ? status : translatedStatus;
 }
 
 function formatDateValue(value, locale, emptyLabel) {
@@ -233,20 +241,16 @@ function ArchiveListItem({
   subtitle,
   description,
   status,
-  canView,
   canEdit,
   canDelete,
-  onView,
   onEdit,
   onDelete,
   photosCount,
   active = false,
 }) {
   const { t } = useI18n();
-  const statusKey = `archivePage.status.${status}`;
-  const translatedStatus = t(statusKey);
-  const statusLabel = translatedStatus === statusKey ? status : translatedStatus;
-  const showActions = Boolean((canView && onView) || (canEdit && onEdit) || (canDelete && onDelete));
+  const statusLabel = getStatusLabel(status, t);
+  const showActions = Boolean((canEdit && onEdit) || (canDelete && onDelete));
 
   return (
     <div
@@ -273,11 +277,6 @@ function ArchiveListItem({
       </div>
       {showActions ? (
         <div className="mt-4 flex flex-wrap gap-2">
-          {canView && onView ? (
-            <Button type="button" variant="outline" size="sm" icon={Images} onClick={onView}>
-              {t('common.actions.view')}
-            </Button>
-          ) : null}
           {canEdit && onEdit ? (
             <Button type="button" variant="outline" size="sm" icon={Pencil} onClick={onEdit}>
               {t('common.actions.edit')}
@@ -301,16 +300,354 @@ function ArchiveListItem({
   );
 }
 
+function CollectionDirectoryCard({
+  collection,
+  storyCount,
+  honoreeCount,
+  onOpen,
+  active = false,
+}) {
+  const { t } = useI18n();
+  const coverPhoto = collection.photos?.[0] || null;
+  const statusLabel = getStatusLabel(collection.status, t);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(collection)}
+      aria-pressed={active}
+      className="w-full text-left"
+    >
+      <div
+        className={[
+          'group h-full overflow-hidden rounded-[28px] border bg-surface transition-all duration-200',
+          active
+            ? 'border-primary/40 ring-2 ring-primary/10 shadow-card'
+            : 'border-border shadow-sm hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-card',
+        ].join(' ')}
+      >
+        <div className="relative h-56 overflow-hidden bg-surface-alt">
+          {coverPhoto ? (
+            <>
+              <img
+                src={coverPhoto.url}
+                alt={coverPhoto.caption || collection.title}
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            </>
+          ) : (
+            <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/10 via-surface to-surface-alt text-primary">
+              <FolderOpen className="h-12 w-12" />
+            </div>
+          )}
+
+          <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 p-4">
+            <Badge variant={getStatusBadgeVariant(collection.status)}>{statusLabel}</Badge>
+            <Badge variant="default">
+              {t('archivePage.list.photosCount', { count: collection.photos.length })}
+            </Badge>
+          </div>
+
+          <div className="absolute inset-x-0 bottom-0 p-4">
+            <p className={`text-lg font-semibold ${coverPhoto ? 'text-white' : 'text-heading'}`}>
+              {collection.title}
+            </p>
+            <p className={`mt-2 line-clamp-2 text-sm ${coverPhoto ? 'text-white/85' : 'text-muted'}`}>
+              {collection.description || t('archivePage.list.noSummary')}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4 p-4">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="default">
+              {t('archivePage.collections.browser.storyCount', { count: storyCount })}
+            </Badge>
+            <Badge variant="default">
+              {t('archivePage.collections.browser.honoreeCount', { count: honoreeCount })}
+            </Badge>
+          </div>
+
+          <div className="flex items-end justify-between gap-4">
+            <p className="line-clamp-3 text-sm leading-6 text-muted">
+              {collection.narrative || collection.description || t('archivePage.collections.browser.noNarrative')}
+            </p>
+            <span className="shrink-0 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              {t('archivePage.collections.directory.openCollection')}
+            </span>
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function ViewerCollectionCard({ collection, onOpen, active = false }) {
+  const { t } = useI18n();
+  const coverPhoto = collection.photos?.[0] || null;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(collection)}
+      aria-pressed={active}
+      className="w-full text-left"
+    >
+      <div
+        className={[
+          'group relative min-h-[280px] overflow-hidden rounded-[32px] border transition-all duration-300',
+          active
+            ? 'border-white/60 shadow-2xl ring-2 ring-white/20'
+            : 'border-white/10 shadow-xl hover:-translate-y-1 hover:shadow-2xl',
+        ].join(' ')}
+      >
+        {coverPhoto ? (
+          <img
+            src={coverPhoto.url}
+            alt={coverPhoto.caption || collection.title}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-surface-alt via-surface to-primary/10" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/10" />
+
+        <div className="absolute inset-x-0 top-0 flex justify-end p-5">
+          <Badge variant="default">{t('archivePage.list.photosCount', { count: collection.photos.length })}</Badge>
+        </div>
+
+        {!coverPhoto ? (
+          <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center text-white/70">
+            <FolderOpen className="h-12 w-12" />
+          </div>
+        ) : null}
+
+        <div className="absolute inset-x-0 bottom-0 p-5">
+          <p className="text-xl font-semibold text-white">{collection.title}</p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function CollectionPhotoGallery({ collection, onOpenImage }) {
+  const { t } = useI18n();
+  const photos = collection?.photos || [];
+
+  if (!photos.length) {
+    return (
+      <div className="rounded-[28px] border border-dashed border-border px-6 py-10 text-center text-sm text-muted">
+        {t('archivePage.collections.browser.noMedia')}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid auto-rows-[180px] gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {photos.map((photo, index) => (
+        <button
+          key={`${photo.publicId || photo.url}-${index}`}
+          type="button"
+          onClick={() => onOpenImage(index)}
+          className={[
+            'group relative overflow-hidden rounded-[24px] bg-surface-alt text-left',
+            index === 0 ? 'sm:col-span-2 xl:col-span-2 xl:row-span-2 min-h-[280px]' : 'min-h-[180px]',
+          ].join(' ')}
+        >
+          <img
+            src={photo.url}
+            alt={photo.caption || collection?.title || ''}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent opacity-90" />
+          {photo.caption ? (
+            <div className="absolute inset-x-0 bottom-0 p-4">
+              <p className="line-clamp-2 text-xs text-white/85">{photo.caption}</p>
+            </div>
+          ) : null}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CollectionContentList({
+  icon: Icon,
+  title,
+  items,
+  emptyLabel,
+  renderTitle,
+  renderMeta,
+  renderDescription,
+}) {
+  return (
+    <div className="rounded-[24px] border border-border bg-page/60 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Icon className="h-5 w-5" />
+          </div>
+          <p className="text-sm font-semibold text-heading">{title}</p>
+        </div>
+        <Badge variant="default">{items.length}</Badge>
+      </div>
+
+      {!items.length ? (
+        <div className="mt-4 rounded-2xl border border-dashed border-border p-4 text-sm text-muted">
+          {emptyLabel}
+        </div>
+      ) : (
+        <div className="mt-4 max-h-80 space-y-3 overflow-y-auto pr-1">
+          {items.map((item) => (
+            <div key={item.id} className="rounded-2xl border border-border bg-surface p-4">
+              <p className="text-sm font-semibold text-heading">{renderTitle(item)}</p>
+              <p className="mt-1 text-xs text-muted">{renderMeta(item)}</p>
+              <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted">
+                {renderDescription(item)}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ImageLightbox({
+  collection,
+  photoIndex,
+  onClose,
+  onPrev,
+  onNext,
+  onSelectPhoto,
+}) {
+  const { t } = useI18n();
+  const photos = collection?.photos || [];
+  const activePhoto = photos[photoIndex] || null;
+
+  useEffect(() => {
+    if (!activePhoto) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+      if (event.key === 'ArrowLeft') onPrev();
+      if (event.key === 'ArrowRight') onNext();
+    };
+
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activePhoto, onClose, onNext, onPrev]);
+
+  if (!activePhoto) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] bg-black/75 backdrop-blur-xl"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={collection?.title || t('archivePage.title')}
+    >
+      <div className="flex h-full flex-col px-4 py-4 md:px-8 md:py-6" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-lg font-semibold text-white">{collection?.title}</p>
+            <p className="mt-1 text-sm text-white/70">
+              {photoIndex + 1} / {photos.length}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+            aria-label={t('common.actions.close')}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="relative mt-4 flex min-h-0 flex-1 items-center justify-center">
+          {photos.length > 1 ? (
+            <>
+              <button
+                type="button"
+                onClick={onPrev}
+                className="absolute left-0 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 md:left-4"
+                aria-label="Previous image"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+              <button
+                type="button"
+                onClick={onNext}
+                className="absolute right-0 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 md:right-4"
+                aria-label="Next image"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            </>
+          ) : null}
+
+          <img
+            src={activePhoto.url}
+            alt={activePhoto.caption || collection?.title || ''}
+            className="max-h-full max-w-full rounded-[32px] object-contain shadow-2xl"
+          />
+        </div>
+
+        <div className="mt-4">
+          <p className="text-center text-sm text-white/75">
+            {activePhoto.caption || collection?.title || '---'}
+          </p>
+          {photos.length > 1 ? (
+            <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
+              {photos.map((photo, index) => (
+                <button
+                  key={`${photo.publicId || photo.url}-${index}`}
+                  type="button"
+                  onClick={() => onSelectPhoto(index)}
+                  className={[
+                    'h-20 w-24 shrink-0 overflow-hidden rounded-2xl border transition-all duration-200',
+                    index === photoIndex
+                      ? 'border-white shadow-lg ring-2 ring-white/30'
+                      : 'border-white/10 opacity-70 hover:opacity-100',
+                  ].join(' ')}
+                >
+                  <img
+                    src={photo.url}
+                    alt={photo.caption || collection?.title || ''}
+                    className="h-full w-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CollectionBrowserPanel({
   collection,
-  selectedPhotoIndex,
-  onSelectPhoto,
   onOpenImage,
   storyCount,
   honoreeCount,
+  relatedStories,
+  relatedHonorees,
+  formatArchiveDate,
+  canEdit,
+  canDelete,
+  onEdit,
+  onDelete,
 }) {
   const { t } = useI18n();
-  const featuredPhoto = collection?.photos?.[selectedPhotoIndex] || collection?.photos?.[0] || null;
 
   if (!collection) {
     return (
@@ -320,86 +657,113 @@ function CollectionBrowserPanel({
     );
   }
 
+  const hasRelatedStories = relatedStories.length > 0;
+  const hasRelatedHonorees = relatedHonorees.length > 0;
+  const hasRelatedContent = hasRelatedStories || hasRelatedHonorees;
+
   return (
-    <div className="space-y-4 rounded-2xl border border-border bg-page/50 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            {t('archivePage.collections.browser.label')}
-          </p>
-          <div>
-            <h4 className="text-lg font-semibold text-heading">{collection.title}</h4>
-            <p className="mt-1 text-sm text-muted">
-              {collection.description || t('archivePage.list.noSummary')}
-            </p>
-          </div>
+    <div className="space-y-6 rounded-[28px] border border-border bg-surface p-6 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h4 className="text-2xl font-bold text-heading">{collection.title}</h4>
+          {collection.description ? (
+            <p className="mt-2 text-sm leading-7 text-muted">{collection.description}</p>
+          ) : null}
         </div>
+
         <div className="flex flex-wrap gap-2">
-          <Badge variant="default">
-            {t('archivePage.collections.browser.mediaCount', { count: collection.photos.length })}
+          <Badge variant={getStatusBadgeVariant(collection.status)}>
+            {getStatusLabel(collection.status, t)}
           </Badge>
-          <Badge variant="default">
-            {t('archivePage.collections.browser.storyCount', { count: storyCount })}
-          </Badge>
-          <Badge variant="default">
-            {t('archivePage.collections.browser.honoreeCount', { count: honoreeCount })}
-          </Badge>
+          {collection.photos.length ? (
+            <Badge variant="default">
+              {t('archivePage.collections.browser.mediaCount', { count: collection.photos.length })}
+            </Badge>
+          ) : null}
+          {storyCount ? (
+            <Badge variant="default">
+              {t('archivePage.collections.browser.storyCount', { count: storyCount })}
+            </Badge>
+          ) : null}
+          {honoreeCount ? (
+            <Badge variant="default">
+              {t('archivePage.collections.browser.honoreeCount', { count: honoreeCount })}
+            </Badge>
+          ) : null}
         </div>
       </div>
 
-      <p className="text-sm leading-7 text-muted">
-        {collection.narrative || t('archivePage.collections.browser.noNarrative')}
-      </p>
+      <CollectionPhotoGallery collection={collection} onOpenImage={onOpenImage} />
 
-      {featuredPhoto ? (
-        <>
-          <div className="overflow-hidden rounded-2xl border border-border bg-black/5">
-            <img
-              src={featuredPhoto.url}
-              alt={featuredPhoto.caption || collection.title}
-              className="h-72 w-full object-cover md:h-96"
-            />
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted">
-              {featuredPhoto.caption || '---'}
-            </p>
-            <Button type="button" variant="outline" size="sm" icon={ExternalLink} onClick={onOpenImage}>
-              {t('archivePage.collections.browser.openImage')}
-            </Button>
-          </div>
-          {collection.photos.length > 1 ? (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {collection.photos.map((photo, index) => (
-                <button
-                  key={`${photo.publicId || photo.url}-${index}`}
-                  type="button"
-                  onClick={() => onSelectPhoto(index)}
-                  className={[
-                    'overflow-hidden rounded-2xl border text-start transition-colors duration-200',
-                    index === selectedPhotoIndex ? 'border-primary/50 ring-2 ring-primary/10' : 'border-border',
-                  ].join(' ')}
-                >
-                  <img
-                    src={photo.url}
-                    alt={photo.caption || collection.title}
-                    className="h-28 w-full object-cover"
-                  />
-                  <div className="p-3">
-                    <p className="line-clamp-2 text-xs text-muted">
-                      {photo.caption || '---'}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted">
-          {t('archivePage.collections.browser.noMedia')}
+      {collection.narrative ? (
+        <div className="rounded-[24px] border border-border bg-page/60 p-5">
+          <p className="text-sm leading-7 text-muted">{collection.narrative}</p>
         </div>
-      )}
+      ) : null}
+
+        {(canEdit && onEdit) || (canDelete && onDelete) ? (
+          <div className="flex flex-wrap gap-2">
+            {canEdit && onEdit ? (
+              <Button type="button" variant="outline" size="sm" icon={Pencil} onClick={onEdit}>
+                {t('common.actions.edit')}
+              </Button>
+            ) : null}
+            {canDelete && onDelete ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                icon={Trash2}
+                className="text-danger"
+                onClick={onDelete}
+              >
+                {t('common.actions.delete')}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+
+      {hasRelatedContent ? (
+        <div className={`grid gap-4 ${hasRelatedStories && hasRelatedHonorees ? 'xl:grid-cols-2' : ''}`}>
+          {hasRelatedStories ? (
+            <CollectionContentList
+              icon={FileText}
+              title={t('archivePage.stories.title')}
+              items={relatedStories}
+              emptyLabel=""
+              renderTitle={(story) => story.title}
+              renderMeta={(story) => formatArchiveDate(story.eventDate)}
+              renderDescription={(story) =>
+                story.summary || story.narrative || t('archivePage.list.noSummary')
+              }
+            />
+          ) : null}
+          {hasRelatedHonorees ? (
+            <CollectionContentList
+              icon={Award}
+              title={t('archivePage.honorees.title')}
+              items={relatedHonorees}
+              emptyLabel=""
+              renderTitle={(honoree) => honoree.fullName}
+              renderMeta={(honoree) =>
+                [honoree.honorTitle || t('archivePage.placeholders.noTitle'), formatArchiveDate(honoree.honorDate)]
+                  .join(' | ')
+              }
+              renderDescription={(honoree) =>
+                honoree.summary || honoree.narrative || t('archivePage.list.noSummary')
+              }
+            />
+          ) : null}
+        </div>
+      ) : null}
+
+      {collection.photos.length ? (
+        <div className="flex justify-end">
+          <Button type="button" variant="outline" size="sm" icon={ExternalLink} onClick={() => onOpenImage(0)}>
+            {t('archivePage.collections.browser.openImage')}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -412,7 +776,8 @@ export default function ArchiveManagementPage() {
   const [storyForm, setStoryForm] = useState(createEmptyStoryForm);
   const [honoreeForm, setHonoreeForm] = useState(createEmptyHonoreeForm);
   const [activeCollectionId, setActiveCollectionId] = useState(null);
-  const [activeCollectionPhotoIndex, setActiveCollectionPhotoIndex] = useState(0);
+  const [lightboxCollectionId, setLightboxCollectionId] = useState(null);
+  const [lightboxPhotoIndex, setLightboxPhotoIndex] = useState(0);
 
   const tx = useCallback((key, fallback) => {
     const value = t(key);
@@ -422,15 +787,28 @@ export default function ArchiveManagementPage() {
   const locale = language === 'ar' ? 'ar-EG' : 'en-US';
   const formatArchiveDate = (value) => formatDateValue(value, locale, ta('placeholders.noDate'));
 
-  const canView = hasPermission('ARCHIVE_VIEW');
+  const canViewArchive = hasPermission('ARCHIVE_VIEW');
   const canUpload = hasPermission('ARCHIVE_UPLOAD');
   const canManageCollections = hasPermission('ARCHIVE_COLLECTIONS_MANAGE');
   const canManageStories = hasPermission('ARCHIVE_STORIES_MANAGE');
   const canManageHonorees = hasPermission('ARCHIVE_HONOREES_MANAGE');
   const canPublish = hasPermission('ARCHIVE_PUBLISH');
+  const canAccessArchiveWorkspace =
+    canViewArchive ||
+    canManageCollections ||
+    canManageStories ||
+    canManageHonorees ||
+    canPublish;
+  const isGalleryOnlyView =
+    canViewArchive &&
+    !canManageCollections &&
+    !canManageStories &&
+    !canManageHonorees &&
+    !canPublish;
 
   const archiveQuery = useQuery({
     queryKey: ['archive', 'manage'],
+    enabled: canAccessArchiveWorkspace,
     queryFn: async () => {
       const { data } = await archiveApi.getManage();
       return data?.data || DEFAULT_ARCHIVE_DATA;
@@ -447,36 +825,80 @@ export default function ArchiveManagementPage() {
     return base;
   }, [canPublish, ta]);
 
+  const collectionDirectory = useMemo(
+    () =>
+      archiveData.collections.map((collection) => {
+        const relatedStories = archiveData.stories.filter((story) => story.collectionId === collection.id);
+        const relatedHonorees = archiveData.honorees.filter(
+          (honoree) => honoree.collectionId === collection.id
+        );
+
+        return {
+          ...collection,
+          photos: collection.photos || [],
+          relatedStories,
+          relatedHonorees,
+          storyCount: collection.storyCount ?? relatedStories.length,
+          honoreeCount: collection.honoreeCount ?? relatedHonorees.length,
+        };
+      }),
+    [archiveData.collections, archiveData.honorees, archiveData.stories]
+  );
+
   const collectionOptions = useMemo(
     () => [
       { value: '', label: ta('placeholders.noCollection') },
-      ...archiveData.collections.map((collection) => ({
+      ...collectionDirectory.map((collection) => ({
         value: collection.id,
         label: collection.title,
       })),
     ],
-    [archiveData.collections, ta]
+    [collectionDirectory, ta]
   );
+
+  const archiveStatCards = useMemo(
+    () => [
+      {
+        label: ta('stats.collections'),
+        value: archiveData.counts.collections,
+        published: archiveData.counts.publishedCollections,
+        icon: FolderOpen,
+      },
+      {
+        label: ta('stats.stories'),
+        value: archiveData.counts.stories,
+        published: archiveData.counts.publishedStories,
+        icon: FileText,
+      },
+      {
+        label: ta('stats.honorees'),
+        value: archiveData.counts.honorees,
+        published: archiveData.counts.publishedHonorees,
+        icon: Award,
+      },
+    ],
+    [archiveData.counts, ta]
+  );
+
   const activeCollection = useMemo(
     () =>
-      archiveData.collections.find((collection) => collection.id === activeCollectionId) ||
-      archiveData.collections[0] ||
+      collectionDirectory.find((collection) => collection.id === activeCollectionId) ||
+      collectionDirectory[0] ||
       null,
-    [activeCollectionId, archiveData.collections]
+    [activeCollectionId, collectionDirectory]
   );
-  const normalizedActiveCollectionPhotoIndex = activeCollection?.photos?.[activeCollectionPhotoIndex]
-    ? activeCollectionPhotoIndex
+  const activeCollectionStoryCount = activeCollection?.storyCount || 0;
+  const activeCollectionHonoreeCount = activeCollection?.honoreeCount || 0;
+  const activeCollectionStories = activeCollection?.relatedStories || [];
+  const activeCollectionHonorees = activeCollection?.relatedHonorees || [];
+  const lightboxCollection = useMemo(
+    () =>
+      collectionDirectory.find((collection) => collection.id === lightboxCollectionId) || null,
+    [collectionDirectory, lightboxCollectionId]
+  );
+  const normalizedLightboxPhotoIndex = lightboxCollection?.photos?.[lightboxPhotoIndex]
+    ? lightboxPhotoIndex
     : 0;
-  const activeCollectionPhoto =
-    activeCollection?.photos?.[normalizedActiveCollectionPhotoIndex] || null;
-  const activeCollectionStoryCount = useMemo(
-    () => archiveData.stories.filter((story) => story.collectionId === activeCollection?.id).length,
-    [activeCollection?.id, archiveData.stories]
-  );
-  const activeCollectionHonoreeCount = useMemo(
-    () => archiveData.honorees.filter((honoree) => honoree.collectionId === activeCollection?.id).length,
-    [activeCollection?.id, archiveData.honorees]
-  );
 
   const syncPayload = (payload) => {
     queryClient.setQueryData(['archive', 'manage'], payload);
@@ -607,11 +1029,94 @@ export default function ArchiveManagementPage() {
   const uploadArchivePhoto = async (file) => uploadImageMutation.mutateAsync(file);
   const openCollectionBrowser = (collection) => {
     setActiveCollectionId(collection.id);
-    setActiveCollectionPhotoIndex(0);
+  };
+  const openImageLightbox = useCallback((collection, photoIndex = 0) => {
+    if (!collection?.photos?.length) return;
+    setLightboxCollectionId(collection.id);
+    setLightboxPhotoIndex(photoIndex);
+  }, []);
+  const closeImageLightbox = useCallback(() => {
+    setLightboxCollectionId(null);
+    setLightboxPhotoIndex(0);
+  }, []);
+  const goToPreviousLightboxPhoto = useCallback(() => {
+    const totalPhotos = lightboxCollection?.photos?.length || 0;
+    if (!totalPhotos) return;
+    setLightboxPhotoIndex((current) => (current - 1 + totalPhotos) % totalPhotos);
+  }, [lightboxCollection?.photos?.length]);
+  const goToNextLightboxPhoto = useCallback(() => {
+    const totalPhotos = lightboxCollection?.photos?.length || 0;
+    if (!totalPhotos) return;
+    setLightboxPhotoIndex((current) => (current + 1) % totalPhotos);
+  }, [lightboxCollection?.photos?.length]);
+  const selectLightboxPhoto = useCallback((index) => {
+    setLightboxPhotoIndex(index);
+  }, []);
+
+  const showCollectionsSection = canManageCollections || collectionDirectory.length > 0;
+  const showStoriesSection = canManageStories;
+  const showHonoreesSection = canManageHonorees;
+  const shouldShowAdminStats =
+    !isGalleryOnlyView && (canManageCollections || canManageStories || canManageHonorees || canPublish);
+
+  const renderAccessMessage = () => (
+    <EmptyState
+      icon={FolderOpen}
+      title={tx('archivePage.accessDeniedTitle', 'Archive access is not available')}
+      description={tx(
+        'archivePage.accessDeniedDescription',
+        'You do not have permission to view archive content.'
+      )}
+    />
+  );
+
+  const renderGalleryView = () => {
+    if (!collectionDirectory.length) {
+      return (
+        <EmptyState
+          icon={FolderOpen}
+          title={ta('collections.empty.title')}
+          description={ta('collections.empty.description')}
+        />
+      );
+    }
+
+    return (
+      <div className="space-y-8">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {collectionDirectory.map((collection) => (
+            <ViewerCollectionCard
+              key={collection.id}
+              collection={collection}
+              onOpen={openCollectionBrowser}
+              active={activeCollection?.id === collection.id}
+            />
+          ))}
+        </div>
+
+        {activeCollection ? (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-2xl font-semibold text-heading">{activeCollection.title}</h2>
+              {activeCollection.photos.length ? (
+                <Badge variant="default">
+                  {t('archivePage.list.photosCount', { count: activeCollection.photos.length })}
+                </Badge>
+              ) : null}
+            </div>
+            <CollectionPhotoGallery
+              collection={activeCollection}
+              onOpenImage={(photoIndex) => openImageLightbox(activeCollection, photoIndex)}
+            />
+          </section>
+        ) : null}
+      </div>
+    );
   };
 
   const selectCollectionForEdit = (collection) => {
     if (collection.status === 'published' && !canPublish) {
+      toast.error(ta('messages.collectionEditDenied'));
       return;
     }
 
@@ -629,6 +1134,7 @@ export default function ArchiveManagementPage() {
 
   const selectStoryForEdit = (story) => {
     if (story.status === 'published' && !canPublish) {
+      toast.error(ta('messages.storyEditDenied'));
       return;
     }
 
@@ -647,6 +1153,7 @@ export default function ArchiveManagementPage() {
 
   const selectHonoreeForEdit = (honoree) => {
     if (honoree.status === 'published' && !canPublish) {
+      toast.error(ta('messages.honoreeEditDenied'));
       return;
     }
 
@@ -665,6 +1172,7 @@ export default function ArchiveManagementPage() {
 
   const confirmDeleteCollection = (collection) => {
     if (collection.status === 'published' && !canPublish) {
+      toast.error(ta('messages.collectionDeleteDenied'));
       return;
     }
     if (window.confirm(ta('confirmations.deleteCollection', { title: collection.title }))) {
@@ -674,6 +1182,7 @@ export default function ArchiveManagementPage() {
 
   const confirmDeleteStory = (story) => {
     if (story.status === 'published' && !canPublish) {
+      toast.error(ta('messages.storyDeleteDenied'));
       return;
     }
     if (window.confirm(ta('confirmations.deleteStory', { title: story.title }))) {
@@ -683,6 +1192,7 @@ export default function ArchiveManagementPage() {
 
   const confirmDeleteHonoree = (honoree) => {
     if (honoree.status === 'published' && !canPublish) {
+      toast.error(ta('messages.honoreeDeleteDenied'));
       return;
     }
     if (window.confirm(ta('confirmations.deleteHonoree', { name: honoree.fullName }))) {
@@ -729,6 +1239,21 @@ export default function ArchiveManagementPage() {
       photos: honoreeForm.photos,
     });
   };
+
+  if (!canAccessArchiveWorkspace) {
+    return (
+      <div className="animate-fade-in space-y-6 pb-10">
+        <Breadcrumbs
+          items={[
+            { label: tx('shared.dashboard', 'Dashboard'), href: '/dashboard' },
+            { label: ta('title') },
+          ]}
+        />
+        <PageHeader title={ta('title')} />
+        {renderAccessMessage()}
+      </div>
+    );
+  }
 
   if (archiveQuery.isLoading) {
     return (
@@ -777,431 +1302,201 @@ export default function ArchiveManagementPage() {
       />
 
       <PageHeader
-        className="border-b border-border pb-6"
-        eyebrow={ta('eyebrow')}
+        className={isGalleryOnlyView ? '' : 'border-b border-border pb-6'}
+        eyebrow={isGalleryOnlyView ? '' : ta('eyebrow')}
         title={ta('title')}
-        subtitle={ta('subtitle')}
+        subtitle={isGalleryOnlyView ? '' : ta('subtitle')}
         actions={(
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => archiveQuery.refetch()}>
-              {ta('actions.refresh')}
-            </Button>
-          </div>
+          !isGalleryOnlyView ? (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => archiveQuery.refetch()}>
+                {ta('actions.refresh')}
+              </Button>
+            </div>
+          ) : null
         )}
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <p className="text-sm text-muted">{ta('stats.collections')}</p>
-          <p className="mt-2 text-3xl font-bold text-heading">{archiveData.counts.collections}</p>
-          <p className="mt-1 text-xs text-muted">
-            {ta('stats.published', { count: archiveData.counts.publishedCollections })}
-          </p>
-        </Card>
-        <Card>
-          <p className="text-sm text-muted">{ta('stats.stories')}</p>
-          <p className="mt-2 text-3xl font-bold text-heading">{archiveData.counts.stories}</p>
-          <p className="mt-1 text-xs text-muted">
-            {ta('stats.published', { count: archiveData.counts.publishedStories })}
-          </p>
-        </Card>
-        <Card>
-          <p className="text-sm text-muted">{ta('stats.honorees')}</p>
-          <p className="mt-2 text-3xl font-bold text-heading">{archiveData.counts.honorees}</p>
-          <p className="mt-1 text-xs text-muted">
-            {ta('stats.published', { count: archiveData.counts.publishedHonorees })}
-          </p>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader
-          title={ta('collections.title')}
-          subtitle={ta('collections.subtitle')}
-        />
-        <div className={`grid gap-6 ${canManageCollections ? 'xl:grid-cols-[minmax(0,400px)_1fr]' : ''}`}>
-          {canManageCollections ? (
-            <div className="space-y-4 rounded-2xl border border-border bg-page/50 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-heading">
-                  {collectionForm.id ? ta('collections.form.editTitle') : ta('collections.form.newTitle')}
-                </p>
-                {collectionForm.id ? (
-                  <Button type="button" variant="ghost" size="sm" onClick={resetCollectionForm}>
-                    {t('common.actions.cancel')}
-                  </Button>
-                ) : null}
-              </div>
-              <Input
-                label={ta('collections.form.title')}
-                value={collectionForm.title}
-                onChange={(event) =>
-                  setCollectionForm((current) => ({ ...current, title: event.target.value }))
-                }
-                containerClassName="!mb-0"
-              />
-              <Input
-                label={ta('collections.form.slug')}
-                value={collectionForm.slug}
-                onChange={(event) =>
-                  setCollectionForm((current) => ({ ...current, slug: event.target.value }))
-                }
-                hint={ta('collections.form.slugHint')}
-                containerClassName="!mb-0"
-              />
-              <TextArea
-                label={ta('collections.form.description')}
-                value={collectionForm.description}
-                onChange={(event) =>
-                  setCollectionForm((current) => ({ ...current, description: event.target.value }))
-                }
-                rows={3}
-                containerClassName="!mb-0"
-              />
-              <TextArea
-                label={ta('collections.form.narrative')}
-                value={collectionForm.narrative}
-                onChange={(event) =>
-                  setCollectionForm((current) => ({ ...current, narrative: event.target.value }))
-                }
-                rows={6}
-                containerClassName="!mb-0"
-              />
-              <Select
-                label={ta('collections.form.status')}
-                value={collectionForm.status}
-                options={statusOptions}
-                onChange={(event) =>
-                  setCollectionForm((current) => ({ ...current, status: event.target.value }))
-                }
-              />
-              <PhotoGalleryEditor
-                label={ta('collections.form.photos')}
-                photos={collectionForm.photos}
-                onChange={(photos) =>
-                  setCollectionForm((current) => ({ ...current, photos }))
-                }
-                onUpload={uploadArchivePhoto}
-                uploading={uploadImageMutation.isPending}
-                canUpload={canUpload}
-                readOnly={false}
-              />
-              <Button
-                type="button"
-                icon={Save}
-                loading={saveCollectionMutation.isPending}
-                onClick={handleCollectionSubmit}
-              >
-                {collectionForm.id ? ta('actions.updateCollection') : ta('actions.createCollection')}
-              </Button>
+      {isGalleryOnlyView ? (
+        renderGalleryView()
+      ) : (
+        <>
+          {shouldShowAdminStats ? (
+            <div className="grid gap-4 md:grid-cols-3">
+              {archiveStatCards.map(({ label, value, published, icon: Icon }) => (
+                <Card
+                  key={label}
+                  className="overflow-hidden border-border/70 bg-gradient-to-br from-surface to-surface-alt/80"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-muted">{label}</p>
+                      <p className="mt-3 text-3xl font-bold text-heading">{value}</p>
+                      <p className="mt-2 text-xs text-muted">
+                        {ta('stats.published', { count: published })}
+                      </p>
+                    </div>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <Icon className="h-6 w-6" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
           ) : null}
 
-          <div className="space-y-4">
-            {archiveData.collections.length ? (
-              <CollectionBrowserPanel
-                collection={activeCollection}
-                selectedPhotoIndex={normalizedActiveCollectionPhotoIndex}
-                onSelectPhoto={setActiveCollectionPhotoIndex}
-                onOpenImage={() => {
-                  if (activeCollectionPhoto?.url) {
-                    window.open(activeCollectionPhoto.url, '_blank', 'noopener,noreferrer');
-                  }
-                }}
-                storyCount={activeCollectionStoryCount}
-                honoreeCount={activeCollectionHonoreeCount}
+          {showCollectionsSection ? (
+            <Card>
+              <CardHeader
+                title={ta('collections.title')}
+                action={collectionDirectory.length ? (
+                  <Badge variant="primary">
+                    {archiveData.counts.collections} {ta('stats.collections')}
+                  </Badge>
+                ) : null}
               />
-            ) : null}
-            {!archiveData.collections.length ? (
-              <EmptyState
-                icon={FolderOpen}
-                title={ta('collections.empty.title')}
-                description={ta('collections.empty.description')}
-              />
-            ) : (
-              archiveData.collections.map((collection) => (
-                <ArchiveListItem
-                  key={collection.id}
-                  icon={FolderOpen}
-                  title={collection.title}
-                  subtitle={ta('collections.list.itemSubtitle', {
-                    stories: collection.storyCount,
-                    honorees: collection.honoreeCount,
-                  })}
-                  description={collection.description || collection.narrative}
-                  status={collection.status}
-                  photosCount={collection.photos.length}
-                  canView={canView}
-                  canEdit={canManageCollections && (canPublish || collection.status !== 'published')}
-                  canDelete={canManageCollections && (canPublish || collection.status !== 'published')}
-                  onView={() => openCollectionBrowser(collection)}
-                  onEdit={() => selectCollectionForEdit(collection)}
-                  onDelete={() => confirmDeleteCollection(collection)}
-                  active={activeCollection?.id === collection.id}
-                />
-              ))
-            )}
-          </div>
-        </div>
-      </Card>
+              <div
+                className={`grid gap-6 ${
+                  canManageCollections && collectionDirectory.length
+                    ? 'xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]'
+                    : ''
+                }`}
+              >
+                <div className="space-y-4">
+                  {!collectionDirectory.length ? (
+                    canManageCollections ? (
+                      <EmptyState
+                        icon={FolderOpen}
+                        title={ta('collections.empty.title')}
+                        description={ta('collections.empty.description')}
+                      />
+                    ) : null
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {collectionDirectory.map((collection) => (
+                        <CollectionDirectoryCard
+                          key={collection.id}
+                          collection={collection}
+                          storyCount={collection.storyCount}
+                          honoreeCount={collection.honoreeCount}
+                          onOpen={openCollectionBrowser}
+                          active={activeCollection?.id === collection.id}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-      <Card>
-        <CardHeader
-          title={ta('stories.title')}
-          subtitle={ta('stories.subtitle')}
-        />
-        <div className={`grid gap-6 ${canManageStories ? 'xl:grid-cols-[minmax(0,400px)_1fr]' : ''}`}>
-          {canManageStories ? (
-            <div className="space-y-4 rounded-2xl border border-border bg-page/50 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-heading">
-                  {storyForm.id ? ta('stories.form.editTitle') : ta('stories.form.newTitle')}
-                </p>
-                {storyForm.id ? (
-                  <Button type="button" variant="ghost" size="sm" onClick={resetStoryForm}>
-                    {t('common.actions.cancel')}
-                  </Button>
+                {collectionDirectory.length || canManageCollections ? (
+                  <div className="space-y-6">
+                    {collectionDirectory.length ? (
+                      <CollectionBrowserPanel
+                        collection={activeCollection}
+                        onOpenImage={(photoIndex) => openImageLightbox(activeCollection, photoIndex)}
+                        storyCount={activeCollectionStoryCount}
+                        honoreeCount={activeCollectionHonoreeCount}
+                        relatedStories={activeCollectionStories}
+                        relatedHonorees={activeCollectionHonorees}
+                        formatArchiveDate={formatArchiveDate}
+                        canEdit={canManageCollections && (canPublish || activeCollection?.status !== 'published')}
+                        canDelete={canManageCollections && (canPublish || activeCollection?.status !== 'published')}
+                        onEdit={activeCollection ? () => selectCollectionForEdit(activeCollection) : undefined}
+                        onDelete={activeCollection ? () => confirmDeleteCollection(activeCollection) : undefined}
+                      />
+                    ) : null}
+
+                    {canManageCollections ? (
+                      <div className="space-y-4 rounded-[28px] border border-border bg-page/50 p-5 xl:sticky xl:top-24">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold text-heading">
+                            {collectionForm.id ? ta('collections.form.editTitle') : ta('collections.form.newTitle')}
+                          </p>
+                          {collectionForm.id ? (
+                            <Button type="button" variant="ghost" size="sm" onClick={resetCollectionForm}>
+                              {t('common.actions.cancel')}
+                            </Button>
+                          ) : null}
+                        </div>
+                        <Input
+                          label={ta('collections.form.title')}
+                          value={collectionForm.title}
+                          onChange={(event) =>
+                            setCollectionForm((current) => ({ ...current, title: event.target.value }))
+                          }
+                          containerClassName="!mb-0"
+                        />
+                        <Input
+                          label={ta('collections.form.slug')}
+                          value={collectionForm.slug}
+                          onChange={(event) =>
+                            setCollectionForm((current) => ({ ...current, slug: event.target.value }))
+                          }
+                          hint={ta('collections.form.slugHint')}
+                          containerClassName="!mb-0"
+                        />
+                        <TextArea
+                          label={ta('collections.form.description')}
+                          value={collectionForm.description}
+                          onChange={(event) =>
+                            setCollectionForm((current) => ({ ...current, description: event.target.value }))
+                          }
+                          rows={3}
+                          containerClassName="!mb-0"
+                        />
+                        <TextArea
+                          label={ta('collections.form.narrative')}
+                          value={collectionForm.narrative}
+                          onChange={(event) =>
+                            setCollectionForm((current) => ({ ...current, narrative: event.target.value }))
+                          }
+                          rows={6}
+                          containerClassName="!mb-0"
+                        />
+                        <Select
+                          label={ta('collections.form.status')}
+                          value={collectionForm.status}
+                          options={statusOptions}
+                          onChange={(event) =>
+                            setCollectionForm((current) => ({ ...current, status: event.target.value }))
+                          }
+                        />
+                        <PhotoGalleryEditor
+                          label={ta('collections.form.photos')}
+                          photos={collectionForm.photos}
+                          onChange={(photos) => setCollectionForm((current) => ({ ...current, photos }))}
+                          onUpload={uploadArchivePhoto}
+                          uploading={uploadImageMutation.isPending}
+                          canUpload={canUpload}
+                          readOnly={false}
+                        />
+                        <Button
+                          type="button"
+                          icon={Save}
+                          loading={saveCollectionMutation.isPending}
+                          onClick={handleCollectionSubmit}
+                        >
+                          {collectionForm.id ? ta('actions.updateCollection') : ta('actions.createCollection')}
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
-              <Input
-                label={ta('stories.form.title')}
-                value={storyForm.title}
-                onChange={(event) =>
-                  setStoryForm((current) => ({ ...current, title: event.target.value }))
-                }
-                containerClassName="!mb-0"
-              />
-              <Input
-                label={ta('stories.form.slug')}
-                value={storyForm.slug}
-                onChange={(event) =>
-                  setStoryForm((current) => ({ ...current, slug: event.target.value }))
-                }
-                hint={ta('stories.form.slugHint')}
-                containerClassName="!mb-0"
-              />
-              <Select
-                label={ta('stories.form.collection')}
-                value={storyForm.collectionId}
-                options={collectionOptions}
-                onChange={(event) =>
-                  setStoryForm((current) => ({ ...current, collectionId: event.target.value }))
-                }
-              />
-              <Input
-                label={ta('stories.form.eventDate')}
-                type="date"
-                value={storyForm.eventDate}
-                onChange={(event) =>
-                  setStoryForm((current) => ({ ...current, eventDate: event.target.value }))
-                }
-                containerClassName="!mb-0"
-              />
-              <TextArea
-                label={ta('stories.form.summary')}
-                value={storyForm.summary}
-                onChange={(event) =>
-                  setStoryForm((current) => ({ ...current, summary: event.target.value }))
-                }
-                rows={3}
-                containerClassName="!mb-0"
-              />
-              <TextArea
-                label={ta('stories.form.narrative')}
-                value={storyForm.narrative}
-                onChange={(event) =>
-                  setStoryForm((current) => ({ ...current, narrative: event.target.value }))
-                }
-                rows={6}
-                containerClassName="!mb-0"
-              />
-              <Select
-                label={ta('stories.form.status')}
-                value={storyForm.status}
-                options={statusOptions}
-                onChange={(event) =>
-                  setStoryForm((current) => ({ ...current, status: event.target.value }))
-                }
-              />
-              <PhotoGalleryEditor
-                label={ta('stories.form.photos')}
-                photos={storyForm.photos}
-                onChange={(photos) => setStoryForm((current) => ({ ...current, photos }))}
-                onUpload={uploadArchivePhoto}
-                uploading={uploadImageMutation.isPending}
-                canUpload={canUpload}
-                readOnly={false}
-              />
-              <Button
-                type="button"
-                icon={Save}
-                loading={saveStoryMutation.isPending}
-                onClick={handleStorySubmit}
-              >
-                {storyForm.id ? ta('actions.updateStory') : ta('actions.createStory')}
-              </Button>
-            </div>
+            </Card>
           ) : null}
 
-          <div className="space-y-4">
-            {!archiveData.stories.length ? (
-              <EmptyState
-                icon={FileText}
-                title={ta('stories.empty.title')}
-                description={ta('stories.empty.description')}
-              />
-            ) : (
-              archiveData.stories.map((story) => (
-                <ArchiveListItem
-                  key={story.id}
-                  icon={FileText}
-                  title={story.title}
-                  subtitle={[
-                    story.collectionTitle || ta('placeholders.noCollection'),
-                    formatArchiveDate(story.eventDate),
-                  ].join(' | ')}
-                  description={story.summary || story.narrative}
-                  status={story.status}
-                  photosCount={story.photos.length}
-                  canEdit={canManageStories && (canPublish || story.status !== 'published')}
-                  canDelete={canManageStories && (canPublish || story.status !== 'published')}
-                  onEdit={() => selectStoryForEdit(story)}
-                  onDelete={() => confirmDeleteStory(story)}
-                />
-              ))
-            )}
-          </div>
-        </div>
-      </Card>
+          {!showCollectionsSection && !showStoriesSection && !showHonoreesSection ? renderAccessMessage() : null}
+        </>
+      )}
 
-      <Card>
-        <CardHeader
-          title={ta('honorees.title')}
-          subtitle={ta('honorees.subtitle')}
-        />
-        <div className={`grid gap-6 ${canManageHonorees ? 'xl:grid-cols-[minmax(0,400px)_1fr]' : ''}`}>
-          {canManageHonorees ? (
-            <div className="space-y-4 rounded-2xl border border-border bg-page/50 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-heading">
-                  {honoreeForm.id ? ta('honorees.form.editTitle') : ta('honorees.form.newTitle')}
-                </p>
-                {honoreeForm.id ? (
-                  <Button type="button" variant="ghost" size="sm" onClick={resetHonoreeForm}>
-                    {t('common.actions.cancel')}
-                  </Button>
-                ) : null}
-              </div>
-              <Input
-                label={ta('honorees.form.fullName')}
-                value={honoreeForm.fullName}
-                onChange={(event) =>
-                  setHonoreeForm((current) => ({ ...current, fullName: event.target.value }))
-                }
-                containerClassName="!mb-0"
-              />
-              <Input
-                label={ta('honorees.form.honorTitle')}
-                value={honoreeForm.honorTitle}
-                onChange={(event) =>
-                  setHonoreeForm((current) => ({ ...current, honorTitle: event.target.value }))
-                }
-                containerClassName="!mb-0"
-              />
-              <Select
-                label={ta('honorees.form.collection')}
-                value={honoreeForm.collectionId}
-                options={collectionOptions}
-                onChange={(event) =>
-                  setHonoreeForm((current) => ({ ...current, collectionId: event.target.value }))
-                }
-              />
-              <Input
-                label={ta('honorees.form.honorDate')}
-                type="date"
-                value={honoreeForm.honorDate}
-                onChange={(event) =>
-                  setHonoreeForm((current) => ({ ...current, honorDate: event.target.value }))
-                }
-                containerClassName="!mb-0"
-              />
-              <TextArea
-                label={ta('honorees.form.summary')}
-                value={honoreeForm.summary}
-                onChange={(event) =>
-                  setHonoreeForm((current) => ({ ...current, summary: event.target.value }))
-                }
-                rows={3}
-                containerClassName="!mb-0"
-              />
-              <TextArea
-                label={ta('honorees.form.narrative')}
-                value={honoreeForm.narrative}
-                onChange={(event) =>
-                  setHonoreeForm((current) => ({ ...current, narrative: event.target.value }))
-                }
-                rows={6}
-                containerClassName="!mb-0"
-              />
-              <Select
-                label={ta('honorees.form.status')}
-                value={honoreeForm.status}
-                options={statusOptions}
-                onChange={(event) =>
-                  setHonoreeForm((current) => ({ ...current, status: event.target.value }))
-                }
-              />
-              <PhotoGalleryEditor
-                label={ta('honorees.form.photos')}
-                photos={honoreeForm.photos}
-                onChange={(photos) => setHonoreeForm((current) => ({ ...current, photos }))}
-                onUpload={uploadArchivePhoto}
-                uploading={uploadImageMutation.isPending}
-                canUpload={canUpload}
-                readOnly={false}
-              />
-              <Button
-                type="button"
-                icon={Save}
-                loading={saveHonoreeMutation.isPending}
-                onClick={handleHonoreeSubmit}
-              >
-                {honoreeForm.id ? ta('actions.updateHonoree') : ta('actions.createHonoree')}
-              </Button>
-            </div>
-          ) : null}
-
-          <div className="space-y-4">
-            {!archiveData.honorees.length ? (
-              <EmptyState
-                icon={Award}
-                title={ta('honorees.empty.title')}
-                description={ta('honorees.empty.description')}
-              />
-            ) : (
-              archiveData.honorees.map((honoree) => (
-                <ArchiveListItem
-                  key={honoree.id}
-                  icon={Award}
-                  title={honoree.fullName}
-                  subtitle={[
-                    honoree.honorTitle || ta('placeholders.noTitle'),
-                    honoree.collectionTitle || ta('placeholders.noCollection'),
-                    formatArchiveDate(honoree.honorDate),
-                  ].join(' | ')}
-                  description={honoree.summary || honoree.narrative}
-                  status={honoree.status}
-                  photosCount={honoree.photos.length}
-                  canEdit={canManageHonorees && (canPublish || honoree.status !== 'published')}
-                  canDelete={canManageHonorees && (canPublish || honoree.status !== 'published')}
-                  onEdit={() => selectHonoreeForEdit(honoree)}
-                  onDelete={() => confirmDeleteHonoree(honoree)}
-                />
-              ))
-            )}
-          </div>
-        </div>
-      </Card>
+      <ImageLightbox
+        collection={lightboxCollection}
+        photoIndex={normalizedLightboxPhotoIndex}
+        onClose={closeImageLightbox}
+        onPrev={goToPreviousLightboxPhoto}
+        onNext={goToNextLightboxPhoto}
+        onSelectPhoto={selectLightboxPhoto}
+      />
     </div>
   );
 }

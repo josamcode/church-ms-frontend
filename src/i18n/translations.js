@@ -414,7 +414,7 @@
       title: 'Archive',
       eyebrow: 'Permissions-first content workspace',
       subtitle:
-        'Collections, photo stories, and honored people all live here, with separate permissions for viewing, uploads, section management, and publishing.',
+        'Collections, photo stories, and honored people all live here.',
       loadingSubtitle: 'Loading archive workspace and permission rules...',
       loadErrorSubtitle: 'The archive workspace could not be loaded.',
       actions: {
@@ -529,6 +529,19 @@
           noNarrative: 'No collection narrative has been added yet.',
           noMedia: 'This collection has no media yet.',
           openImage: 'Open image',
+        },
+        directory: {
+          label: 'Archive directory',
+          title: 'Browse every collection',
+          subtitle:
+            'Scan the full archive catalogue, then open a collection to review its media, stories, and honored people without leaving the page.',
+          openCollection: 'Open collection',
+          narrative: 'Collection narrative',
+          emptyStories: 'No stories are linked to this collection yet.',
+          emptyHonorees: 'No honoree entries are linked to this collection yet.',
+          manageTitle: 'Collection management',
+          manageSubtitle:
+            'Create a new collection or update an existing one while keeping the archive catalogue visible.',
         },
       },
       stories: {
@@ -2865,13 +2878,13 @@
       title: 'الأرشيف',
       eyebrow: 'مساحة محتوى مبنية على الصلاحيات',
       subtitle:
-        'تجميعات الصور والقصص وصور المكرمين كلها موجودة هنا، مع فصل واضح بين صلاحيات العرض والرفع والإدارة والنشر.',
+        'تجميعات الصور والقصص وصور المكرمين كلها موجودة هنا.',
       loadingSubtitle: 'جارٍ تحميل مساحة الأرشيف وقواعد الصلاحيات...',
       loadErrorSubtitle: 'تعذر تحميل مساحة الأرشيف.',
       actions: {
         refresh: 'تحديث',
-        createCollection: 'إنشاء تجميعة',
-        updateCollection: 'تحديث التجميعة',
+        createCollection: 'إنشاء كولكشن',
+        updateCollection: 'تحديث الكولكشن',
         createStory: 'إنشاء قصة',
         updateStory: 'تحديث القصة',
         createHonoree: 'إنشاء سجل تكريم',
@@ -2889,7 +2902,7 @@
       },
       placeholders: {
         noDate: 'بدون تاريخ',
-        noCollection: 'بدون تجميعة',
+        noCollection: 'بدون كولكشن',
         noTitle: 'بدون عنوان',
       },
       permissions: {
@@ -2924,8 +2937,8 @@
         photosCount: '{count} صورة',
       },
       messages: {
-        collectionSaved: 'تم حفظ التجميعة بنجاح.',
-        collectionDeleted: 'تم حذف التجميعة بنجاح.',
+        collectionSaved: 'تم حفظ الكولكشن بنجاح.',
+        collectionDeleted: 'تم حذف الكولكشن بنجاح.',
         storySaved: 'تم حفظ القصة بنجاح.',
         storyDeleted: 'تم حذف القصة بنجاح.',
         honoreeSaved: 'تم حفظ سجل التكريم بنجاح.',
@@ -2943,7 +2956,7 @@
           'حذف سجلات التكريم المنشورة يتطلب صلاحية نشر الأرشيف.',
       },
       confirmations: {
-        deleteCollection: 'هل تريد حذف التجميعة "{title}"؟',
+        deleteCollection: 'هل تريد حذف الكولكشن "{title}"؟',
         deleteStory: 'هل تريد حذف القصة "{title}"؟',
         deleteHonoree: 'هل تريد حذف سجل التكريم الخاص بـ "{name}"؟',
       },
@@ -2952,47 +2965,60 @@
         subtitle:
           'التجميعات هي الحاويات الرئيسية للأرشيف. يمكن ربط القصص والمكرمين بها، كما يمكن أن تحتوي على صورها وسردها الخاص.',
         form: {
-          editTitle: 'تعديل التجميعة',
-          newTitle: 'تجميعة جديدة',
-          title: 'عنوان التجميعة',
+          editTitle: 'تعديل الكولكشن',
+          newTitle: 'كولكشن جديدة',
+          title: 'عنوان الكولكشن',
           slug: 'المعرف النصي',
           slugHint: 'اتركه فارغًا ليتم توليده من العنوان.',
           description: 'وصف مختصر',
           narrative: 'السرد',
           status: 'الحالة',
-          photos: 'صور التجميعة',
+          photos: 'صور الكولكشن',
           readOnly:
             'يمكنك عرض تجميعات الأرشيف، لكن تعديلها مخفي حتى يتم منح صلاحية إدارة التجميعات.',
         },
         empty: {
           title: 'لا توجد تجميعات بعد',
-          description: 'أنشئ أول تجميعة لتبدأ في تنظيم صور الأرشيف وسرده.',
+          description: 'أنشئ أول كولكشن لتبدأ في تنظيم صور الأرشيف وسرده.',
         },
         list: {
           itemSubtitle: '{stories} قصة، {honorees} مكرم',
         },
         browser: {
-          label: 'متصفح التجميعة',
-          empty: 'افتح تجميعة لتصفح الوسائط والسرد الخاص بها.',
+          label: 'متصفح الكولكشن',
+          empty: 'افتح كولكشن لتصفح الوسائط والسرد الخاص بها.',
           mediaCount: '{count} عنصر وسائط',
           storyCount: '{count} قصة',
           honoreeCount: '{count} مكرم',
-          noNarrative: 'لم تتم إضافة سرد لهذه التجميعة بعد.',
-          noMedia: 'لا تحتوي هذه التجميعة على وسائط بعد.',
+          noNarrative: 'لم تتم إضافة سرد لهذه الكولكشن بعد.',
+          noMedia: 'لا تحتوي هذه الكولكشن على وسائط بعد.',
           openImage: 'فتح الصورة',
+        },
+        directory: {
+          label: 'دليل الأرشيف',
+          title: 'تصفح كل التجميعات',
+          subtitle:
+            'استعرض كتالوج الأرشيف بالكامل ثم افتح أي كولكشن لمراجعة وسائطها وقصصها والمكرمين المرتبطين بها دون مغادرة الصفحة.',
+          openCollection: 'فتح الكولكشن',
+          narrative: 'سرد الكولكشن',
+          emptyStories: 'لا توجد قصص مرتبطة بهذه الكولكشن بعد.',
+          emptyHonorees: 'لا توجد سجلات تكريم مرتبطة بهذه الكولكشن بعد.',
+          manageTitle: 'إدارة التجميعات',
+          manageSubtitle:
+            'أنشئ كولكشن جديدة أو حدّث كولكشن موجودة مع إبقاء كتالوج الأرشيف ظاهرًا أمامك.',
         },
       },
       stories: {
         title: 'القصص',
         subtitle:
-          'لكل قصة سردها وصورها الخاصة. اربطها بتجميعة عندما تريد وضعها داخل مسار أرشيفي أكبر.',
+          'لكل قصة سردها وصورها الخاصة. اربطها بكولكشن عندما تريد وضعها داخل مسار أرشيفي أكبر.',
         form: {
           editTitle: 'تعديل القصة',
           newTitle: 'قصة جديدة',
           title: 'عنوان القصة',
           slug: 'المعرف النصي',
           slugHint: 'اتركه فارغًا ليتم توليده من عنوان القصة.',
-          collection: 'التجميعة',
+          collection: 'الكولكشن',
           eventDate: 'تاريخ الحدث',
           summary: 'ملخص',
           narrative: 'السرد',
@@ -3009,13 +3035,13 @@
       honorees: {
         title: 'المكرمون',
         subtitle:
-          'استخدم هذا القسم للأشخاص الذين يتم تكريمهم، مع صورهم وسياقهم وإمكانية ربطهم بتجميعة إن لزم.',
+          'استخدم هذا القسم للأشخاص الذين يتم تكريمهم، مع صورهم وسياقهم وإمكانية ربطهم بكولكشن إن لزم.',
         form: {
           editTitle: 'تعديل سجل التكريم',
           newTitle: 'سجل تكريم جديد',
           fullName: 'الاسم الكامل',
           honorTitle: 'عنوان التكريم',
-          collection: 'التجميعة',
+          collection: 'الكولكشن',
           honorDate: 'تاريخ التكريم',
           summary: 'ملخص',
           narrative: 'السرد',
