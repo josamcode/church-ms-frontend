@@ -11,12 +11,20 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
+import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import Select from '../../../components/ui/Select';
 import TextArea from '../../../components/ui/TextArea';
 import Badge from '../../../components/ui/Badge';
 import PageHeader from '../../../components/ui/PageHeader';
+import { PERMISSION_LABELS } from '../../../constants/permissions';
 import { useI18n } from '../../../i18n/i18n';
 import { localizeNotificationTypeName } from '../../../utils/notificationTypeLocalization';
+
+const DEFAULT_AUDIENCE_PERMISSIONS = [
+  'NOTIFICATIONS_CREATE',
+  'NOTIFICATIONS_UPDATE',
+  'NOTIFICATIONS_TYPES_MANAGE',
+];
 
 function createDetail(kind = 'text') {
   return {
@@ -149,6 +157,8 @@ export default function NotificationFormPage() {
     eventDate: '',
     coverImageUrl: '',
     isActive: true,
+    audienceType: 'permissions',
+    audiencePermissions: DEFAULT_AUDIENCE_PERMISSIONS,
     details: [createDetail('text')],
   });
 
@@ -169,6 +179,14 @@ export default function NotificationFormPage() {
       display: localizeNotificationTypeName(type.name, t),
     }));
   }, [typesRes, t]);
+
+  const audiencePermissionOptions = useMemo(
+    () =>
+      Object.entries(PERMISSION_LABELS)
+        .map(([value, label]) => ({ value, label }))
+        .sort((left, right) => left.label.localeCompare(right.label)),
+    []
+  );
 
   const findTypeByInput = (inputValue) => {
     const needle = normalizeText(inputValue);
@@ -210,6 +228,11 @@ export default function NotificationFormPage() {
       eventDate: toDateInputValue(notification.eventDate),
       coverImageUrl: notification.coverImageUrl || '',
       isActive: notification.isActive !== false,
+      audienceType: notification.audienceType === 'all' ? 'all' : 'permissions',
+      audiencePermissions:
+        Array.isArray(notification.audiencePermissions) && notification.audiencePermissions.length > 0
+          ? notification.audiencePermissions
+          : DEFAULT_AUDIENCE_PERMISSIONS,
       details:
         Array.isArray(notification.details) && notification.details.length > 0
           ? notification.details.map((detail) => ({
@@ -256,6 +279,26 @@ export default function NotificationFormPage() {
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const updateAudienceType = (value) => {
+    setForm((prev) => ({
+      ...prev,
+      audienceType: value,
+      audiencePermissions:
+        value === 'permissions' && (!Array.isArray(prev.audiencePermissions) || prev.audiencePermissions.length === 0)
+          ? DEFAULT_AUDIENCE_PERMISSIONS
+          : prev.audiencePermissions,
+    }));
+    setFormErrors((prev) => ({ ...prev, audienceType: undefined, audiencePermissions: undefined }));
+  };
+
+  const updateAudiencePermissions = (values) => {
+    setForm((prev) => ({
+      ...prev,
+      audiencePermissions: values,
+    }));
+    setFormErrors((prev) => ({ ...prev, audiencePermissions: undefined }));
   };
 
   const updateTypeInput = (value, selectedTypeId) => {
@@ -361,6 +404,13 @@ export default function NotificationFormPage() {
       nextErrors.name = tf('notifications.validation.nameRequired', 'Notification name is required.');
     }
 
+    if (form.audienceType === 'permissions' && (!form.audiencePermissions || form.audiencePermissions.length === 0)) {
+      nextErrors.audiencePermissions = tf(
+        'notifications.validation.audiencePermissionsRequired',
+        'Choose at least one permission for a restricted audience.'
+      );
+    }
+
     if (!Array.isArray(form.details) || form.details.length === 0) {
       nextErrors.details = tf('notifications.validation.atLeastOneDetail', 'At least one detail item is required.');
     } else {
@@ -451,6 +501,11 @@ export default function NotificationFormPage() {
       eventDate: form.eventDate ? new Date(form.eventDate).toISOString() : null,
       coverImageUrl: form.coverImageUrl.trim() || null,
       isActive: !!form.isActive,
+      audienceType: form.audienceType,
+      audiencePermissions:
+        form.audienceType === 'permissions'
+          ? form.audiencePermissions
+          : [],
     };
 
     if (isEdit) {
@@ -533,6 +588,57 @@ export default function NotificationFormPage() {
                 {form.isActive ? t('notifications.actions.setInactive') : t('notifications.actions.setActive')}
               </Button>
             </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-surface-alt/30 p-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Select
+                label={tf('notifications.form.audienceType', 'Audience')}
+                value={form.audienceType}
+                onChange={(event) => updateAudienceType(event.target.value)}
+                options={[
+                  {
+                    value: 'permissions',
+                    label: tf('notifications.form.audienceRestricted', 'Restricted by permission'),
+                  },
+                  {
+                    value: 'all',
+                    label: tf('notifications.form.audienceAll', 'All notification viewers'),
+                  },
+                ]}
+                containerClassName="!mb-0"
+              />
+              <div className="flex items-center rounded-xl border border-border bg-surface px-4 py-3 text-xs text-muted">
+                {form.audienceType === 'all'
+                  ? tf(
+                    'notifications.form.audienceAllHint',
+                    'Everyone who can open notifications will be able to see this item.'
+                  )
+                  : tf(
+                    'notifications.form.audienceRestrictedHint',
+                    'Only users who hold at least one of the selected permissions will be able to see this item.'
+                  )}
+              </div>
+            </div>
+
+            {form.audienceType === 'permissions' ? (
+              <MultiSelectChips
+                label={tf('notifications.form.audiencePermissions', 'Allowed permissions')}
+                values={form.audiencePermissions}
+                options={audiencePermissionOptions}
+                onChange={updateAudiencePermissions}
+                error={formErrors.audiencePermissions}
+                hint={tf(
+                  'notifications.form.audiencePermissionsHint',
+                  'Choose the internal audiences that should receive this notification.'
+                )}
+                placeholder={tf(
+                  'notifications.form.audiencePermissionsPlaceholder',
+                  'Select one or more permissions'
+                )}
+                containerClassName="!mb-0 mt-4"
+              />
+            ) : null}
           </div>
 
           <TextArea

@@ -622,10 +622,17 @@ export default function BookingPublicPage() {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
+    if (!form.bookingTypeId) {
+      toast.error(tf('bookings.public.typeRequired', 'Please choose a booking type.'));
+      return;
+    }
 
     setUploadingFields((current) => ({ ...current, [fieldKey]: true }));
     try {
-      const response = await bookingsApi.public.uploadImage(file);
+      const response = await bookingsApi.public.uploadImage(file, {
+        bookingTypeId: form.bookingTypeId,
+        fieldKey,
+      });
       const payload = response?.data?.data ?? response?.data ?? null;
       if (!payload?.url) {
         throw new Error(tf('bookings.public.uploadFailed', 'Failed to upload image.'));

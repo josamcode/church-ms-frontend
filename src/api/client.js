@@ -39,14 +39,7 @@ apiClient.interceptors.request.use(
 );
 
 apiClient.interceptors.response.use(
-  (response) => {
-    // In development, log API responses so you can see them in Console (DevTools)
-    if (process.env.NODE_ENV === 'development') {
-      const url = response.config.url || response.config.baseURL;
-      console.log(`[API] ${response.config.method?.toUpperCase()} ${url}`, response.data);
-    }
-    return response;
-  },
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
     const responseCode = error.response?.data?.error?.code;

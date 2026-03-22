@@ -7,60 +7,91 @@ const PERMISSIONS_KEY = 'church_permissions';
 
 let memoryAccessToken = null;
 
+function migrateLegacyValue(key) {
+  const sessionValue = sessionStorage.getItem(key);
+  if (sessionValue != null) {
+    return sessionValue;
+  }
+
+  const legacyValue = localStorage.getItem(key);
+  if (legacyValue != null) {
+    sessionStorage.setItem(key, legacyValue);
+    localStorage.removeItem(key);
+  }
+
+  return legacyValue;
+}
+
+function writeSessionValue(key, value) {
+  if (value == null || value === '') {
+    sessionStorage.removeItem(key);
+    return;
+  }
+
+  sessionStorage.setItem(key, value);
+}
+
+function removeStoredValue(key) {
+  sessionStorage.removeItem(key);
+  localStorage.removeItem(key);
+}
+
 export function getAccessToken() {
-  return memoryAccessToken || sessionStorage.getItem(ACCESS_TOKEN_KEY);
+  return memoryAccessToken || migrateLegacyValue(ACCESS_TOKEN_KEY);
 }
 
 export function getRefreshToken() {
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
+  return migrateLegacyValue(REFRESH_TOKEN_KEY);
 }
 
 export function setTokens(accessToken, refreshToken) {
-  memoryAccessToken = accessToken;
-  sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  if (refreshToken) {
-    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-  }
+  memoryAccessToken = accessToken || null;
+  writeSessionValue(ACCESS_TOKEN_KEY, accessToken || null);
+  writeSessionValue(REFRESH_TOKEN_KEY, refreshToken || null);
 }
 
 export function setUser(user) {
   if (user) {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    writeSessionValue(USER_KEY, JSON.stringify(user));
   } else {
-    localStorage.removeItem(USER_KEY);
+    removeStoredValue(USER_KEY);
   }
 }
 
 export function getUser() {
   try {
-    const raw = localStorage.getItem(USER_KEY);
+    const raw = migrateLegacyValue(USER_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
+    removeStoredValue(USER_KEY);
     return null;
   }
 }
 
 export function setPermissions(permissions) {
   if (permissions) {
-    localStorage.setItem(PERMISSIONS_KEY, JSON.stringify(permissions));
+    writeSessionValue(PERMISSIONS_KEY, JSON.stringify(permissions));
+  } else {
+    removeStoredValue(PERMISSIONS_KEY);
   }
 }
 
 export function getPermissions() {
   try {
-    const raw = localStorage.getItem(PERMISSIONS_KEY);
+    const raw = migrateLegacyValue(PERMISSIONS_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
+    removeStoredValue(PERMISSIONS_KEY);
     return [];
   }
 }
 
 export function clearAuth() {
   memoryAccessToken = null;
-  sessionStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
-  localStorage.removeItem(PERMISSIONS_KEY);
+  removeStoredValue(ACCESS_TOKEN_KEY);
+  removeStoredValue(REFRESH_TOKEN_KEY);
+  removeStoredValue(USER_KEY);
+  removeStoredValue(PERMISSIONS_KEY);
 }
 
 export function isAuthenticated() {

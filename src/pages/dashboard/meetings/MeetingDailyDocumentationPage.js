@@ -213,7 +213,14 @@ export default function MeetingDailyDocumentationPage() {
   }, [documentationQuery.data, activeFields]);
 
   const uploadSingleAsset = async (file) => {
-    const response = await meetingsApi.documentationSettings.uploadAsset(file);
+    if (!id || !selectedDate) {
+      throw new Error(tf('meetings.documentation.validation.dateRequired', 'Please choose a meeting date first.'));
+    }
+
+    const response = await meetingsApi.documentationSettings.uploadAsset(file, {
+      meetingId: id,
+      documentationDate: selectedDate,
+    });
     const payload = response?.data?.data || null;
     if (!payload?.url) {
       throw new Error('Invalid upload response');
@@ -491,6 +498,7 @@ export default function MeetingDailyDocumentationPage() {
                     size="sm"
                     icon={Upload}
                     loading={generalUploading}
+                    disabled={!selectedDate}
                     onClick={() => generalUploadInputRef.current?.click()}
                   >
                     {tf('meetings.documentation.uploadFiles', 'Upload files')}
@@ -615,6 +623,7 @@ export default function MeetingDailyDocumentationPage() {
                               size="sm"
                               icon={Upload}
                               loading={Boolean(fieldUploading[field.id])}
+                              disabled={!selectedDate}
                               onClick={() => fieldUploadInputRefs.current[field.id]?.click()}
                             >
                               {tf('meetings.documentation.uploadFieldFile', 'Upload file')}

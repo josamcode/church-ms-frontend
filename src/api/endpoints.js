@@ -177,9 +177,15 @@ export const bookingsApi = {
     listTypes: () => apiClient.get('/bookings/public/types'),
     getSlots: (id, params) => apiClient.get(`/bookings/public/types/${id}/slots`, { params }),
     create: (data) => apiClient.post('/bookings/public', data),
-    uploadImage: (file) => {
+    uploadImage: (file, { bookingTypeId, fieldKey } = {}) => {
       const formData = new FormData();
       formData.append('image', file);
+      if (bookingTypeId) {
+        formData.append('bookingTypeId', bookingTypeId);
+      }
+      if (fieldKey) {
+        formData.append('fieldKey', fieldKey);
+      }
       return apiClient.post('/bookings/public/upload-image', formData);
     },
   },
@@ -238,9 +244,15 @@ export const meetingsApi = {
   documentationSettings: {
     get: (params) => apiClient.get('/meetings/documentation-settings', { params }),
     update: (fields) => apiClient.put('/meetings/documentation-settings', { fields }),
-    uploadAsset: (file) => {
+    uploadAsset: (file, { meetingId, documentationDate } = {}) => {
       const formData = new FormData();
       formData.append('file', file);
+      if (meetingId) {
+        formData.append('meetingId', meetingId);
+      }
+      if (documentationDate) {
+        formData.append('documentationDate', documentationDate);
+      }
       return apiClient.post('/meetings/documentation/upload-asset', formData);
     },
   },

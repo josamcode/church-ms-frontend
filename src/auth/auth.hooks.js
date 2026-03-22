@@ -15,8 +15,25 @@ export function AuthProvider({ children }) {
   const [permissions, setPermissions] = useState(() => getPermissions());
   const [loading, setLoading] = useState(true);
 
+  const applyAuthenticatedSession = useCallback((userData, accessToken, refreshToken) => {
+    setTokens(accessToken, refreshToken);
+    setUser(userData);
+    storeUser(userData);
+    const perms = computeEffectivePermissions(userData);
+    setPermissions(perms);
+    storePermissions(perms);
+    return perms;
+  }, []);
+
+  const clearClientSession = useCallback(() => {
+    clearAuth();
+    setUser(null);
+    setPermissions([]);
+  }, []);
+
   const hydrateUser = useCallback(async () => {
     if (!isAuthenticated()) {
+      clearClientSession();
       setLoading(false);
       return;
     }
@@ -31,14 +48,12 @@ export function AuthProvider({ children }) {
     } catch (err) {
       const normalized = normalizeApiError(err);
       if (normalized.statusCode === 401) {
-        clearAuth();
-        setUser(null);
-        setPermissions([]);
+        clearClientSession();
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clearClientSession]);
 
   /** Restore access token from refresh token when opening app in a new tab (sessionStorage is not shared) */
   const restoreSessionIfNeeded = useCallback(async () => {
@@ -50,12 +65,10 @@ export function AuthProvider({ children }) {
         const { accessToken: newAccess, refreshToken: newRefresh } = data.data;
         setTokens(newAccess, newRefresh);
       } catch {
-        clearAuth();
-        setUser(null);
-        setPermissions([]);
+        clearClientSession();
       }
     }
-  }, []);
+  }, [clearClientSession]);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,39 +82,40 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (identifier, password) => {
     const { data } = await authApi.login({ identifier, password });
     const { user: userData, accessToken, refreshToken } = data.data;
-    setTokens(accessToken, refreshToken);
-    setUser(userData);
-    storeUser(userData);
-    const perms = computeEffectivePermissions(userData);
-    setPermissions(perms);
-    storePermissions(perms);
+    applyAuthenticatedSession(userData, accessToken, refreshToken);
     return userData;
-  }, []);
+  }, [applyAuthenticatedSession]);
 
   const register = useCallback(async (formData) => {
     const { data } = await authApi.register(formData);
-    const { user: userData, accessToken, refreshToken } = data.data;
-    setTokens(accessToken, refreshToken);
-    setUser(userData);
-    storeUser(userData);
-    const perms = computeEffectivePermissions(userData);
-    setPermissions(perms);
-    storePermissions(perms);
-    return userData;
-  }, []);
+    const {
+      user: userData,
+      accessToken,
+      refreshToken,
+      requiresApproval,
+    } = data.data || {};
+
+    if (accessToken && refreshToken && !requiresApproval) {
+      applyAuthenticatedSession(userData, accessToken, refreshToken);
+    } else {
+      clearClientSession();
+    }
+
+    return data.data;
+  }, [applyAuthenticatedSession, clearClientSession]);
 
   const logout = useCallback(async () => {
     try {
       const refreshToken = getRefreshToken();
-      await authApi.logout(refreshToken);
+      if (refreshToken) {
+        await authApi.logout(refreshToken);
+      }
     } catch {
       // silent
     }
-    clearAuth();
-    setUser(null);
-    setPermissions([]);
+    clearClientSession();
     toast.success('تم تسجيل الخروج بنجاح');
-  }, []);
+  }, [clearClientSession]);
 
   const hasPermission = useCallback(
     (perm) => permissions.includes(perm),
