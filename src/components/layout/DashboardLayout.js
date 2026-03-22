@@ -27,7 +27,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
-import { bookingsApi } from '../../api/endpoints';
+import { bookingsApi, chatApi } from '../../api/endpoints';
 import Tooltip from '../ui/Tooltip';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
 import { useI18n } from '../../i18n/i18n';
@@ -37,6 +37,10 @@ import { getRoleLabel } from '../../utils/formatters';
 // NavItem
 // ─────────────────────────────────────────────────────────────────────────────
 function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick }) {
+  const badgeClassName = item.badgeGlow
+    ? 'bg-danger ring-4 ring-danger/15 shadow-[0_0_18px_rgba(220,38,38,0.45)] motion-safe:animate-pulse'
+    : 'bg-danger';
+
   if (collapsed) {
     return (
       <Tooltip content={item.label} position={tooltipSide}>
@@ -52,7 +56,7 @@ function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick }) {
         >
           <item.icon className="h-[18px] w-[18px]" />
           {item.badge ? (
-            <span className={`absolute -top-1 flex min-w-[18px] items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[10px] font-bold leading-none text-white ${isRTL ? '-left-1' : '-right-1'}`}>
+            <span className={`absolute -top-1 flex min-w-[18px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none text-white ${badgeClassName} ${isRTL ? '-left-1' : '-right-1'}`}>
               {item.badge}
             </span>
           ) : null}
@@ -89,7 +93,7 @@ function NavItem({ item, active, collapsed, isRTL, tooltipSide, onClick }) {
       <span className="flex min-w-0 flex-1 items-center gap-2">
         <span className="truncate">{item.label}</span>
         {item.badge ? (
-          <span className="inline-flex flex-shrink-0 items-center justify-center rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold leading-none text-white">
+          <span className={`inline-flex flex-shrink-0 items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold leading-none text-white ${badgeClassName}`}>
             {item.badge}
           </span>
         ) : null}
@@ -134,6 +138,7 @@ export default function DashboardLayout() {
   }, [t]);
   const canViewBookingRequests =
     hasPermission('BOOKINGS_VIEW') || hasPermission('BOOKINGS_MANAGE');
+  const canViewChats = hasPermission('CHATS_VIEW');
   const hasFullMeetingsView = hasPermission('MEETINGS_VIEW');
   const hasOwnMeetingsViewOnly = hasPermission('MEETINGS_VIEW_OWN') && !hasFullMeetingsView;
   const hasAssignedMeetings = useMemo(
@@ -152,6 +157,21 @@ export default function DashboardLayout() {
   const pendingBookingsCount = pendingBookingsQuery.data?.meta?.totalCount ?? 0;
   const pendingBookingsBadge =
     pendingBookingsCount > 99 ? '99+' : pendingBookingsCount > 0 ? String(pendingBookingsCount) : null;
+  const unreadChatsQuery = useQuery({
+    queryKey: ['chats', 'list'],
+    enabled: canViewChats,
+    staleTime: 30000,
+    queryFn: async () => {
+      const { data } = await chatApi.list();
+      return data.data || [];
+    },
+  });
+  const unreadChatsCount = useMemo(() => {
+    const threads = Array.isArray(unreadChatsQuery.data) ? unreadChatsQuery.data : [];
+    return threads.reduce((total, thread) => total + Number(thread?.unreadCount || 0), 0);
+  }, [unreadChatsQuery.data]);
+  const unreadChatsBadge =
+    unreadChatsCount > 99 ? '99+' : unreadChatsCount > 0 ? String(unreadChatsCount) : null;
 
   // ── Menu definitions ──────────────────────────────────────────────────────
 
@@ -358,6 +378,8 @@ export default function DashboardLayout() {
       parent: {
         label: tf('dashboardLayout.menu.chats', 'Chats'),
         href: '/dashboard/chats',
+        badge: unreadChatsBadge,
+        badgeGlow: unreadChatsCount > 0,
         icon: MessageSquare,
         permission: 'CHATS_VIEW',
         matchChildren: true,
@@ -505,7 +527,7 @@ export default function DashboardLayout() {
         },
       ],
     },
-  ], [t, tf, hasOwnMeetingsViewOnly, pendingBookingsBadge]);
+  ], [t, tf, hasOwnMeetingsViewOnly, pendingBookingsBadge, unreadChatsBadge, unreadChatsCount]);
 
   const bottomItems = useMemo(() => [
     {
