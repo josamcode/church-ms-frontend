@@ -14,6 +14,7 @@ import {
   Users,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useSearchParams } from 'react-router-dom';
 
 import { chatApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
@@ -65,6 +66,7 @@ const sortThreadsByActivity = (threads = []) =>
 
 export default function ChatsPage() {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   const { t, language } = useI18n();
   const { user, isAuthenticated, hasPermission } = useAuth();
   const tf = (key, fallback) => {
@@ -112,6 +114,8 @@ export default function ChatsPage() {
   const forceScrollToBottomRef = useRef(false);
   const previousThreadIdRef = useRef(null);
   const previousMessageCountRef = useRef(0);
+  const appliedRequestedChatIdRef = useRef('');
+  const requestedChatId = searchParams.get('threadId');
 
   const chatsQuery = useQuery({
     queryKey: CHAT_LIST_QUERY_KEY,
@@ -435,10 +439,31 @@ export default function ChatsPage() {
   }, [chats, threadFilter]);
 
   useEffect(() => {
-    if (!selectedChatId && chats.length > 0) {
+    if (!selectedChatId && chats.length > 0 && !requestedChatId) {
       setSelectedChatId(chats[0].id);
     }
-  }, [chats, selectedChatId]);
+  }, [chats, requestedChatId, selectedChatId]);
+
+  useEffect(() => {
+    if (!requestedChatId || !chats.length) {
+      return;
+    }
+
+    if (requestedChatId === appliedRequestedChatIdRef.current) {
+      return;
+    }
+
+    if (chats.some((thread) => thread.id === requestedChatId)) {
+      appliedRequestedChatIdRef.current = requestedChatId;
+      setSelectedChatId(requestedChatId);
+      return;
+    }
+
+    if (!selectedChatId && chats.length > 0) {
+      appliedRequestedChatIdRef.current = requestedChatId;
+      setSelectedChatId(chats[0].id);
+    }
+  }, [chats, requestedChatId, selectedChatId]);
 
   useEffect(() => {
     if (selectedChatId && chats.length > 0 && !chats.some((thread) => thread.id === selectedChatId)) {

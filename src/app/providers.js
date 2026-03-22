@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '../auth/auth.hooks';
 import ErrorBoundary from '../components/ui/ErrorBoundary';
 import { I18nProvider, useI18n } from '../i18n/i18n';
+import { SocketProvider } from '../realtime/socket.provider';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,8 +24,10 @@ export default function Providers({ children }) {
       <QueryClientProvider client={queryClient}>
         <I18nProvider>
           <AuthProvider>
-            {children}
-            <LocalizedToaster />
+            <SocketProvider>
+              {children}
+              <LocalizedToaster />
+            </SocketProvider>
           </AuthProvider>
         </I18nProvider>
       </QueryClientProvider>

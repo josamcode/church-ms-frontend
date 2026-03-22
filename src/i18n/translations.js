@@ -1,4 +1,4 @@
-﻿export const translations = {
+export const translations = {
   en: {
     common: {
       appName: 'Church Management',
@@ -2295,7 +2295,7 @@
     },
     notifications: {
       page: 'Notifications',
-      title: 'Notifications Center',
+      title: 'Notification Center',
       subtitle: 'View announcements, events, congratulations, and rich update cards.',
       defaultTypeNames: {
         generalAnnouncement: 'General Announcement',
@@ -2413,6 +2413,61 @@
           title: 'No notification types found',
           description: 'Add your first notification type.',
         },
+      },
+    },
+    notificationCenter: {
+      open: 'Open notifications',
+      page: 'Notification Center',
+      title: 'Notification Center',
+      pageTitle: 'Your Notifications',
+      pageSubtitle:
+        'In-app alerts, live updates, and browser push delivery all come through this inbox.',
+      unreadLabel: '{count} unread notifications',
+      unreadSummary: '{count} unread',
+      allCaughtUp: 'You are all caught up.',
+      viewAll: 'View all',
+      listTitle: 'Inbox',
+      savedGuarantee: 'Saved even if push fails',
+      loading: 'Loading notifications...',
+      empty: 'New notifications will appear here.',
+      emptyTitle: 'No notifications yet',
+      emptyDescription:
+        'New chat messages, system events, and admin alerts will appear here.',
+      tip: 'Unread notifications stay saved even if push delivery fails.',
+      markAllRead: 'Mark all read',
+      markReadFailed: 'Failed to update the notification status.',
+      defaults: {
+        title: 'Notification',
+        message: 'Open to view the details.',
+      },
+      types: {
+        chatMessage: 'Chat message',
+        admin: 'Admin',
+        backupSuccess: 'Backup success',
+        backupFailure: 'Backup failure',
+        aidReminder: 'Aid reminder',
+        system: 'System',
+      },
+      push: {
+        title: 'Browser Push',
+        cardTitle: 'Push Notifications',
+        cardSubtitle:
+          'Enable browser push to receive alerts even when this tab or browser window is closed.',
+        status: 'Status',
+        unsupported: 'Not supported here',
+        active: 'Active on this browser',
+        blocked: 'Blocked in browser settings',
+        inactive: 'Not enabled yet',
+        turnOff: 'Turn off',
+        turnOn: 'Turn on',
+        enabled: 'Push notifications enabled.',
+        enableFailed: 'Failed to enable push notifications.',
+        disabled: 'Push notifications disabled.',
+        disableFailed: 'Failed to disable push notifications.',
+        tipPermission:
+          'If permission is blocked, allow notifications in your browser settings and try again.',
+        tipServiceWorker:
+          'The browser must support service workers and the app must be opened in a secure context.',
       },
     },
     bookings: {
@@ -4987,6 +5042,61 @@
           title: 'لا توجد أنواع إشعارات',
           description: 'أضف أول نوع إشعار.',
         },
+      },
+    },
+    notificationCenter: {
+      open: 'فتح الإشعارات',
+      page: 'مركز الإشعارات',
+      title: 'مركز الإشعارات',
+      pageTitle: 'إشعاراتك',
+      pageSubtitle:
+        'كل التنبيهات داخل التطبيق والتحديثات الفورية وإشعارات المتصفح تصلك من خلال هذا الصندوق.',
+      unreadLabel: '{count} إشعار غير مقروء',
+      unreadSummary: '{count} غير مقروء',
+      allCaughtUp: 'أنت على اطلاع كامل الآن.',
+      viewAll: 'عرض الكل',
+      listTitle: 'الوارد',
+      savedGuarantee: 'محفوظة حتى إذا فشل الإرسال',
+      loading: 'جارٍ تحميل الإشعارات...',
+      empty: 'ستظهر الإشعارات الجديدة هنا.',
+      emptyTitle: 'لا توجد إشعارات بعد',
+      emptyDescription:
+        'ستظهر هنا رسائل الدردشة الجديدة وأحداث النظام وتنبيهات الإدارة.',
+      tip: 'تظل الإشعارات غير المقروءة محفوظة حتى إذا فشل إرسال الإشعار.',
+      markAllRead: 'تحديد الكل كمقروء',
+      markReadFailed: 'تعذر تحديث حالة الإشعار.',
+      defaults: {
+        title: 'إشعار',
+        message: 'افتح الإشعار لعرض التفاصيل.',
+      },
+      types: {
+        chatMessage: 'رسالة دردشة',
+        admin: 'إداري',
+        backupSuccess: 'نجاح النسخ الاحتياطي',
+        backupFailure: 'فشل النسخ الاحتياطي',
+        aidReminder: 'تذكير مساعدة',
+        system: 'النظام',
+      },
+      push: {
+        title: 'إشعارات المتصفح',
+        cardTitle: 'الإشعارات الفورية',
+        cardSubtitle:
+          'فعّل إشعارات المتصفح لتصلك التنبيهات حتى عند إغلاق هذا التبويب أو نافذة المتصفح.',
+        status: 'الحالة',
+        unsupported: 'غير مدعومة هنا',
+        active: 'مفعّلة على هذا المتصفح',
+        blocked: 'محظورة من إعدادات المتصفح',
+        inactive: 'غير مفعّلة بعد',
+        turnOff: 'إيقاف',
+        turnOn: 'تفعيل',
+        enabled: 'تم تفعيل الإشعارات الفورية.',
+        enableFailed: 'تعذر تفعيل الإشعارات الفورية.',
+        disabled: 'تم إيقاف الإشعارات الفورية.',
+        disableFailed: 'تعذر إيقاف الإشعارات الفورية.',
+        tipPermission:
+          'إذا كانت الصلاحية محظورة، اسمح بالإشعارات من إعدادات المتصفح ثم أعد المحاولة.',
+        tipServiceWorker:
+          'يجب أن يدعم المتصفح Service Workers وأن يكون التطبيق مفتوحًا في سياق آمن.',
       },
     },
     bookings: {

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
 import { bookingsApi, chatApi } from '../../api/endpoints';
+import NotificationBell from '../notifications/NotificationBell';
 import Tooltip from '../ui/Tooltip';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
 import { useI18n } from '../../i18n/i18n';
@@ -916,6 +917,8 @@ export default function DashboardLayout() {
               <div className="hidden md:block">
                 <LanguageSwitcher />
               </div>
+
+              <NotificationBell />
 
               <button
                 onClick={toggleDark}

@@ -145,17 +145,31 @@ export const landingContentApi = {
 };
 
 export const notificationsApi = {
-  list: (params) => apiClient.get('/notifications', { params }),
-  getById: (id) => apiClient.get(`/notifications/${id}`),
-  create: (data) => apiClient.post('/notifications', data),
-  update: (id, data) => apiClient.patch(`/notifications/${id}`, data),
-  listTypes: () => apiClient.get('/notifications/types'),
-  createType: (name) => apiClient.post('/notifications/types', { name }),
+  list: (params) => apiClient.get('/notifications/content', { params }),
+  getById: (id) => apiClient.get(`/notifications/content/${id}`),
+  create: (data) => apiClient.post('/notifications/content', data),
+  update: (id, data) => apiClient.patch(`/notifications/content/${id}`, data),
+  listTypes: () => apiClient.get('/notifications/content/types'),
+  createType: (name) => apiClient.post('/notifications/content/types', { name }),
   uploadImage: (file) => {
     const formData = new FormData();
     formData.append('image', file);
-    return apiClient.post('/notifications/upload-image', formData);
+    return apiClient.post('/notifications/content/upload-image', formData);
   },
+};
+
+export const userNotificationsApi = {
+  list: (params) => apiClient.get('/notifications', { params }),
+  unreadCount: () => apiClient.get('/notifications/unread-count'),
+  markRead: (id) => apiClient.patch(`/notifications/${id}/read`),
+  readAll: () => apiClient.patch('/notifications/read-all'),
+  sendSystem: (data) => apiClient.post('/notifications/system', data),
+};
+
+export const pushApi = {
+  getPublicKey: () => apiClient.get('/push/public-key'),
+  subscribe: (data) => apiClient.post('/push/subscribe', data),
+  unsubscribe: (data) => apiClient.post('/push/unsubscribe', data),
 };
 
 export const chatApi = {

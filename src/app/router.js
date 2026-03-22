@@ -66,6 +66,7 @@ const DivineLiturgyAttendanceCheckInPage = lazy(() =>
   import('../pages/dashboard/divineLiturgies/DivineLiturgyAttendanceCheckInPage')
 );
 const NotificationsPage = lazy(() => import('../pages/dashboard/notifications/NotificationsPage'));
+const NotificationInboxPage = lazy(() => import('../pages/dashboard/notifications/NotificationInboxPage'));
 const NotificationFormPage = lazy(() => import('../pages/dashboard/notifications/NotificationFormPage'));
 const NotificationDetailsPage = lazy(() => import('../pages/dashboard/notifications/NotificationDetailsPage'));
 const BookingsIndexPage = lazy(() => import('../pages/dashboard/bookings/BookingsIndexPage'));
@@ -403,6 +404,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['NOTIFICATIONS_VIEW']}>
             <Lazy><NotificationsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'notifications/inbox',
+        element: (
+          <PermissionGuard required={['NOTIFICATIONS_VIEW']}>
+            <Lazy><NotificationInboxPage /></Lazy>
           </PermissionGuard>
         ),
       },
