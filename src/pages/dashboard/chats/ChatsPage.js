@@ -47,8 +47,21 @@ const BROADCAST_TEMPLATE_PLACEHOLDERS = [
   { token: '{user.houseName}', labelKey: 'houseName', fallback: 'House name' },
   { token: '{user.diseases}', labelKey: 'diseases', fallback: 'Diseases' },
 ];
+const CHAT_LIST_QUERY_KEY = ['chats', 'list'];
+const getChatThreadQueryKey = (chatId) => ['chats', 'thread', chatId];
+const MESSAGE_REFRESH_SUPPRESSION_MS = 1500;
 const TYPING_IDLE_MS = 3000;
 const TYPING_INDICATOR_TTL_MS = 3000;
+
+const getThreadActivityTimestamp = (thread) => {
+  const candidate = thread?.lastMessageAt || thread?.updatedAt || thread?.createdAt;
+  if (!candidate) return 0;
+  const timestamp = new Date(candidate).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const sortThreadsByActivity = (threads = []) =>
+  [...threads].sort((left, right) => getThreadActivityTimestamp(right) - getThreadActivityTimestamp(left));
 
 export default function ChatsPage() {
   const queryClient = useQueryClient();
@@ -90,6 +103,7 @@ export default function ChatsPage() {
   const broadcastTemplateRef = useRef(null);
   const composerTypingTimeoutRef = useRef(null);
   const remoteTypingTimeoutsRef = useRef(new Map());
+  const recentMessageSyncRef = useRef(new Map());
   const typingStateRef = useRef({
     threadId: null,
     isTyping: false,
@@ -100,7 +114,7 @@ export default function ChatsPage() {
   const previousMessageCountRef = useRef(0);
 
   const chatsQuery = useQuery({
-    queryKey: ['chats'],
+    queryKey: CHAT_LIST_QUERY_KEY,
     queryFn: async () => {
       const { data } = await chatApi.list();
       return data.data || [];
@@ -108,7 +122,7 @@ export default function ChatsPage() {
   });
 
   const activeChatQuery = useQuery({
-    queryKey: ['chats', selectedChatId],
+    queryKey: getChatThreadQueryKey(selectedChatId),
     enabled: Boolean(selectedChatId),
     queryFn: async () => {
       const { data } = await chatApi.getById(selectedChatId);
@@ -192,11 +206,14 @@ export default function ChatsPage() {
 
   const sendMessageMutation = useMutation({
     mutationFn: ({ chatId, text }) => chatApi.sendMessage(chatId, { text }),
-    onSuccess: () => {
+    onSuccess: (response, variables) => {
+      const message = response?.data?.data;
       setComposerText('');
-      queryClient.invalidateQueries({ queryKey: ['chats'] });
-      if (selectedChatId) {
-        queryClient.invalidateQueries({ queryKey: ['chats', selectedChatId] });
+
+      if (message?.threadId) {
+        applyMessageToCaches(message.threadId, message);
+      } else if (variables?.chatId) {
+        noteRecentMessageSync(variables.chatId);
       }
     },
     onError: (error) => {
@@ -212,8 +229,8 @@ export default function ChatsPage() {
       setSelectedChatId(thread.id);
       setDirectModalOpen(false);
       setDirectSearch('');
-      await queryClient.invalidateQueries({ queryKey: ['chats'] });
-      queryClient.invalidateQueries({ queryKey: ['chats', thread.id] });
+      await queryClient.invalidateQueries({ queryKey: CHAT_LIST_QUERY_KEY, exact: true });
+      queryClient.invalidateQueries({ queryKey: getChatThreadQueryKey(thread.id), exact: true });
     },
     onError: (error) => toast.error(normalizeApiError(error).message),
   });
@@ -227,8 +244,8 @@ export default function ChatsPage() {
       setGroupForm(EMPTY_GROUP_FORM);
       setGroupSearch('');
       toast.success(t('chatPage.messages.groupCreated'));
-      await queryClient.invalidateQueries({ queryKey: ['chats'] });
-      queryClient.invalidateQueries({ queryKey: ['chats', thread.id] });
+      await queryClient.invalidateQueries({ queryKey: CHAT_LIST_QUERY_KEY, exact: true });
+      queryClient.invalidateQueries({ queryKey: getChatThreadQueryKey(thread.id), exact: true });
     },
     onError: (error) => toast.error(normalizeApiError(error).message),
   });
@@ -239,8 +256,8 @@ export default function ChatsPage() {
       const thread = response.data.data;
       setGroupSettingsOpen(false);
       toast.success(t('chatPage.messages.groupUpdated'));
-      await queryClient.invalidateQueries({ queryKey: ['chats'] });
-      queryClient.invalidateQueries({ queryKey: ['chats', thread.id] });
+      await queryClient.invalidateQueries({ queryKey: CHAT_LIST_QUERY_KEY, exact: true });
+      queryClient.invalidateQueries({ queryKey: getChatThreadQueryKey(thread.id), exact: true });
     },
     onError: (error) => toast.error(normalizeApiError(error).message),
   });
@@ -253,9 +270,9 @@ export default function ChatsPage() {
       setBroadcastForm(EMPTY_BROADCAST_FORM);
       setBroadcastUserSearch('');
       toast.success(t('chatPage.messages.broadcastSent', { count: result.recipientCount }));
-      await queryClient.invalidateQueries({ queryKey: ['chats'] });
+      await queryClient.invalidateQueries({ queryKey: CHAT_LIST_QUERY_KEY, exact: true });
       if (selectedChatId) {
-        queryClient.invalidateQueries({ queryKey: ['chats', selectedChatId] });
+        queryClient.invalidateQueries({ queryKey: getChatThreadQueryKey(selectedChatId), exact: true });
       }
     },
     onError: (error) => toast.error(normalizeApiError(error).message),
@@ -287,6 +304,94 @@ export default function ChatsPage() {
       count: activeTypingUsers.length,
     });
   }, [activeTypingUsers, t]);
+
+  const noteRecentMessageSync = (threadId) => {
+    if (!threadId) return;
+    recentMessageSyncRef.current.set(threadId, Date.now());
+  };
+
+  const shouldSuppressThreadRefresh = (threadId) => {
+    if (!threadId) return false;
+
+    const lastSyncAt = recentMessageSyncRef.current.get(threadId);
+    if (!lastSyncAt) {
+      return false;
+    }
+
+    if (Date.now() - lastSyncAt > MESSAGE_REFRESH_SUPPRESSION_MS) {
+      recentMessageSyncRef.current.delete(threadId);
+      return false;
+    }
+
+    recentMessageSyncRef.current.delete(threadId);
+    return true;
+  };
+
+  const buildUpdatedThreadSummary = (thread, message, { markAsRead = false, incrementUnread = false } = {}) => {
+    if (!thread) return thread;
+
+    const previousUnreadCount = Number(thread.unreadCount || 0);
+    const unreadCount = markAsRead
+      ? 0
+      : incrementUnread
+        ? previousUnreadCount + 1
+        : previousUnreadCount;
+
+    return {
+      ...thread,
+      lastMessageId: message.id || thread.lastMessageId,
+      lastMessagePreview: message.text || thread.lastMessagePreview,
+      lastMessageAt: message.createdAt || thread.lastMessageAt,
+      lastMessageSender: message.sender || thread.lastMessageSender,
+      hasUnread: unreadCount > 0,
+      unreadCount,
+      viewerLastReadAt: markAsRead ? (message.createdAt || thread.viewerLastReadAt) : thread.viewerLastReadAt,
+    };
+  };
+
+  const applyMessageToCaches = (threadId, message) => {
+    if (!threadId || !message) return false;
+
+    const isOwnMessage = Boolean(currentUserId && message.sender?.id === currentUserId);
+    let listUpdated = false;
+
+    queryClient.setQueryData(getChatThreadQueryKey(threadId), (current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        thread: buildUpdatedThreadSummary(current.thread, message, {
+          markAsRead: isOwnMessage,
+          incrementUnread: !isOwnMessage,
+        }),
+        messages: appendUniqueMessage(current.messages || [], message),
+      };
+    });
+
+    queryClient.setQueryData(CHAT_LIST_QUERY_KEY, (current) => {
+      if (!Array.isArray(current)) return current;
+
+      const nextThreads = current.map((thread) => {
+        if (thread.id !== threadId) {
+          return thread;
+        }
+
+        listUpdated = true;
+        return buildUpdatedThreadSummary(thread, message, {
+          markAsRead: isOwnMessage,
+          incrementUnread: !isOwnMessage,
+        });
+      });
+
+      return listUpdated ? sortThreadsByActivity(nextThreads) : current;
+    });
+
+    if (listUpdated) {
+      noteRecentMessageSync(threadId);
+    }
+
+    return listUpdated;
+  };
 
   const removeTypingUser = (threadId, userId) => {
     setTypingUsersByThread((current) => {
@@ -428,20 +533,20 @@ export default function ChatsPage() {
       if (message.sender?.id) {
         removeTypingUser(threadId, message.sender.id);
       }
-      queryClient.setQueryData(['chats', threadId], (current) => {
-        if (!current) return current;
-        return { ...current, messages: appendUniqueMessage(current.messages || [], message) };
-      });
-      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      applyMessageToCaches(threadId, message);
     },
     onThreadRefresh: ({ threadId }) => {
-      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      if (shouldSuppressThreadRefresh(threadId)) {
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: CHAT_LIST_QUERY_KEY, exact: true });
       if (threadId) {
-        queryClient.invalidateQueries({ queryKey: ['chats', threadId] });
+        queryClient.invalidateQueries({ queryKey: getChatThreadQueryKey(threadId), exact: true });
       }
     },
     onThreadRemoved: ({ threadId }) => {
-      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      queryClient.invalidateQueries({ queryKey: CHAT_LIST_QUERY_KEY, exact: true });
       if (threadId) {
         setTypingUsersByThread((current) => {
           if (!current[threadId]) return current;
@@ -449,7 +554,7 @@ export default function ChatsPage() {
           delete nextState[threadId];
           return nextState;
         });
-        queryClient.removeQueries({ queryKey: ['chats', threadId] });
+        queryClient.removeQueries({ queryKey: getChatThreadQueryKey(threadId), exact: true });
         if (selectedChatId === threadId) {
           setSelectedChatId(null);
         }
@@ -840,6 +945,8 @@ export default function ChatsPage() {
       <div className="space-y-2">
         {filteredChats.map((thread) => {
           const isActive = thread.id === selectedChatId;
+          const unreadCount = Number(thread.unreadCount || 0);
+          const unreadCountLabel = unreadCount > 99 ? '99+' : String(unreadCount);
 
           return (
             <button
@@ -869,8 +976,10 @@ export default function ChatsPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-[11px] text-muted">{formatThreadTimestamp(thread.lastMessageAt)}</p>
-                      {thread.hasUnread ? (
-                        <span className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+                      {unreadCount > 0 ? (
+                        <span className="mt-1 inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+                          {unreadCountLabel}
+                        </span>
                       ) : null}
                     </div>
                   </div>
