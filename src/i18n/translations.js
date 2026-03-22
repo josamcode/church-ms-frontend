@@ -288,6 +288,7 @@
         confessions: 'Confessions',
         visitations: 'Visitations',
         divineLiturgies: 'Divine Liturgies',
+        communication: 'Communication',
         notifications: 'Notifications',
         bookings: 'Bookings',
         meetings: 'Meetings',
@@ -317,6 +318,7 @@
         divineLiturgies: 'Divine Liturgy & Vespers',
         churchPriests: 'Church Priests',
         archive: 'Archive',
+        chats: 'Chats',
         landingContent: 'Landing Page Content',
         notifications: 'Notifications',
         notificationTypes: 'Notification Types',
@@ -2109,6 +2111,7 @@
         avatar: 'Avatar',
         password: 'Password',
         confessions: 'Confessions',
+        chats: 'Chats',
       },
       avatar: {
         title: 'Profile Avatar',
@@ -2140,6 +2143,15 @@
           'When disabled, other users will not see sessions recorded by your account. You will still see your own created sessions.',
         noCreatePermission:
           'Your account cannot create confession sessions right now, so this setting may not affect any records yet.',
+      },
+      chats: {
+        title: 'Chat Visibility',
+        subtitle:
+          'Control whether users with advanced chat permissions can view chats created by your account.',
+        visibilityLabel:
+          'Allow users with chat oversight permission to view chats I created',
+        visibilityHelp:
+          'When disabled, other users cannot inspect conversations created by your account unless they are direct participants. You still keep full access to your own chats.',
       },
     },
     notifications: {
@@ -2751,6 +2763,7 @@
         confessions: 'الاعترافات',
         visitations: 'الافتقادات',
         divineLiturgies: 'القداسات الإلهية',
+        communication: 'التواصل',
         notifications: 'الإشعارات',
         bookings: 'الحجوزات',
         meetings: 'الاجتماعات',
@@ -2780,6 +2793,7 @@
         divineLiturgies: 'القداسات الإلهية وصلوات العشية',
         churchPriests: 'كهنة الكنيسة',
         archive: 'الأرشيف',
+        chats: 'الدردشات',
         landingContent: 'محتوى الصفحة الرئيسية',
         notifications: 'الإشعارات',
         notificationTypes: 'أنواع الإشعارات',
@@ -4536,6 +4550,7 @@
         avatar: 'الصورة الشخصية',
         password: 'كلمة المرور',
         confessions: 'الاعترافات',
+        chats: 'الدردشات',
       },
       avatar: {
         title: 'الصورة الشخصية',
@@ -4567,6 +4582,15 @@
           'عند إيقاف هذا الخيار، لن يتمكن المستخدمون الآخرون من رؤية الجلسات التي تم تسجيلها بواسطة حسابك. ستظل قادرًا على رؤية جلساتك الخاصة.',
         noCreatePermission:
           'لا يمكن لحسابك إنشاء جلسات اعتراف حاليًا، لذلك قد لا يؤثر هذا الإعداد على أي بيانات حتى الآن.',
+      },
+      chats: {
+        title: 'خصوصية الدردشات',
+        subtitle:
+          'تحكم في إمكانية رؤية المستخدمين ذوي صلاحيات الإشراف المتقدمة للدردشات التي أنشأتها.',
+        visibilityLabel:
+          'السماح للمستخدمين ذوي صلاحية الإشراف على الدردشة برؤية الدردشات التي أنشأتها',
+        visibilityHelp:
+          'عند إيقاف هذا الخيار، لن يتمكن المستخدمون الآخرون من الاطلاع على المحادثات التي أنشأتها إلا إذا كانوا مشاركين مباشرين فيها. وستظل قادرًا على الوصول الكامل إلى دردشاتك.',
       },
     },
     notifications: {

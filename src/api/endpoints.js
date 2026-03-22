@@ -158,6 +158,20 @@ export const notificationsApi = {
   },
 };
 
+export const chatApi = {
+  list: (params) => apiClient.get('/chats', { params }),
+  getById: (id) => apiClient.get(`/chats/${id}`),
+  listMessages: (id, params) => apiClient.get(`/chats/${id}/messages`, { params }),
+  searchUsers: (params) => apiClient.get('/chats/users/search', { params }),
+  getAudienceOptions: () => apiClient.get('/chats/audience-options'),
+  createDirect: (data) => apiClient.post('/chats/direct', data),
+  createGroup: (data) => apiClient.post('/chats/groups', data),
+  updateGroup: (id, data) => apiClient.patch(`/chats/${id}/group`, data),
+  sendMessage: (id, data) => apiClient.post(`/chats/${id}/messages`, data),
+  markRead: (id, data = {}) => apiClient.post(`/chats/${id}/read`, data),
+  broadcast: (data) => apiClient.post('/chats/broadcasts', data),
+};
+
 export const bookingsApi = {
   public: {
     listTypes: () => apiClient.get('/bookings/public/types'),

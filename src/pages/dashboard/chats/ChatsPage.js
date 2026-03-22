@@ -1,0 +1,1306 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Megaphone,
+  MessageSquare,
+  Plus,
+  Save,
+  Search,
+  Send,
+  Settings2,
+  Shield,
+  Users,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+
+import { chatApi } from '../../../api/endpoints';
+import { normalizeApiError } from '../../../api/errors';
+import { useAuth } from '../../../auth/auth.hooks';
+import Breadcrumbs from '../../../components/ui/Breadcrumbs';
+import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
+import Input from '../../../components/ui/Input';
+import Modal from '../../../components/ui/Modal';
+import PageHeader from '../../../components/ui/PageHeader';
+import Switch from '../../../components/ui/Switch';
+import TextArea from '../../../components/ui/TextArea';
+import useChatSocket from '../../../hooks/chat/useChatSocket';
+import { useI18n } from '../../../i18n/i18n';
+import {
+  appendUniqueMessage,
+  Avatar,
+  EMPTY_BROADCAST_FORM,
+  EMPTY_GROUP_FORM,
+  formatThreadTimestamp,
+  MultiSelectField,
+  SelectedUsersChips,
+  UserSelectionList,
+} from './chatPage.shared';
+
+export default function ChatsPage() {
+  const queryClient = useQueryClient();
+  const { t } = useI18n();
+  const { user, isAuthenticated, hasPermission } = useAuth();
+  const tf = (key, fallback) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
+
+  const canStartChats = hasPermission('CHATS_START');
+  const canManageGroups = hasPermission('CHATS_GROUPS_MANAGE');
+  const canBroadcast = hasPermission('CHATS_BROADCAST');
+  const currentUserId = user?._id || user?.id || null;
+
+  const [selectedChatId, setSelectedChatId] = useState(null);
+  const [threadFilter, setThreadFilter] = useState('');
+  const [composerText, setComposerText] = useState('');
+
+  const [isDirectModalOpen, setDirectModalOpen] = useState(false);
+  const [directSearch, setDirectSearch] = useState('');
+  const [isGroupModalOpen, setGroupModalOpen] = useState(false);
+  const [groupForm, setGroupForm] = useState(EMPTY_GROUP_FORM);
+  const [groupSearch, setGroupSearch] = useState('');
+  const [isGroupSettingsOpen, setGroupSettingsOpen] = useState(false);
+  const [groupSettingsForm, setGroupSettingsForm] = useState(EMPTY_GROUP_FORM);
+  const [groupSettingsSearch, setGroupSettingsSearch] = useState('');
+  const [isBroadcastModalOpen, setBroadcastModalOpen] = useState(false);
+  const [broadcastForm, setBroadcastForm] = useState(EMPTY_BROADCAST_FORM);
+  const [broadcastUserSearch, setBroadcastUserSearch] = useState('');
+  const lastAutoReadRef = useRef('');
+
+  const chatsQuery = useQuery({
+    queryKey: ['chats'],
+    queryFn: async () => {
+      const { data } = await chatApi.list();
+      return data.data || [];
+    },
+  });
+
+  const activeChatQuery = useQuery({
+    queryKey: ['chats', selectedChatId],
+    enabled: Boolean(selectedChatId),
+    queryFn: async () => {
+      const { data } = await chatApi.getById(selectedChatId);
+      return data.data;
+    },
+  });
+
+  const directSearchQuery = useQuery({
+    queryKey: ['chats', 'search', 'direct', directSearch],
+    enabled: isDirectModalOpen,
+    queryFn: async () => {
+      const { data } = await chatApi.searchUsers({ q: directSearch, limit: 20 });
+      return data.data || [];
+    },
+  });
+
+  const groupSearchQuery = useQuery({
+    queryKey: ['chats', 'search', 'group-members', groupSearch],
+    enabled: isGroupModalOpen,
+    queryFn: async () => {
+      const { data } = await chatApi.searchUsers({ q: groupSearch, limit: 20 });
+      return data.data || [];
+    },
+  });
+
+  const groupSettingsSearchQuery = useQuery({
+    queryKey: ['chats', 'search', 'group-settings-members', groupSettingsSearch],
+    enabled: isGroupSettingsOpen,
+    queryFn: async () => {
+      const { data } = await chatApi.searchUsers({ q: groupSettingsSearch, limit: 20 });
+      return data.data || [];
+    },
+  });
+
+  const audienceOptionsQuery = useQuery({
+    queryKey: ['chats', 'audience-options'],
+    enabled: isBroadcastModalOpen,
+    queryFn: async () => {
+      const { data } = await chatApi.getAudienceOptions();
+      return data.data;
+    },
+  });
+
+  const broadcastUserSearchQuery = useQuery({
+    queryKey: ['chats', 'search', 'broadcast-users', broadcastUserSearch],
+    enabled: isBroadcastModalOpen,
+    queryFn: async () => {
+      const { data } = await chatApi.searchUsers({ q: broadcastUserSearch, limit: 20 });
+      return data.data || [];
+    },
+  });
+
+  const sendMessageMutation = useMutation({
+    mutationFn: ({ chatId, text }) => chatApi.sendMessage(chatId, { text }),
+    onSuccess: () => {
+      setComposerText('');
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      if (selectedChatId) {
+        queryClient.invalidateQueries({ queryKey: ['chats', selectedChatId] });
+      }
+    },
+    onError: (error) => toast.error(normalizeApiError(error).message),
+  });
+
+  const createDirectMutation = useMutation({
+    mutationFn: (targetUserId) => chatApi.createDirect({ targetUserId }),
+    onSuccess: async (response) => {
+      const thread = response.data.data;
+      setSelectedChatId(thread.id);
+      setDirectModalOpen(false);
+      setDirectSearch('');
+      await queryClient.invalidateQueries({ queryKey: ['chats'] });
+      queryClient.invalidateQueries({ queryKey: ['chats', thread.id] });
+    },
+    onError: (error) => toast.error(normalizeApiError(error).message),
+  });
+
+  const createGroupMutation = useMutation({
+    mutationFn: (payload) => chatApi.createGroup(payload),
+    onSuccess: async (response) => {
+      const thread = response.data.data;
+      setSelectedChatId(thread.id);
+      setGroupModalOpen(false);
+      setGroupForm(EMPTY_GROUP_FORM);
+      setGroupSearch('');
+      toast.success('Group chat created successfully.');
+      await queryClient.invalidateQueries({ queryKey: ['chats'] });
+      queryClient.invalidateQueries({ queryKey: ['chats', thread.id] });
+    },
+    onError: (error) => toast.error(normalizeApiError(error).message),
+  });
+
+  const updateGroupMutation = useMutation({
+    mutationFn: ({ chatId, payload }) => chatApi.updateGroup(chatId, payload),
+    onSuccess: async (response) => {
+      const thread = response.data.data;
+      setGroupSettingsOpen(false);
+      toast.success('Group settings updated successfully.');
+      await queryClient.invalidateQueries({ queryKey: ['chats'] });
+      queryClient.invalidateQueries({ queryKey: ['chats', thread.id] });
+    },
+    onError: (error) => toast.error(normalizeApiError(error).message),
+  });
+
+  const broadcastMutation = useMutation({
+    mutationFn: (payload) => chatApi.broadcast(payload),
+    onSuccess: async (response) => {
+      const result = response.data.data;
+      setBroadcastModalOpen(false);
+      setBroadcastForm(EMPTY_BROADCAST_FORM);
+      setBroadcastUserSearch('');
+      toast.success(`Broadcast sent to ${result.recipientCount} users.`);
+      await queryClient.invalidateQueries({ queryKey: ['chats'] });
+      if (selectedChatId) {
+        queryClient.invalidateQueries({ queryKey: ['chats', selectedChatId] });
+      }
+    },
+    onError: (error) => toast.error(normalizeApiError(error).message),
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: ({ chatId }) => chatApi.markRead(chatId),
+  });
+
+  const chats = useMemo(() => chatsQuery.data || [], [chatsQuery.data]);
+  const activeChatPayload = activeChatQuery.data;
+  const activeThread = activeChatPayload?.thread || null;
+  const activeMessages = activeChatPayload?.messages || [];
+
+  const filteredChats = useMemo(() => {
+    const normalized = String(threadFilter || '').trim().toLowerCase();
+    if (!normalized) return chats;
+
+    return chats.filter((thread) => {
+      const haystack = [
+        thread.title,
+        thread.description,
+        thread.lastMessagePreview,
+        thread.directUser?.fullName,
+        ...thread.participants.map((participant) => participant.fullName),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(normalized);
+    });
+  }, [chats, threadFilter]);
+
+  useEffect(() => {
+    if (!selectedChatId && chats.length > 0) {
+      setSelectedChatId(chats[0].id);
+    }
+  }, [chats, selectedChatId]);
+
+  useEffect(() => {
+    if (selectedChatId && chats.length > 0 && !chats.some((thread) => thread.id === selectedChatId)) {
+      setSelectedChatId(chats[0]?.id || null);
+    }
+  }, [chats, selectedChatId]);
+
+  useEffect(() => {
+    if (!isGroupSettingsOpen || !activeThread) return;
+    setGroupSettingsForm({
+      title: activeThread.title || '',
+      description: activeThread.description || '',
+      allowMemberMessages: activeThread.settings?.allowMemberMessages !== false,
+      memberIds: (activeThread.participants || []).map((participant) => participant.id),
+    });
+  }, [isGroupSettingsOpen, activeThread]);
+
+  useEffect(() => {
+    const dedupeKey =
+      activeThread?.id && activeThread?.lastMessageId
+        ? `${activeThread.id}:${activeThread.lastMessageId}`
+        : '';
+
+    if (!dedupeKey || !activeThread?.hasUnread || lastAutoReadRef.current === dedupeKey) {
+      return;
+    }
+
+    lastAutoReadRef.current = dedupeKey;
+    markReadMutation.mutate({ chatId: activeThread.id });
+  }, [activeThread?.id, activeThread?.hasUnread, activeThread?.lastMessageId, markReadMutation]);
+
+  useChatSocket({
+    enabled: isAuthenticated,
+    onMessage: ({ threadId, message }) => {
+      if (!threadId || !message) return;
+      queryClient.setQueryData(['chats', threadId], (current) => {
+        if (!current) return current;
+        return { ...current, messages: appendUniqueMessage(current.messages || [], message) };
+      });
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+    },
+    onThreadRefresh: ({ threadId }) => {
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      if (threadId) {
+        queryClient.invalidateQueries({ queryKey: ['chats', threadId] });
+      }
+    },
+    onThreadRemoved: ({ threadId }) => {
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      if (threadId) {
+        queryClient.removeQueries({ queryKey: ['chats', threadId] });
+        if (selectedChatId === threadId) {
+          setSelectedChatId(null);
+        }
+      }
+    },
+  });
+
+  const activeParticipantIds = activeThread?.participants?.map((participant) => participant.id) || [];
+  const activeThreadOtherUser = activeThread?.directUser || null;
+  const broadcastAudienceOptions = audienceOptionsQuery.data || {
+    roles: [],
+    ageGroups: [],
+    genders: [],
+    tags: [],
+    diseases: [],
+    familyNames: [],
+    houseNames: [],
+  };
+
+  const groupSearchResults = (groupSearchQuery.data || []).filter(
+    (userItem) => !groupForm.memberIds.includes(userItem.id)
+  );
+  const groupSettingsSearchResults = (groupSettingsSearchQuery.data || []).filter(
+    (userItem) => !groupSettingsForm.memberIds.includes(userItem.id)
+  );
+  const broadcastSearchResults = (broadcastUserSearchQuery.data || []).filter(
+    (userItem) => !(broadcastForm.audience.userIds || []).includes(userItem.id)
+  );
+
+  const groupSelectedUsers = useMemo(() => {
+    const resultMap = new Map((groupSearchQuery.data || []).map((userItem) => [userItem.id, userItem]));
+    return groupForm.memberIds.map((userId) => resultMap.get(userId) || { id: userId, fullName: userId });
+  }, [groupForm.memberIds, groupSearchQuery.data]);
+
+  const groupSettingsUsers = useMemo(() => {
+    const baseParticipants = activeThread?.participants || [];
+    const fromSearch = new Map((groupSettingsSearchQuery.data || []).map((userItem) => [userItem.id, userItem]));
+    return groupSettingsForm.memberIds.map((userId) => {
+      const existing = baseParticipants.find((participant) => participant.id === userId);
+      return fromSearch.get(userId) || existing || { id: userId, fullName: userId };
+    });
+  }, [groupSettingsForm.memberIds, groupSettingsSearchQuery.data, activeThread]);
+
+  const broadcastSelectedUsers = useMemo(() => {
+    const fromSearch = new Map((broadcastUserSearchQuery.data || []).map((userItem) => [userItem.id, userItem]));
+    return (broadcastForm.audience.userIds || []).map(
+      (userId) => fromSearch.get(userId) || { id: userId, fullName: userId }
+    );
+  }, [broadcastForm.audience.userIds, broadcastUserSearchQuery.data]);
+
+  const handleSubmitMessage = () => {
+    const trimmed = composerText.trim();
+    if (!trimmed || !selectedChatId) return;
+    sendMessageMutation.mutate({ chatId: selectedChatId, text: trimmed });
+  };
+
+  const handleToggleGroupMember = (selectedUser) => {
+    setGroupForm((current) => ({
+      ...current,
+      memberIds: current.memberIds.includes(selectedUser.id)
+        ? current.memberIds.filter((userId) => userId !== selectedUser.id)
+        : [...current.memberIds, selectedUser.id],
+    }));
+  };
+
+  const handleToggleGroupSettingsMember = (selectedUser) => {
+    setGroupSettingsForm((current) => ({
+      ...current,
+      memberIds: current.memberIds.includes(selectedUser.id)
+        ? current.memberIds.filter((userId) => userId !== selectedUser.id)
+        : [...current.memberIds, selectedUser.id],
+    }));
+  };
+
+  const handleToggleBroadcastUser = (selectedUser) => {
+    setBroadcastForm((current) => ({
+      ...current,
+      audience: {
+        ...current.audience,
+        userIds: current.audience.userIds.includes(selectedUser.id)
+          ? current.audience.userIds.filter((userId) => userId !== selectedUser.id)
+          : [...current.audience.userIds, selectedUser.id],
+      },
+    }));
+  };
+
+  const submitGroupCreation = () => {
+    if (!groupForm.title.trim()) return toast.error('Group title is required.');
+    if (!groupForm.memberIds.length) return toast.error('Select at least one member.');
+
+    createGroupMutation.mutate({
+      title: groupForm.title.trim(),
+      description: groupForm.description.trim(),
+      memberIds: groupForm.memberIds,
+      allowMemberMessages: groupForm.allowMemberMessages,
+    });
+  };
+
+  const submitGroupSettings = () => {
+    if (!activeThread) return;
+
+    updateGroupMutation.mutate({
+      chatId: activeThread.id,
+      payload: {
+        title: groupSettingsForm.title.trim(),
+        description: groupSettingsForm.description.trim(),
+        allowMemberMessages: groupSettingsForm.allowMemberMessages,
+        memberIdsToAdd: groupSettingsForm.memberIds.filter((userId) => !activeParticipantIds.includes(userId)),
+        memberIdsToRemove: activeParticipantIds.filter((userId) => !groupSettingsForm.memberIds.includes(userId)),
+      },
+    });
+  };
+
+  const submitBroadcast = () => {
+    if (!broadcastForm.template.trim()) return toast.error('Broadcast message is required.');
+
+    if (!broadcastForm.audience.all) {
+      const hasFilters =
+        broadcastForm.audience.userIds.length ||
+        broadcastForm.audience.roles.length ||
+        broadcastForm.audience.ageGroups.length ||
+        broadcastForm.audience.tags.length ||
+        broadcastForm.audience.diseases.length ||
+        broadcastForm.audience.genders.length ||
+        broadcastForm.audience.familyNames.length ||
+        broadcastForm.audience.houseNames.length;
+
+      if (!hasFilters) {
+        return toast.error('Choose at least one audience filter or send to all users.');
+      }
+    }
+
+    broadcastMutation.mutate({
+      template: broadcastForm.template.trim(),
+      audience: broadcastForm.audience,
+    });
+  };
+
+  const renderThreadList = () => {
+    if (chatsQuery.isLoading) {
+      return (
+        <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
+          {t('common.loading')}
+        </div>
+      );
+    }
+
+    if (!filteredChats.length) {
+      return (
+        <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
+          {tf('chatPage.states.emptyThreads', 'No chats found yet. Start a new conversation to begin.')}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {filteredChats.map((thread) => {
+          const isActive = thread.id === selectedChatId;
+
+          return (
+            <button
+              key={thread.id}
+              type="button"
+              onClick={() => setSelectedChatId(thread.id)}
+              className={`w-full rounded-2xl border p-3 text-start transition-colors ${
+                isActive
+                  ? 'border-primary/40 bg-primary/10'
+                  : 'border-border bg-surface-alt/20 hover:bg-surface-alt/40'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <Avatar
+                  name={thread.directUser?.fullName || thread.title}
+                  avatarUrl={thread.directUser?.avatar?.url || ''}
+                  size="md"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-heading">{thread.title}</p>
+                      <p className="truncate text-xs text-muted">
+                        {thread.type === 'group'
+                          ? `${thread.participantCount} members`
+                          : thread.directUser?.phonePrimary || ''}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[11px] text-muted">{formatThreadTimestamp(thread.lastMessageAt)}</p>
+                      {thread.hasUnread ? (
+                        <span className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+                      ) : null}
+                    </div>
+                  </div>
+                  <p className="mt-2 truncate text-sm text-muted">
+                    {thread.lastMessagePreview || tf('chatPage.states.noMessagesYet', 'No messages yet')}
+                  </p>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderMessages = () => {
+    if (activeChatQuery.isLoading) {
+      return (
+        <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
+          {t('common.loading')}
+        </div>
+      );
+    }
+
+    if (!activeMessages.length) {
+      return (
+        <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
+          {tf('chatPage.states.emptyMessages', 'No messages in this chat yet.')}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {activeMessages.map((message) => {
+          const isOwn = currentUserId && message.sender?.id === currentUserId;
+
+          return (
+            <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`max-w-[80%] rounded-3xl px-4 py-3 shadow-sm ${
+                  isOwn ? 'bg-primary text-white' : 'border border-border bg-surface text-base'
+                }`}
+              >
+                {!isOwn ? (
+                  <p className="mb-1 text-xs font-semibold text-primary">
+                    {message.sender?.fullName || 'Unknown user'}
+                  </p>
+                ) : null}
+                <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.text}</p>
+                <div
+                  className={`mt-2 flex items-center justify-end gap-2 text-[11px] ${
+                    isOwn ? 'text-white/80' : 'text-muted'
+                  }`}
+                >
+                  {message.source === 'broadcast' ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Megaphone className="h-3 w-3" />
+                      Broadcast
+                    </span>
+                  ) : null}
+                  <span>{formatThreadTimestamp(message.createdAt)}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <div className="animate-fade-in space-y-8 pb-8">
+      <Breadcrumbs
+        items={[
+          { label: t('shared.dashboard'), href: '/dashboard' },
+          { label: tf('dashboardLayout.menu.chats', 'Chats') },
+        ]}
+      />
+
+      <PageHeader
+        eyebrow={tf('dashboardLayout.section.communication', 'Communication')}
+        title={tf('dashboardLayout.menu.chats', 'Chats')}
+        subtitle={tf(
+          'chatPage.subtitle',
+          'Live direct chats, managed group conversations, and permission-based broadcast messaging.'
+        )}
+        actions={(
+          <div className="flex flex-wrap gap-2">
+            {canStartChats ? (
+              <Button type="button" variant="outline" size="sm" icon={Plus} onClick={() => setDirectModalOpen(true)}>
+                {tf('chatPage.actions.newChat', 'New chat')}
+              </Button>
+            ) : null}
+            {canManageGroups ? (
+              <Button type="button" variant="outline" size="sm" icon={Users} onClick={() => setGroupModalOpen(true)}>
+                {tf('chatPage.actions.newGroup', 'New group')}
+              </Button>
+            ) : null}
+            {canBroadcast ? (
+              <Button type="button" size="sm" icon={Megaphone} onClick={() => setBroadcastModalOpen(true)}>
+                {tf('chatPage.actions.broadcast', 'Broadcast')}
+              </Button>
+            ) : null}
+          </div>
+        )}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <Card className="h-[72vh] overflow-hidden" padding={false}>
+          <div className="border-b border-border p-4">
+            <Input
+              label={tf('chatPage.filters.search', 'Search chats')}
+              value={threadFilter}
+              onChange={(event) => setThreadFilter(event.target.value)}
+              icon={Search}
+              containerClassName="!mb-0"
+              placeholder={tf('chatPage.filters.placeholder', 'Search by name, group, or message preview')}
+            />
+          </div>
+          <div className="h-[calc(72vh-86px)] overflow-y-auto p-3">{renderThreadList()}</div>
+        </Card>
+
+        <Card className="h-[72vh] overflow-hidden" padding={false}>
+          {activeThread ? (
+            <div className="flex h-full flex-col">
+              <div className="border-b border-border bg-surface px-5 py-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar
+                      name={activeThreadOtherUser?.fullName || activeThread.title}
+                      avatarUrl={activeThreadOtherUser?.avatar?.url || ''}
+                      size="lg"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-semibold text-heading">{activeThread.title}</p>
+                      <p className="truncate text-sm text-muted">
+                        {activeThread.type === 'group'
+                          ? `${activeThread.participantCount} members`
+                          : activeThreadOtherUser?.phonePrimary || ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  {canManageGroups && activeThread.type === 'group' ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      icon={Settings2}
+                      onClick={() => setGroupSettingsOpen(true)}
+                    >
+                      {tf('chatPage.actions.groupSettings', 'Group settings')}
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto bg-page/40 px-5 py-4">{renderMessages()}</div>
+
+              <div className="border-t border-border bg-surface px-5 py-4">
+                {!activeThread.canCurrentUserSendMessages ? (
+                  <div className="mb-3 flex items-center gap-2 rounded-2xl border border-border bg-surface-alt/40 px-3 py-2 text-sm text-muted">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <span>
+                      {tf(
+                        'chatPage.states.adminOnlyMessaging',
+                        'Only group admins can send messages in this chat right now.'
+                      )}
+                    </span>
+                  </div>
+                ) : null}
+
+                <div className="flex flex-col gap-3 md:flex-row md:items-end">
+                  <TextArea
+                    label={tf('chatPage.fields.message', 'Message')}
+                    value={composerText}
+                    onChange={(event) => setComposerText(event.target.value)}
+                    containerClassName="!mb-0 flex-1"
+                    className="min-h-[88px]"
+                    placeholder={tf('chatPage.fields.messagePlaceholder', 'Type your message...')}
+                    disabled={!activeThread.canCurrentUserSendMessages}
+                  />
+                  <Button
+                    type="button"
+                    icon={Send}
+                    loading={sendMessageMutation.isPending}
+                    disabled={!composerText.trim() || !activeThread.canCurrentUserSendMessages}
+                    onClick={handleSubmitMessage}
+                  >
+                    {tf('chatPage.actions.send', 'Send')}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center p-8 text-center text-sm text-muted">
+              <div className="space-y-3">
+                <MessageSquare className="mx-auto h-10 w-10 text-primary/70" />
+                <p>{tf('chatPage.states.selectThread', 'Select a chat from the list to open it.')}</p>
+              </div>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <Modal
+        isOpen={isDirectModalOpen}
+        onClose={() => {
+          setDirectModalOpen(false);
+          setDirectSearch('');
+        }}
+        title={tf('chatPage.actions.newChat', 'New chat')}
+        size="lg"
+        footer={(
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              setDirectModalOpen(false);
+              setDirectSearch('');
+            }}
+          >
+            {t('common.actions.cancel')}
+          </Button>
+        )}
+      >
+        <div className="space-y-4">
+          <Input
+            label={tf('chatPage.direct.searchLabel', 'Search users')}
+            value={directSearch}
+            onChange={(event) => setDirectSearch(event.target.value)}
+            icon={Search}
+            containerClassName="!mb-0"
+            placeholder={tf('chatPage.direct.searchPlaceholder', 'Search by name, phone, or email')}
+          />
+
+          <div className="rounded-2xl border border-border bg-surface-alt/30 p-4 text-sm text-muted">
+            {tf(
+              'chatPage.direct.description',
+              'Any user with chat start permission can open a direct conversation instantly.'
+            )}
+          </div>
+
+          {directSearchQuery.isLoading ? (
+            <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
+              {t('common.loading')}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(directSearchQuery.data || []).length ? (
+                (directSearchQuery.data || []).map((userItem) => (
+                  <div
+                    key={userItem.id}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface-alt/20 p-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar name={userItem.fullName} avatarUrl={userItem.avatar?.url} size="sm" />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-heading">{userItem.fullName}</p>
+                        <p className="truncate text-xs text-muted">
+                          {userItem.phonePrimary || userItem.role || ''}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      loading={createDirectMutation.isPending}
+                      onClick={() => createDirectMutation.mutate(userItem.id)}
+                    >
+                      {tf('chatPage.actions.startChat', 'Start chat')}
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
+                  {tf('chatPage.states.noUsersFound', 'No matching users were found.')}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isGroupModalOpen}
+        onClose={() => {
+          setGroupModalOpen(false);
+          setGroupForm(EMPTY_GROUP_FORM);
+          setGroupSearch('');
+        }}
+        title={tf('chatPage.actions.newGroup', 'New group')}
+        size="xl"
+        footer={(
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setGroupModalOpen(false);
+                setGroupForm(EMPTY_GROUP_FORM);
+                setGroupSearch('');
+              }}
+            >
+              {t('common.actions.cancel')}
+            </Button>
+            <Button
+              type="button"
+              icon={Users}
+              loading={createGroupMutation.isPending}
+              onClick={submitGroupCreation}
+            >
+              {tf('chatPage.actions.createGroup', 'Create group')}
+            </Button>
+          </>
+        )}
+      >
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+          <div className="space-y-4">
+            <Input
+              label={tf('chatPage.group.fields.title', 'Group title')}
+              value={groupForm.title}
+              onChange={(event) =>
+                setGroupForm((current) => ({ ...current, title: event.target.value }))
+              }
+              placeholder={tf('chatPage.group.fields.titlePlaceholder', 'Example: Youth servants')}
+            />
+            <TextArea
+              label={tf('chatPage.group.fields.description', 'Description')}
+              value={groupForm.description}
+              onChange={(event) =>
+                setGroupForm((current) => ({ ...current, description: event.target.value }))
+              }
+              containerClassName="!mb-0"
+              placeholder={tf(
+                'chatPage.group.fields.descriptionPlaceholder',
+                'Optional details about this group conversation.'
+              )}
+            />
+            <div className="rounded-2xl border border-border bg-surface-alt/30 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-heading">
+                    {tf('chatPage.group.fields.allowMemberMessages', 'Allow members to send messages')}
+                  </p>
+                  <p className="text-sm text-muted">
+                    {tf(
+                      'chatPage.group.fields.allowMemberMessagesHelp',
+                      'Turn this off for announcement-only groups managed by admins.'
+                    )}
+                  </p>
+                </div>
+                <Switch
+                  checked={groupForm.allowMemberMessages}
+                  onChange={(checked) =>
+                    setGroupForm((current) => ({ ...current, allowMemberMessages: checked }))
+                  }
+                  label={
+                    groupForm.allowMemberMessages
+                      ? tf('chatPage.states.membersCanChat', 'Members can chat')
+                      : tf('chatPage.states.adminOnlyChat', 'Admins only')
+                  }
+                />
+              </div>
+            </div>
+            <div className="rounded-2xl border border-dashed border-border bg-surface-alt/20 p-4 text-sm text-muted">
+              {tf(
+                'chatPage.group.creatorNote',
+                'The group creator is added automatically as a group admin.'
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <Input
+              label={tf('chatPage.group.fields.members', 'Members')}
+              value={groupSearch}
+              onChange={(event) => setGroupSearch(event.target.value)}
+              icon={Search}
+              containerClassName="!mb-0"
+              placeholder={tf('chatPage.group.fields.memberSearch', 'Search users to add')}
+            />
+
+            <SelectedUsersChips
+              users={groupSelectedUsers}
+              onRemove={handleToggleGroupMember}
+            />
+
+            {groupSearchQuery.isLoading ? (
+              <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
+                {t('common.loading')}
+              </div>
+            ) : (
+              <UserSelectionList
+                users={groupSearchResults}
+                selectedIds={groupForm.memberIds}
+                onToggle={handleToggleGroupMember}
+                actionLabel={tf('chatPage.actions.addToGroup', 'Add')}
+              />
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isGroupSettingsOpen}
+        onClose={() => {
+          setGroupSettingsOpen(false);
+          setGroupSettingsSearch('');
+        }}
+        title={tf('chatPage.actions.groupSettings', 'Group settings')}
+        size="xl"
+        footer={(
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setGroupSettingsOpen(false);
+                setGroupSettingsSearch('');
+              }}
+            >
+              {t('common.actions.cancel')}
+            </Button>
+            <Button
+              type="button"
+              icon={Save}
+              loading={updateGroupMutation.isPending}
+              onClick={submitGroupSettings}
+            >
+              {t('common.actions.save')}
+            </Button>
+          </>
+        )}
+      >
+        {activeThread?.type === 'group' ? (
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+            <div className="space-y-4">
+              <Input
+                label={tf('chatPage.group.fields.title', 'Group title')}
+                value={groupSettingsForm.title}
+                onChange={(event) =>
+                  setGroupSettingsForm((current) => ({ ...current, title: event.target.value }))
+                }
+              />
+              <TextArea
+                label={tf('chatPage.group.fields.description', 'Description')}
+                value={groupSettingsForm.description}
+                onChange={(event) =>
+                  setGroupSettingsForm((current) => ({ ...current, description: event.target.value }))
+                }
+                containerClassName="!mb-0"
+              />
+              <div className="rounded-2xl border border-border bg-surface-alt/30 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-heading">
+                      {tf('chatPage.group.fields.allowMemberMessages', 'Allow members to send messages')}
+                    </p>
+                    <p className="text-sm text-muted">
+                      {tf(
+                        'chatPage.group.fields.settingsHelp',
+                        'Admins can switch this group between discussion mode and announcement mode.'
+                      )}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={groupSettingsForm.allowMemberMessages}
+                    onChange={(checked) =>
+                      setGroupSettingsForm((current) => ({
+                        ...current,
+                        allowMemberMessages: checked,
+                      }))
+                    }
+                    label={
+                      groupSettingsForm.allowMemberMessages
+                        ? tf('chatPage.states.membersCanChat', 'Members can chat')
+                        : tf('chatPage.states.adminOnlyChat', 'Admins only')
+                    }
+                  />
+                </div>
+              </div>
+              <div className="rounded-2xl border border-dashed border-border bg-surface-alt/20 p-4 text-sm text-muted">
+                {tf(
+                  'chatPage.group.ownerNote',
+                  'The group creator remains in the group and keeps admin control.'
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Input
+                label={tf('chatPage.group.fields.manageMembers', 'Manage members')}
+                value={groupSettingsSearch}
+                onChange={(event) => setGroupSettingsSearch(event.target.value)}
+                icon={Search}
+                containerClassName="!mb-0"
+                placeholder={tf('chatPage.group.fields.memberSearch', 'Search users to add')}
+              />
+
+              <SelectedUsersChips
+                users={groupSettingsUsers}
+                onRemove={handleToggleGroupSettingsMember}
+                removableIds={groupSettingsForm.memberIds.filter(
+                  (userId) => userId !== activeThread.createdBy?.id
+                )}
+              />
+
+              {groupSettingsSearchQuery.isLoading ? (
+                <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
+                  {t('common.loading')}
+                </div>
+              ) : (
+                <UserSelectionList
+                  users={groupSettingsSearchResults}
+                  selectedIds={groupSettingsForm.memberIds}
+                  onToggle={handleToggleGroupSettingsMember}
+                  actionLabel={tf('chatPage.actions.addToGroup', 'Add')}
+                />
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
+            {tf('chatPage.states.groupOnlySettings', 'Group settings are only available for group chats.')}
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={isBroadcastModalOpen}
+        onClose={() => {
+          setBroadcastModalOpen(false);
+          setBroadcastForm(EMPTY_BROADCAST_FORM);
+          setBroadcastUserSearch('');
+        }}
+        title={tf('chatPage.actions.broadcast', 'Broadcast')}
+        size="xl"
+        footer={(
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setBroadcastModalOpen(false);
+                setBroadcastForm(EMPTY_BROADCAST_FORM);
+                setBroadcastUserSearch('');
+              }}
+            >
+              {t('common.actions.cancel')}
+            </Button>
+            <Button
+              type="button"
+              icon={Megaphone}
+              loading={broadcastMutation.isPending}
+              onClick={submitBroadcast}
+            >
+              {tf('chatPage.actions.sendBroadcast', 'Send broadcast')}
+            </Button>
+          </>
+        )}
+      >
+        <div className="space-y-5">
+          <TextArea
+            label={tf('chatPage.broadcast.fields.template', 'Message template')}
+            value={broadcastForm.template}
+            onChange={(event) =>
+              setBroadcastForm((current) => ({ ...current, template: event.target.value }))
+            }
+            className="min-h-[120px]"
+            containerClassName="!mb-0"
+            hint={tf(
+              'chatPage.broadcast.fields.templateHelp',
+              'Use placeholders like {user.name}, {user.firstName}, {user.familyName}, {user.houseName}, or {user.diseases}.'
+            )}
+            placeholder={'Happy feast day, {user.name}.'}
+          />
+
+          <div className="rounded-2xl border border-border bg-surface-alt/30 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-heading">
+                  {tf('chatPage.broadcast.fields.all', 'Send to all eligible users')}
+                </p>
+                <p className="text-sm text-muted">
+                  {tf(
+                    'chatPage.broadcast.fields.allHelp',
+                    'When enabled, the broadcast ignores audience selectors and targets every eligible account.'
+                  )}
+                </p>
+              </div>
+              <Switch
+                checked={broadcastForm.audience.all}
+                onChange={(checked) =>
+                  setBroadcastForm((current) => ({
+                    ...current,
+                    audience: checked
+                      ? {
+                          ...current.audience,
+                          all: true,
+                          userIds: [],
+                          roles: [],
+                          ageGroups: [],
+                          tags: [],
+                          diseases: [],
+                          genders: [],
+                          familyNames: [],
+                          houseNames: [],
+                        }
+                      : { ...current.audience, all: false },
+                  }))
+                }
+                label={broadcastForm.audience.all ? t('common.status.active') : t('common.status.inactive')}
+              />
+            </div>
+          </div>
+
+          {!broadcastForm.audience.all ? (
+            <div className="grid gap-5 lg:grid-cols-2">
+              <div className="space-y-4">
+                <Input
+                  label={tf('chatPage.broadcast.fields.users', 'Specific users')}
+                  value={broadcastUserSearch}
+                  onChange={(event) => setBroadcastUserSearch(event.target.value)}
+                  icon={Search}
+                  containerClassName="!mb-0"
+                  placeholder={tf(
+                    'chatPage.broadcast.fields.usersPlaceholder',
+                    'Search and add specific users'
+                  )}
+                />
+
+                <SelectedUsersChips
+                  users={broadcastSelectedUsers}
+                  onRemove={handleToggleBroadcastUser}
+                />
+
+                {broadcastUserSearchQuery.isLoading ? (
+                  <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
+                    {t('common.loading')}
+                  </div>
+                ) : (
+                  <UserSelectionList
+                    users={broadcastSearchResults}
+                    selectedIds={broadcastForm.audience.userIds}
+                    onToggle={handleToggleBroadcastUser}
+                    actionLabel={tf('chatPage.actions.addRecipient', 'Add')}
+                  />
+                )}
+              </div>
+
+              <div className="space-y-4">
+                {audienceOptionsQuery.isLoading ? (
+                  <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
+                    {t('common.loading')}
+                  </div>
+                ) : (
+                  <>
+                    <MultiSelectField
+                      label={tf('chatPage.broadcast.fields.roles', 'Roles')}
+                      value={broadcastForm.audience.roles}
+                      options={broadcastAudienceOptions.roles}
+                      onChange={(value) =>
+                        setBroadcastForm((current) => ({
+                          ...current,
+                          audience: { ...current.audience, roles: value },
+                        }))
+                      }
+                      hint={tf(
+                        'chatPage.broadcast.fields.multiSelectHint',
+                        'Use Ctrl or Cmd to select multiple values.'
+                      )}
+                    />
+                    <MultiSelectField
+                      label={tf('chatPage.broadcast.fields.ageGroups', 'Age groups')}
+                      value={broadcastForm.audience.ageGroups}
+                      options={broadcastAudienceOptions.ageGroups}
+                      onChange={(value) =>
+                        setBroadcastForm((current) => ({
+                          ...current,
+                          audience: { ...current.audience, ageGroups: value },
+                        }))
+                      }
+                    />
+                    <MultiSelectField
+                      label={tf('chatPage.broadcast.fields.diseases', 'Diseases')}
+                      value={broadcastForm.audience.diseases}
+                      options={broadcastAudienceOptions.diseases}
+                      onChange={(value) =>
+                        setBroadcastForm((current) => ({
+                          ...current,
+                          audience: { ...current.audience, diseases: value },
+                        }))
+                      }
+                    />
+                    <MultiSelectField
+                      label={tf('chatPage.broadcast.fields.tags', 'Tags')}
+                      value={broadcastForm.audience.tags}
+                      options={broadcastAudienceOptions.tags}
+                      onChange={(value) =>
+                        setBroadcastForm((current) => ({
+                          ...current,
+                          audience: { ...current.audience, tags: value },
+                        }))
+                      }
+                    />
+                    <MultiSelectField
+                      label={tf('chatPage.broadcast.fields.genders', 'Gender')}
+                      value={broadcastForm.audience.genders}
+                      options={broadcastAudienceOptions.genders}
+                      onChange={(value) =>
+                        setBroadcastForm((current) => ({
+                          ...current,
+                          audience: { ...current.audience, genders: value },
+                        }))
+                      }
+                    />
+                    <MultiSelectField
+                      label={tf('chatPage.broadcast.fields.familyNames', 'Families')}
+                      value={broadcastForm.audience.familyNames}
+                      options={broadcastAudienceOptions.familyNames}
+                      onChange={(value) =>
+                        setBroadcastForm((current) => ({
+                          ...current,
+                          audience: { ...current.audience, familyNames: value },
+                        }))
+                      }
+                    />
+                    <MultiSelectField
+                      label={tf('chatPage.broadcast.fields.houseNames', 'Houses')}
+                      value={broadcastForm.audience.houseNames}
+                      options={broadcastAudienceOptions.houseNames}
+                      onChange={(value) =>
+                        setBroadcastForm((current) => ({
+                          ...current,
+                          audience: { ...current.audience, houseNames: value },
+                        }))
+                      }
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-border bg-surface-alt/20 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-heading">
+                    {tf('chatPage.broadcast.fields.includeSelf', 'Include my account')}
+                  </p>
+                  <p className="text-sm text-muted">
+                    {tf(
+                      'chatPage.broadcast.fields.includeSelfHelp',
+                      'Send the same personalized message to your own direct chat too.'
+                    )}
+                  </p>
+                </div>
+                <Switch
+                  checked={broadcastForm.audience.includeSelf}
+                  onChange={(checked) =>
+                    setBroadcastForm((current) => ({
+                      ...current,
+                      audience: { ...current.audience, includeSelf: checked },
+                    }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-surface-alt/20 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-heading">
+                    {tf('chatPage.broadcast.fields.includeLocked', 'Include locked users')}
+                  </p>
+                  <p className="text-sm text-muted">
+                    {tf(
+                      'chatPage.broadcast.fields.includeLockedHelp',
+                      'Useful for administrative messages before accounts are reactivated.'
+                    )}
+                  </p>
+                </div>
+                <Switch
+                  checked={broadcastForm.audience.includeLocked}
+                  onChange={(checked) =>
+                    setBroadcastForm((current) => ({
+                      ...current,
+                      audience: { ...current.audience, includeLocked: checked },
+                    }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-surface-alt/20 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-heading">
+                    {tf('chatPage.broadcast.fields.includeUsersWithoutLogin', 'Include users without login')}
+                  </p>
+                  <p className="text-sm text-muted">
+                    {tf(
+                      'chatPage.broadcast.fields.includeUsersWithoutLoginHelp',
+                      'Creates the direct thread early so the message is waiting once login is enabled.'
+                    )}
+                  </p>
+                </div>
+                <Switch
+                  checked={broadcastForm.audience.includeUsersWithoutLogin}
+                  onChange={(checked) =>
+                    setBroadcastForm((current) => ({
+                      ...current,
+                      audience: {
+                        ...current.audience,
+                        includeUsersWithoutLogin: checked,
+                      },
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}

@@ -15,6 +15,18 @@ import Switch from '../../../components/ui/Switch';
 import Tabs from '../../../components/ui/Tabs';
 import { useI18n } from '../../../i18n/i18n';
 
+function SettingsCard({ children, className = '', ...props }) {
+  return (
+    <Card
+      padding={false}
+      className={['min-w-0 rounded-2xl p-4 sm:p-6', className].filter(Boolean).join(' ')}
+      {...props}
+    >
+      {children}
+    </Card>
+  );
+}
+
 export default function AccountSettingsPage() {
   const queryClient = useQueryClient();
   const { t } = useI18n();
@@ -26,12 +38,16 @@ export default function AccountSettingsPage() {
 
   const canCreateConfessionSessions = hasPermission('CONFESSIONS_CREATE');
   const canChangePassword = hasPermission('AUTH_CHANGE_PASSWORD');
+  const canUseChats = hasPermission('CHATS_VIEW');
   const canUploadOwnAvatar = hasPermission('USERS_UPLOAD_AVATAR_SELF');
   const userId = user?._id || user?.id || null;
   const hasUserId = Boolean(userId);
   const savedVisibility = user?.allowOthersToViewCreatedConfessionSessions !== false;
+  const savedChatVisibility = user?.allowOthersToViewCreatedChats !== false;
   const [allowOthersToViewCreatedConfessionSessions, setAllowOthersToViewCreatedConfessionSessions] =
     useState(savedVisibility);
+  const [allowOthersToViewCreatedChats, setAllowOthersToViewCreatedChats] =
+    useState(savedChatVisibility);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -42,6 +58,10 @@ export default function AccountSettingsPage() {
   useEffect(() => {
     setAllowOthersToViewCreatedConfessionSessions(savedVisibility);
   }, [savedVisibility]);
+
+  useEffect(() => {
+    setAllowOthersToViewCreatedChats(savedChatVisibility);
+  }, [savedChatVisibility]);
 
   const passwordMismatch =
     passwordForm.confirmPassword &&
@@ -57,6 +77,7 @@ export default function AccountSettingsPage() {
     onSuccess: async () => {
       await hydrateUser();
       queryClient.invalidateQueries({ queryKey: ['confessions', 'sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
       toast.success(tf('accountSettings.messages.saved', 'Account settings saved successfully.'));
     },
     onError: (error) => {
@@ -148,7 +169,7 @@ export default function AccountSettingsPage() {
       ? {
           label: tf('accountSettings.tabs.avatar', 'Avatar'),
           content: (
-            <Card className="rounded-2xl">
+            <SettingsCard>
               <CardHeader
                 title={tf('accountSettings.avatar.title', 'Profile Avatar')}
                 subtitle={tf(
@@ -181,7 +202,7 @@ export default function AccountSettingsPage() {
                 )}
               />
 
-              <div className="rounded-2xl border border-border bg-surface-alt/40 p-4">
+              <div className="rounded-2xl border border-border bg-surface-alt/40 p-3 sm:p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                   {user?.avatar?.url ? (
                     <img
@@ -214,7 +235,7 @@ export default function AccountSettingsPage() {
                   </div>
                 </div>
               </div>
-            </Card>
+            </SettingsCard>
           ),
         }
       : null,
@@ -222,7 +243,7 @@ export default function AccountSettingsPage() {
       ? {
           label: tf('accountSettings.tabs.password', 'Password'),
           content: (
-            <Card className="rounded-2xl">
+            <SettingsCard>
               <CardHeader
                 title={tf('accountSettings.password.title', 'Change Password')}
                 subtitle={tf(
@@ -243,7 +264,7 @@ export default function AccountSettingsPage() {
                 )}
               />
 
-              <div className="rounded-2xl border border-border bg-surface-alt/40 p-4">
+              <div className="rounded-2xl border border-border bg-surface-alt/40 p-3 sm:p-4">
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                   <Input
                     type="password"
@@ -283,7 +304,7 @@ export default function AccountSettingsPage() {
                   />
                 </div>
               </div>
-            </Card>
+            </SettingsCard>
           ),
         }
       : null,
@@ -291,7 +312,7 @@ export default function AccountSettingsPage() {
       ? {
           label: tf('accountSettings.tabs.confessions', 'Confessions'),
           content: (
-            <Card className="rounded-2xl">
+            <SettingsCard>
               <CardHeader
                 title={tf('accountSettings.confessions.title', 'Confession Session Privacy')}
                 subtitle={tf(
@@ -318,7 +339,7 @@ export default function AccountSettingsPage() {
                 )}
               />
 
-              <div className="rounded-2xl border border-border bg-surface-alt/40 p-4">
+              <div className="rounded-2xl border border-border bg-surface-alt/40 p-3 sm:p-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-semibold text-heading">
@@ -349,7 +370,71 @@ export default function AccountSettingsPage() {
                   />
                 </div>
               </div>
-            </Card>
+            </SettingsCard>
+          ),
+        }
+      : null,
+    canUseChats
+      ? {
+          label: tf('accountSettings.tabs.chats', 'Chats'),
+          content: (
+            <SettingsCard>
+              <CardHeader
+                title={tf('accountSettings.chats.title', 'Chat Visibility')}
+                subtitle={tf(
+                  'accountSettings.chats.subtitle',
+                  'Control whether users with advanced chat permissions can view chats created by your account.'
+                )}
+                action={(
+                  <Button
+                    type="button"
+                    size="sm"
+                    icon={Save}
+                    loading={saveMutation.isPending}
+                    disabled={allowOthersToViewCreatedChats === savedChatVisibility || !hasUserId}
+                    onClick={() =>
+                      saveMutation.mutate({
+                        allowOthersToViewCreatedChats,
+                      })
+                    }
+                  >
+                    {t('common.actions.save')}
+                  </Button>
+                )}
+              />
+
+              <div className="rounded-2xl border border-border bg-surface-alt/40 p-3 sm:p-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-heading">
+                      <Shield className="h-4 w-4 text-primary" />
+                      <span>
+                        {tf(
+                          'accountSettings.chats.visibilityLabel',
+                          'Allow users with chat oversight permission to view chats I created'
+                        )}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted">
+                      {tf(
+                        'accountSettings.chats.visibilityHelp',
+                        'When disabled, other users cannot inspect conversations created by your account unless they are direct participants. You still keep full access to your own chats.'
+                      )}
+                    </p>
+                  </div>
+
+                  <Switch
+                    checked={allowOthersToViewCreatedChats}
+                    onChange={setAllowOthersToViewCreatedChats}
+                    label={
+                      allowOthersToViewCreatedChats
+                        ? t('common.status.active')
+                        : t('common.status.inactive')
+                    }
+                  />
+                </div>
+              </div>
+            </SettingsCard>
           ),
         }
       : null,
@@ -370,7 +455,7 @@ export default function AccountSettingsPage() {
   }
 
   return (
-    <div className="animate-fade-in space-y-8 pb-10">
+    <div className="min-w-0 animate-fade-in space-y-8 pb-10">
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
@@ -388,7 +473,7 @@ export default function AccountSettingsPage() {
         )}
       />
 
-      {settingTabs.length ? <Tabs tabs={settingTabs} /> : null}
+      {settingTabs.length ? <Tabs tabs={settingTabs} framedPanel={false} bodyClassName="p-3 sm:p-4" /> : null}
     </div>
   );
 }

@@ -24,6 +24,7 @@ import {
   X,
   CalendarClock,
   Image,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
 import { bookingsApi } from '../../api/endpoints';
@@ -350,6 +351,18 @@ export default function DashboardLayout() {
           matchChildren: false,
         },
       ],
+    },
+    {
+      key: 'communication',
+      sectionLabel: tf('dashboardLayout.section.communication', 'Communication'),
+      parent: {
+        label: tf('dashboardLayout.menu.chats', 'Chats'),
+        href: '/dashboard/chats',
+        icon: MessageSquare,
+        permission: 'CHATS_VIEW',
+        matchChildren: true,
+      },
+      children: [],
     },
     {
       key: 'notifications',
