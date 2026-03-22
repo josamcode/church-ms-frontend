@@ -39,11 +39,11 @@ import {
 } from './chatPage.shared';
 
 const BROADCAST_TEMPLATE_PLACEHOLDERS = [
-  '{user.firstName}',
-  '{user.name}',
-  '{user.familyName}',
-  '{user.houseName}',
-  '{user.diseases}',
+  { token: '{user.firstName}', labelKey: 'firstName', fallback: 'First name' },
+  { token: '{user.name}', labelKey: 'name', fallback: 'Full name' },
+  { token: '{user.familyName}', labelKey: 'familyName', fallback: 'Family name' },
+  { token: '{user.houseName}', labelKey: 'houseName', fallback: 'House name' },
+  { token: '{user.diseases}', labelKey: 'diseases', fallback: 'Diseases' },
 ];
 
 export default function ChatsPage() {
@@ -629,11 +629,10 @@ export default function ChatsPage() {
               key={thread.id}
               type="button"
               onClick={() => setSelectedChatId(thread.id)}
-              className={`w-full rounded-2xl border p-3 text-start transition-colors ${
-                isActive
-                  ? 'border-primary/40 bg-primary/10'
-                  : 'border-border bg-surface-alt/20 hover:bg-surface-alt/40'
-              }`}
+              className={`w-full rounded-2xl border p-3 text-start transition-colors ${isActive
+                ? 'border-primary/40 bg-primary/10'
+                : 'border-border bg-surface-alt/20 hover:bg-surface-alt/40'
+                }`}
             >
               <div className="flex items-start gap-3">
                 <Avatar
@@ -695,9 +694,8 @@ export default function ChatsPage() {
           return (
             <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-[80%] rounded-3xl px-4 py-3 shadow-sm ${
-                  isOwn ? 'bg-primary text-white' : 'border border-border bg-surface text-base'
-                }`}
+                className={`max-w-[80%] rounded-3xl px-4 py-3 shadow-sm ${isOwn ? 'bg-primary text-white' : 'border border-border bg-surface text-base'
+                  }`}
               >
                 {!isOwn ? (
                   <p className="mb-1 text-xs font-semibold text-primary">
@@ -706,9 +704,8 @@ export default function ChatsPage() {
                 ) : null}
                 <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.text}</p>
                 <div
-                  className={`mt-2 flex items-center justify-end gap-2 text-[11px] ${
-                    isOwn ? 'text-white/80' : 'text-muted'
-                  }`}
+                  className={`mt-2 flex items-center justify-end gap-2 text-[11px] ${isOwn ? 'text-white/80' : 'text-muted'
+                    }`}
                 >
                   <span>{formatThreadTimestamp(message.createdAt)}</span>
                 </div>
@@ -1237,26 +1234,24 @@ export default function ChatsPage() {
                 <p className="text-sm font-semibold text-heading">
                   {tf('chatPage.broadcast.fields.placeholdersTitle', 'Insert placeholders')}
                 </p>
-                <p className="text-xs text-muted">
-                  {tf(
-                    'chatPage.broadcast.fields.placeholdersHelp',
-                    'Click any placeholder to add it at the current cursor position.'
-                  )}
-                </p>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {BROADCAST_TEMPLATE_PLACEHOLDERS.map((token) => (
+              {BROADCAST_TEMPLATE_PLACEHOLDERS.map((placeholderItem) => (
                 <Button
-                  key={token}
+                  key={placeholderItem.token}
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => handleInsertBroadcastPlaceholder(token)}
-                  className="rounded-full bg-white/80 px-3 font-mono text-xs"
+                  onClick={() => handleInsertBroadcastPlaceholder(placeholderItem.token)}
+                  title={placeholderItem.token}
+                  className="rounded-full bg-white/80 px-3 text-xs font-medium"
                 >
-                  {token}
+                  {tf(
+                    `chatPage.broadcast.fields.placeholderLabels.${placeholderItem.labelKey}`,
+                    placeholderItem.fallback
+                  )}
                 </Button>
               ))}
             </div>
@@ -1277,13 +1272,13 @@ export default function ChatsPage() {
                   <p className="text-sm text-muted">
                     {hasBroadcastAudienceFilters
                       ? tf(
-                          'chatPage.broadcast.fields.audienceFilteredHelp',
-                          'Send now will target only the users matching the filters and selected recipients below.'
-                        )
+                        'chatPage.broadcast.fields.audienceFilteredHelp',
+                        'Send now will target only the users matching the filters and selected recipients below.'
+                      )
                       : tf(
-                          'chatPage.broadcast.fields.audienceAllHelp',
-                          'If you do not choose any filter, the broadcast is sent to all eligible users in the system.'
-                        )}
+                        'chatPage.broadcast.fields.audienceAllHelp',
+                        'If you do not choose any filter, the broadcast is sent to all eligible users in the system.'
+                      )}
                   </p>
                 </div>
               </div>
@@ -1345,13 +1340,13 @@ export default function ChatsPage() {
                     <p className="text-xs text-muted">
                       {hasBroadcastAudienceFilters
                         ? tf(
-                            'chatPage.broadcast.fields.matchingUsersFilteredHelp',
-                            'The list below is narrowed live by the selected filters.'
-                          )
+                          'chatPage.broadcast.fields.matchingUsersFilteredHelp',
+                          'The list below is narrowed live by the selected filters.'
+                        )
                         : tf(
-                            'chatPage.broadcast.fields.matchingUsersAllHelp',
-                            'No filter selected yet, so this list shows eligible users from the system.'
-                          )}
+                          'chatPage.broadcast.fields.matchingUsersAllHelp',
+                          'No filter selected yet, so this list shows eligible users from the system.'
+                        )}
                     </p>
                   </div>
                   {broadcastUserSearch ? (

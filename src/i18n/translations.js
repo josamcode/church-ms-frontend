@@ -2209,6 +2209,13 @@
           placeholdersTitle: 'Insert placeholders',
           placeholdersHelp:
             'Click any placeholder to add it at the current cursor position.',
+          placeholderLabels: {
+            firstName: 'First name',
+            name: 'Full name',
+            familyName: 'Family name',
+            houseName: 'House name',
+            diseases: 'Diseases',
+          },
           scopeAll: 'All eligible users',
           scopeFiltered: 'Filtered recipients',
           audienceTitle: 'Broadcast audience',
@@ -4774,6 +4781,13 @@
           placeholdersTitle: 'إدراج المتغيرات',
           placeholdersHelp:
             'اضغط على أي متغير ليتم إدراجه في مكان المؤشر الحالي.',
+          placeholderLabels: {
+            firstName: 'الاسم الأول',
+            name: 'الاسم الكامل',
+            familyName: 'اسم العائلة',
+            houseName: 'اسم البيت',
+            diseases: 'الأمراض',
+          },
           scopeAll: 'كل المستخدمين المؤهلين',
           scopeFiltered: 'المستلمون بعد التصفية',
           audienceTitle: 'جمهور الرسالة',
