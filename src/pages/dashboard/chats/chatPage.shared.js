@@ -1,5 +1,7 @@
+import { Check, Plus, X } from 'lucide-react';
+
 import Button from '../../../components/ui/Button';
-import { X } from 'lucide-react';
+import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 
 export const EMPTY_GROUP_FORM = {
   title: '',
@@ -11,10 +13,9 @@ export const EMPTY_GROUP_FORM = {
 export const EMPTY_BROADCAST_FORM = {
   template: '',
   audience: {
-    all: false,
     userIds: [],
-    roles: [],
     ageGroups: [],
+    educationStages: [],
     tags: [],
     diseases: [],
     genders: [],
@@ -81,11 +82,17 @@ export function Avatar({ name, avatarUrl, size = 'md' }) {
   );
 }
 
-export function UserSelectionList({ users, selectedIds, onToggle, actionLabel }) {
+export function UserSelectionList({
+  users,
+  selectedIds,
+  onToggle,
+  actionLabel,
+  emptyMessage,
+}) {
   if (!users.length) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
-        No users found.
+        {emptyMessage || 'No users found.'}
       </div>
     );
   }
@@ -94,25 +101,39 @@ export function UserSelectionList({ users, selectedIds, onToggle, actionLabel })
     <div className="space-y-2">
       {users.map((user) => {
         const isSelected = selectedIds.includes(user.id);
+        const meta = [user.phonePrimary, user.ageGroup, user.familyName, user.houseName]
+          .filter(Boolean)
+          .join(' | ');
+
         return (
           <div
             key={user.id}
-            className="flex items-center justify-between rounded-2xl border border-border bg-surface-alt/30 p-3"
+            className={`flex items-center justify-between gap-3 rounded-3xl border p-3 transition-all ${
+              isSelected
+                ? 'border-primary/30 bg-primary/10 shadow-sm'
+                : 'border-border bg-surface-alt/30 hover:border-primary/20 hover:bg-surface'
+            }`}
           >
             <div className="flex min-w-0 items-center gap-3">
               <Avatar name={user.fullName} avatarUrl={user.avatar?.url} size="sm" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-heading">{user.fullName}</p>
-                <p className="truncate text-xs text-muted">{user.phonePrimary || user.role || ''}</p>
+                <p className="truncate text-xs text-muted">{meta || user.role || ''}</p>
               </div>
             </div>
             <Button
               type="button"
-              variant={isSelected ? 'ghost' : 'outline'}
+              variant={isSelected ? 'ghost' : 'primary'}
               size="sm"
+              icon={isSelected ? Check : Plus}
               onClick={() => onToggle(user)}
+              className={`rounded-full px-4 ${
+                isSelected
+                  ? 'border border-primary/20 bg-white/70 text-primary hover:bg-white'
+                  : 'shadow-sm'
+              }`}
             >
-              {isSelected ? 'Remove' : actionLabel}
+              {isSelected ? 'Selected' : actionLabel}
             </Button>
           </div>
         );
@@ -152,28 +173,16 @@ export function SelectedUsersChips({ users, onRemove, removableIds = null }) {
   );
 }
 
-export function MultiSelectField({ label, value, options, onChange, hint }) {
+export function MultiSelectField({ label, value, options, onChange, hint, placeholder }) {
   return (
-    <div className="mb-4">
-      <label className="mb-1.5 block text-sm font-medium text-base">{label}</label>
-      <select
-        multiple
-        value={value}
-        onChange={(event) => {
-          onChange(Array.from(event.target.selectedOptions).map((option) => option.value));
-        }}
-        className="input-base min-h-[130px]"
-      >
-        {options.map((option) => {
-          const normalized = typeof option === 'string' ? { value: option, label: option } : option;
-          return (
-            <option key={normalized.value} value={normalized.value}>
-              {normalized.label}
-            </option>
-          );
-        })}
-      </select>
-      {hint ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
-    </div>
+    <MultiSelectChips
+      label={label}
+      values={value}
+      options={options}
+      onChange={onChange}
+      hint={hint}
+      placeholder={placeholder}
+      containerClassName="!mb-0"
+    />
   );
 }

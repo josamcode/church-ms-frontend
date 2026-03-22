@@ -18,6 +18,7 @@ import Button from '../../../components/ui/Button';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import PageHeader from '../../../components/ui/PageHeader';
 import Skeleton from '../../../components/ui/Skeleton';
+import CreatableTagComboboxInput from '../../../components/ui/CreatableTagComboboxInput';
 import UserSearchSelect from '../../../components/UserSearchSelect';
 import HouseholdSocioeconomicSection, {
   buildSocioeconomicPayload,
@@ -51,6 +52,9 @@ const roleOptions = [
 
 const normalizePermissionArray = (value) =>
   [...new Set((Array.isArray(value) ? value : []).filter(Boolean))];
+
+const normalizeTagArray = (value) =>
+  [...new Set((Array.isArray(value) ? value : []).map((entry) => String(entry || '').trim()).filter(Boolean))];
 
 const PERMISSION_LABELS_AR = {
   USERS_VIEW: 'عرض المستخدمين',
@@ -496,6 +500,19 @@ export default function UserEditPage() {
   });
   const houseNames = Array.isArray(houseNamesRes) ? houseNamesRes : [];
 
+  const { data: profileOptionValuesResponse } = useQuery({
+    queryKey: ['users', 'profile-option-values', 'edit-user-tags'],
+    queryFn: async () => {
+      const { data } = await usersApi.getProfileOptionValues();
+      return data?.data ?? {};
+    },
+    staleTime: 60000,
+  });
+  const tagSuggestions = useMemo(
+    () => normalizeTagArray(profileOptionValuesResponse?.tags),
+    [profileOptionValuesResponse]
+  );
+
   const { data: divineLiturgiesOverview } = useQuery({
     queryKey: ['divine-liturgies', 'overview', 'spiritual-father-options'],
     queryFn: async () => {
@@ -641,6 +658,7 @@ export default function UserEditPage() {
         gender: user.gender || 'male',
         nationalId: user.nationalId || '',
         notes: user.notes || '',
+        tags: normalizeTagArray(user.tags),
         phoneSecondary: user.phoneSecondary || '',
         whatsappNumber: user.whatsappNumber || '',
         familyName: user.familyName || '',
@@ -808,6 +826,9 @@ export default function UserEditPage() {
     if (form.gender !== user.gender) payload.gender = form.gender;
     if (form.nationalId !== (user.nationalId || '')) payload.nationalId = form.nationalId || null;
     if (form.notes !== (user.notes || '')) payload.notes = form.notes;
+    const nextTags = normalizeTagArray(form.tags);
+    const currentTags = normalizeTagArray(user.tags);
+    if (JSON.stringify(nextTags) !== JSON.stringify(currentTags)) payload.tags = nextTags;
     if (form.phoneSecondary !== (user.phoneSecondary || '')) payload.phoneSecondary = form.phoneSecondary;
     if (form.whatsappNumber !== (user.whatsappNumber || '')) payload.whatsappNumber = form.whatsappNumber;
     if (form.familyName !== (user.familyName || '')) payload.familyName = form.familyName;
@@ -1036,6 +1057,15 @@ export default function UserEditPage() {
             <section className="space-y-4">
             <div className="flex items-center gap-2"><StepBadge n={getSectionStep('additional')} /><SectionLabel>معلومات إضافية</SectionLabel></div>
             <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+              <CreatableTagComboboxInput
+                label={t('userDetails.profile.tagsTitle')}
+                values={form.tags || []}
+                onChange={(next) => update('tags', next)}
+                suggestions={tagSuggestions}
+                placeholder={t('chatPage.broadcast.fields.tagsPlaceholder')}
+                error={errors.tags}
+                containerClassName="!mb-0"
+              />
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Input label="الهاتف الثانوي" dir="ltr" className="text-left" value={form.phoneSecondary} onChange={(e) => update('phoneSecondary', e.target.value)} containerClassName="!mb-0" />
                 <Input label="رقم الواتساب" dir="ltr" className="text-left" value={form.whatsappNumber} onChange={(e) => update('whatsappNumber', e.target.value)} containerClassName="!mb-0" />

@@ -25,6 +25,7 @@ import PageHeader from '../../../components/ui/PageHeader';
 import Switch from '../../../components/ui/Switch';
 import TextArea from '../../../components/ui/TextArea';
 import useChatSocket from '../../../hooks/chat/useChatSocket';
+import { getEducationStageOptions } from '../../../constants/education';
 import { useI18n } from '../../../i18n/i18n';
 import {
   appendUniqueMessage,
@@ -37,12 +38,24 @@ import {
   UserSelectionList,
 } from './chatPage.shared';
 
+const BROADCAST_TEMPLATE_PLACEHOLDERS = [
+  '{user.firstName}',
+  '{user.name}',
+  '{user.familyName}',
+  '{user.houseName}',
+  '{user.diseases}',
+];
+
 export default function ChatsPage() {
   const queryClient = useQueryClient();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { user, isAuthenticated, hasPermission } = useAuth();
   const tf = (key, fallback) => {
     const value = t(key);
+    return value === key ? fallback : value;
+  };
+  const tfp = (key, fallback, params) => {
+    const value = t(key, params);
     return value === key ? fallback : value;
   };
 
@@ -66,8 +79,10 @@ export default function ChatsPage() {
   const [isBroadcastModalOpen, setBroadcastModalOpen] = useState(false);
   const [broadcastForm, setBroadcastForm] = useState(EMPTY_BROADCAST_FORM);
   const [broadcastUserSearch, setBroadcastUserSearch] = useState('');
+  const broadcastAudience = broadcastForm.audience;
   const lastAutoReadRef = useRef('');
   const messagesScrollRef = useRef(null);
+  const broadcastTemplateRef = useRef(null);
   const shouldStickToBottomRef = useRef(true);
   const forceScrollToBottomRef = useRef(false);
   const previousThreadIdRef = useRef(null);
@@ -127,10 +142,39 @@ export default function ChatsPage() {
   });
 
   const broadcastUserSearchQuery = useQuery({
-    queryKey: ['chats', 'search', 'broadcast-users', broadcastUserSearch],
+    queryKey: [
+      'chats',
+      'search',
+      'broadcast-users',
+      broadcastUserSearch,
+      broadcastAudience.ageGroups,
+      broadcastAudience.educationStages,
+      broadcastAudience.tags,
+      broadcastAudience.diseases,
+      broadcastAudience.genders,
+      broadcastAudience.familyNames,
+      broadcastAudience.houseNames,
+      broadcastAudience.includeSelf,
+      broadcastAudience.includeLocked,
+      broadcastAudience.includeUsersWithoutLogin,
+    ],
     enabled: isBroadcastModalOpen,
     queryFn: async () => {
-      const { data } = await chatApi.searchUsers({ q: broadcastUserSearch, limit: 20 });
+      const { data } = await chatApi.searchUsers({
+        q: broadcastUserSearch,
+        limit: 20,
+        forBroadcast: true,
+        ageGroups: broadcastAudience.ageGroups,
+        educationStages: broadcastAudience.educationStages,
+        tags: broadcastAudience.tags,
+        diseases: broadcastAudience.diseases,
+        genders: broadcastAudience.genders,
+        familyNames: broadcastAudience.familyNames,
+        houseNames: broadcastAudience.houseNames,
+        includeSelf: broadcastAudience.includeSelf,
+        includeLocked: broadcastAudience.includeLocked,
+        includeUsersWithoutLogin: broadcastAudience.includeUsersWithoutLogin,
+      });
       return data.data || [];
     },
   });
@@ -360,14 +404,28 @@ export default function ChatsPage() {
   const activeParticipantIds = activeThread?.participants?.map((participant) => participant.id) || [];
   const activeThreadOtherUser = activeThread?.directUser || null;
   const broadcastAudienceOptions = audienceOptionsQuery.data || {
-    roles: [],
     ageGroups: [],
+    educationStages: [],
     genders: [],
     tags: [],
     diseases: [],
     familyNames: [],
     houseNames: [],
   };
+  const educationStageOptions = useMemo(
+    () => getEducationStageOptions(language).filter((option) => !option.disabled),
+    [language]
+  );
+  const activeBroadcastFilterCount =
+    broadcastAudience.userIds.length +
+    broadcastAudience.ageGroups.length +
+    broadcastAudience.educationStages.length +
+    broadcastAudience.tags.length +
+    broadcastAudience.diseases.length +
+    broadcastAudience.genders.length +
+    broadcastAudience.familyNames.length +
+    broadcastAudience.houseNames.length;
+  const hasBroadcastAudienceFilters = activeBroadcastFilterCount > 0;
 
   const groupSearchResults = (groupSearchQuery.data || []).filter(
     (userItem) => !groupForm.memberIds.includes(userItem.id)
@@ -376,7 +434,7 @@ export default function ChatsPage() {
     (userItem) => !groupSettingsForm.memberIds.includes(userItem.id)
   );
   const broadcastSearchResults = (broadcastUserSearchQuery.data || []).filter(
-    (userItem) => !(broadcastForm.audience.userIds || []).includes(userItem.id)
+    (userItem) => !(broadcastAudience.userIds || []).includes(userItem.id)
   );
 
   const groupSelectedUsers = useMemo(() => {
@@ -395,10 +453,10 @@ export default function ChatsPage() {
 
   const broadcastSelectedUsers = useMemo(() => {
     const fromSearch = new Map((broadcastUserSearchQuery.data || []).map((userItem) => [userItem.id, userItem]));
-    return (broadcastForm.audience.userIds || []).map(
+    return (broadcastAudience.userIds || []).map(
       (userId) => fromSearch.get(userId) || { id: userId, fullName: userId }
     );
-  }, [broadcastForm.audience.userIds, broadcastUserSearchQuery.data]);
+  }, [broadcastAudience.userIds, broadcastUserSearchQuery.data]);
 
   const handleSubmitMessage = () => {
     const trimmed = composerText.trim();
@@ -457,6 +515,57 @@ export default function ChatsPage() {
     }));
   };
 
+  const handleInsertBroadcastPlaceholder = (token) => {
+    const textarea = broadcastTemplateRef.current;
+    const currentValue = String(broadcastForm.template || '');
+
+    if (!textarea) {
+      setBroadcastForm((current) => ({
+        ...current,
+        template: current.template ? `${current.template} ${token}` : token,
+      }));
+      return;
+    }
+
+    const selectionStart = textarea.selectionStart ?? currentValue.length;
+    const selectionEnd = textarea.selectionEnd ?? currentValue.length;
+    const previousChar = currentValue[selectionStart - 1] || '';
+    const nextChar = currentValue[selectionEnd] || '';
+    const needsLeadingSpace = Boolean(previousChar) && !/\s/.test(previousChar);
+    const needsTrailingSpace = Boolean(nextChar) && !/\s/.test(nextChar);
+    const insertion = `${needsLeadingSpace ? ' ' : ''}${token}${needsTrailingSpace ? ' ' : ''}`;
+    const nextValue =
+      currentValue.slice(0, selectionStart) + insertion + currentValue.slice(selectionEnd);
+
+    setBroadcastForm((current) => ({
+      ...current,
+      template: nextValue,
+    }));
+
+    requestAnimationFrame(() => {
+      const cursorPosition = selectionStart + insertion.length;
+      textarea.focus();
+      textarea.setSelectionRange(cursorPosition, cursorPosition);
+    });
+  };
+
+  const clearBroadcastAudienceFilters = () => {
+    setBroadcastForm((current) => ({
+      ...current,
+      audience: {
+        ...current.audience,
+        userIds: [],
+        ageGroups: [],
+        educationStages: [],
+        tags: [],
+        diseases: [],
+        genders: [],
+        familyNames: [],
+        houseNames: [],
+      },
+    }));
+  };
+
   const submitGroupCreation = () => {
     if (!groupForm.title.trim()) return toast.error(t('chatPage.messages.groupTitleRequired'));
     if (!groupForm.memberIds.length) return toast.error(t('chatPage.messages.groupMembersRequired'));
@@ -487,25 +596,9 @@ export default function ChatsPage() {
   const submitBroadcast = () => {
     if (!broadcastForm.template.trim()) return toast.error(t('chatPage.messages.broadcastRequired'));
 
-    if (!broadcastForm.audience.all) {
-      const hasFilters =
-        broadcastForm.audience.userIds.length ||
-        broadcastForm.audience.roles.length ||
-        broadcastForm.audience.ageGroups.length ||
-        broadcastForm.audience.tags.length ||
-        broadcastForm.audience.diseases.length ||
-        broadcastForm.audience.genders.length ||
-        broadcastForm.audience.familyNames.length ||
-        broadcastForm.audience.houseNames.length;
-
-      if (!hasFilters) {
-        return toast.error(t('chatPage.messages.broadcastAudienceRequired'));
-      }
-    }
-
     broadcastMutation.mutate({
       template: broadcastForm.template.trim(),
-      audience: broadcastForm.audience,
+      audience: broadcastAudience,
     });
   };
 
@@ -617,12 +710,6 @@ export default function ChatsPage() {
                     isOwn ? 'text-white/80' : 'text-muted'
                   }`}
                 >
-                  {message.source === 'broadcast' ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Megaphone className="h-3 w-3" />
-                      {t('chatPage.shared.broadcastLabel')}
-                    </span>
-                  ) : null}
                   <span>{formatThreadTimestamp(message.createdAt)}</span>
                 </div>
               </div>
@@ -1111,6 +1198,7 @@ export default function ChatsPage() {
                 setBroadcastForm(EMPTY_BROADCAST_FORM);
                 setBroadcastUserSearch('');
               }}
+              className="rounded-full px-5"
             >
               {t('common.actions.cancel')}
             </Button>
@@ -1119,6 +1207,7 @@ export default function ChatsPage() {
               icon={Megaphone}
               loading={broadcastMutation.isPending}
               onClick={submitBroadcast}
+              className="rounded-full px-5 shadow-sm"
             >
               {tf('chatPage.actions.sendBroadcast', 'Send broadcast')}
             </Button>
@@ -1127,6 +1216,7 @@ export default function ChatsPage() {
       >
         <div className="space-y-5">
           <TextArea
+            ref={broadcastTemplateRef}
             label={tf('chatPage.broadcast.fields.template', 'Message template')}
             value={broadcastForm.template}
             onChange={(event) =>
@@ -1136,69 +1226,146 @@ export default function ChatsPage() {
             containerClassName="!mb-0"
             hint={tf(
               'chatPage.broadcast.fields.templateHelp',
-              'Use placeholders like {user.name}, {user.firstName}, {user.familyName}, {user.houseName}, or {user.diseases}.'
+              'Click a placeholder below to insert it into the message.'
             )}
             placeholder={'Happy feast day, {user.name}.'}
           />
 
-          <div className="rounded-2xl border border-border bg-surface-alt/30 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="space-y-1">
+          <div className="rounded-lg border border-border bg-surface-alt/25 p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
                 <p className="text-sm font-semibold text-heading">
-                  {tf('chatPage.broadcast.fields.all', 'Send to all eligible users')}
+                  {tf('chatPage.broadcast.fields.placeholdersTitle', 'Insert placeholders')}
                 </p>
-                <p className="text-sm text-muted">
+                <p className="text-xs text-muted">
                   {tf(
-                    'chatPage.broadcast.fields.allHelp',
-                    'When enabled, the broadcast ignores audience selectors and targets every eligible account.'
+                    'chatPage.broadcast.fields.placeholdersHelp',
+                    'Click any placeholder to add it at the current cursor position.'
                   )}
                 </p>
               </div>
-              <Switch
-                checked={broadcastForm.audience.all}
-                onChange={(checked) =>
-                  setBroadcastForm((current) => ({
-                    ...current,
-                    audience: checked
-                      ? {
-                          ...current.audience,
-                          all: true,
-                          userIds: [],
-                          roles: [],
-                          ageGroups: [],
-                          tags: [],
-                          diseases: [],
-                          genders: [],
-                          familyNames: [],
-                          houseNames: [],
-                        }
-                      : { ...current.audience, all: false },
-                  }))
-                }
-                label={broadcastForm.audience.all ? t('common.status.active') : t('common.status.inactive')}
-              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {BROADCAST_TEMPLATE_PLACEHOLDERS.map((token) => (
+                <Button
+                  key={token}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleInsertBroadcastPlaceholder(token)}
+                  className="rounded-full bg-white/80 px-3 font-mono text-xs"
+                >
+                  {token}
+                </Button>
+              ))}
             </div>
           </div>
 
-          {!broadcastForm.audience.all ? (
-            <div className="grid gap-5 lg:grid-cols-2">
-              <div className="space-y-4">
-                <Input
-                  label={tf('chatPage.broadcast.fields.users', 'Specific users')}
-                  value={broadcastUserSearch}
-                  onChange={(event) => setBroadcastUserSearch(event.target.value)}
-                  icon={Search}
-                  containerClassName="!mb-0"
-                  placeholder={tf(
-                    'chatPage.broadcast.fields.usersPlaceholder',
-                    'Search and add specific users'
-                  )}
-                />
+          <div className="rounded-lg border border-primary/15 p-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div className="space-y-2">
+                <div className="inline-flex items-center rounded-full border border-primary/20 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                  {hasBroadcastAudienceFilters
+                    ? tf('chatPage.broadcast.fields.scopeFiltered', 'Filtered recipients')
+                    : tf('chatPage.broadcast.fields.scopeAll', 'All eligible users')}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-heading">
+                    {tf('chatPage.broadcast.fields.audienceTitle', 'Broadcast audience')}
+                  </p>
+                  <p className="text-sm text-muted">
+                    {hasBroadcastAudienceFilters
+                      ? tf(
+                          'chatPage.broadcast.fields.audienceFilteredHelp',
+                          'Send now will target only the users matching the filters and selected recipients below.'
+                        )
+                      : tf(
+                          'chatPage.broadcast.fields.audienceAllHelp',
+                          'If you do not choose any filter, the broadcast is sent to all eligible users in the system.'
+                        )}
+                  </p>
+                </div>
+              </div>
 
-                <SelectedUsersChips
-                  users={broadcastSelectedUsers}
-                  onRemove={handleToggleBroadcastUser}
-                />
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full border border-border bg-white/80 px-3 py-1 text-xs font-medium text-heading">
+                  {tfp(
+                    'chatPage.broadcast.fields.filtersCount',
+                    `${activeBroadcastFilterCount} active filters`,
+                    { count: activeBroadcastFilterCount }
+                  )}
+                </span>
+                <span className="inline-flex items-center rounded-full border border-border bg-white/80 px-3 py-1 text-xs font-medium text-heading">
+                  {tfp(
+                    'chatPage.broadcast.fields.selectedUsersCount',
+                    `${broadcastAudience.userIds.length} selected users`,
+                    { count: broadcastAudience.userIds.length }
+                  )}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={clearBroadcastAudienceFilters}
+                  disabled={!hasBroadcastAudienceFilters}
+                  className="rounded-full bg-white/80 px-4"
+                >
+                  {tf('chatPage.broadcast.fields.clearFilters', 'Clear filters')}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+            <div className="space-y-4">
+              <Input
+                label={tf('chatPage.broadcast.fields.users', 'Specific users')}
+                value={broadcastUserSearch}
+                onChange={(event) => setBroadcastUserSearch(event.target.value)}
+                icon={Search}
+                containerClassName="!mb-0"
+                placeholder={tf(
+                  'chatPage.broadcast.fields.usersPlaceholder',
+                  'Search and add specific users'
+                )}
+              />
+
+              <SelectedUsersChips
+                users={broadcastSelectedUsers}
+                onRemove={handleToggleBroadcastUser}
+              />
+
+              <div className="rounded-3xl border border-border bg-surface-alt/25 p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-heading">
+                      {tf('chatPage.broadcast.fields.matchingUsers', 'Matching users')}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {hasBroadcastAudienceFilters
+                        ? tf(
+                            'chatPage.broadcast.fields.matchingUsersFilteredHelp',
+                            'The list below is narrowed live by the selected filters.'
+                          )
+                        : tf(
+                            'chatPage.broadcast.fields.matchingUsersAllHelp',
+                            'No filter selected yet, so this list shows eligible users from the system.'
+                          )}
+                    </p>
+                  </div>
+                  {broadcastUserSearch ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setBroadcastUserSearch('')}
+                      className="rounded-full px-3"
+                    >
+                      {tf('chatPage.broadcast.fields.clearSearch', 'Clear search')}
+                    </Button>
+                  ) : null}
+                </div>
 
                 {broadcastUserSearchQuery.isLoading ? (
                   <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
@@ -1207,184 +1374,132 @@ export default function ChatsPage() {
                 ) : (
                   <UserSelectionList
                     users={broadcastSearchResults}
-                    selectedIds={broadcastForm.audience.userIds}
+                    selectedIds={broadcastAudience.userIds}
                     onToggle={handleToggleBroadcastUser}
                     actionLabel={tf('chatPage.actions.addRecipient', 'Add')}
+                    emptyMessage={tf(
+                      'chatPage.states.noUsersMatchingAudience',
+                      'No users match the current audience filters.'
+                    )}
                   />
                 )}
               </div>
-
-              <div className="space-y-4">
-                {audienceOptionsQuery.isLoading ? (
-                  <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
-                    {t('common.loading')}
-                  </div>
-                ) : (
-                  <>
-                    <MultiSelectField
-                      label={tf('chatPage.broadcast.fields.roles', 'Roles')}
-                      value={broadcastForm.audience.roles}
-                      options={broadcastAudienceOptions.roles}
-                      onChange={(value) =>
-                        setBroadcastForm((current) => ({
-                          ...current,
-                          audience: { ...current.audience, roles: value },
-                        }))
-                      }
-                      hint={tf(
-                        'chatPage.broadcast.fields.multiSelectHint',
-                        'Use Ctrl or Cmd to select multiple values.'
-                      )}
-                    />
-                    <MultiSelectField
-                      label={tf('chatPage.broadcast.fields.ageGroups', 'Age groups')}
-                      value={broadcastForm.audience.ageGroups}
-                      options={broadcastAudienceOptions.ageGroups}
-                      onChange={(value) =>
-                        setBroadcastForm((current) => ({
-                          ...current,
-                          audience: { ...current.audience, ageGroups: value },
-                        }))
-                      }
-                    />
-                    <MultiSelectField
-                      label={tf('chatPage.broadcast.fields.diseases', 'Diseases')}
-                      value={broadcastForm.audience.diseases}
-                      options={broadcastAudienceOptions.diseases}
-                      onChange={(value) =>
-                        setBroadcastForm((current) => ({
-                          ...current,
-                          audience: { ...current.audience, diseases: value },
-                        }))
-                      }
-                    />
-                    <MultiSelectField
-                      label={tf('chatPage.broadcast.fields.tags', 'Tags')}
-                      value={broadcastForm.audience.tags}
-                      options={broadcastAudienceOptions.tags}
-                      onChange={(value) =>
-                        setBroadcastForm((current) => ({
-                          ...current,
-                          audience: { ...current.audience, tags: value },
-                        }))
-                      }
-                    />
-                    <MultiSelectField
-                      label={tf('chatPage.broadcast.fields.genders', 'Gender')}
-                      value={broadcastForm.audience.genders}
-                      options={broadcastAudienceOptions.genders}
-                      onChange={(value) =>
-                        setBroadcastForm((current) => ({
-                          ...current,
-                          audience: { ...current.audience, genders: value },
-                        }))
-                      }
-                    />
-                    <MultiSelectField
-                      label={tf('chatPage.broadcast.fields.familyNames', 'Families')}
-                      value={broadcastForm.audience.familyNames}
-                      options={broadcastAudienceOptions.familyNames}
-                      onChange={(value) =>
-                        setBroadcastForm((current) => ({
-                          ...current,
-                          audience: { ...current.audience, familyNames: value },
-                        }))
-                      }
-                    />
-                    <MultiSelectField
-                      label={tf('chatPage.broadcast.fields.houseNames', 'Houses')}
-                      value={broadcastForm.audience.houseNames}
-                      options={broadcastAudienceOptions.houseNames}
-                      onChange={(value) =>
-                        setBroadcastForm((current) => ({
-                          ...current,
-                          audience: { ...current.audience, houseNames: value },
-                        }))
-                      }
-                    />
-                  </>
-                )}
-              </div>
-            </div>
-          ) : null}
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-border bg-surface-alt/20 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-heading">
-                    {tf('chatPage.broadcast.fields.includeSelf', 'Include my account')}
-                  </p>
-                  <p className="text-sm text-muted">
-                    {tf(
-                      'chatPage.broadcast.fields.includeSelfHelp',
-                      'Send the same personalized message to your own direct chat too.'
-                    )}
-                  </p>
-                </div>
-                <Switch
-                  checked={broadcastForm.audience.includeSelf}
-                  onChange={(checked) =>
-                    setBroadcastForm((current) => ({
-                      ...current,
-                      audience: { ...current.audience, includeSelf: checked },
-                    }))
-                  }
-                />
-              </div>
             </div>
 
-            <div className="rounded-2xl border border-border bg-surface-alt/20 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-heading">
-                    {tf('chatPage.broadcast.fields.includeLocked', 'Include locked users')}
-                  </p>
-                  <p className="text-sm text-muted">
-                    {tf(
-                      'chatPage.broadcast.fields.includeLockedHelp',
-                      'Useful for administrative messages before accounts are reactivated.'
-                    )}
-                  </p>
+            <div className="space-y-4">
+              {audienceOptionsQuery.isLoading ? (
+                <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">
+                  {t('common.loading')}
                 </div>
-                <Switch
-                  checked={broadcastForm.audience.includeLocked}
-                  onChange={(checked) =>
-                    setBroadcastForm((current) => ({
-                      ...current,
-                      audience: { ...current.audience, includeLocked: checked },
-                    }))
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-border bg-surface-alt/20 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-heading">
-                    {tf('chatPage.broadcast.fields.includeUsersWithoutLogin', 'Include users without login')}
-                  </p>
-                  <p className="text-sm text-muted">
-                    {tf(
-                      'chatPage.broadcast.fields.includeUsersWithoutLoginHelp',
-                      'Creates the direct thread early so the message is waiting once login is enabled.'
+              ) : (
+                <>
+                  <MultiSelectField
+                    label={tf('chatPage.broadcast.fields.ageGroups', 'Age groups')}
+                    value={broadcastAudience.ageGroups}
+                    options={broadcastAudienceOptions.ageGroups}
+                    onChange={(value) =>
+                      setBroadcastForm((current) => ({
+                        ...current,
+                        audience: { ...current.audience, ageGroups: value },
+                      }))
+                    }
+                    placeholder={tf(
+                      'chatPage.broadcast.fields.ageGroupsPlaceholder',
+                      'Choose one or more age groups'
                     )}
-                  </p>
-                </div>
-                <Switch
-                  checked={broadcastForm.audience.includeUsersWithoutLogin}
-                  onChange={(checked) =>
-                    setBroadcastForm((current) => ({
-                      ...current,
-                      audience: {
-                        ...current.audience,
-                        includeUsersWithoutLogin: checked,
-                      },
-                    }))
-                  }
-                />
-              </div>
+                  />
+                  <MultiSelectField
+                    label={tf('chatPage.broadcast.fields.educationStages', 'Educational stages')}
+                    value={broadcastAudience.educationStages}
+                    options={educationStageOptions}
+                    onChange={(value) =>
+                      setBroadcastForm((current) => ({
+                        ...current,
+                        audience: { ...current.audience, educationStages: value },
+                      }))
+                    }
+                    placeholder={tf(
+                      'chatPage.broadcast.fields.educationStagesPlaceholder',
+                      'Choose educational stages'
+                    )}
+                  />
+                  <MultiSelectField
+                    label={tf('chatPage.broadcast.fields.diseases', 'Diseases')}
+                    value={broadcastAudience.diseases}
+                    options={broadcastAudienceOptions.diseases}
+                    onChange={(value) =>
+                      setBroadcastForm((current) => ({
+                        ...current,
+                        audience: { ...current.audience, diseases: value },
+                      }))
+                    }
+                    placeholder={tf(
+                      'chatPage.broadcast.fields.diseasesPlaceholder',
+                      'Choose diseases'
+                    )}
+                  />
+                  <MultiSelectField
+                    label={tf('chatPage.broadcast.fields.tags', 'Tags')}
+                    value={broadcastAudience.tags}
+                    options={broadcastAudienceOptions.tags}
+                    onChange={(value) =>
+                      setBroadcastForm((current) => ({
+                        ...current,
+                        audience: { ...current.audience, tags: value },
+                      }))
+                    }
+                    placeholder={tf(
+                      'chatPage.broadcast.fields.tagsPlaceholder',
+                      'Choose tags'
+                    )}
+                  />
+                  <MultiSelectField
+                    label={tf('chatPage.broadcast.fields.genders', 'Gender')}
+                    value={broadcastAudience.genders}
+                    options={broadcastAudienceOptions.genders}
+                    onChange={(value) =>
+                      setBroadcastForm((current) => ({
+                        ...current,
+                        audience: { ...current.audience, genders: value },
+                      }))
+                    }
+                    placeholder={tf(
+                      'chatPage.broadcast.fields.gendersPlaceholder',
+                      'Choose gender'
+                    )}
+                  />
+                  <MultiSelectField
+                    label={tf('chatPage.broadcast.fields.familyNames', 'Families')}
+                    value={broadcastAudience.familyNames}
+                    options={broadcastAudienceOptions.familyNames}
+                    onChange={(value) =>
+                      setBroadcastForm((current) => ({
+                        ...current,
+                        audience: { ...current.audience, familyNames: value },
+                      }))
+                    }
+                    placeholder={tf(
+                      'chatPage.broadcast.fields.familyNamesPlaceholder',
+                      'Choose families'
+                    )}
+                  />
+                  <MultiSelectField
+                    label={tf('chatPage.broadcast.fields.houseNames', 'Houses')}
+                    value={broadcastAudience.houseNames}
+                    options={broadcastAudienceOptions.houseNames}
+                    onChange={(value) =>
+                      setBroadcastForm((current) => ({
+                        ...current,
+                        audience: { ...current.audience, houseNames: value },
+                      }))
+                    }
+                    placeholder={tf(
+                      'chatPage.broadcast.fields.houseNamesPlaceholder',
+                      'Choose houses'
+                    )}
+                  />
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -2205,20 +2205,42 @@
         fields: {
           template: 'Message template',
           templateHelp:
-            'Use placeholders like {user.name}, {user.firstName}, {user.familyName}, {user.houseName}, or {user.diseases}.',
-          all: 'Send to all eligible users',
-          allHelp:
-            'When enabled, the broadcast ignores audience selectors and targets every eligible account.',
+            'Click a placeholder below to insert it into the message.',
+          placeholdersTitle: 'Insert placeholders',
+          placeholdersHelp:
+            'Click any placeholder to add it at the current cursor position.',
+          scopeAll: 'All eligible users',
+          scopeFiltered: 'Filtered recipients',
+          audienceTitle: 'Broadcast audience',
+          audienceAllHelp:
+            'If you do not choose any filter, the broadcast is sent to all eligible users in the system.',
+          audienceFilteredHelp:
+            'Send now will target only the users matching the filters and selected recipients below.',
           users: 'Specific users',
           usersPlaceholder: 'Search and add specific users',
-          roles: 'Roles',
+          matchingUsers: 'Matching users',
+          matchingUsersAllHelp:
+            'No filter selected yet, so this list shows eligible users from the system.',
+          matchingUsersFilteredHelp:
+            'The list below is narrowed live by the selected filters.',
+          clearSearch: 'Clear search',
+          clearFilters: 'Clear filters',
+          filtersCount: '{count} active filters',
+          selectedUsersCount: '{count} selected users',
           ageGroups: 'Age groups',
+          ageGroupsPlaceholder: 'Choose one or more age groups',
+          educationStages: 'Educational stages',
+          educationStagesPlaceholder: 'Choose educational stages',
           diseases: 'Diseases',
+          diseasesPlaceholder: 'Choose diseases',
           tags: 'Tags',
+          tagsPlaceholder: 'Choose tags',
           genders: 'Gender',
+          gendersPlaceholder: 'Choose gender',
           familyNames: 'Families',
+          familyNamesPlaceholder: 'Choose families',
           houseNames: 'Houses',
-          multiSelectHint: 'Use Ctrl or Cmd to select multiple values.',
+          houseNamesPlaceholder: 'Choose houses',
           includeSelf: 'Include my account',
           includeSelfHelp:
             'Send the same personalized message to your own direct chat too.',
@@ -2237,6 +2259,7 @@
         adminOnlyMessaging: 'Only group admins can send messages in this chat right now.',
         selectThread: 'Select a chat from the list to open it.',
         noUsersFound: 'No matching users were found.',
+        noUsersMatchingAudience: 'No users match the current audience filters.',
         membersCanChat: 'Members can chat',
         adminOnlyChat: 'Admins only',
         groupOnlySettings: 'Group settings are only available for group chats.',
@@ -4747,20 +4770,42 @@
         fields: {
           template: 'قالب الرسالة',
           templateHelp:
-            'يمكنك استخدام متغيرات مثل {user.name} و {user.firstName} و {user.familyName} و {user.houseName} و {user.diseases}.',
-          all: 'إرسال إلى جميع المستخدمين المؤهلين',
-          allHelp:
-            'عند التفعيل، يتم تجاهل محددات الجمهور وإرسال الرسالة إلى كل حساب مؤهل.',
+            'اضغط على أي متغير بالأسفل لإضافته داخل الرسالة.',
+          placeholdersTitle: 'إدراج المتغيرات',
+          placeholdersHelp:
+            'اضغط على أي متغير ليتم إدراجه في مكان المؤشر الحالي.',
+          scopeAll: 'كل المستخدمين المؤهلين',
+          scopeFiltered: 'المستلمون بعد التصفية',
+          audienceTitle: 'جمهور الرسالة',
+          audienceAllHelp:
+            'إذا لم تختر أي فلتر، سيتم إرسال الرسالة إلى كل المستخدمين المؤهلين في النظام.',
+          audienceFilteredHelp:
+            'عند الإرسال الآن ستصل الرسالة فقط إلى المستخدمين المطابقين للفلاتر والمستخدمين المحددين أدناه.',
           users: 'مستخدمون محددون',
           usersPlaceholder: 'ابحث وأضف مستخدمين محددين',
-          roles: 'الأدوار',
+          matchingUsers: 'المستخدمون المطابقون',
+          matchingUsersAllHelp:
+            'لا يوجد أي فلتر محدد الآن، لذلك تعرض هذه القائمة المستخدمين المؤهلين من النظام.',
+          matchingUsersFilteredHelp:
+            'يتم تضييق القائمة التالية مباشرة حسب الفلاتر التي تختارها.',
+          clearSearch: 'مسح البحث',
+          clearFilters: 'مسح الفلاتر',
+          filtersCount: '{count} فلتر نشط',
+          selectedUsersCount: '{count} مستخدم محدد',
           ageGroups: 'الفئات العمرية',
+          ageGroupsPlaceholder: 'اختر فئة عمرية أو أكثر',
+          educationStages: 'المراحل التعليمية',
+          educationStagesPlaceholder: 'اختر المراحل التعليمية',
           diseases: 'الأمراض',
+          diseasesPlaceholder: 'اختر الأمراض',
           tags: 'الوسوم',
+          tagsPlaceholder: 'اختر الوسوم',
           genders: 'النوع',
+          gendersPlaceholder: 'اختر النوع',
           familyNames: 'العائلات',
+          familyNamesPlaceholder: 'اختر العائلات',
           houseNames: 'المنازل',
-          multiSelectHint: 'استخدم Ctrl أو Cmd لاختيار أكثر من قيمة.',
+          houseNamesPlaceholder: 'اختر المنازل',
           includeSelf: 'تضمين حسابي',
           includeSelfHelp:
             'أرسل نفس الرسالة المخصصة إلى محادثتك المباشرة أيضًا.',
@@ -4779,6 +4824,7 @@
         adminOnlyMessaging: 'فقط مشرفو المجموعة يمكنهم إرسال الرسائل في هذه المحادثة الآن.',
         selectThread: 'اختر دردشة من القائمة لفتحها.',
         noUsersFound: 'لم يتم العثور على مستخدمين مطابقين.',
+        noUsersMatchingAudience: 'لا يوجد مستخدمون يطابقون فلاتر الجمهور الحالية.',
         membersCanChat: 'يمكن للأعضاء التحدث',
         adminOnlyChat: 'للمشرفين فقط',
         groupOnlySettings: 'إعدادات المجموعة متاحة فقط للمحادثات الجماعية.',
