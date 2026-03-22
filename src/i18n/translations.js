@@ -2285,6 +2285,10 @@
         membersCount: '{count} members',
         unknownUser: 'Unknown user',
         broadcastLabel: 'Broadcast',
+        messageStatus: {
+          delivered: 'Delivered',
+          seen: 'Seen',
+        },
       },
     },
     notifications: {
@@ -4857,6 +4861,10 @@
         membersCount: '{count} عضو',
         unknownUser: 'مستخدم غير معروف',
         broadcastLabel: 'رسالة جماعية',
+        messageStatus: {
+          delivered: 'تم التسليم',
+          seen: 'تمت المشاهدة',
+        },
       },
     },
     notifications: {

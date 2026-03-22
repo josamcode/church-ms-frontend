@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  CheckCheck,
   Megaphone,
   MessageSquare,
   Plus,
@@ -690,6 +691,13 @@ export default function ChatsPage() {
       <div className="space-y-3">
         {activeMessages.map((message) => {
           const isOwn = currentUserId && message.sender?.id === currentUserId;
+          const receiptState = message.deliveryStatus?.state || null;
+          const receiptLabel = receiptState
+            ? tf(
+                `chatPage.shared.messageStatus.${receiptState}`,
+                receiptState === 'seen' ? 'Seen' : 'Delivered'
+              )
+            : null;
 
           return (
             <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
@@ -707,6 +715,12 @@ export default function ChatsPage() {
                   className={`mt-2 flex items-center justify-end gap-2 text-[11px] ${isOwn ? 'text-white/80' : 'text-muted'
                     }`}
                 >
+                  {isOwn && receiptLabel ? (
+                    <span className="inline-flex items-center gap-1">
+                      <CheckCheck className="h-3.5 w-3.5" />
+                      <span>{receiptLabel}</span>
+                    </span>
+                  ) : null}
                   <span>{formatThreadTimestamp(message.createdAt)}</span>
                 </div>
               </div>
