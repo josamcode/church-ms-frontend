@@ -67,6 +67,11 @@ export default function ChatsPage() {
   const [broadcastForm, setBroadcastForm] = useState(EMPTY_BROADCAST_FORM);
   const [broadcastUserSearch, setBroadcastUserSearch] = useState('');
   const lastAutoReadRef = useRef('');
+  const messagesScrollRef = useRef(null);
+  const shouldStickToBottomRef = useRef(true);
+  const forceScrollToBottomRef = useRef(false);
+  const previousThreadIdRef = useRef(null);
+  const previousMessageCountRef = useRef(0);
 
   const chatsQuery = useQuery({
     queryKey: ['chats'],
@@ -139,7 +144,10 @@ export default function ChatsPage() {
         queryClient.invalidateQueries({ queryKey: ['chats', selectedChatId] });
       }
     },
-    onError: (error) => toast.error(normalizeApiError(error).message),
+    onError: (error) => {
+      forceScrollToBottomRef.current = false;
+      toast.error(normalizeApiError(error).message);
+    },
   });
 
   const createDirectMutation = useMutation({
@@ -163,7 +171,7 @@ export default function ChatsPage() {
       setGroupModalOpen(false);
       setGroupForm(EMPTY_GROUP_FORM);
       setGroupSearch('');
-      toast.success('Group chat created successfully.');
+      toast.success(t('chatPage.messages.groupCreated'));
       await queryClient.invalidateQueries({ queryKey: ['chats'] });
       queryClient.invalidateQueries({ queryKey: ['chats', thread.id] });
     },
@@ -175,7 +183,7 @@ export default function ChatsPage() {
     onSuccess: async (response) => {
       const thread = response.data.data;
       setGroupSettingsOpen(false);
-      toast.success('Group settings updated successfully.');
+      toast.success(t('chatPage.messages.groupUpdated'));
       await queryClient.invalidateQueries({ queryKey: ['chats'] });
       queryClient.invalidateQueries({ queryKey: ['chats', thread.id] });
     },
@@ -189,7 +197,7 @@ export default function ChatsPage() {
       setBroadcastModalOpen(false);
       setBroadcastForm(EMPTY_BROADCAST_FORM);
       setBroadcastUserSearch('');
-      toast.success(`Broadcast sent to ${result.recipientCount} users.`);
+      toast.success(t('chatPage.messages.broadcastSent', { count: result.recipientCount }));
       await queryClient.invalidateQueries({ queryKey: ['chats'] });
       if (selectedChatId) {
         queryClient.invalidateQueries({ queryKey: ['chats', selectedChatId] });
@@ -205,7 +213,10 @@ export default function ChatsPage() {
   const chats = useMemo(() => chatsQuery.data || [], [chatsQuery.data]);
   const activeChatPayload = activeChatQuery.data;
   const activeThread = activeChatPayload?.thread || null;
-  const activeMessages = activeChatPayload?.messages || [];
+  const activeMessages = useMemo(
+    () => activeChatPayload?.messages || [],
+    [activeChatPayload?.messages]
+  );
 
   const filteredChats = useMemo(() => {
     const normalized = String(threadFilter || '').trim().toLowerCase();
@@ -262,6 +273,62 @@ export default function ChatsPage() {
     lastAutoReadRef.current = dedupeKey;
     markReadMutation.mutate({ chatId: activeThread.id });
   }, [activeThread?.id, activeThread?.hasUnread, activeThread?.lastMessageId, markReadMutation]);
+
+  useEffect(() => {
+    const container = messagesScrollRef.current;
+    if (!container) return undefined;
+
+    const handleScroll = () => {
+      shouldStickToBottomRef.current = isNearMessagesBottom();
+    };
+
+    handleScroll();
+    container.addEventListener('scroll', handleScroll);
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [activeThread?.id]);
+
+  useEffect(() => {
+    if (!activeThread?.id) {
+      previousThreadIdRef.current = null;
+      previousMessageCountRef.current = 0;
+      forceScrollToBottomRef.current = false;
+      return;
+    }
+
+    const threadChanged = previousThreadIdRef.current !== activeThread.id;
+    const previousCount = previousMessageCountRef.current;
+    const currentCount = activeMessages.length;
+    const lastMessage = currentCount > 0 ? activeMessages[currentCount - 1] : null;
+    const isOwnLatestMessage = Boolean(
+      currentUserId && lastMessage?.sender?.id === currentUserId
+    );
+
+    previousThreadIdRef.current = activeThread.id;
+    previousMessageCountRef.current = currentCount;
+
+    if (threadChanged) {
+      shouldStickToBottomRef.current = true;
+      requestAnimationFrame(() => scrollMessagesToBottom('auto'));
+      return;
+    }
+
+    if (currentCount <= previousCount) {
+      return;
+    }
+
+    if (
+      forceScrollToBottomRef.current ||
+      shouldStickToBottomRef.current ||
+      isOwnLatestMessage
+    ) {
+      requestAnimationFrame(() => scrollMessagesToBottom('smooth'));
+    }
+
+    forceScrollToBottomRef.current = false;
+  }, [activeMessages, activeThread?.id, currentUserId]);
 
   useChatSocket({
     enabled: isAuthenticated,
@@ -336,7 +403,28 @@ export default function ChatsPage() {
   const handleSubmitMessage = () => {
     const trimmed = composerText.trim();
     if (!trimmed || !selectedChatId) return;
+    forceScrollToBottomRef.current = true;
     sendMessageMutation.mutate({ chatId: selectedChatId, text: trimmed });
+  };
+
+  const isNearMessagesBottom = () => {
+    const container = messagesScrollRef.current;
+    if (!container) return true;
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+
+    return distanceFromBottom <= 150;
+  };
+
+  const scrollMessagesToBottom = (behavior = 'smooth') => {
+    const container = messagesScrollRef.current;
+    if (!container) return;
+
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior,
+    });
   };
 
   const handleToggleGroupMember = (selectedUser) => {
@@ -370,8 +458,8 @@ export default function ChatsPage() {
   };
 
   const submitGroupCreation = () => {
-    if (!groupForm.title.trim()) return toast.error('Group title is required.');
-    if (!groupForm.memberIds.length) return toast.error('Select at least one member.');
+    if (!groupForm.title.trim()) return toast.error(t('chatPage.messages.groupTitleRequired'));
+    if (!groupForm.memberIds.length) return toast.error(t('chatPage.messages.groupMembersRequired'));
 
     createGroupMutation.mutate({
       title: groupForm.title.trim(),
@@ -397,7 +485,7 @@ export default function ChatsPage() {
   };
 
   const submitBroadcast = () => {
-    if (!broadcastForm.template.trim()) return toast.error('Broadcast message is required.');
+    if (!broadcastForm.template.trim()) return toast.error(t('chatPage.messages.broadcastRequired'));
 
     if (!broadcastForm.audience.all) {
       const hasFilters =
@@ -411,7 +499,7 @@ export default function ChatsPage() {
         broadcastForm.audience.houseNames.length;
 
       if (!hasFilters) {
-        return toast.error('Choose at least one audience filter or send to all users.');
+        return toast.error(t('chatPage.messages.broadcastAudienceRequired'));
       }
     }
 
@@ -466,7 +554,7 @@ export default function ChatsPage() {
                       <p className="truncate text-sm font-semibold text-heading">{thread.title}</p>
                       <p className="truncate text-xs text-muted">
                         {thread.type === 'group'
-                          ? `${thread.participantCount} members`
+                          ? t('chatPage.shared.membersCount', { count: thread.participantCount })
                           : thread.directUser?.phonePrimary || ''}
                       </p>
                     </div>
@@ -520,7 +608,7 @@ export default function ChatsPage() {
               >
                 {!isOwn ? (
                   <p className="mb-1 text-xs font-semibold text-primary">
-                    {message.sender?.fullName || 'Unknown user'}
+                    {message.sender?.fullName || t('chatPage.shared.unknownUser')}
                   </p>
                 ) : null}
                 <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.text}</p>
@@ -532,7 +620,7 @@ export default function ChatsPage() {
                   {message.source === 'broadcast' ? (
                     <span className="inline-flex items-center gap-1">
                       <Megaphone className="h-3 w-3" />
-                      Broadcast
+                      {t('chatPage.shared.broadcastLabel')}
                     </span>
                   ) : null}
                   <span>{formatThreadTimestamp(message.createdAt)}</span>
@@ -612,7 +700,7 @@ export default function ChatsPage() {
                       <p className="truncate text-lg font-semibold text-heading">{activeThread.title}</p>
                       <p className="truncate text-sm text-muted">
                         {activeThread.type === 'group'
-                          ? `${activeThread.participantCount} members`
+                          ? t('chatPage.shared.membersCount', { count: activeThread.participantCount })
                           : activeThreadOtherUser?.phonePrimary || ''}
                       </p>
                     </div>
@@ -632,7 +720,9 @@ export default function ChatsPage() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto bg-page/40 px-5 py-4">{renderMessages()}</div>
+              <div ref={messagesScrollRef} className="flex-1 overflow-y-auto bg-page/40 px-5 py-4">
+                {renderMessages()}
+              </div>
 
               <div className="border-t border-border bg-surface px-5 py-4">
                 {!activeThread.canCurrentUserSendMessages ? (
@@ -647,26 +737,31 @@ export default function ChatsPage() {
                   </div>
                 ) : null}
 
-                <div className="flex flex-col gap-3 md:flex-row md:items-end">
-                  <TextArea
+                <form
+                  className="flex flex-col gap-3 md:flex-row md:items-end"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    handleSubmitMessage();
+                  }}
+                >
+                  <Input
                     label={tf('chatPage.fields.message', 'Message')}
                     value={composerText}
                     onChange={(event) => setComposerText(event.target.value)}
                     containerClassName="!mb-0 flex-1"
-                    className="min-h-[88px]"
+                    className="h-12"
                     placeholder={tf('chatPage.fields.messagePlaceholder', 'Type your message...')}
                     disabled={!activeThread.canCurrentUserSendMessages}
                   />
                   <Button
-                    type="button"
+                    type="submit"
                     icon={Send}
                     loading={sendMessageMutation.isPending}
                     disabled={!composerText.trim() || !activeThread.canCurrentUserSendMessages}
-                    onClick={handleSubmitMessage}
                   >
                     {tf('chatPage.actions.send', 'Send')}
                   </Button>
-                </div>
+                </form>
               </div>
             </div>
           ) : (
@@ -710,13 +805,6 @@ export default function ChatsPage() {
             containerClassName="!mb-0"
             placeholder={tf('chatPage.direct.searchPlaceholder', 'Search by name, phone, or email')}
           />
-
-          <div className="rounded-2xl border border-border bg-surface-alt/30 p-4 text-sm text-muted">
-            {tf(
-              'chatPage.direct.description',
-              'Any user with chat start permission can open a direct conversation instantly.'
-            )}
-          </div>
 
           {directSearchQuery.isLoading ? (
             <div className="rounded-2xl border border-dashed border-border bg-surface-alt/40 p-4 text-sm text-muted">

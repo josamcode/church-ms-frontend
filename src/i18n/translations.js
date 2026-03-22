@@ -2154,6 +2154,109 @@
           'When disabled, other users cannot inspect conversations created by your account unless they are direct participants. You still keep full access to your own chats.',
       },
     },
+    chatPage: {
+      subtitle:
+        'Live direct chats, managed group conversations, and permission-based broadcast messaging.',
+      actions: {
+        newChat: 'New chat',
+        newGroup: 'New group',
+        broadcast: 'Broadcast',
+        groupSettings: 'Group settings',
+        send: 'Send',
+        startChat: 'Start chat',
+        createGroup: 'Create group',
+        addToGroup: 'Add',
+        sendBroadcast: 'Send broadcast',
+        addRecipient: 'Add',
+      },
+      filters: {
+        search: 'Search chats',
+        placeholder: 'Search by name, group, or message preview',
+      },
+      fields: {
+        message: 'Message',
+        messagePlaceholder: 'Type your message and press Enter',
+      },
+      direct: {
+        searchLabel: 'Search users',
+        searchPlaceholder: 'Search by name, phone, or email',
+        description:
+          'Any user with chat start permission can open a direct conversation instantly.',
+      },
+      group: {
+        creatorNote: 'The group creator is added automatically as a group admin.',
+        ownerNote: 'The group creator remains in the group and keeps admin control.',
+        fields: {
+          title: 'Group title',
+          titlePlaceholder: 'Example: Youth servants',
+          description: 'Description',
+          descriptionPlaceholder: 'Optional details about this group conversation.',
+          allowMemberMessages: 'Allow members to send messages',
+          allowMemberMessagesHelp:
+            'Turn this off for announcement-only groups managed by admins.',
+          settingsHelp:
+            'Admins can switch this group between discussion mode and announcement mode.',
+          members: 'Members',
+          memberSearch: 'Search users to add',
+          manageMembers: 'Manage members',
+        },
+      },
+      broadcast: {
+        fields: {
+          template: 'Message template',
+          templateHelp:
+            'Use placeholders like {user.name}, {user.firstName}, {user.familyName}, {user.houseName}, or {user.diseases}.',
+          all: 'Send to all eligible users',
+          allHelp:
+            'When enabled, the broadcast ignores audience selectors and targets every eligible account.',
+          users: 'Specific users',
+          usersPlaceholder: 'Search and add specific users',
+          roles: 'Roles',
+          ageGroups: 'Age groups',
+          diseases: 'Diseases',
+          tags: 'Tags',
+          genders: 'Gender',
+          familyNames: 'Families',
+          houseNames: 'Houses',
+          multiSelectHint: 'Use Ctrl or Cmd to select multiple values.',
+          includeSelf: 'Include my account',
+          includeSelfHelp:
+            'Send the same personalized message to your own direct chat too.',
+          includeLocked: 'Include locked users',
+          includeLockedHelp:
+            'Useful for administrative messages before accounts are reactivated.',
+          includeUsersWithoutLogin: 'Include users without login',
+          includeUsersWithoutLoginHelp:
+            'Creates the direct thread early so the message is waiting once login is enabled.',
+        },
+      },
+      states: {
+        emptyThreads: 'No chats found yet. Start a new conversation to begin.',
+        noMessagesYet: 'No messages yet',
+        emptyMessages: 'No messages in this chat yet.',
+        adminOnlyMessaging: 'Only group admins can send messages in this chat right now.',
+        selectThread: 'Select a chat from the list to open it.',
+        noUsersFound: 'No matching users were found.',
+        membersCanChat: 'Members can chat',
+        adminOnlyChat: 'Admins only',
+        groupOnlySettings: 'Group settings are only available for group chats.',
+      },
+      messages: {
+        groupCreated: 'Group chat created successfully.',
+        groupUpdated: 'Group settings updated successfully.',
+        broadcastSent: 'Broadcast sent to {count} users.',
+        groupTitleRequired: 'Group title is required.',
+        groupMembersRequired: 'Select at least one member.',
+        broadcastRequired: 'Broadcast message is required.',
+        broadcastAudienceRequired:
+          'Choose at least one audience filter or send to all users.',
+      },
+      shared: {
+        membersCount: '{count} members',
+        unknownUser: 'Unknown user',
+        broadcastLabel: 'Broadcast',
+      },
+    },
     notifications: {
       page: 'Notifications',
       title: 'Notifications Center',
@@ -4591,6 +4694,109 @@
           'السماح للمستخدمين ذوي صلاحية الإشراف على الدردشة برؤية الدردشات التي أنشأتها',
         visibilityHelp:
           'عند إيقاف هذا الخيار، لن يتمكن المستخدمون الآخرون من الاطلاع على المحادثات التي أنشأتها إلا إذا كانوا مشاركين مباشرين فيها. وستظل قادرًا على الوصول الكامل إلى دردشاتك.',
+      },
+    },
+    chatPage: {
+      subtitle:
+        'دردشات مباشرة فورية، ومجموعات مُدارة، ورسائل جماعية تعتمد على الصلاحيات.',
+      actions: {
+        newChat: 'دردشة جديدة',
+        newGroup: 'مجموعة جديدة',
+        broadcast: 'رسالة جماعية',
+        groupSettings: 'إعدادات المجموعة',
+        send: 'إرسال',
+        startChat: 'بدء الدردشة',
+        createGroup: 'إنشاء المجموعة',
+        addToGroup: 'إضافة',
+        sendBroadcast: 'إرسال الرسالة الجماعية',
+        addRecipient: 'إضافة',
+      },
+      filters: {
+        search: 'البحث في الدردشات',
+        placeholder: 'ابحث بالاسم أو المجموعة أو معاينة الرسالة',
+      },
+      fields: {
+        message: 'الرسالة',
+        messagePlaceholder: 'اكتب رسالتك ثم اضغط Enter',
+      },
+      direct: {
+        searchLabel: 'البحث عن المستخدمين',
+        searchPlaceholder: 'ابحث بالاسم أو الهاتف أو البريد الإلكتروني',
+        description:
+          'أي مستخدم لديه صلاحية بدء الدردشة يمكنه فتح محادثة مباشرة فورًا.',
+      },
+      group: {
+        creatorNote: 'يتم إضافة منشئ المجموعة تلقائيًا كمشرف على المجموعة.',
+        ownerNote: 'يظل منشئ المجموعة داخلها ويحتفظ بصلاحيات الإشراف.',
+        fields: {
+          title: 'اسم المجموعة',
+          titlePlaceholder: 'مثال: خدام الشباب',
+          description: 'الوصف',
+          descriptionPlaceholder: 'تفاصيل اختيارية عن هذه المحادثة الجماعية.',
+          allowMemberMessages: 'السماح للأعضاء بإرسال الرسائل',
+          allowMemberMessagesHelp:
+            'أوقف هذا الخيار إذا كانت المجموعة مخصصة للإعلانات التي يديرها المشرفون فقط.',
+          settingsHelp:
+            'يمكن للمشرفين تحويل المجموعة بين وضع النقاش ووضع الإعلانات.',
+          members: 'الأعضاء',
+          memberSearch: 'ابحث عن مستخدمين لإضافتهم',
+          manageMembers: 'إدارة الأعضاء',
+        },
+      },
+      broadcast: {
+        fields: {
+          template: 'قالب الرسالة',
+          templateHelp:
+            'يمكنك استخدام متغيرات مثل {user.name} و {user.firstName} و {user.familyName} و {user.houseName} و {user.diseases}.',
+          all: 'إرسال إلى جميع المستخدمين المؤهلين',
+          allHelp:
+            'عند التفعيل، يتم تجاهل محددات الجمهور وإرسال الرسالة إلى كل حساب مؤهل.',
+          users: 'مستخدمون محددون',
+          usersPlaceholder: 'ابحث وأضف مستخدمين محددين',
+          roles: 'الأدوار',
+          ageGroups: 'الفئات العمرية',
+          diseases: 'الأمراض',
+          tags: 'الوسوم',
+          genders: 'النوع',
+          familyNames: 'العائلات',
+          houseNames: 'المنازل',
+          multiSelectHint: 'استخدم Ctrl أو Cmd لاختيار أكثر من قيمة.',
+          includeSelf: 'تضمين حسابي',
+          includeSelfHelp:
+            'أرسل نفس الرسالة المخصصة إلى محادثتك المباشرة أيضًا.',
+          includeLocked: 'تضمين الحسابات المغلقة',
+          includeLockedHelp:
+            'مفيد للرسائل الإدارية قبل إعادة تفعيل الحسابات.',
+          includeUsersWithoutLogin: 'تضمين المستخدمين بدون تسجيل دخول',
+          includeUsersWithoutLoginHelp:
+            'يتم إنشاء المحادثة المباشرة مبكرًا ليجد المستخدم الرسالة فور تفعيل تسجيل دخوله.',
+        },
+      },
+      states: {
+        emptyThreads: 'لا توجد دردشات بعد. ابدأ محادثة جديدة للبدء.',
+        noMessagesYet: 'لا توجد رسائل بعد',
+        emptyMessages: 'لا توجد رسائل في هذه المحادثة حتى الآن.',
+        adminOnlyMessaging: 'فقط مشرفو المجموعة يمكنهم إرسال الرسائل في هذه المحادثة الآن.',
+        selectThread: 'اختر دردشة من القائمة لفتحها.',
+        noUsersFound: 'لم يتم العثور على مستخدمين مطابقين.',
+        membersCanChat: 'يمكن للأعضاء التحدث',
+        adminOnlyChat: 'للمشرفين فقط',
+        groupOnlySettings: 'إعدادات المجموعة متاحة فقط للمحادثات الجماعية.',
+      },
+      messages: {
+        groupCreated: 'تم إنشاء مجموعة الدردشة بنجاح.',
+        groupUpdated: 'تم تحديث إعدادات المجموعة بنجاح.',
+        broadcastSent: 'تم إرسال الرسالة الجماعية إلى {count} مستخدم.',
+        groupTitleRequired: 'اسم المجموعة مطلوب.',
+        groupMembersRequired: 'اختر عضوًا واحدًا على الأقل.',
+        broadcastRequired: 'نص الرسالة الجماعية مطلوب.',
+        broadcastAudienceRequired:
+          'اختر محدد جمهور واحدًا على الأقل أو قم بالإرسال إلى الجميع.',
+      },
+      shared: {
+        membersCount: '{count} عضو',
+        unknownUser: 'مستخدم غير معروف',
+        broadcastLabel: 'رسالة جماعية',
       },
     },
     notifications: {
