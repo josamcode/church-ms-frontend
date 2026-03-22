@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { getAccessToken } from '../../auth/auth.store';
 
@@ -11,12 +11,15 @@ export default function useChatSocket({
   onMessage,
   onThreadRefresh,
   onThreadRemoved,
+  onTyping,
 } = {}) {
+  const socketRef = useRef(null);
   const handlersRef = useRef({
     onConnected,
     onMessage,
     onThreadRefresh,
     onThreadRemoved,
+    onTyping,
   });
 
   useEffect(() => {
@@ -25,8 +28,13 @@ export default function useChatSocket({
       onMessage,
       onThreadRefresh,
       onThreadRemoved,
+      onTyping,
     };
-  }, [onConnected, onMessage, onThreadRefresh, onThreadRemoved]);
+  }, [onConnected, onMessage, onThreadRefresh, onThreadRemoved, onTyping]);
+
+  const emit = useCallback((eventName, payload) => {
+    socketRef.current?.emit(eventName, payload);
+  }, []);
 
   useEffect(() => {
     if (!enabled) return undefined;
@@ -39,6 +47,7 @@ export default function useChatSocket({
       auth: { token },
       transports: ['websocket', 'polling'],
     });
+    socketRef.current = socket;
 
     socket.on('chat:connected', (payload) => {
       handlersRef.current.onConnected?.(payload);
@@ -56,8 +65,15 @@ export default function useChatSocket({
       handlersRef.current.onThreadRemoved?.(payload);
     });
 
+    socket.on('chat:typing', (payload) => {
+      handlersRef.current.onTyping?.(payload);
+    });
+
     return () => {
+      socketRef.current = null;
       socket.disconnect();
     };
   }, [enabled]);
+
+  return { emit };
 }

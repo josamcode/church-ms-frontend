@@ -1,4 +1,4 @@
-import { PERMISSIONS, ROLE_PERMISSIONS } from '../constants/permissions';
+import { computeEffectivePermissionsForRole } from '../constants/permissions';
 
 const ACCESS_TOKEN_KEY = 'church_access_token';
 const REFRESH_TOKEN_KEY = 'church_refresh_token';
@@ -69,11 +69,9 @@ export function isAuthenticated() {
 
 export function computeEffectivePermissions(user) {
   if (!user) return [];
-  if (user.role === 'SUPER_ADMIN') return [...PERMISSIONS];
-  const rolePerms = ROLE_PERMISSIONS[user.role] || [];
-  const extra = user.extraPermissions || [];
-  const denied = user.deniedPermissions || [];
-  const effectiveSet = new Set([...rolePerms, ...extra]);
-  denied.forEach((p) => effectiveSet.delete(p));
-  return [...effectiveSet];
+  return computeEffectivePermissionsForRole(
+    user.role,
+    user.extraPermissions || [],
+    user.deniedPermissions || []
+  );
 }

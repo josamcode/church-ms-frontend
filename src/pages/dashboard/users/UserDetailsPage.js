@@ -23,7 +23,14 @@ import Skeleton from '../../../components/ui/Skeleton';
 import Tabs from '../../../components/ui/Tabs';
 import TextArea from '../../../components/ui/TextArea';
 import UserSearchSelect from '../../../components/UserSearchSelect';
-import { PERMISSIONS, PERMISSION_GROUPS, PERMISSION_LABELS, ROLE_PERMISSIONS } from '../../../constants/permissions';
+import {
+  PERMISSIONS,
+  PERMISSION_GROUPS,
+  PERMISSION_LABELS,
+  ROLE_PERMISSIONS,
+  computeEffectivePermissionsForRole,
+  filterAssignablePermissions,
+} from '../../../constants/permissions';
 import {
   getEmploymentStatusLabel,
   getPresenceStatusLabel,
@@ -2454,14 +2461,19 @@ function buildPermissionsSnapshot(user) {
   const rolePermissions = role === 'SUPER_ADMIN'
     ? [...PERMISSIONS]
     : normalizePermissionList(ROLE_PERMISSIONS[role] || []);
-  const extraPermissions = normalizePermissionList(user?.extraPermissions);
-  const deniedPermissions = normalizePermissionList(user?.deniedPermissions);
+  const extraPermissions =
+    role === 'SUPER_ADMIN'
+      ? []
+      : normalizePermissionList(filterAssignablePermissions(role, user?.extraPermissions));
+  const deniedPermissions =
+    role === 'SUPER_ADMIN'
+      ? []
+      : normalizePermissionList(filterAssignablePermissions(role, user?.deniedPermissions));
 
-  const effectiveSet = new Set(rolePermissions);
-  extraPermissions.forEach((permission) => effectiveSet.add(permission));
-  deniedPermissions.forEach((permission) => effectiveSet.delete(permission));
-
-  const effectivePermissions = [...effectiveSet];
+  const effectivePermissions = normalizePermissionList(
+    computeEffectivePermissionsForRole(role, extraPermissions, deniedPermissions)
+  );
+  const effectiveSet = new Set(effectivePermissions);
   const groupedPermissionSet = new Set(PERMISSION_GROUPS.flatMap((group) => group.permissions));
   const groupedEffectivePermissions = PERMISSION_GROUPS.map((group) => ({
     id: group.id,

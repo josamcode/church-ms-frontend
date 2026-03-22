@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  Check,
   CheckCheck,
   Megaphone,
   MessageSquare,
@@ -46,6 +47,8 @@ const BROADCAST_TEMPLATE_PLACEHOLDERS = [
   { token: '{user.houseName}', labelKey: 'houseName', fallback: 'House name' },
   { token: '{user.diseases}', labelKey: 'diseases', fallback: 'Diseases' },
 ];
+const TYPING_IDLE_MS = 3000;
+const TYPING_INDICATOR_TTL_MS = 3000;
 
 export default function ChatsPage() {
   const queryClient = useQueryClient();
@@ -68,6 +71,7 @@ export default function ChatsPage() {
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [threadFilter, setThreadFilter] = useState('');
   const [composerText, setComposerText] = useState('');
+  const [typingUsersByThread, setTypingUsersByThread] = useState({});
 
   const [isDirectModalOpen, setDirectModalOpen] = useState(false);
   const [directSearch, setDirectSearch] = useState('');
@@ -84,6 +88,12 @@ export default function ChatsPage() {
   const lastAutoReadRef = useRef('');
   const messagesScrollRef = useRef(null);
   const broadcastTemplateRef = useRef(null);
+  const composerTypingTimeoutRef = useRef(null);
+  const remoteTypingTimeoutsRef = useRef(new Map());
+  const typingStateRef = useRef({
+    threadId: null,
+    isTyping: false,
+  });
   const shouldStickToBottomRef = useRef(true);
   const forceScrollToBottomRef = useRef(false);
   const previousThreadIdRef = useRef(null);
@@ -262,6 +272,42 @@ export default function ChatsPage() {
     () => activeChatPayload?.messages || [],
     [activeChatPayload?.messages]
   );
+  const activeTypingUsers = useMemo(
+    () => Object.values(typingUsersByThread[selectedChatId] || {}),
+    [selectedChatId, typingUsersByThread]
+  );
+  const activeTypingLabel = useMemo(() => {
+    if (!activeTypingUsers.length) return '';
+    if (activeTypingUsers.length === 1) {
+      return t('chatPage.shared.typingOne', {
+        name: activeTypingUsers[0].fullName || t('chatPage.shared.unknownUser'),
+      });
+    }
+    return t('chatPage.shared.typingMany', {
+      count: activeTypingUsers.length,
+    });
+  }, [activeTypingUsers, t]);
+
+  const removeTypingUser = (threadId, userId) => {
+    setTypingUsersByThread((current) => {
+      const threadTyping = current[threadId];
+      if (!threadTyping?.[userId]) return current;
+
+      const nextThreadTyping = { ...threadTyping };
+      delete nextThreadTyping[userId];
+
+      if (!Object.keys(nextThreadTyping).length) {
+        const nextState = { ...current };
+        delete nextState[threadId];
+        return nextState;
+      }
+
+      return {
+        ...current,
+        [threadId]: nextThreadTyping,
+      };
+    });
+  };
 
   const filteredChats = useMemo(() => {
     const normalized = String(threadFilter || '').trim().toLowerCase();
@@ -375,10 +421,13 @@ export default function ChatsPage() {
     forceScrollToBottomRef.current = false;
   }, [activeMessages, activeThread?.id, currentUserId]);
 
-  useChatSocket({
+  const { emit: emitChatEvent } = useChatSocket({
     enabled: isAuthenticated,
     onMessage: ({ threadId, message }) => {
       if (!threadId || !message) return;
+      if (message.sender?.id) {
+        removeTypingUser(threadId, message.sender.id);
+      }
       queryClient.setQueryData(['chats', threadId], (current) => {
         if (!current) return current;
         return { ...current, messages: appendUniqueMessage(current.messages || [], message) };
@@ -394,13 +443,179 @@ export default function ChatsPage() {
     onThreadRemoved: ({ threadId }) => {
       queryClient.invalidateQueries({ queryKey: ['chats'] });
       if (threadId) {
+        setTypingUsersByThread((current) => {
+          if (!current[threadId]) return current;
+          const nextState = { ...current };
+          delete nextState[threadId];
+          return nextState;
+        });
         queryClient.removeQueries({ queryKey: ['chats', threadId] });
         if (selectedChatId === threadId) {
           setSelectedChatId(null);
         }
       }
     },
+    onTyping: ({ threadId, user, isTyping }) => {
+      if (!threadId || !user?.id || user.id === currentUserId) return;
+
+      const timeoutKey = `${threadId}:${user.id}`;
+      const existingTimeout = remoteTypingTimeoutsRef.current.get(timeoutKey);
+      if (existingTimeout) {
+        clearTimeout(existingTimeout);
+        remoteTypingTimeoutsRef.current.delete(timeoutKey);
+      }
+
+      if (!isTyping) {
+        removeTypingUser(threadId, user.id);
+        return;
+      }
+
+      setTypingUsersByThread((current) => ({
+        ...current,
+        [threadId]: {
+          ...(current[threadId] || {}),
+          [user.id]: user,
+        },
+      }));
+
+      const timeoutId = setTimeout(() => {
+        remoteTypingTimeoutsRef.current.delete(timeoutKey);
+        removeTypingUser(threadId, user.id);
+      }, TYPING_INDICATOR_TTL_MS);
+
+      remoteTypingTimeoutsRef.current.set(timeoutKey, timeoutId);
+    },
   });
+
+  const emitTypingState = (threadId, isTyping, { force = false } = {}) => {
+    if (!threadId) return;
+
+    if (
+      !force &&
+      typingStateRef.current.threadId === threadId &&
+      typingStateRef.current.isTyping === isTyping
+    ) {
+      return;
+    }
+
+    typingStateRef.current = {
+      threadId,
+      isTyping,
+    };
+
+    emitChatEvent('chat:typing', {
+      threadId,
+      isTyping,
+    });
+  };
+
+  const stopLocalTyping = (threadId = typingStateRef.current.threadId) => {
+    if (composerTypingTimeoutRef.current) {
+      clearTimeout(composerTypingTimeoutRef.current);
+      composerTypingTimeoutRef.current = null;
+    }
+
+    if (threadId && typingStateRef.current.isTyping) {
+      emitTypingState(threadId, false);
+    } else if (!threadId) {
+      typingStateRef.current = {
+        threadId: null,
+        isTyping: false,
+      };
+    }
+  };
+
+  const handleComposerChange = (event) => {
+    const nextValue = event.target.value;
+    setComposerText(nextValue);
+
+    if (!selectedChatId || !activeThread?.canCurrentUserSendMessages) {
+      return;
+    }
+
+    if (!nextValue.trim()) {
+      stopLocalTyping(selectedChatId);
+      return;
+    }
+
+    emitTypingState(selectedChatId, true, { force: true });
+
+    if (composerTypingTimeoutRef.current) {
+      clearTimeout(composerTypingTimeoutRef.current);
+    }
+
+    composerTypingTimeoutRef.current = setTimeout(() => {
+      stopLocalTyping(selectedChatId);
+    }, TYPING_IDLE_MS);
+  };
+
+  useEffect(() => {
+    const activeRemoteTypingTimeouts = remoteTypingTimeoutsRef.current;
+
+    return () => {
+      if (composerTypingTimeoutRef.current) {
+        clearTimeout(composerTypingTimeoutRef.current);
+        composerTypingTimeoutRef.current = null;
+      }
+
+      if (typingStateRef.current.threadId && typingStateRef.current.isTyping) {
+        emitChatEvent('chat:typing', {
+          threadId: typingStateRef.current.threadId,
+          isTyping: false,
+        });
+      }
+
+      typingStateRef.current = {
+        threadId: null,
+        isTyping: false,
+      };
+      activeRemoteTypingTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+      activeRemoteTypingTimeouts.clear();
+    };
+  }, [emitChatEvent]);
+
+  useEffect(() => {
+    const typingThreadId = typingStateRef.current.threadId;
+    if (typingThreadId && typingThreadId !== selectedChatId) {
+      if (composerTypingTimeoutRef.current) {
+        clearTimeout(composerTypingTimeoutRef.current);
+        composerTypingTimeoutRef.current = null;
+      }
+
+      if (typingStateRef.current.isTyping) {
+        emitChatEvent('chat:typing', {
+          threadId: typingThreadId,
+          isTyping: false,
+        });
+      }
+
+      typingStateRef.current = {
+        threadId: null,
+        isTyping: false,
+      };
+    }
+  }, [emitChatEvent, selectedChatId]);
+
+  useEffect(() => {
+    if (!activeThread?.canCurrentUserSendMessages) {
+      if (composerTypingTimeoutRef.current) {
+        clearTimeout(composerTypingTimeoutRef.current);
+        composerTypingTimeoutRef.current = null;
+      }
+
+      if (selectedChatId && typingStateRef.current.isTyping) {
+        emitChatEvent('chat:typing', {
+          threadId: selectedChatId,
+          isTyping: false,
+        });
+      }
+
+      typingStateRef.current = {
+        threadId: null,
+        isTyping: false,
+      };
+    }
+  }, [activeThread?.canCurrentUserSendMessages, emitChatEvent, selectedChatId]);
 
   const activeParticipantIds = activeThread?.participants?.map((participant) => participant.id) || [];
   const activeThreadOtherUser = activeThread?.directUser || null;
@@ -462,6 +677,7 @@ export default function ChatsPage() {
   const handleSubmitMessage = () => {
     const trimmed = composerText.trim();
     if (!trimmed || !selectedChatId) return;
+    stopLocalTyping(selectedChatId);
     forceScrollToBottomRef.current = true;
     sendMessageMutation.mutate({ chatId: selectedChatId, text: trimmed });
   };
@@ -694,9 +910,9 @@ export default function ChatsPage() {
           const receiptState = message.deliveryStatus?.state || null;
           const receiptLabel = receiptState
             ? tf(
-                `chatPage.shared.messageStatus.${receiptState}`,
-                receiptState === 'seen' ? 'Seen' : 'Delivered'
-              )
+              `chatPage.shared.messageStatus.${receiptState}`,
+              receiptState === 'seen' ? 'Seen' : 'Delivered'
+            )
             : null;
 
           return (
@@ -717,8 +933,12 @@ export default function ChatsPage() {
                 >
                   {isOwn && receiptLabel ? (
                     <span className="inline-flex items-center gap-1">
-                      <CheckCheck className="h-3.5 w-3.5" />
-                      <span>{receiptLabel}</span>
+                      {receiptState === 'seen' ? (
+                        <CheckCheck className="h-3.5 w-3.5" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+                      {/* <span>{receiptLabel}</span> */}
                     </span>
                   ) : null}
                   <span>{formatThreadTimestamp(message.createdAt)}</span>
@@ -835,6 +1055,17 @@ export default function ChatsPage() {
                   </div>
                 ) : null}
 
+                {activeTypingUsers.length ? (
+                  <div className="mb-3 flex items-center gap-2 rounded-2xl border border-border bg-surface-alt/30 px-3 py-2 text-sm text-muted">
+                    <span className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-primary/70 animate-pulse" />
+                      <span className="h-2 w-2 rounded-full bg-primary/50 animate-pulse [animation-delay:200ms]" />
+                      <span className="h-2 w-2 rounded-full bg-primary/40 animate-pulse [animation-delay:400ms]" />
+                    </span>
+                    <span>{activeTypingLabel}</span>
+                  </div>
+                ) : null}
+
                 <form
                   className="flex flex-col gap-3 md:flex-row md:items-end"
                   onSubmit={(event) => {
@@ -845,7 +1076,8 @@ export default function ChatsPage() {
                   <Input
                     label={tf('chatPage.fields.message', 'Message')}
                     value={composerText}
-                    onChange={(event) => setComposerText(event.target.value)}
+                    onChange={handleComposerChange}
+                    onBlur={() => stopLocalTyping(selectedChatId)}
                     containerClassName="!mb-0 flex-1"
                     className="h-12"
                     placeholder={tf('chatPage.fields.messagePlaceholder', 'Type your message...')}

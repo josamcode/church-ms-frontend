@@ -1,4 +1,9 @@
-import { PERMISSIONS, PERMISSION_LABELS, ROLE_PERMISSIONS } from '../../../constants/permissions';
+import {
+  PERMISSIONS,
+  PERMISSION_LABELS,
+  computeEffectivePermissionsForRole,
+  filterAssignablePermissions,
+} from '../../../constants/permissions';
 import { getEducationStageGroup } from '../../../constants/education';
 import { formatAgeFromBirthDate } from '../../../utils/formatters';
 
@@ -253,15 +258,11 @@ function buildCountList(values = []) {
 
 function computeEffectivePermissions(user) {
   if (!user) return [];
-  if (user.role === 'SUPER_ADMIN') return [...PERMISSIONS];
-
-  const rolePermissions = Array.isArray(ROLE_PERMISSIONS[user.role]) ? ROLE_PERMISSIONS[user.role] : [];
-  const extraPermissions = Array.isArray(user.extraPermissions) ? user.extraPermissions : [];
-  const deniedPermissions = Array.isArray(user.deniedPermissions) ? user.deniedPermissions : [];
-
-  const effective = new Set([...rolePermissions, ...extraPermissions]);
-  deniedPermissions.forEach((permission) => effective.delete(permission));
-  return [...effective];
+  return computeEffectivePermissionsForRole(
+    user.role || 'USER',
+    user.extraPermissions || [],
+    user.deniedPermissions || []
+  );
 }
 
 function buildSearchBlob(parts = []) {
@@ -358,8 +359,12 @@ export function deriveUsersExplorerDataset(users = []) {
 
     const tags = normalizeStringList(user?.tags);
     const effectivePermissions = normalizeStringList(computeEffectivePermissions(user));
-    const extraPermissions = normalizeStringList(user?.extraPermissions);
-    const deniedPermissions = normalizeStringList(user?.deniedPermissions);
+    const extraPermissions = normalizeStringList(
+      filterAssignablePermissions(user?.role || 'USER', user?.extraPermissions)
+    );
+    const deniedPermissions = normalizeStringList(
+      filterAssignablePermissions(user?.role || 'USER', user?.deniedPermissions)
+    );
     const siblingCount = Array.isArray(user?.siblings) ? user.siblings.length : 0;
     const childrenCount = Array.isArray(user?.children) ? user.children.length : 0;
     const otherFamilyCount = Array.isArray(user?.familyMembers) ? user.familyMembers.length : 0;

@@ -2285,6 +2285,8 @@
         membersCount: '{count} members',
         unknownUser: 'Unknown user',
         broadcastLabel: 'Broadcast',
+        typingOne: '{name} is typing...',
+        typingMany: '{count} people are typing...',
         messageStatus: {
           delivered: 'Delivered',
           seen: 'Seen',
@@ -4861,6 +4863,8 @@
         membersCount: '{count} عضو',
         unknownUser: 'مستخدم غير معروف',
         broadcastLabel: 'رسالة جماعية',
+        typingOne: '{name} يكتب الآن...',
+        typingMany: '{count} أشخاص يكتبون الآن...',
         messageStatus: {
           delivered: 'تم التسليم',
           seen: 'تمت المشاهدة',

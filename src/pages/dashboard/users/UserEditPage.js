@@ -9,6 +9,9 @@ import {
   ROLE_PERMISSIONS,
   PERMISSION_GROUPS,
   PERMISSION_LABELS,
+  canAssignPermissionToRole,
+  computeEffectivePermissionsForRole,
+  filterAssignablePermissions,
 } from '../../../constants/permissions';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
@@ -351,6 +354,15 @@ function PermissionsPanel({
     return group.label;
   };
 
+  const permissionGroups = useMemo(
+    () =>
+      PERMISSION_GROUPS.map((group) => ({
+        ...group,
+        permissions: group.permissions.filter((permission) => canAssignPermissionToRole(form.role, permission)),
+      })).filter((group) => group.permissions.length > 0),
+    [form.role]
+  );
+
   /* stats */
   const extraCount = (form.extraPermissions || []).length;
   const deniedCount = (form.deniedPermissions || []).length;
@@ -393,7 +405,7 @@ function PermissionsPanel({
       </div>
 
       {/* groups */}
-      {PERMISSION_GROUPS.map((group) => {
+      {permissionGroups.map((group) => {
         const isOpen = expandedGroups[group.id];
         const groupExtra = group.permissions.filter((p) => (form.extraPermissions || []).includes(p)).length;
         const groupDenied = group.permissions.filter((p) => (form.deniedPermissions || []).includes(p)).length;
@@ -443,7 +455,7 @@ function PermissionsPanel({
                         roleHasPermission={roleHasPermission}
                         isExtra={isExtra}
                         isDenied={isDenied}
-                        disabled={isSuperAdmin}
+                        disabled={isSuperAdmin || !canAssignPermissionToRole(form.role, permission)}
                         onChange={onPermissionChange}
                       />
                     );
@@ -607,10 +619,11 @@ export default function UserEditPage() {
 
   const effectivePermissionsPreview = useMemo(() => {
     if (!form?.role) return [];
-    if (form.role === 'SUPER_ADMIN') return [...PERMISSIONS];
-    const set = new Set([...(ROLE_PERMISSIONS[form.role] || []), ...(form.extraPermissions || [])]);
-    (form.deniedPermissions || []).forEach((p) => set.delete(p));
-    return [...set];
+    return computeEffectivePermissionsForRole(
+      form.role,
+      form.extraPermissions || [],
+      form.deniedPermissions || []
+    );
   }, [form?.role, form?.extraPermissions, form?.deniedPermissions]);
 
   /* linked users */
@@ -673,8 +686,8 @@ export default function UserEditPage() {
         role: user.role || 'USER',
         hasLogin: Boolean(user.hasLogin),
         password: '',
-        extraPermissions: normalizePermissionArray(user.extraPermissions),
-        deniedPermissions: normalizePermissionArray(user.deniedPermissions),
+        extraPermissions: filterAssignablePermissions(user.role || 'USER', user.extraPermissions),
+        deniedPermissions: filterAssignablePermissions(user.role || 'USER', user.deniedPermissions),
         governorate: user.address?.governorate || '',
         city: user.address?.city || '',
         street: user.address?.street || '',
@@ -770,9 +783,14 @@ export default function UserEditPage() {
   const update = (field, value) => {
     setForm((prev) => {
       const next = { ...prev, [field]: value };
-      if (field === 'role' && value === 'SUPER_ADMIN') {
-        next.extraPermissions = [];
-        next.deniedPermissions = [];
+      if (field === 'role') {
+        if (value === 'SUPER_ADMIN') {
+          next.extraPermissions = [];
+          next.deniedPermissions = [];
+        } else {
+          next.extraPermissions = filterAssignablePermissions(value, next.extraPermissions);
+          next.deniedPermissions = filterAssignablePermissions(value, next.deniedPermissions);
+        }
       }
       if (field === 'hasLogin' && !value) {
         next.password = '';
@@ -789,6 +807,7 @@ export default function UserEditPage() {
   const setPermissionOverride = (permission, mode, checked) => {
     setForm((prev) => {
       if (!prev) return prev;
+      if (!canAssignPermissionToRole(prev.role, permission)) return prev;
       const currentExtra = normalizePermissionArray(prev.extraPermissions);
       const currentDenied = normalizePermissionArray(prev.deniedPermissions);
       const removeFrom = (arr) => arr.filter((item) => item !== permission);
@@ -849,10 +868,10 @@ export default function UserEditPage() {
     if (form.hasLogin && (form.password || '').trim()) payload.password = form.password.trim();
 
     if (canManagePermissionOverrides) {
-      const nextExtra = normalizePermissionArray(form.extraPermissions);
-      const nextDenied = normalizePermissionArray(form.deniedPermissions);
-      const oldExtra = normalizePermissionArray(user.extraPermissions);
-      const oldDenied = normalizePermissionArray(user.deniedPermissions);
+      const nextExtra = filterAssignablePermissions(form.role || 'USER', form.extraPermissions);
+      const nextDenied = filterAssignablePermissions(form.role || 'USER', form.deniedPermissions);
+      const oldExtra = filterAssignablePermissions(user.role || 'USER', user.extraPermissions);
+      const oldDenied = filterAssignablePermissions(user.role || 'USER', user.deniedPermissions);
       if (JSON.stringify(nextExtra) !== JSON.stringify(oldExtra)) payload.extraPermissions = nextExtra;
       if (JSON.stringify(nextDenied) !== JSON.stringify(oldDenied)) payload.deniedPermissions = nextDenied;
     }
