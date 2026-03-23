@@ -32,7 +32,7 @@ export default function PublicLayout() {
   const [showTopBtn, setShowTopBtn] = useState(false);
   const { isAuthenticated } = useAuth();
   const location = useLocation();
-  const { isRTL } = useI18n();
+  const { t, isRTL } = useI18n();
   const { text, socialLinks } = useLandingPublicContent();
 
   useEffect(() => {
@@ -79,20 +79,18 @@ export default function PublicLayout() {
     <div className="min-h-screen flex flex-col bg-page" dir={isRTL ? 'rtl' : 'ltr'}>
       <AppRouteEffects />
       <header
-        className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
-          scrolled
-            ? 'bg-surface/90 backdrop-blur-xl border-b border-border shadow-sm shadow-black/5'
-            : 'bg-transparent border-b border-transparent'
-        }`}
+        className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${scrolled
+          ? 'bg-surface/90 backdrop-blur-xl border-b border-border shadow-sm shadow-black/5'
+          : 'bg-transparent border-b border-transparent'
+          }`}
       >
         <div className="page-container flex items-center justify-between h-16 sm:h-[4.5rem]">
           <Link to="/" className="relative flex items-center gap-2.5 group">
             <div
-              className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300 ${
-                scrolled
-                  ? 'bg-primary/10 text-primary'
-                  : 'bg-white/10 text-primary backdrop-blur-sm'
-              } group-hover:bg-primary group-hover:text-white group-hover:shadow-lg group-hover:shadow-primary/25`}
+              className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300 ${scrolled
+                ? 'bg-primary/10 text-primary'
+                : 'bg-white/10 text-primary backdrop-blur-sm'
+                } group-hover:bg-primary group-hover:text-white group-hover:shadow-lg group-hover:shadow-primary/25`}
             >
               <Church className="w-5 h-5" />
             </div>
@@ -101,9 +99,8 @@ export default function PublicLayout() {
                 {brandPrimary}
               </span>
               <span
-                className={`text-[10px] font-medium leading-none ${
-                  scrolled ? 'text-muted' : 'text-muted/70'
-                }`}
+                className={`text-[10px] font-medium leading-none ${scrolled ? 'text-muted' : 'text-muted/70'
+                  }`}
               >
                 {brandSecondary}
               </span>
@@ -115,13 +112,11 @@ export default function PublicLayout() {
               <a
                 key={link.href}
                 href={link.href}
-                className={`relative px-3.5 py-2 text-[13px] font-semibold rounded-lg transition-all duration-300 ${
-                  isLinkActive(link.href)
-                    ? 'text-primary bg-primary/8'
-                    : `${
-                        scrolled ? 'text-muted' : 'text-muted/80'
-                      } hover:text-primary hover:bg-primary/5`
-                }`}
+                className={`relative px-3.5 py-2 text-[13px] font-semibold rounded-lg transition-all duration-300 ${isLinkActive(link.href)
+                  ? 'text-primary bg-primary/8'
+                  : `${scrolled ? 'text-muted' : 'text-muted/80'
+                  } hover:text-primary hover:bg-primary/5`
+                  }`}
               >
                 {link.label}
                 {isLinkActive(link.href) ? (
@@ -148,9 +143,8 @@ export default function PublicLayout() {
             )}
             <button
               onClick={() => setMobileOpen(true)}
-              className={`lg:hidden p-2.5 rounded-xl transition-colors ${
-                scrolled ? 'text-muted hover:bg-primary/5 hover:text-primary' : 'text-muted/80 hover:text-primary'
-              }`}
+              className={`lg:hidden p-2.5 rounded-xl transition-colors ${scrolled ? 'text-muted hover:bg-primary/5 hover:text-primary' : 'text-muted/80 hover:text-primary'
+                }`}
               aria-label={text('publicLayout.menu')}
             >
               <Menu className="w-5 h-5" />
@@ -192,11 +186,10 @@ export default function PublicLayout() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-semibold transition-all ${
-                    isLinkActive(link.href)
-                      ? 'bg-primary/8 text-primary'
-                      : 'text-muted hover:bg-page hover:text-heading'
-                  }`}
+                  className={`flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-semibold transition-all ${isLinkActive(link.href)
+                    ? 'bg-primary/8 text-primary'
+                    : 'text-muted hover:bg-page hover:text-heading'
+                    }`}
                 >
                   {link.label}
                   <ChevronRight className={`w-4 h-4 opacity-40 ${isRTL ? 'rotate-180' : ''}`} />
@@ -232,9 +225,8 @@ export default function PublicLayout() {
 
         <div className="page-container pt-14 pb-8">
           <div
-            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8 ${
-              isRTL ? 'text-right' : 'text-left'
-            }`}
+            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8 ${isRTL ? 'text-right' : 'text-left'
+              }`}
           >
             <div className="sm:col-span-2 lg:col-span-1">
               <div className={`flex items-center gap-2.5 mb-4 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
@@ -258,9 +250,8 @@ export default function PublicLayout() {
                   <a
                     key={link.href}
                     href={link.href}
-                    className={`block text-sm text-muted hover:text-primary transition-colors ${
-                      isRTL ? 'text-right' : ''
-                    }`}
+                    className={`block text-sm text-muted hover:text-primary transition-colors ${isRTL ? 'text-right' : ''
+                      }`}
                   >
                     {link.label}
                   </a>
@@ -313,7 +304,7 @@ export default function PublicLayout() {
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
-                {text('publicLayout.footerCreditName')}
+                {t('publicLayout.footerCreditName')}
               </a>{' '}
               {text('publicLayout.footerCreditSuffix')}
             </p>
@@ -323,9 +314,8 @@ export default function PublicLayout() {
 
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className={`fixed bottom-6 ${isRTL ? 'left-6' : 'right-6'} z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 transition-all duration-500 hover:bg-primary-dark hover:shadow-xl ${
-          showTopBtn ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'
-        }`}
+        className={`fixed bottom-6 ${isRTL ? 'left-6' : 'right-6'} z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 transition-all duration-500 hover:bg-primary-dark hover:shadow-xl ${showTopBtn ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'
+          }`}
         aria-label={text('publicLayout.scrollTop')}
       >
         <ArrowUp className="w-5 h-5" />

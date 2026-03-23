@@ -516,12 +516,12 @@ export default function LandingContentPage() {
               onChange={(event) => updateLocationField('placeName', event.target.value)}
               containerClassName="!mb-0"
             />
-            <Input
+            {/* <Input
               label={t('landingContentPage.fields.locationPlusCode')}
               value={form.location.plusCode}
               onChange={(event) => updateLocationField('plusCode', event.target.value)}
               containerClassName="!mb-0"
-            />
+            /> */}
             <Input
               label={t('landingContentPage.fields.locationAddressLine')}
               value={form.location.addressLine}
@@ -534,14 +534,14 @@ export default function LandingContentPage() {
               onChange={(event) => updateLocationField('directionsUrl', event.target.value)}
               containerClassName="!mb-0"
             />
-            <div className="md:col-span-2">
+            {/* <div className="md:col-span-2">
               <Input
                 label={t('landingContentPage.fields.locationMapEmbedUrl')}
                 value={form.location.mapEmbedUrl}
                 onChange={(event) => updateLocationField('mapEmbedUrl', event.target.value)}
                 containerClassName="!mb-0"
               />
-            </div>
+            </div> */}
           </div>
         </EditorCard>
       ),
