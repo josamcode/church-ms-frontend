@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 
 import { userNotificationsApi } from '../../api/endpoints';
 import Button from '../ui/Button';
+import Modal from '../ui/Modal';
 import { useI18n } from '../../i18n/i18n';
 import usePushNotifications from '../../hooks/notifications/usePushNotifications';
 import NotificationListItem from './NotificationListItem';
@@ -30,10 +31,18 @@ const FIRST_PAGE_QUERY_KEY = getUserNotificationsListQueryKey();
 const PREVIEW_QUERY_KEY = getUserNotificationsListQueryKey({ limit: NOTIFICATION_PREVIEW_LIMIT });
 const VIEWPORT_PINNED_BREAKPOINT = 1024;
 const DESKTOP_DROPDOWN_WIDTH = 300;
+const PUSH_ENABLE_PROMPT_SESSION_KEY = 'church_push_enable_prompt_seen';
 
 export default function NotificationBell() {
   const { t, isRTL } = useI18n();
-  const { permission: pushPermission } = usePushNotifications();
+  const {
+    supported: pushSupported,
+    subscribed: pushSubscribed,
+    permission: pushPermission,
+    loading: pushLoading,
+    error: pushError,
+    enablePush,
+  } = usePushNotifications();
   const tf = (key, fallback, values) => {
     const value = t(key, values);
     return value === key ? fallback : value;
@@ -47,6 +56,7 @@ export default function NotificationBell() {
   const [openingNotificationId, setOpeningNotificationId] = useState('');
   const [viewportPinned, setViewportPinned] = useState(false);
   const [floatingPanelTop, setFloatingPanelTop] = useState(0);
+  const [showPushPrompt, setShowPushPrompt] = useState(false);
 
   const unreadCountQuery = useQuery({
     queryKey: NOTIFICATION_UNREAD_COUNT_QUERY_KEY,
@@ -156,6 +166,26 @@ export default function NotificationBell() {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      !pushSupported ||
+      pushSubscribed ||
+      pushPermission !== 'default'
+    ) {
+      setShowPushPrompt(false);
+      return;
+    }
+
+    const hasShownPrompt = window.sessionStorage.getItem(PUSH_ENABLE_PROMPT_SESSION_KEY) === '1';
+    if (hasShownPrompt) {
+      return;
+    }
+
+    window.sessionStorage.setItem(PUSH_ENABLE_PROMPT_SESSION_KEY, '1');
+    setShowPushPrompt(true);
+  }, [pushPermission, pushSubscribed, pushSupported]);
+
   const applyNewNotification = (notification) => {
     queryClient.setQueryData(NOTIFICATION_UNREAD_COUNT_QUERY_KEY, (current = 0) => Number(current || 0) + 1);
     queryClient.setQueryData(PREVIEW_QUERY_KEY, (current) =>
@@ -240,6 +270,20 @@ export default function NotificationBell() {
       applyThreadReadState(threadId, nextUnreadCount);
     },
   });
+
+  const handleEnablePushFromPrompt = async () => {
+    try {
+      await enablePush();
+      setShowPushPrompt(false);
+      toast.success(tf('notificationCenter.push.enabled', 'Browser notifications enabled.'));
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          tf('notificationCenter.push.enableFailed', 'Failed to enable browser notifications.')
+      );
+    }
+  };
 
   useSocketEvent('notification:new', ({ notification }) => {
     if (!notification?.id) return;
@@ -446,6 +490,53 @@ export default function NotificationBell() {
           </div>
         </div>
       ) : null}
+
+      <Modal
+        isOpen={showPushPrompt}
+        onClose={() => setShowPushPrompt(false)}
+        title={tf('notificationCenter.push.promptTitle', 'Enable browser notifications?')}
+        size="sm"
+        bodyClassName="text-center"
+        footerClassName="justify-center"
+        footer={(
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setShowPushPrompt(false)}
+            >
+              {tf('notificationCenter.push.promptLater', 'Maybe later')}
+            </Button>
+            <Button
+              type="button"
+              loading={pushLoading}
+              onClick={handleEnablePushFromPrompt}
+            >
+              {tf('notificationCenter.push.promptEnable', 'Enable notifications')}
+            </Button>
+          </>
+        )}
+      >
+        <div className="space-y-3 text-sm text-muted">
+          <p>
+            {tf(
+              'notificationCenter.push.promptBody',
+              'Turn on browser notifications to receive chat messages and important alerts even when this page is in the background.'
+            )}
+          </p>
+          <p>
+            {tf(
+              'notificationCenter.push.promptHint',
+              'We will ask your browser for permission, then subscribe this device automatically.'
+            )}
+          </p>
+          {pushError ? (
+            <p className="rounded-xl border border-danger/20 bg-danger/5 px-3 py-2 text-xs text-danger">
+              {pushError}
+            </p>
+          ) : null}
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -2533,6 +2533,13 @@ export const translations = {
         enableFailed: 'Failed to enable push notifications.',
         disabled: 'Push notifications disabled.',
         disableFailed: 'Failed to disable push notifications.',
+        promptTitle: 'Enable browser notifications?',
+        promptLater: 'Maybe later',
+        promptEnable: 'Enable notifications',
+        promptBody:
+          'Turn on browser notifications to receive chat messages and important alerts even when this page is in the background.',
+        promptHint:
+          'We will ask your browser for permission, then subscribe this device automatically.',
         tipPermission:
           'If permission is blocked, allow notifications in your browser settings and try again.',
         tipServiceWorker:
@@ -5231,6 +5238,13 @@ export const translations = {
         enableFailed: 'تعذر تفعيل الإشعارات الفورية.',
         disabled: 'تم إيقاف الإشعارات الفورية.',
         disableFailed: 'تعذر إيقاف الإشعارات الفورية.',
+        promptTitle: 'هل تريد تفعيل إشعارات المتصفح؟',
+        promptLater: 'لاحقًا',
+        promptEnable: 'تفعيل الإشعارات',
+        promptBody:
+          'فعّل إشعارات المتصفح لتصلك رسائل الدردشة والتنبيهات المهمة حتى عندما يكون الموقع في الخلفية.',
+        promptHint:
+          'سنطلب إذن المتصفح أولًا، ثم سنشترك هذا الجهاز تلقائيًا في الإشعارات.',
         tipPermission:
           'إذا كانت الصلاحية محظورة، اسمح بالإشعارات من إعدادات المتصفح ثم أعد المحاولة.',
         tipServiceWorker:

@@ -1,8 +1,18 @@
 import { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useI18n } from '../../i18n/i18n';
 
-export default function Modal({ isOpen, onClose, title, children, size = 'md', footer }) {
+export default function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = 'md',
+  footer,
+  bodyClassName = '',
+  footerClassName = '',
+}) {
   const { t } = useI18n();
 
   const handleEsc = useCallback(
@@ -24,6 +34,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', f
   }, [isOpen, handleEsc]);
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const sizes = {
     sm: 'max-w-md',
@@ -32,7 +43,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', f
     xl: 'max-w-4xl',
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50 animate-fade-in" onClick={onClose} />
       <div
@@ -51,9 +62,14 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', f
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-4 overflow-y-auto flex-1">{children}</div>
-        {footer && <div className="p-4 border-t border-border flex gap-2 justify-end">{footer}</div>}
+        <div className={`p-4 overflow-y-auto flex-1 ${bodyClassName}`.trim()}>{children}</div>
+        {footer ? (
+          <div className={`p-4 border-t border-border flex gap-2 justify-end ${footerClassName}`.trim()}>
+            {footer}
+          </div>
+        ) : null}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
