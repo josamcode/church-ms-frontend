@@ -4,8 +4,24 @@ const ACCESS_TOKEN_KEY = 'church_access_token';
 const REFRESH_TOKEN_KEY = 'church_refresh_token';
 const USER_KEY = 'church_user';
 const PERMISSIONS_KEY = 'church_permissions';
+export const AUTH_TOKENS_CHANGED_EVENT = 'church:auth-tokens-changed';
 
 let memoryAccessToken = null;
+
+function emitTokensChanged() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(AUTH_TOKENS_CHANGED_EVENT, {
+      detail: {
+        accessToken: getAccessToken(),
+        refreshToken: getRefreshToken(),
+      },
+    })
+  );
+}
 
 function readStoredValue(key) {
   const persistentValue = localStorage.getItem(key);
@@ -49,6 +65,7 @@ export function setTokens(accessToken, refreshToken) {
   memoryAccessToken = accessToken || null;
   writeStoredValue(ACCESS_TOKEN_KEY, accessToken || null);
   writeStoredValue(REFRESH_TOKEN_KEY, refreshToken || null);
+  emitTokensChanged();
 }
 
 export function setUser(user) {
@@ -93,6 +110,7 @@ export function clearAuth() {
   removeStoredValue(REFRESH_TOKEN_KEY);
   removeStoredValue(USER_KEY);
   removeStoredValue(PERMISSIONS_KEY);
+  emitTokensChanged();
 }
 
 export function isAuthenticated() {

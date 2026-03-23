@@ -16,9 +16,14 @@ import {
 import toast from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
 
-import { chatApi } from '../../../api/endpoints';
+import { chatApi, userNotificationsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
+import {
+  markThreadNotificationsReadInCollection,
+  NOTIFICATION_UNREAD_COUNT_QUERY_KEY,
+  USER_NOTIFICATIONS_LIST_ROOT_KEY,
+} from '../../../components/notifications/notificationCenter.shared';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
@@ -66,7 +71,7 @@ const sortThreadsByActivity = (threads = []) =>
 
 export default function ChatsPage() {
   const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t, language } = useI18n();
   const { user, isAuthenticated, hasPermission } = useAuth();
   const tf = (key, fallback) => {
@@ -101,6 +106,7 @@ export default function ChatsPage() {
   const [broadcastUserSearch, setBroadcastUserSearch] = useState('');
   const broadcastAudience = broadcastForm.audience;
   const lastAutoReadRef = useRef('');
+  const lastReadNotificationThreadRef = useRef('');
   const messagesScrollRef = useRef(null);
   const broadcastTemplateRef = useRef(null);
   const composerTypingTimeoutRef = useRef(null);
@@ -284,6 +290,18 @@ export default function ChatsPage() {
 
   const markReadMutation = useMutation({
     mutationFn: ({ chatId }) => chatApi.markRead(chatId),
+  });
+
+  const { mutate: markThreadNotificationsRead } = useMutation({
+    mutationFn: (threadId) => userNotificationsApi.markThreadRead(threadId),
+    onSuccess: (response, threadId) => {
+      const nextUnreadCount = Number(response?.data?.data?.unreadCount ?? 0);
+      queryClient.setQueryData(NOTIFICATION_UNREAD_COUNT_QUERY_KEY, nextUnreadCount);
+      queryClient.setQueriesData(
+        { queryKey: USER_NOTIFICATIONS_LIST_ROOT_KEY },
+        (current) => markThreadNotificationsReadInCollection(current, threadId)
+      );
+    },
   });
 
   const chats = useMemo(() => chatsQuery.data || [], [chatsQuery.data]);
@@ -472,6 +490,20 @@ export default function ChatsPage() {
   }, [chats, selectedChatId]);
 
   useEffect(() => {
+    const currentThreadId = searchParams.get('threadId');
+
+    if (selectedChatId) {
+      if (currentThreadId === selectedChatId) {
+        return;
+      }
+
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.set('threadId', selectedChatId);
+      setSearchParams(nextSearchParams, { replace: true });
+    }
+  }, [searchParams, selectedChatId, setSearchParams]);
+
+  useEffect(() => {
     if (!isGroupSettingsOpen || !activeThread) return;
     setGroupSettingsForm({
       title: activeThread.title || '',
@@ -494,6 +526,20 @@ export default function ChatsPage() {
     lastAutoReadRef.current = dedupeKey;
     markReadMutation.mutate({ chatId: activeThread.id });
   }, [activeThread?.id, activeThread?.hasUnread, activeThread?.lastMessageId, markReadMutation]);
+
+  useEffect(() => {
+    if (!activeThread?.id) {
+      lastReadNotificationThreadRef.current = '';
+      return;
+    }
+
+    if (lastReadNotificationThreadRef.current === activeThread.id) {
+      return;
+    }
+
+    lastReadNotificationThreadRef.current = activeThread.id;
+    markThreadNotificationsRead(activeThread.id);
+  }, [activeThread?.id, markThreadNotificationsRead]);
 
   useEffect(() => {
     const container = messagesScrollRef.current;
@@ -746,6 +792,22 @@ export default function ChatsPage() {
       };
     }
   }, [activeThread?.canCurrentUserSendMessages, emitChatEvent, selectedChatId]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return undefined;
+    }
+
+    emitChatEvent('chat:thread:view', {
+      threadId: selectedChatId || null,
+    });
+
+    return () => {
+      emitChatEvent('chat:thread:view', {
+        threadId: null,
+      });
+    };
+  }, [emitChatEvent, isAuthenticated, selectedChatId]);
 
   const activeParticipantIds = activeThread?.participants?.map((participant) => participant.id) || [];
   const activeThreadOtherUser = activeThread?.directUser || null;

@@ -80,6 +80,35 @@ export function markAllNotificationsReadInCollection(current) {
   };
 }
 
+export function getChatNotificationThreadId(notification) {
+  const threadId = String(notification?.metadata?.threadId || '').trim();
+
+  if (notification?.type !== 'chat_message' || !threadId) {
+    return '';
+  }
+
+  return threadId;
+}
+
+export function markThreadNotificationsReadInCollection(current, threadId) {
+  const normalizedThreadId = String(threadId || '').trim();
+  if (!current || !Array.isArray(current.items) || !normalizedThreadId) {
+    return current;
+  }
+
+  return {
+    ...current,
+    items: current.items.map((item) =>
+      getChatNotificationThreadId(item) === normalizedThreadId
+        ? {
+            ...item,
+            isRead: true,
+          }
+        : item
+    ),
+  };
+}
+
 export function getUnreadBadgeLabel(count) {
   if (count > 99) return '99+';
   if (count > 0) return String(count);

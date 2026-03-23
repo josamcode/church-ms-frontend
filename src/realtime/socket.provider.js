@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from '../auth/auth.hooks';
-import { getAccessToken } from '../auth/auth.store';
+import { AUTH_TOKENS_CHANGED_EVENT, getAccessToken } from '../auth/auth.store';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 const SOCKET_URL = API_URL.replace(/\/api\/?$/, '');
@@ -21,6 +21,7 @@ export function SocketProvider({ children }) {
   const socketRef = useRef(null);
   const listenersRef = useRef(new Map());
   const [connected, setConnected] = useState(false);
+  const [socketToken, setSocketToken] = useState(() => getAccessToken());
 
   const emit = useCallback((eventName, payload) => {
     socketRef.current?.emit(eventName, payload);
@@ -58,7 +59,37 @@ export function SocketProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    const syncToken = () => {
+      setSocketToken(getAccessToken());
+    };
+
+    syncToken();
+
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleTokensChanged = (event) => {
+      setSocketToken(event?.detail?.accessToken || getAccessToken());
+    };
+
+    const handleStorage = (event) => {
+      if (!event.key || event.key === 'church_access_token') {
+        syncToken();
+      }
+    };
+
+    window.addEventListener(AUTH_TOKENS_CHANGED_EVENT, handleTokensChanged);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener(AUTH_TOKENS_CHANGED_EVENT, handleTokensChanged);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !socketToken) {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -67,14 +98,9 @@ export function SocketProvider({ children }) {
       return undefined;
     }
 
-    const token = getAccessToken();
-    if (!token) {
-      return undefined;
-    }
-
     const socket = io(SOCKET_URL, {
       path: '/socket.io',
-      auth: { token },
+      auth: { token: socketToken },
       transports: ['websocket', 'polling'],
     });
     const listeners = listenersRef.current;
@@ -89,13 +115,16 @@ export function SocketProvider({ children }) {
 
     const handleConnect = () => setConnected(true);
     const handleDisconnect = () => setConnected(false);
+    const handleConnectError = () => setConnected(false);
 
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
+    socket.on('connect_error', handleConnectError);
 
     return () => {
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
+      socket.off('connect_error', handleConnectError);
       listeners.forEach((handlers, eventName) => {
         handlers.forEach((handler) => {
           socket.off(eventName, handler);
@@ -107,7 +136,7 @@ export function SocketProvider({ children }) {
       }
       setConnected(false);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, socketToken]);
 
   const value = useMemo(
     () => ({

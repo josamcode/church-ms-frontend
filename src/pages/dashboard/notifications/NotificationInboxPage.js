@@ -11,14 +11,17 @@ import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
 import NotificationListItem from '../../../components/notifications/NotificationListItem';
 import {
+  getChatNotificationThreadId,
   getNotificationDestination,
   getUnreadBadgeLabel,
   getUserNotificationsListQueryKey,
   isExternalNotificationDestination,
   markAllNotificationsReadInCollection,
   markNotificationReadInCollection,
+  markThreadNotificationsReadInCollection,
   normalizeNotificationCollectionResponse,
   NOTIFICATION_UNREAD_COUNT_QUERY_KEY,
+  USER_NOTIFICATIONS_LIST_ROOT_KEY,
 } from '../../../components/notifications/notificationCenter.shared';
 import usePushNotifications from '../../../hooks/notifications/usePushNotifications';
 import { useI18n } from '../../../i18n/i18n';
@@ -90,6 +93,18 @@ export default function NotificationInboxPage() {
     },
   });
 
+  const markThreadReadMutation = useMutation({
+    mutationFn: (threadId) => userNotificationsApi.markThreadRead(threadId),
+    onSuccess: (response, threadId) => {
+      const nextUnreadCount = Number(response?.data?.data?.unreadCount ?? 0);
+      queryClient.setQueryData(NOTIFICATION_UNREAD_COUNT_QUERY_KEY, nextUnreadCount);
+      queryClient.setQueriesData(
+        { queryKey: USER_NOTIFICATIONS_LIST_ROOT_KEY },
+        (current) => markThreadNotificationsReadInCollection(current, threadId)
+      );
+    },
+  });
+
   const readAllMutation = useMutation({
     mutationFn: () => userNotificationsApi.readAll(),
     onSuccess: () => {
@@ -121,8 +136,22 @@ export default function NotificationInboxPage() {
 
   const openNotificationDestination = async (notification) => {
     const destination = getNotificationDestination(notification);
+    const notificationThreadId = getChatNotificationThreadId(notification);
 
-    if (!notification?.isRead) {
+    if (notificationThreadId) {
+      setOpeningNotificationId(notification.id);
+      try {
+        await markThreadReadMutation.mutateAsync(notificationThreadId);
+      } catch (error) {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            tf('notificationCenter.markReadFailed', 'Failed to update the notification status.')
+        );
+      } finally {
+        setOpeningNotificationId('');
+      }
+    } else if (!notification?.isRead) {
       setOpeningNotificationId(notification.id);
       try {
         await markReadMutation.mutateAsync(notification.id);

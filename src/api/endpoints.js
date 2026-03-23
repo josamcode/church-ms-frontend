@@ -162,6 +162,7 @@ export const userNotificationsApi = {
   list: (params) => apiClient.get('/notifications', { params }),
   unreadCount: () => apiClient.get('/notifications/unread-count'),
   markRead: (id) => apiClient.patch(`/notifications/${id}/read`),
+  markThreadRead: (threadId) => apiClient.patch(`/notifications/threads/${threadId}/read`),
   readAll: () => apiClient.patch('/notifications/read-all'),
   sendSystem: (data) => apiClient.post('/notifications/system', data),
 };

@@ -9,16 +9,19 @@ import Button from '../ui/Button';
 import { useI18n } from '../../i18n/i18n';
 import NotificationListItem from './NotificationListItem';
 import {
+  getChatNotificationThreadId,
   getNotificationDestination,
   getUnreadBadgeLabel,
   getUserNotificationsListQueryKey,
   isExternalNotificationDestination,
   markAllNotificationsReadInCollection,
   markNotificationReadInCollection,
+  markThreadNotificationsReadInCollection,
   normalizeNotificationCollectionResponse,
   NOTIFICATION_PREVIEW_LIMIT,
   NOTIFICATION_UNREAD_COUNT_QUERY_KEY,
   prependNotificationToCollection,
+  USER_NOTIFICATIONS_LIST_ROOT_KEY,
 } from './notificationCenter.shared';
 import { useSocketEvent } from '../../realtime/socket.provider';
 
@@ -94,6 +97,13 @@ export default function NotificationBell() {
   );
   const unreadCount = Number(unreadCountQuery.data || 0);
   const unreadBadge = getUnreadBadgeLabel(unreadCount);
+  const activeChatThreadId = useMemo(() => {
+    if (location.pathname !== '/dashboard/chats') {
+      return '';
+    }
+
+    return new URLSearchParams(location.search).get('threadId') || '';
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -154,8 +164,38 @@ export default function NotificationBell() {
     );
   };
 
+  const applyThreadReadState = (threadId, unreadCountValue) => {
+    queryClient.setQueryData(
+      NOTIFICATION_UNREAD_COUNT_QUERY_KEY,
+      Math.max(0, Number(unreadCountValue || 0))
+    );
+    queryClient.setQueriesData(
+      { queryKey: USER_NOTIFICATIONS_LIST_ROOT_KEY },
+      (current) => markThreadNotificationsReadInCollection(current, threadId)
+    );
+  };
+
+  const markThreadReadMutation = useMutation({
+    mutationFn: (threadId) => userNotificationsApi.markThreadRead(threadId),
+    onSuccess: (response, threadId) => {
+      const nextUnreadCount = Number(response?.data?.data?.unreadCount ?? 0);
+      applyThreadReadState(threadId, nextUnreadCount);
+    },
+  });
+
   useSocketEvent('notification:new', ({ notification }) => {
     if (!notification?.id) return;
+
+    const notificationThreadId = getChatNotificationThreadId(notification);
+    const viewingSameChatThread =
+      Boolean(notificationThreadId) &&
+      location.pathname === '/dashboard/chats' &&
+      notificationThreadId === activeChatThreadId;
+
+    if (viewingSameChatThread) {
+      markThreadReadMutation.mutate(notificationThreadId);
+      return;
+    }
 
     applyNewNotification(notification);
 
@@ -188,10 +228,29 @@ export default function NotificationBell() {
     );
   });
 
+  useSocketEvent('notification:thread:read', ({ threadId, unreadCount: nextUnreadCount }) => {
+    if (!threadId) return;
+    applyThreadReadState(threadId, nextUnreadCount);
+  });
+
   const openNotificationDestination = async (notification) => {
     const destination = getNotificationDestination(notification);
+    const notificationThreadId = getChatNotificationThreadId(notification);
 
-    if (!notification?.isRead) {
+    if (notificationThreadId) {
+      setOpeningNotificationId(notification.id);
+      try {
+        await markThreadReadMutation.mutateAsync(notificationThreadId);
+      } catch (error) {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            tf('notificationCenter.markReadFailed', 'Failed to update the notification status.')
+        );
+      } finally {
+        setOpeningNotificationId('');
+      }
+    } else if (!notification?.isRead) {
       setOpeningNotificationId(notification.id);
       try {
         await markReadMutation.mutateAsync(notification.id);
