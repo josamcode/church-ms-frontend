@@ -55,7 +55,7 @@ export function AuthProvider({ children }) {
     }
   }, [clearClientSession]);
 
-  /** Restore access token from refresh token when opening app in a new tab (sessionStorage is not shared) */
+  /** Recover the access token when only a persisted refresh token is still available */
   const restoreSessionIfNeeded = useCallback(async () => {
     const refreshToken = getRefreshToken();
     const accessToken = getAccessToken();
