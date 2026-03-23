@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { userNotificationsApi } from '../../api/endpoints';
 import Button from '../ui/Button';
 import { useI18n } from '../../i18n/i18n';
+import usePushNotifications from '../../hooks/notifications/usePushNotifications';
 import NotificationListItem from './NotificationListItem';
 import {
   getChatNotificationThreadId,
@@ -32,6 +33,7 @@ const DESKTOP_DROPDOWN_WIDTH = 300;
 
 export default function NotificationBell() {
   const { t, isRTL } = useI18n();
+  const { permission: pushPermission } = usePushNotifications();
   const tf = (key, fallback, values) => {
     const value = t(key, values);
     return value === key ? fallback : value;
@@ -175,6 +177,62 @@ export default function NotificationBell() {
     );
   };
 
+  const showBrowserNotification = async (notification) => {
+    if (
+      typeof window === 'undefined' ||
+      typeof document === 'undefined' ||
+      pushPermission !== 'granted' ||
+      !notification?.id
+    ) {
+      return false;
+    }
+
+    const destination = getNotificationDestination(notification);
+    const options = {
+      body: notification.message || '',
+      icon: '/logo192.png',
+      badge: '/logo192.png',
+      tag: `user-notification:${notification.id}`,
+      renotify: false,
+      data: {
+        link: destination,
+        notificationId: notification.id,
+        type: notification.type || null,
+      },
+    };
+
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration?.showNotification) {
+        await registration.showNotification(notification.title || tf('notificationCenter.title', 'Notification Center'), options);
+        return true;
+      }
+    }
+
+    if (!('Notification' in window)) {
+      return false;
+    }
+
+    const browserNotification = new window.Notification(
+      notification.title || tf('notificationCenter.title', 'Notification Center'),
+      options
+    );
+
+    browserNotification.onclick = () => {
+      window.focus();
+
+      if (isExternalNotificationDestination(destination)) {
+        window.location.href = destination;
+      } else {
+        navigate(destination);
+      }
+
+      browserNotification.close();
+    };
+
+    return true;
+  };
+
   const markThreadReadMutation = useMutation({
     mutationFn: (threadId) => userNotificationsApi.markThreadRead(threadId),
     onSuccess: (response, threadId) => {
@@ -198,6 +256,16 @@ export default function NotificationBell() {
     }
 
     applyNewNotification(notification);
+
+    const shouldShowBrowserNotification =
+      typeof document !== 'undefined' &&
+      pushPermission === 'granted' &&
+      document.visibilityState !== 'visible';
+
+    if (shouldShowBrowserNotification) {
+      void showBrowserNotification(notification).catch(() => undefined);
+      return;
+    }
 
     if (location.pathname !== '/dashboard/notifications/inbox') {
       toast.success(`${notification.title}`, {

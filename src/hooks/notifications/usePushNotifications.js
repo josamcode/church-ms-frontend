@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { pushApi } from '../../api/endpoints';
 
+const PUSH_SUBSCRIPTION_VERSION = '2026-03-23';
+const PUSH_SUBSCRIPTION_VERSION_KEY = 'church_push_subscription_version';
+
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -14,6 +17,69 @@ async function ensureServiceWorkerRegistration() {
   const registration = await navigator.serviceWorker.register(serviceWorkerPath);
   await registration.update().catch(() => undefined);
   return navigator.serviceWorker.ready;
+}
+
+async function getApplicationServerKey() {
+  const { data } = await pushApi.getPublicKey();
+  const publicKey = data?.data?.publicKey;
+
+  if (!publicKey) {
+    throw new Error('Push public key is missing from the server response.');
+  }
+
+  return urlBase64ToUint8Array(publicKey);
+}
+
+async function syncSubscriptionWithServer(subscription) {
+  await pushApi.subscribe({
+    subscription: subscription.toJSON ? subscription.toJSON() : subscription,
+    userAgent: navigator.userAgent,
+  });
+}
+
+function readSubscriptionVersion() {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  return window.localStorage.getItem(PUSH_SUBSCRIPTION_VERSION_KEY) || '';
+}
+
+function writeSubscriptionVersion() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(PUSH_SUBSCRIPTION_VERSION_KEY, PUSH_SUBSCRIPTION_VERSION);
+}
+
+function clearSubscriptionVersion() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.removeItem(PUSH_SUBSCRIPTION_VERSION_KEY);
+}
+
+async function createBrowserSubscription(registration) {
+  return registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: await getApplicationServerKey(),
+  });
+}
+
+async function recreateBrowserSubscription(registration) {
+  const existingSubscription = await registration.pushManager.getSubscription();
+
+  if (existingSubscription?.endpoint) {
+    await pushApi.unsubscribe({
+      endpoint: existingSubscription.endpoint,
+    }).catch(() => undefined);
+
+    await existingSubscription.unsubscribe().catch(() => undefined);
+  }
+
+  return createBrowserSubscription(registration);
 }
 
 export default function usePushNotifications({ enabled = true } = {}) {
@@ -42,13 +108,24 @@ export default function usePushNotifications({ enabled = true } = {}) {
     }
 
     const registration = await ensureServiceWorkerRegistration();
-    const subscription = await registration.pushManager.getSubscription();
+    let subscription = await registration.pushManager.getSubscription();
+    const hasGrantedPermission = window.Notification.permission === 'granted';
+    const needsSubscriptionRefresh =
+      shouldResubscribe &&
+      hasGrantedPermission &&
+      readSubscriptionVersion() !== PUSH_SUBSCRIPTION_VERSION;
 
-    if (subscription && shouldResubscribe) {
-      await pushApi.subscribe({
-        subscription: subscription.toJSON ? subscription.toJSON() : subscription,
-        userAgent: navigator.userAgent,
-      });
+    if (subscription && needsSubscriptionRefresh) {
+      subscription = await recreateBrowserSubscription(registration);
+      await syncSubscriptionWithServer(subscription);
+      writeSubscriptionVersion();
+    } else if (subscription && shouldResubscribe) {
+      await syncSubscriptionWithServer(subscription);
+      writeSubscriptionVersion();
+    } else if (!subscription && shouldResubscribe && hasGrantedPermission) {
+      subscription = await createBrowserSubscription(registration);
+      await syncSubscriptionWithServer(subscription);
+      writeSubscriptionVersion();
     }
 
     setSubscribed(Boolean(subscription));
@@ -98,25 +175,9 @@ export default function usePushNotifications({ enabled = true } = {}) {
         throw new Error('Notification permission was not granted.');
       }
 
-      const { data } = await pushApi.getPublicKey();
-      const publicKey = data?.data?.publicKey;
-
-      if (!publicKey) {
-        throw new Error('Push public key is missing from the server response.');
-      }
-
-      let subscription = await registration.pushManager.getSubscription();
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
-        });
-      }
-
-      await pushApi.subscribe({
-        subscription: subscription.toJSON ? subscription.toJSON() : subscription,
-        userAgent: navigator.userAgent,
-      });
+      const subscription = await recreateBrowserSubscription(registration);
+      await syncSubscriptionWithServer(subscription);
+      writeSubscriptionVersion();
 
       setSubscribed(true);
       return true;
@@ -148,6 +209,7 @@ export default function usePushNotifications({ enabled = true } = {}) {
         await subscription.unsubscribe();
       }
 
+      clearSubscriptionVersion();
       setSubscribed(false);
       return true;
     } catch (disableError) {
