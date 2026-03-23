@@ -32,6 +32,7 @@ import UserEducationSection, {
   mapUserToEducationForm,
 } from '../../../components/users/UserEducationSection';
 import UserFormSectionTabs from '../../../components/users/UserFormSectionTabs';
+import { extractBirthDateFromNationalId } from '../../../utils/egyptianNationalId';
 import toast from 'react-hot-toast';
 import { useI18n } from '../../../i18n/i18n';
 import {
@@ -147,23 +148,23 @@ function StepBadge({ n }) {
 function getEditFormSections(language = 'ar', canManagePermissionOverrides = false) {
   const labels = language === 'ar'
     ? {
-        basic: 'البيانات الأساسية',
-        additional: 'معلومات إضافية',
-        permissions: 'إدارة الصلاحيات',
-        family: 'أفراد العائلة',
-        address: 'العنوان',
-        custom: 'تفاصيل مخصصة',
-        socioeconomic: 'الملف الاقتصادي والصحي',
-      }
+      basic: 'البيانات الأساسية',
+      additional: 'معلومات إضافية',
+      permissions: 'إدارة الصلاحيات',
+      family: 'أفراد العائلة',
+      address: 'العنوان',
+      custom: 'تفاصيل مخصصة',
+      socioeconomic: 'الملف الاقتصادي والصحي',
+    }
     : {
-        basic: 'Basic information',
-        additional: 'Additional information',
-        permissions: 'Permissions',
-        family: 'Family members',
-        address: 'Address',
-        custom: 'Custom details',
-        socioeconomic: 'Socioeconomic profile',
-      };
+      basic: 'Basic information',
+      additional: 'Additional information',
+      permissions: 'Permissions',
+      family: 'Family members',
+      address: 'Address',
+      custom: 'Custom details',
+      socioeconomic: 'Socioeconomic profile',
+    };
 
   const sections = [
     { id: 'basic', label: labels.basic },
@@ -679,9 +680,9 @@ export default function UserEditPage() {
         confessionFather:
           user.confessionFatherUserId || user.confessionFatherName
             ? {
-                _id: user.confessionFatherUserId || null,
-                fullName: user.confessionFatherName || '',
-              }
+              _id: user.confessionFatherUserId || null,
+              fullName: user.confessionFatherName || '',
+            }
             : null,
         role: user.role || 'USER',
         hasLogin: Boolean(user.hasLogin),
@@ -795,11 +796,16 @@ export default function UserEditPage() {
       if (field === 'hasLogin' && !value) {
         next.password = '';
       }
+      if (field === 'nationalId' && !prev.birthDate) {
+        const extractedBirthDate = extractBirthDateFromNationalId(value);
+        if (extractedBirthDate) next.birthDate = extractedBirthDate;
+      }
       return next;
     });
     setErrors((prev) => ({
       ...prev,
       [field]: undefined,
+      ...(field === 'nationalId' ? { birthDate: undefined } : {}),
       ...(field === 'hasLogin' && !value ? { password: undefined } : {}),
     }));
   };
@@ -837,11 +843,18 @@ export default function UserEditPage() {
       return;
     }
 
+    if (form.hasLogin && !String(form.email || '').trim() && !String(form.phonePrimary || '').trim()) {
+      setErrors({
+        password: 'يجب توفير بريد إلكتروني أو رقم هاتف لتفعيل تسجيل الدخول',
+      });
+      return;
+    }
+
     const payload = {};
     if (form.fullName !== user.fullName) payload.fullName = form.fullName;
-    if (form.phonePrimary !== user.phonePrimary) payload.phonePrimary = form.phonePrimary;
+    if (form.phonePrimary !== (user.phonePrimary || '')) payload.phonePrimary = form.phonePrimary || null;
     if (form.email !== (user.email || '')) payload.email = form.email || null;
-    if (form.birthDate !== (user.birthDate?.split('T')[0] || '')) payload.birthDate = form.birthDate;
+    if (form.birthDate !== (user.birthDate?.split('T')[0] || '')) payload.birthDate = form.birthDate || null;
     if (form.gender !== user.gender) payload.gender = form.gender;
     if (form.nationalId !== (user.nationalId || '')) payload.nationalId = form.nationalId || null;
     if (form.notes !== (user.notes || '')) payload.notes = form.notes;
@@ -1035,102 +1048,102 @@ export default function UserEditPage() {
           {/* ── STEP 1 · البيانات الأساسية ────────────────────────────── */}
           {activeSection === 'basic' && (
             <section className="space-y-4">
-            <div className="flex items-center gap-2"><StepBadge n={getSectionStep('basic')} /><SectionLabel>البيانات الأساسية</SectionLabel></div>
-            <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+              <div className="flex items-center gap-2"><StepBadge n={getSectionStep('basic')} /><SectionLabel>البيانات الأساسية</SectionLabel></div>
+              <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
 
-              {/* avatar */}
-              <div>
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted">الصورة الشخصية</p>
-                <div className="flex items-center gap-4 flex-wrap">
-                  {user?.avatar?.url ? (
-                    <img src={user.avatar.url} alt="" className="h-20 w-20 rounded-2xl border-2 border-primary/20 object-cover shadow-sm" />
-                  ) : (
-                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface-alt">
-                      <Users className="h-8 w-8 text-muted" />
+                {/* avatar */}
+                <div>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted">الصورة الشخصية</p>
+                  <div className="flex items-center gap-4 flex-wrap">
+                    {user?.avatar?.url ? (
+                      <img src={user.avatar.url} alt="" className="h-20 w-20 rounded-2xl border-2 border-primary/20 object-cover shadow-sm" />
+                    ) : (
+                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface-alt">
+                        <Users className="h-8 w-8 text-muted" />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-1">
+                      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleAvatarChange} disabled={avatarMutation.isPending} className="hidden" />
+                      <Button type="button" variant="outline" size="sm" icon={Upload} loading={avatarMutation.isPending} onClick={() => fileInputRef.current?.click()}>
+                        {user?.avatar?.url ? 'تغيير الصورة' : 'رفع صورة'}
+                      </Button>
+                      <span className="text-xs text-muted">JPEG, PNG, GIF أو WEBP — حتى 5 ميجابايت</span>
                     </div>
-                  )}
-                  <div className="flex flex-col gap-1">
-                    <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleAvatarChange} disabled={avatarMutation.isPending} className="hidden" />
-                    <Button type="button" variant="outline" size="sm" icon={Upload} loading={avatarMutation.isPending} onClick={() => fileInputRef.current?.click()}>
-                      {user?.avatar?.url ? 'تغيير الصورة' : 'رفع صورة'}
-                    </Button>
-                    <span className="text-xs text-muted">JPEG, PNG, GIF أو WEBP — حتى 5 ميجابايت</span>
                   </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Input label="الاسم الكامل" required value={form.fullName} onChange={(e) => update('fullName', e.target.value)} error={errors.fullName} containerClassName="!mb-0" />
-                <Input label="تاريخ الميلاد" type="date" dir="ltr" className="text-left" value={form.birthDate} onChange={(e) => update('birthDate', e.target.value)} error={errors.birthDate} containerClassName="!mb-0" />
-                <Input label="رقم الهاتف الأساسي" required dir="ltr" className="text-left" value={form.phonePrimary} onChange={(e) => update('phonePrimary', e.target.value)} error={errors.phonePrimary} containerClassName="!mb-0" />
-                <Select label="الجنس" options={genderOptions} value={form.gender} onChange={(e) => update('gender', e.target.value)} containerClassName="!mb-0" />
-                <Input label="البريد الإلكتروني" type="email" dir="ltr" className="text-left" value={form.email} onChange={(e) => update('email', e.target.value)} error={errors.email} containerClassName="!mb-0" />
-                <Input label="الرقم القومي" dir="ltr" className="text-left" value={form.nationalId} onChange={(e) => update('nationalId', e.target.value)} error={errors.nationalId} containerClassName="!mb-0" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Input label="الاسم الكامل" required value={form.fullName} onChange={(e) => update('fullName', e.target.value)} error={errors.fullName} containerClassName="!mb-0" />
+                  <Input label="تاريخ الميلاد" type="date" dir="ltr" className="text-left" value={form.birthDate} onChange={(e) => update('birthDate', e.target.value)} error={errors.birthDate} containerClassName="!mb-0" />
+                  <Input label="رقم الهاتف الأساسي" dir="ltr" className="text-left" value={form.phonePrimary} onChange={(e) => update('phonePrimary', e.target.value)} error={errors.phonePrimary} containerClassName="!mb-0" />
+                  <Select label="الجنس" options={genderOptions} value={form.gender} onChange={(e) => update('gender', e.target.value)} containerClassName="!mb-0" />
+                  <Input label="البريد الإلكتروني" type="email" dir="ltr" className="text-left" value={form.email} onChange={(e) => update('email', e.target.value)} error={errors.email} containerClassName="!mb-0" />
+                  <Input label="الرقم القومي" dir="ltr" className="text-left" value={form.nationalId} onChange={(e) => update('nationalId', e.target.value)} error={errors.nationalId} containerClassName="!mb-0" />
+                </div>
               </div>
-            </div>
             </section>
           )}
 
           {/* ── STEP 2 · معلومات إضافية ──────────────────────────────── */}
           {activeSection === 'additional' && (
             <section className="space-y-4">
-            <div className="flex items-center gap-2"><StepBadge n={getSectionStep('additional')} /><SectionLabel>معلومات إضافية</SectionLabel></div>
-            <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
-              <CreatableTagComboboxInput
-                label={t('userDetails.profile.tagsTitle')}
-                values={form.tags || []}
-                onChange={(next) => update('tags', next)}
-                suggestions={tagSuggestions}
-                placeholder={t('chatPage.broadcast.fields.tagsPlaceholder')}
-                error={errors.tags}
-                containerClassName="!mb-0"
-              />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Input label="الهاتف الثانوي" dir="ltr" className="text-left" value={form.phoneSecondary} onChange={(e) => update('phoneSecondary', e.target.value)} containerClassName="!mb-0" />
-                <Input label="رقم الواتساب" dir="ltr" className="text-left" value={form.whatsappNumber} onChange={(e) => update('whatsappNumber', e.target.value)} containerClassName="!mb-0" />
-                <NameCombobox label="اسم العائلة" value={form.familyName} onChange={(v) => update('familyName', v)} options={familyNames} placeholder="ابحث أو اكتب اسم العائلة" />
-                <NameCombobox label="اسم البيت" value={form.houseName} onChange={(v) => update('houseName', v)} options={houseNames} placeholder="ابحث أو اكتب اسم البيت" />
-                <Select label="الدور" options={roleOptionsForEditor} value={form.role} onChange={(e) => update('role', e.target.value)} containerClassName="!mb-0" />
-                <Select
-                  label={language === 'ar' ? 'الأب الروحي' : 'Spiritual Father'}
-                  value={form.confessionFather?._id || form.confessionFather?.id || ''}
-                  onChange={(event) =>
-                    update('confessionFather', churchPriestLookup.get(event.target.value) || null)
-                  }
-                  options={churchPriestOptions}
-                  placeholder={language === 'ar' ? 'اختر الأب الروحي' : 'Select Spiritual Father'}
+              <div className="flex items-center gap-2"><StepBadge n={getSectionStep('additional')} /><SectionLabel>معلومات إضافية</SectionLabel></div>
+              <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+                <CreatableTagComboboxInput
+                  label={t('userDetails.profile.tagsTitle')}
+                  values={form.tags || []}
+                  onChange={(next) => update('tags', next)}
+                  suggestions={tagSuggestions}
+                  placeholder={t('chatPage.broadcast.fields.tagsPlaceholder')}
+                  error={errors.tags}
                   containerClassName="!mb-0"
                 />
-                <Input
-                  label="كلمة المرور"
-                  type="password"
-                  dir="ltr"
-                  className="text-left"
-                  hint={form.hasLogin ? 'اتركها فارغة إذا لا تريد تغييرها' : 'فعّل تسجيل الدخول أولاً لتعيين كلمة مرور'}
-                  value={form.password}
-                  onChange={(e) => update('password', e.target.value)}
-                  error={errors.password}
-                  disabled={!form.hasLogin}
-                  containerClassName="!mb-0"
-                />
-                <div className="sm:col-span-2 rounded-xl border border-border bg-surface-alt/50 px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-heading">تسجيل الدخول</p>
-                      <p className="text-xs text-muted">
-                        {form.hasLogin ? 'يمكن للمستخدم تسجيل الدخول للنظام.' : 'تم منع هذا الحساب من تسجيل الدخول.'}
-                      </p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Input label="الهاتف الثانوي" dir="ltr" className="text-left" value={form.phoneSecondary} onChange={(e) => update('phoneSecondary', e.target.value)} containerClassName="!mb-0" />
+                  <Input label="رقم الواتساب" dir="ltr" className="text-left" value={form.whatsappNumber} onChange={(e) => update('whatsappNumber', e.target.value)} containerClassName="!mb-0" />
+                  <NameCombobox label="اسم العائلة" value={form.familyName} onChange={(v) => update('familyName', v)} options={familyNames} placeholder="ابحث أو اكتب اسم العائلة" />
+                  <NameCombobox label="اسم البيت" value={form.houseName} onChange={(v) => update('houseName', v)} options={houseNames} placeholder="ابحث أو اكتب اسم البيت" />
+                  <Select label="الدور" options={roleOptionsForEditor} value={form.role} onChange={(e) => update('role', e.target.value)} containerClassName="!mb-0" />
+                  <Select
+                    label={language === 'ar' ? 'الأب الروحي' : 'Spiritual Father'}
+                    value={form.confessionFather?._id || form.confessionFather?.id || ''}
+                    onChange={(event) =>
+                      update('confessionFather', churchPriestLookup.get(event.target.value) || null)
+                    }
+                    options={churchPriestOptions}
+                    placeholder={language === 'ar' ? 'اختر الأب الروحي' : 'Select Spiritual Father'}
+                    containerClassName="!mb-0"
+                  />
+                  <Input
+                    label="كلمة المرور"
+                    type="password"
+                    dir="ltr"
+                    className="text-left"
+                    hint={form.hasLogin ? 'اتركها فارغة إذا لا تريد تغييرها' : 'فعّل تسجيل الدخول أولاً لتعيين كلمة مرور'}
+                    value={form.password}
+                    onChange={(e) => update('password', e.target.value)}
+                    error={errors.password}
+                    disabled={!form.hasLogin}
+                    containerClassName="!mb-0"
+                  />
+                  <div className="sm:col-span-2 rounded-xl border border-border bg-surface-alt/50 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-heading">تسجيل الدخول</p>
+                        <p className="text-xs text-muted">
+                          {form.hasLogin ? 'يمكن للمستخدم تسجيل الدخول للنظام.' : 'تم منع هذا الحساب من تسجيل الدخول.'}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={Boolean(form.hasLogin)}
+                        onChange={(checked) => update('hasLogin', checked)}
+                        label={form.hasLogin ? 'مسموح' : 'ممنوع'}
+                      />
                     </div>
-                    <Switch
-                      checked={Boolean(form.hasLogin)}
-                      onChange={(checked) => update('hasLogin', checked)}
-                      label={form.hasLogin ? 'مسموح' : 'ممنوع'}
-                    />
                   </div>
                 </div>
+                <TextArea label="ملاحظات" value={form.notes} onChange={(e) => update('notes', e.target.value)} containerClassName="!mb-0" />
               </div>
-              <TextArea label="ملاحظات" value={form.notes} onChange={(e) => update('notes', e.target.value)} containerClassName="!mb-0" />
-            </div>
             </section>
           )}
 
@@ -1167,152 +1180,152 @@ export default function UserEditPage() {
           {/* ── STEP 4 · أفراد العائلة ───────────────────────────────── */}
           {activeSection === 'family' && (
             <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <StepBadge n={getSectionStep('family')} />
-                <SectionLabel count={(form.family || []).length}>أفراد العائلة</SectionLabel>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <StepBadge n={getSectionStep('family')} />
+                  <SectionLabel count={(form.family || []).length}>أفراد العائلة</SectionLabel>
+                </div>
+                <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addFamilyMember}>إضافة فرد</Button>
               </div>
-              <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addFamilyMember}>إضافة فرد</Button>
-            </div>
 
-            <div className="space-y-3">
-              {(form.family || []).length === 0 && (
-                <p className="rounded-2xl border border-dashed border-border px-5 py-6 text-center text-sm text-muted">
-                  لا يوجد أفراد عائلة مضافون بعد.
-                </p>
-              )}
-              {(form.family || []).map((row, i) => {
-                const roleLabels = relationRoles.map((r) => r.label);
-                const relationRoleOptions = [
-                  { value: '', label: '— اختر صلة القرابة —' },
-                  ...relationRoles.map((r) => ({ value: r.label, label: r.label })),
-                  ...(row.relationRole && !roleLabels.includes(row.relationRole) ? [{ value: row.relationRole, label: row.relationRole }] : []),
-                ];
-                const fetched = row.userId ? linkedUsersMap[row.userId] : null;
-                const linkedUser = row.userId ? { _id: row.userId, fullName: fetched?.fullName ?? row.name, phonePrimary: fetched?.phonePrimary ?? row.targetPhone ?? '' } : null;
+              <div className="space-y-3">
+                {(form.family || []).length === 0 && (
+                  <p className="rounded-2xl border border-dashed border-border px-5 py-6 text-center text-sm text-muted">
+                    لا يوجد أفراد عائلة مضافون بعد.
+                  </p>
+                )}
+                {(form.family || []).map((row, i) => {
+                  const roleLabels = relationRoles.map((r) => r.label);
+                  const relationRoleOptions = [
+                    { value: '', label: '— اختر صلة القرابة —' },
+                    ...relationRoles.map((r) => ({ value: r.label, label: r.label })),
+                    ...(row.relationRole && !roleLabels.includes(row.relationRole) ? [{ value: row.relationRole, label: row.relationRole }] : []),
+                  ];
+                  const fetched = row.userId ? linkedUsersMap[row.userId] : null;
+                  const linkedUser = row.userId ? { _id: row.userId, fullName: fetched?.fullName ?? row.name, phonePrimary: fetched?.phonePrimary ?? row.targetPhone ?? '' } : null;
 
-                return (
-                  <div key={i} className="rounded-2xl border border-border bg-surface p-4 space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">فرد {i + 1}</p>
-                      <button
-                        type="button"
-                        onClick={() => removeFamilyMember(i)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted transition-colors hover:border-danger/30 hover:bg-danger-light hover:text-danger"
-                        aria-label="حذف"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                  return (
+                    <div key={i} className="rounded-2xl border border-border bg-surface p-4 space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">فرد {i + 1}</p>
+                        <button
+                          type="button"
+                          onClick={() => removeFamilyMember(i)}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted transition-colors hover:border-danger/30 hover:bg-danger-light hover:text-danger"
+                          aria-label="حذف"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <Select
+                          label="صلة القرابة"
+                          options={relationRoleOptions}
+                          value={row.relationRole}
+                          onChange={(e) => updateFamilyMember(i, 'relationRole', e.target.value)}
+                          containerClassName="mb-0"
+                        />
+                        <UserSearchSelect
+                          label="ربط بمستخدم مسجل"
+                          value={linkedUser}
+                          onChange={(u) => {
+                            setForm((prev) => {
+                              const arr = [...(prev.family || [])];
+                              arr[i] = { ...arr[i], userId: u ? u._id : null, name: u ? u.fullName : '', targetPhone: u ? (u.phonePrimary || '') : '' };
+                              return { ...prev, family: arr };
+                            });
+                          }}
+                          excludeUserId={id}
+                          className="mb-0"
+                        />
+                        <Input label="الاسم" value={row.name} onChange={(e) => updateFamilyMember(i, 'name', e.target.value)} containerClassName="mb-0" />
+                        <Input label="رقم الهاتف" dir="ltr" className="text-left" value={fetched?.phonePrimary ?? row.targetPhone} onChange={(e) => updateFamilyMember(i, 'targetPhone', e.target.value)} containerClassName="mb-0" />
+                      </div>
+                      <TextArea label="ملاحظات" value={row.notes} onChange={(e) => updateFamilyMember(i, 'notes', e.target.value)} containerClassName="mb-0" />
                     </div>
-
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <Select
-                        label="صلة القرابة"
-                        options={relationRoleOptions}
-                        value={row.relationRole}
-                        onChange={(e) => updateFamilyMember(i, 'relationRole', e.target.value)}
-                        containerClassName="mb-0"
-                      />
-                      <UserSearchSelect
-                        label="ربط بمستخدم مسجل"
-                        value={linkedUser}
-                        onChange={(u) => {
-                          setForm((prev) => {
-                            const arr = [...(prev.family || [])];
-                            arr[i] = { ...arr[i], userId: u ? u._id : null, name: u ? u.fullName : '', targetPhone: u ? (u.phonePrimary || '') : '' };
-                            return { ...prev, family: arr };
-                          });
-                        }}
-                        excludeUserId={id}
-                        className="mb-0"
-                      />
-                      <Input label="الاسم" value={row.name} onChange={(e) => updateFamilyMember(i, 'name', e.target.value)} containerClassName="mb-0" />
-                      <Input label="رقم الهاتف" dir="ltr" className="text-left" value={fetched?.phonePrimary ?? row.targetPhone} onChange={(e) => updateFamilyMember(i, 'targetPhone', e.target.value)} containerClassName="mb-0" />
-                    </div>
-                    <TextArea label="ملاحظات" value={row.notes} onChange={(e) => updateFamilyMember(i, 'notes', e.target.value)} containerClassName="mb-0" />
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
             </section>
           )}
 
           {/* ── STEP 5 · العنوان ─────────────────────────────────────── */}
           {activeSection === 'address' && (
             <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <StepBadge n={getSectionStep('address')} />
-              <SectionLabel>العنوان</SectionLabel>
-            </div>
-            <div className="rounded-2xl border border-border bg-surface p-5">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Input label="المحافظة" value={form.governorate} onChange={(e) => update('governorate', e.target.value)} placeholder="المحافظة" containerClassName="!mb-0" />
-                <Input label="المدينة" value={form.city} onChange={(e) => update('city', e.target.value)} placeholder="المدينة" containerClassName="!mb-0" />
-                <Input label="الشارع" value={form.street} onChange={(e) => update('street', e.target.value)} placeholder="الشارع" containerClassName="!mb-0" />
-                <Input label="تفاصيل إضافية" value={form.details} onChange={(e) => update('details', e.target.value)} placeholder="اي تفاصيل إضافية" containerClassName="!mb-0" />
+              <div className="flex items-center gap-2">
+                <StepBadge n={getSectionStep('address')} />
+                <SectionLabel>العنوان</SectionLabel>
               </div>
-            </div>
+              <div className="rounded-2xl border border-border bg-surface p-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Input label="المحافظة" value={form.governorate} onChange={(e) => update('governorate', e.target.value)} placeholder="المحافظة" containerClassName="!mb-0" />
+                  <Input label="المدينة" value={form.city} onChange={(e) => update('city', e.target.value)} placeholder="المدينة" containerClassName="!mb-0" />
+                  <Input label="الشارع" value={form.street} onChange={(e) => update('street', e.target.value)} placeholder="الشارع" containerClassName="!mb-0" />
+                  <Input label="تفاصيل إضافية" value={form.details} onChange={(e) => update('details', e.target.value)} placeholder="اي تفاصيل إضافية" containerClassName="!mb-0" />
+                </div>
+              </div>
             </section>
           )}
 
           {/* ── STEP 6 · تفاصيل مخصصة ───────────────────────────────── */}
           {activeSection === 'custom' && (
             <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <StepBadge n={getSectionStep('custom')} />
-              <SectionLabel>تفاصيل مخصصة</SectionLabel>
-            </div>
-            <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
-              <p className="text-xs text-muted">أضف أو عدّل حقولاً مخصصة. المفاتيح المستخدمة سابقاً تظهر كاقتراحات.</p>
-              <div className="space-y-2.5">
-                {customDetailsRows.map((row) => (
-                  <div key={row.id} className="flex flex-wrap items-center gap-2">
-                    <input
-                      list="edit-custom-detail-keys-list"
-                      value={row.key}
-                      onChange={(e) => updateCustomDetailRow(row.id, 'key', e.target.value)}
-                      placeholder="المفتاح"
-                      className="input-base flex-1 min-w-[120px]"
-                    />
-                    <datalist id="edit-custom-detail-keys-list">
-                      {savedKeys.map((k) => <option key={k} value={k} />)}
-                    </datalist>
-                    <input
-                      value={row.value}
-                      onChange={(e) => updateCustomDetailRow(row.id, 'value', e.target.value)}
-                      placeholder="القيمة"
-                      className="input-base flex-1 min-w-[120px]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeCustomDetailRow(row.id)}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border text-muted transition-colors hover:border-danger/30 hover:bg-danger-light hover:text-danger"
-                      aria-label="حذف"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+              <div className="flex items-center gap-2">
+                <StepBadge n={getSectionStep('custom')} />
+                <SectionLabel>تفاصيل مخصصة</SectionLabel>
               </div>
-              <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addCustomDetailRow}>إضافة حقل</Button>
-            </div>
+              <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+                <p className="text-xs text-muted">أضف أو عدّل حقولاً مخصصة. المفاتيح المستخدمة سابقاً تظهر كاقتراحات.</p>
+                <div className="space-y-2.5">
+                  {customDetailsRows.map((row) => (
+                    <div key={row.id} className="flex flex-wrap items-center gap-2">
+                      <input
+                        list="edit-custom-detail-keys-list"
+                        value={row.key}
+                        onChange={(e) => updateCustomDetailRow(row.id, 'key', e.target.value)}
+                        placeholder="المفتاح"
+                        className="input-base flex-1 min-w-[120px]"
+                      />
+                      <datalist id="edit-custom-detail-keys-list">
+                        {savedKeys.map((k) => <option key={k} value={k} />)}
+                      </datalist>
+                      <input
+                        value={row.value}
+                        onChange={(e) => updateCustomDetailRow(row.id, 'value', e.target.value)}
+                        placeholder="القيمة"
+                        className="input-base flex-1 min-w-[120px]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeCustomDetailRow(row.id)}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border text-muted transition-colors hover:border-danger/30 hover:bg-danger-light hover:text-danger"
+                        aria-label="حذف"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addCustomDetailRow}>إضافة حقل</Button>
+              </div>
             </section>
           )}
 
           {/* ── ACTIONS ───────────────────────────────────────────────── */}
           {activeSection === 'socioeconomic' && (
             <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <StepBadge n={getSectionStep('socioeconomic')} />
-              <SectionLabel>الملف الاقتصادي والصحي</SectionLabel>
-            </div>
-            <div className="rounded-2xl border border-border bg-surface p-5">
-              <HouseholdSocioeconomicSection
-                form={form}
-                errors={errors}
-                onChange={update}
-              />
-            </div>
+              <div className="flex items-center gap-2">
+                <StepBadge n={getSectionStep('socioeconomic')} />
+                <SectionLabel>الملف الاقتصادي والصحي</SectionLabel>
+              </div>
+              <div className="rounded-2xl border border-border bg-surface p-5">
+                <HouseholdSocioeconomicSection
+                  form={form}
+                  errors={errors}
+                  onChange={update}
+                />
+              </div>
             </section>
           )}
 
@@ -1336,11 +1349,11 @@ export default function UserEditPage() {
               </Button>
             </div>
             <div className="flex gap-2">
-            <Button variant="ghost" type="button" onClick={() => navigate(-1)}>إلغاء</Button>
-            <Button type="submit" icon={Save} loading={mutation.isPending}>حفظ التعديلات</Button>
-          </div>
+              <Button variant="ghost" type="button" onClick={() => navigate(-1)}>إلغاء</Button>
+              <Button type="submit" icon={Save} loading={mutation.isPending}>حفظ التعديلات</Button>
+            </div>
 
-        </div>
+          </div>
         </div>
       </form>
     </div>

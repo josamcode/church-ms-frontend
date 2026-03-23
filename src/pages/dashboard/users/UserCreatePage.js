@@ -19,6 +19,7 @@ import UserEducationSection, {
   getEducationInitialValues,
 } from '../../../components/users/UserEducationSection';
 import UserFormSectionTabs from '../../../components/users/UserFormSectionTabs';
+import { extractBirthDateFromNationalId } from '../../../utils/egyptianNationalId';
 import { useI18n } from '../../../i18n/i18n';
 import toast from 'react-hot-toast';
 import { ArrowRight, Plus, Save, Trash2, Upload, Users, X } from 'lucide-react';
@@ -276,9 +277,17 @@ export default function UserCreatePage() {
     setForm((prev) => {
       const next = { ...prev, [field]: value };
       if (field === 'phonePrimary' && !whatsappNumberTouched) next.whatsappNumber = value;
+      if (field === 'nationalId' && !prev.birthDate) {
+        const extractedBirthDate = extractBirthDateFromNationalId(value);
+        if (extractedBirthDate) next.birthDate = extractedBirthDate;
+      }
       return next;
     });
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+    setErrors((prev) => ({
+      ...prev,
+      [field]: undefined,
+      ...(field === 'nationalId' ? { birthDate: undefined } : {}),
+    }));
     if (field === 'whatsappNumber') setWhatsappNumberTouched(true);
   };
 
@@ -287,6 +296,11 @@ export default function UserCreatePage() {
     if (!form.fullName.trim()) e.fullName = 'الاسم الكامل مطلوب';
     if (!form.phonePrimary.trim()) e.phonePrimary = 'رقم الهاتف الأساسي مطلوب';
     if (!form.birthDate) e.birthDate = 'تاريخ الميلاد مطلوب';
+    delete e.phonePrimary;
+    delete e.birthDate;
+    if (form.password && !form.email.trim() && !form.phonePrimary.trim()) {
+      e.password = 'يجب توفير بريد إلكتروني أو رقم هاتف لإنشاء حساب دخول';
+    }
     return e;
   };
 
@@ -298,11 +312,11 @@ export default function UserCreatePage() {
 
     const payload = {
       fullName: form.fullName,
-      phonePrimary: form.phonePrimary,
-      birthDate: form.birthDate,
       gender: form.gender,
       role: form.role,
     };
+    if (form.phonePrimary) payload.phonePrimary = form.phonePrimary;
+    if (form.birthDate) payload.birthDate = form.birthDate;
     if (form.email) payload.email = form.email;
     if (form.nationalId) payload.nationalId = form.nationalId;
     if (form.notes) payload.notes = form.notes;
@@ -464,14 +478,18 @@ export default function UserCreatePage() {
                     containerClassName="!mb-0"
                   />
                   <Input
-                    label="تاريخ الميلاد" type="date" required dir="ltr" className="text-left"
+                    label="تاريخ الميلاد"
+                    type="date"
+                    dir="ltr"
+                    className="text-left"
                     value={form.birthDate}
                     onChange={(e) => update('birthDate', e.target.value)}
                     error={errors.birthDate}
                     containerClassName="!mb-0"
                   />
+
                   <PhoneInput
-                    label="رقم الهاتف الأساسي" required
+                    label="رقم الهاتف الأساسي"
                     placeholder="رقم الهاتف"
                     value={form.phonePrimary}
                     onChange={(e) => update('phonePrimary', e.target.value)}
@@ -483,6 +501,16 @@ export default function UserCreatePage() {
                     options={genderOptions}
                     value={form.gender}
                     onChange={(e) => update('gender', e.target.value)}
+                    containerClassName="!mb-0"
+                  />
+                  <Input
+                    label="الرقم القومي"
+                    dir="ltr"
+                    className="text-left"
+                    placeholder="الرقم القومي"
+                    value={form.nationalId}
+                    onChange={(e) => update('nationalId', e.target.value)}
+                    error={errors.nationalId}
                     containerClassName="!mb-0"
                   />
                 </div>
@@ -528,7 +556,7 @@ export default function UserCreatePage() {
                     value={form.nationalId}
                     onChange={(e) => update('nationalId', e.target.value)}
                     error={errors.nationalId}
-                    containerClassName="!mb-0"
+                    containerClassName="hidden !mb-0"
                   />
 
                   {/* family name combobox */}
