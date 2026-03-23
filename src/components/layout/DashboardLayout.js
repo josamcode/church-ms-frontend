@@ -28,12 +28,12 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
 import { bookingsApi, chatApi } from '../../api/endpoints';
+import AppRouteEffects from '../../app/AppRouteEffects';
 import NotificationBell from '../notifications/NotificationBell';
 import Tooltip from '../ui/Tooltip';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
 import { useI18n } from '../../i18n/i18n';
 import { getRoleLabel } from '../../utils/formatters';
-import SiteAnalyticsBridge from '../../analytics/SiteAnalyticsBridge';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NavItem
@@ -238,14 +238,14 @@ export default function DashboardLayout() {
           permission: 'USERS_VIEW',
           matchChildren: false,
         },
-        {
-          key: 'birthdays',
-          label: tf('dashboardLayout.menu.birthdays', 'Birthdays'),
-          href: '/dashboard/under-development',
-          icon: Building2,
-          // permission: '',
-          // matchChildren: false,
-        }
+        // {
+        //   key: 'birthdays',
+        //   label: tf('dashboardLayout.menu.birthdays', 'Birthdays'),
+        //   href: '/dashboard/under-development',
+        //   icon: Building2,
+        //   // permission: '',
+        //   // matchChildren: false,
+        // }
       ],
     },
     {
@@ -778,7 +778,7 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen bg-page">
-      <SiteAnalyticsBridge />
+      <AppRouteEffects />
       {/* Ambient blobs */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
         <div className="absolute -top-24 left-1/4 h-80 w-80 rounded-full bg-primary/8 blur-[80px]" />

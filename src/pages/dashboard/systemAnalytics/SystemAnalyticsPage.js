@@ -30,10 +30,10 @@ function SectionLabel({ children, icon: Icon }) {
 }
 
 function formatDuration(totalSeconds = 0, t) {
-  const seconds = Math.max(0, Number(totalSeconds) || 0);
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = seconds % 60;
+  const normalizedSeconds = Math.max(0, Math.round(Number(totalSeconds) || 0));
+  const hours = Math.floor(normalizedSeconds / 3600);
+  const minutes = Math.floor((normalizedSeconds % 3600) / 60);
+  const remainingSeconds = normalizedSeconds % 60;
   const hoursLabel = t('systemAnalyticsPage.units.hoursShort');
   const minutesLabel = t('systemAnalyticsPage.units.minutesShort');
   const secondsLabel = t('systemAnalyticsPage.units.secondsShort');
@@ -245,7 +245,7 @@ export default function SystemAnalyticsPage() {
         className="border-b border-border pb-6"
         eyebrow={t('systemAnalyticsPage.eyebrow')}
         title={t('systemAnalyticsPage.title')}
-        subtitle={t('systemAnalyticsPage.subtitle')}
+        // subtitle={t('systemAnalyticsPage.subtitle')}
         actions={(
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <div className="w-full sm:w-40">
