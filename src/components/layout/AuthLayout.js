@@ -1,5 +1,6 @@
 import { Outlet, Link } from 'react-router-dom';
 import { Church } from 'lucide-react';
+import SiteAnalyticsBridge from '../../analytics/SiteAnalyticsBridge';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
 import { useI18n } from '../../i18n/i18n';
 
@@ -8,6 +9,7 @@ export default function AuthLayout() {
 
   return (
     <div className="min-h-screen bg-page flex items-center justify-center p-4">
+      <SiteAnalyticsBridge />
       <div className="w-full max-w-md">
         <div className="flex justify-end mb-3">
           <LanguageSwitcher />

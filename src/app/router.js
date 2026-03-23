@@ -90,6 +90,9 @@ const MeetingMemberDetailsPage = lazy(() => import('../pages/dashboard/meetings/
 const SectorFormPage = lazy(() => import('../pages/dashboard/meetings/SectorFormPage'));
 const MeetingFormPage = lazy(() => import('../pages/dashboard/meetings/MeetingFormPage'));
 const LandingContentPage = lazy(() => import('../pages/dashboard/publicSite/LandingContentPage'));
+const SystemAnalyticsPage = lazy(() =>
+  import('../pages/dashboard/systemAnalytics/SystemAnalyticsPage')
+);
 const UnderDevelopmentPage = lazy(() => import('../pages/shared/UnderDevelopmentPage'));
 const NotFoundPage = lazy(() => import('../pages/shared/NotFoundPage'));
 
@@ -396,6 +399,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['LANDING_CONTENT_MANAGE']}>
             <Lazy><LandingContentPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'system-analytics',
+        element: (
+          <PermissionGuard required={['SYSTEM_ANALYTICS_VIEW']}>
+            <Lazy><SystemAnalyticsPage /></Lazy>
           </PermissionGuard>
         ),
       },

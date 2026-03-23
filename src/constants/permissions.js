@@ -16,6 +16,7 @@ export const PERMISSIONS = [
   'AUTH_VIEW_SELF',
   'AUTH_MANAGE_SESSIONS',
   'AUTH_CHANGE_PASSWORD',
+  'SYSTEM_ANALYTICS_VIEW',
   'CONFESSIONS_VIEW',
   'CONFESSIONS_CREATE',
   'CONFESSIONS_ASSIGN_USER',
@@ -207,6 +208,7 @@ export const PERMISSION_LABELS = {
   AUTH_VIEW_SELF: 'View own authentication profile',
   AUTH_MANAGE_SESSIONS: 'Manage sessions',
   AUTH_CHANGE_PASSWORD: 'Change password',
+  SYSTEM_ANALYTICS_VIEW: 'View system analytics',
   CONFESSIONS_VIEW: 'View confessions',
   CONFESSIONS_CREATE: 'Create confession sessions',
   CONFESSIONS_ASSIGN_USER: 'Assign confession attendees',
@@ -288,7 +290,12 @@ export const PERMISSION_GROUPS = [
   {
     id: 'auth',
     label: 'Authentication',
-    permissions: ['AUTH_VIEW_SELF', 'AUTH_MANAGE_SESSIONS', 'AUTH_CHANGE_PASSWORD'],
+    permissions: [
+      'AUTH_VIEW_SELF',
+      'AUTH_MANAGE_SESSIONS',
+      'AUTH_CHANGE_PASSWORD',
+      'SYSTEM_ANALYTICS_VIEW',
+    ],
   },
   {
     id: 'confessions',

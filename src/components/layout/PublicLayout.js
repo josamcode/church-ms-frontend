@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../../auth/auth.hooks';
+import SiteAnalyticsBridge from '../../analytics/SiteAnalyticsBridge';
 import Button from '../ui/Button';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
 import { useI18n } from '../../i18n/i18n';
@@ -76,6 +77,7 @@ export default function PublicLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-page" dir={isRTL ? 'rtl' : 'ltr'}>
+      <SiteAnalyticsBridge />
       <header
         className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
           scrolled

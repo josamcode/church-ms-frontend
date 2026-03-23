@@ -296,4 +296,8 @@ export const healthApi = {
   check: () => apiClient.get('/health'),
 };
 
+export const systemAnalyticsApi = {
+  getOverview: (params) => apiClient.get('/system-analytics/overview', { params }),
+};
+
 

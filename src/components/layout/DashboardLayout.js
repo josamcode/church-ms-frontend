@@ -33,6 +33,7 @@ import Tooltip from '../ui/Tooltip';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
 import { useI18n } from '../../i18n/i18n';
 import { getRoleLabel } from '../../utils/formatters';
+import SiteAnalyticsBridge from '../../analytics/SiteAnalyticsBridge';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NavItem
@@ -526,6 +527,14 @@ export default function DashboardLayout() {
           permission: 'LANDING_CONTENT_MANAGE',
           matchChildren: false,
         },
+        {
+          key: 'system-analytics',
+          label: tf('dashboardLayout.menu.systemAnalytics', 'System Analytics'),
+          href: '/dashboard/system-analytics',
+          icon: BarChart3,
+          permission: 'SYSTEM_ANALYTICS_VIEW',
+          matchChildren: false,
+        },
       ],
     },
   ], [t, tf, hasOwnMeetingsViewOnly, pendingBookingsBadge, unreadChatsBadge, unreadChatsCount]);
@@ -769,6 +778,7 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen bg-page">
+      <SiteAnalyticsBridge />
       {/* Ambient blobs */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
         <div className="absolute -top-24 left-1/4 h-80 w-80 rounded-full bg-primary/8 blur-[80px]" />
