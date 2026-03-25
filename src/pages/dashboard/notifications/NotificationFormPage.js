@@ -157,7 +157,7 @@ export default function NotificationFormPage() {
     isActive: true,
     audienceType: 'permissions',
     audiencePermissions: DEFAULT_AUDIENCE_PERMISSIONS,
-    details: [createDetail('text')],
+    details: [],
   });
 
   const { data: typesRes } = useQuery({
@@ -240,7 +240,7 @@ export default function NotificationFormPage() {
             content: detail.content || '',
             url: detail.url || '',
           }))
-          : [createDetail('text')],
+          : [],
     });
 
     setTypeInput(localizeNotificationTypeName(notification.type?.name || '', t));
@@ -328,11 +328,11 @@ export default function NotificationFormPage() {
       ...prev,
       details: [...prev.details, createDetail('text')],
     }));
+    setFormErrors((prev) => ({ ...prev, details: undefined }));
   };
 
   const removeDetail = (localId) => {
     setForm((prev) => {
-      if (prev.details.length <= 1) return prev;
       return {
         ...prev,
         details: prev.details.filter((detail) => detail.localId !== localId),
@@ -409,9 +409,7 @@ export default function NotificationFormPage() {
       );
     }
 
-    if (!Array.isArray(form.details) || form.details.length === 0) {
-      nextErrors.details = tf('notifications.validation.atLeastOneDetail', 'At least one detail item is required.');
-    } else {
+    if (Array.isArray(form.details) && form.details.length > 0) {
       for (const detail of form.details) {
         if (detail.kind === 'text' && !detail.content.trim()) {
           nextErrors.details = tf('notifications.validation.textDetailContentRequired', 'Text detail content is required.');

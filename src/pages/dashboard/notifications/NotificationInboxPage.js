@@ -227,7 +227,7 @@ export default function NotificationInboxPage() {
                   loading={pushLoading}
                   onClick={handleDisablePush}
                 >
-                  {tf('notificationCenter.push.turnOff', 'Turn off')}
+                  {tf('notificationCenter.push.turnOffNotifications', 'Turn off')}
                 </Button>
               ) : (
                 <Button
@@ -237,7 +237,7 @@ export default function NotificationInboxPage() {
                   loading={pushLoading}
                   onClick={handleEnablePush}
                 >
-                  {tf('notificationCenter.push.turnOn', 'Turn on')}
+                  {tf('notificationCenter.push.turnOnNotifications', 'Turn on')}
                 </Button>
               )
             ) : (

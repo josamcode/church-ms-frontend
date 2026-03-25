@@ -23,6 +23,26 @@ const DEFAULT_NOTIFICATION_TEMPLATES = Object.freeze({
       en: 'تم تحديد موعد جلسة الاعتراف القادمة بتاريخ {nextSessionAt}.',
     },
   },
+  dashboardNotificationPublished: {
+    title: {
+      ar: 'إشعار جديد',
+      en: 'إشعار جديد',
+    },
+    message: {
+      ar: 'تم نشر إشعار جديد بعنوان {notificationName}.',
+      en: 'تم نشر إشعار جديد بعنوان {notificationName}.',
+    },
+  },
+  divineLiturgyExceptionalCase: {
+    title: {
+      ar: 'قداس استثنائي جديد',
+      en: 'قداس استثنائي جديد',
+    },
+    message: {
+      ar: 'تمت إضافة حالة قداس استثنائية بتاريخ {exceptionDate} في {startTime}.',
+      en: 'تمت إضافة حالة قداس استثنائية بتاريخ {exceptionDate} في {startTime}.',
+    },
+  },
 });
 
 const NOTIFICATION_TEMPLATE_CONFIGS = Object.freeze([
@@ -31,6 +51,18 @@ const NOTIFICATION_TEMPLATE_CONFIGS = Object.freeze([
     tabKey: 'platformSettingsPage.notifications.tabs.confessionNextSession',
     titleKey: 'platformSettingsPage.notifications.confessionNextSession.title',
     subtitleKey: 'platformSettingsPage.notifications.confessionNextSession.subtitle',
+  },
+  {
+    id: 'dashboardNotificationPublished',
+    tabKey: 'platformSettingsPage.notifications.tabs.dashboardNotificationPublished',
+    titleKey: 'platformSettingsPage.notifications.dashboardNotificationPublished.title',
+    subtitleKey: 'platformSettingsPage.notifications.dashboardNotificationPublished.subtitle',
+  },
+  {
+    id: 'divineLiturgyExceptionalCase',
+    tabKey: 'platformSettingsPage.notifications.tabs.divineLiturgyExceptionalCase',
+    titleKey: 'platformSettingsPage.notifications.divineLiturgyExceptionalCase.title',
+    subtitleKey: 'platformSettingsPage.notifications.divineLiturgyExceptionalCase.subtitle',
   },
 ]);
 
@@ -45,6 +77,7 @@ function createDefaultForm() {
     }),
     {}
   );
+
   const availableTokens = Object.keys(DEFAULT_NOTIFICATION_TEMPLATES).reduce(
     (accumulator, templateKey) => ({
       ...accumulator,

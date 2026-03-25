@@ -2,6 +2,7 @@ import {
   Bell,
   CalendarPlus,
   CalendarClock,
+  Church,
   Megaphone,
   MessageSquare,
   ShieldAlert,
@@ -53,6 +54,13 @@ export function getUserNotificationPresentation(notification, tf) {
         label: tf('notificationCenter.types.confessionNextSession', 'Next confession session'),
         iconClassName: 'text-secondary',
         badgeClassName: 'bg-secondary/10 text-secondary',
+      };
+    case 'divine_liturgy_exception':
+      return {
+        icon: Church,
+        label: tf('notificationCenter.types.divineLiturgyException', 'Exceptional divine liturgy'),
+        iconClassName: 'text-accent',
+        badgeClassName: 'bg-accent/10 text-accent',
       };
     default:
       return {

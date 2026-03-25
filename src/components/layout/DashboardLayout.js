@@ -27,9 +27,13 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
-import { bookingsApi, chatApi } from '../../api/endpoints';
+import { bookingsApi, chatApi, userNotificationsApi } from '../../api/endpoints';
 import AppRouteEffects from '../../app/AppRouteEffects';
 import NotificationBell from '../notifications/NotificationBell';
+import {
+  getUnreadBadgeLabel,
+  NOTIFICATION_UNREAD_COUNT_QUERY_KEY,
+} from '../notifications/notificationCenter.shared';
 import Tooltip from '../ui/Tooltip';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
 import { useI18n } from '../../i18n/i18n';
@@ -141,6 +145,7 @@ export default function DashboardLayout() {
   const canViewBookingRequests =
     hasPermission('BOOKINGS_VIEW') || hasPermission('BOOKINGS_MANAGE');
   const canViewChats = hasPermission('CHATS_VIEW');
+  const canViewNotifications = hasPermission('NOTIFICATIONS_VIEW');
   const hasFullMeetingsView = hasPermission('MEETINGS_VIEW');
   const hasOwnMeetingsViewOnly = hasPermission('MEETINGS_VIEW_OWN') && !hasFullMeetingsView;
   const hasAssignedMeetings = useMemo(
@@ -174,6 +179,17 @@ export default function DashboardLayout() {
   }, [unreadChatsQuery.data]);
   const unreadChatsBadge =
     unreadChatsCount > 99 ? '99+' : unreadChatsCount > 0 ? String(unreadChatsCount) : null;
+  const unreadNotificationsQuery = useQuery({
+    queryKey: NOTIFICATION_UNREAD_COUNT_QUERY_KEY,
+    enabled: canViewNotifications,
+    staleTime: 30000,
+    queryFn: async () => {
+      const { data } = await userNotificationsApi.unreadCount();
+      return Number(data?.data?.unreadCount || 0);
+    },
+  });
+  const unreadNotificationsCount = Number(unreadNotificationsQuery.data || 0);
+  const unreadNotificationsBadge = getUnreadBadgeLabel(unreadNotificationsCount);
 
   // ── Menu definitions ──────────────────────────────────────────────────────
 
@@ -394,6 +410,8 @@ export default function DashboardLayout() {
       parent: {
         label: tf('dashboardLayout.menu.notifications', 'Notifications'),
         href: '/dashboard/notifications',
+        badge: unreadNotificationsBadge,
+        badgeGlow: unreadNotificationsCount > 0,
         icon: BellRing,
         permission: 'NOTIFICATIONS_VIEW',
         matchChildren: true,
@@ -545,7 +563,16 @@ export default function DashboardLayout() {
         },
       ],
     },
-  ], [t, tf, hasOwnMeetingsViewOnly, pendingBookingsBadge, unreadChatsBadge, unreadChatsCount]);
+  ], [
+    t,
+    tf,
+    hasOwnMeetingsViewOnly,
+    pendingBookingsBadge,
+    unreadChatsBadge,
+    unreadChatsCount,
+    unreadNotificationsBadge,
+    unreadNotificationsCount,
+  ]);
 
   const bottomItems = useMemo(() => [
     {

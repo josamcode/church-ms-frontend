@@ -361,10 +361,20 @@
       notifications: {
         tabs: {
           confessionNextSession: 'Next confession notification',
+          dashboardNotificationPublished: 'Dashboard notification push',
+          divineLiturgyExceptionalCase: 'Exceptional divine liturgy',
         },
         confessionNextSession: {
           title: 'Next Confession Notification',
           subtitle: 'Edit the text sent when a next confession session date is assigned to a user.',
+        },
+        dashboardNotificationPublished: {
+          title: 'Dashboard Notification Push',
+          subtitle: 'Edit the browser push text sent to subscribed users when a dashboard notification is published.',
+        },
+        divineLiturgyExceptionalCase: {
+          title: 'Exceptional Divine Liturgy Notification',
+          subtitle: 'Edit the text sent when an exceptional divine liturgy case is added.',
         },
         availableTokens: 'Available placeholders',
         tokenInsertHint: 'Click a placeholder to insert it into the selected field.',
@@ -373,11 +383,19 @@
           nextSessionAt: 'Next session date/time',
           creatorName: 'Creator name',
           sessionTypeName: 'Session type',
+          notificationName: 'Notification title',
+          notificationSummary: 'Notification summary',
+          notificationTypeName: 'Notification type',
+          eventDate: 'Event date/time',
+          exceptionName: 'Exceptional case name',
+          exceptionDate: 'Liturgy date',
+          startTime: 'Start time',
+          endTime: 'End time',
         },
         fields: {
           title: 'Notification title',
           message: 'Notification message',
-          templateHint: 'You can use placeholders like {nextSessionAt} inside the text.',
+          templateHint: 'You can use placeholders like {nextSessionAt}, {notificationName}, or {exceptionDate} inside the text.',
           englishSyncHint:
             'English starts by following the Arabic value. Once you edit it here, it becomes independent.',
         },
@@ -2571,6 +2589,7 @@
         backupFailure: 'Backup failure',
         aidReminder: 'Aid reminder',
         confessionNextSession: 'Next confession session',
+        divineLiturgyException: 'Exceptional divine liturgy',
         system: 'System',
       },
       confessionNextSession: {
@@ -2588,6 +2607,8 @@
         inactive: 'Not enabled yet',
         turnOff: 'Turn off',
         turnOn: 'Turn on',
+        turnOffNotifications: 'Turn off Notifications',
+        turnOnNotifications: 'Turn on Notifications',
         enabled: 'Push notifications enabled.',
         enableFailed: 'Failed to enable push notifications.',
         disabled: 'Push notifications disabled.',
@@ -3166,10 +3187,20 @@
       notifications: {
         tabs: {
           confessionNextSession: 'إشعار موعد الاعتراف القادم',
+          dashboardNotificationPublished: 'إشعار عام',
+          divineLiturgyExceptionalCase: 'إشعار القداس الاستثنائي',
         },
         confessionNextSession: {
           title: 'إشعار موعد الاعتراف القادم',
           subtitle: 'عدّل النص المرسل عند تحديد موعد جلسة الاعتراف القادمة للمستخدم.',
+        },
+        dashboardNotificationPublished: {
+          title: 'إشعار عام',
+          subtitle: 'عدّل نص إشعار المتصفح الذي يصل للمشتركين عند نشر تنبيه جديد من صفحة الإشعارات.',
+        },
+        divineLiturgyExceptionalCase: {
+          title: 'إشعار القداس الاستثنائي',
+          subtitle: 'عدّل النص المرسل عند إضافة حالة قداس استثنائية جديدة.',
         },
         availableTokens: 'المتغيرات المتاحة',
         tokenInsertHint: 'اضغط على أي متغير لإدراجه داخل الحقل المحدد.',
@@ -3178,11 +3209,19 @@
           nextSessionAt: 'تاريخ ووقت الجلسة القادمة',
           creatorName: 'اسم منشئ الجلسة',
           sessionTypeName: 'نوع الجلسة',
+          notificationName: 'عنوان الإشعار',
+          notificationSummary: 'ملخص الإشعار',
+          notificationTypeName: 'نوع الإشعار',
+          eventDate: 'تاريخ ووقت الحدث',
+          exceptionName: 'اسم الحالة الاستثنائية',
+          exceptionDate: 'تاريخ القداس',
+          startTime: 'وقت البداية',
+          endTime: 'وقت النهاية',
         },
         fields: {
           title: 'عنوان الإشعار',
           message: 'نص الإشعار',
-          templateHint: 'يمكنك استخدام متغيرات مثل {nextSessionAt} داخل النص.',
+          templateHint: 'يمكنك استخدام متغيرات مثل {nextSessionAt} أو {notificationName} أو {exceptionDate} داخل النص.',
           englishSyncHint:
             'اللغة الإنجليزية تبدأ بنفس قيمة العربية. بمجرد تعديلها هنا تصبح مستقلة.',
         },
@@ -5335,6 +5374,7 @@
         backupFailure: 'فشل النسخ الاحتياطي',
         aidReminder: 'تذكير مساعدة',
         confessionNextSession: 'موعد الاعتراف القادم',
+        divineLiturgyException: 'قداس استثنائي',
         system: 'النظام',
       },
       confessionNextSession: {
@@ -5351,7 +5391,9 @@
         blocked: 'محظورة من إعدادات المتصفح',
         inactive: 'غير مفعّلة بعد',
         turnOff: 'إيقاف',
+        turnOffNotifications: 'إيقاف الإشعارات',
         turnOn: 'تفعيل',
+        turnOnNotifications: 'تفعيل الاشعارات',
         enabled: 'تم تفعيل الإشعارات الفورية.',
         enableFailed: 'تعذر تفعيل الإشعارات الفورية.',
         disabled: 'تم إيقاف الإشعارات الفورية.',

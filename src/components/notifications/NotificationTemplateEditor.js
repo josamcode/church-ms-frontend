@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { BellRing, MousePointerClick } from 'lucide-react';
+import { MousePointerClick } from 'lucide-react';
 
 import Card, { CardHeader } from '../ui/Card';
 import Input from '../ui/Input';
@@ -24,6 +24,16 @@ function extractTokenKey(token = '') {
     .trim();
 }
 
+function getLocalizedValue(localizedValue, language, fallback = '') {
+  return String(
+    localizedValue?.[language]
+      || localizedValue?.ar
+      || localizedValue?.en
+      || fallback
+      || ''
+  );
+}
+
 function formatSampleDateTime(language) {
   const locale = getLanguageLocale(language);
   const sampleDate = new Date('2026-04-08T18:30:00');
@@ -37,7 +47,7 @@ function formatSampleDateTime(language) {
   }).format(sampleDate);
 }
 
-function resolveSampleValue({ tokenKey, tokenLabel, language, t }) {
+function resolveFallbackSampleValue({ tokenKey, tokenLabel, language, t }) {
   const normalizedKey = String(tokenKey || '').trim().toLowerCase();
 
   if (!normalizedKey) {
@@ -64,7 +74,11 @@ function resolveSampleValue({ tokenKey, tokenLabel, language, t }) {
     return t('platformSettingsPage.notifications.preview.sampleValues.sessionType');
   }
 
-  if (normalizedKey.includes('count') || normalizedKey.includes('number') || normalizedKey.includes('total')) {
+  if (
+    normalizedKey.includes('count')
+    || normalizedKey.includes('number')
+    || normalizedKey.includes('total')
+  ) {
     return '3';
   }
 
@@ -75,12 +89,16 @@ function resolveSampleValue({ tokenKey, tokenLabel, language, t }) {
   return tokenLabel || t('platformSettingsPage.notifications.preview.sampleValues.generic');
 }
 
-function renderPreviewText(value, language, tokenLabelMap, t) {
+function renderPreviewText(value, language, tokenList, t) {
   return String(value || '').replace(/\{([^{}]+)\}/g, (_match, rawToken) => {
     const tokenKey = extractTokenKey(rawToken);
-    return resolveSampleValue({
+    const matchedToken = tokenList.find((tokenEntry) => extractTokenKey(tokenEntry?.token) === tokenKey);
+    const label = getLocalizedValue(matchedToken?.label, language, tokenKey);
+    const configuredSample = getLocalizedValue(matchedToken?.sampleValue, language, '');
+
+    return configuredSample || resolveFallbackSampleValue({
       tokenKey,
-      tokenLabel: tokenLabelMap[tokenKey],
+      tokenLabel: label,
       language,
       t,
     });
@@ -115,29 +133,13 @@ export default function NotificationTemplateEditor({
   const messageInputRef = useRef(null);
   const [activeField, setActiveField] = useState('message');
 
-  const tokenLabelMap = useMemo(() => (
-    tokenList.reduce((accumulator, tokenEntry) => {
-      const tokenKey = extractTokenKey(tokenEntry?.token);
-      if (!tokenKey) return accumulator;
-
-      const translationKey = `platformSettingsPage.notifications.tokenLabels.${tokenKey}`;
-      const translatedLabel = t(translationKey);
-
-      accumulator[tokenKey] = translatedLabel === translationKey
-        ? String(tokenEntry?.label || tokenKey)
-        : translatedLabel;
-
-      return accumulator;
-    }, {})
-  ), [t, tokenList]);
-
   const previewTitle = useMemo(
-    () => renderPreviewText(template?.title?.[language] || '', language, tokenLabelMap, t),
-    [language, t, template?.title, tokenLabelMap]
+    () => renderPreviewText(template?.title?.[language] || '', language, tokenList, t),
+    [language, t, template?.title, tokenList]
   );
   const previewMessage = useMemo(
-    () => renderPreviewText(template?.message?.[language] || '', language, tokenLabelMap, t),
-    [language, t, template?.message, tokenLabelMap]
+    () => renderPreviewText(template?.message?.[language] || '', language, tokenList, t),
+    [language, t, template?.message, tokenList]
   );
 
   const handleInsertToken = (tokenValue) => {
@@ -199,12 +201,15 @@ export default function NotificationTemplateEditor({
 
             <div className="mt-4 flex flex-wrap gap-2">
               {tokenList.map((tokenEntry) => {
-                const tokenKey = extractTokenKey(tokenEntry?.token);
-                const tokenLabel = tokenLabelMap[tokenKey] || tokenEntry?.label || tokenEntry?.token;
+                const tokenLabel = getLocalizedValue(
+                  tokenEntry?.label,
+                  language,
+                  tokenEntry?.token || ''
+                );
 
                 return (
                   <button
-                    key={tokenEntry.token}
+                    key={tokenEntry.key || tokenEntry.token}
                     type="button"
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => handleInsertToken(tokenEntry.token)}
