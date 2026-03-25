@@ -208,9 +208,24 @@ function GuestEntryPanel({
   const rowDirection = isRTL ? 'flex-row-reverse' : 'flex-row';
   const arrowRotate = isRTL ? 'rotate-180' : '';
   const gridCols = compact ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-3';
+  const panelClasses = compact
+    ? 'rounded-[20px] p-3.5 shadow-[0_16px_48px_rgba(2,6,23,0.14)]'
+    : 'rounded-[32px] p-5 shadow-[0_30px_100px_rgba(2,6,23,0.18)] sm:p-7 lg:p-8';
+  const headerTitleClasses = compact
+    ? 'mt-1 pe-9 text-[1.35rem] font-black leading-tight tracking-tight text-slate-950'
+    : 'mt-5 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl';
+  const headerBodyClasses = compact
+    ? 'mt-2 max-w-xl pe-1 text-[12px] leading-5 text-slate-600'
+    : 'mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-[15px]';
+  const gridClasses = compact ? 'mt-4 grid gap-2.5' : 'mt-8 grid gap-4 lg:gap-5';
+  const closeButtonClasses = compact
+    ? `absolute top-2.5 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-white/85 text-slate-700 shadow-lg shadow-slate-900/5 backdrop-blur-md transition-all duration-200 hover:scale-[1.03] hover:bg-white ${isRTL ? 'left-2.5' : 'right-2.5'}`
+    : `absolute top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/80 bg-white/85 text-slate-700 shadow-lg shadow-slate-900/5 backdrop-blur-md transition-all duration-200 hover:scale-[1.03] hover:bg-white ${isRTL ? 'left-4' : 'right-4'}`;
 
   const baseCard =
-    'group relative overflow-hidden rounded-[28px] border border-white/60 bg-white/80 p-5 sm:p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl';
+    compact
+      ? 'group relative overflow-hidden rounded-[18px] border border-white/60 bg-white/80 p-3 backdrop-blur-xl transition-all duration-300 hover:shadow-xl'
+      : 'group relative overflow-hidden rounded-[28px] border border-white/60 bg-white/80 p-5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl sm:p-6';
   const mutedCard =
     'shadow-[0_10px_30px_rgba(15,23,42,0.06)] hover:border-slate-200 hover:shadow-[0_20px_50px_rgba(15,23,42,0.10)]';
   const primaryCard =
@@ -249,28 +264,28 @@ function GuestEntryPanel({
         </div>
 
         <div className={`relative flex h-full flex-col ${textAlignClass}`}>
-          <div className={`flex items-start justify-between gap-4 ${rowDirection}`}>
-            <div className={`flex items-center gap-4 ${rowDirection}`}>
+          <div className={`flex items-start justify-between ${compact ? 'gap-3' : 'gap-4'} ${rowDirection}`}>
+            <div className={`flex items-center ${compact ? 'gap-3' : 'gap-4'} ${rowDirection}`}>
               <div
-                className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${iconWrapClass}`}
+                className={`flex shrink-0 items-center justify-center ${compact ? 'h-9 w-9 rounded-[14px]' : 'h-14 w-14 rounded-2xl'} ${iconWrapClass}`}
               >
                 {icon}
               </div>
 
               <div>
-                <h3 className="text-lg font-extrabold tracking-tight text-slate-900">
+                <h3 className={`${compact ? 'text-sm leading-snug' : 'text-lg'} font-extrabold tracking-tight text-slate-900`}>
                   {title}
                 </h3>
               </div>
             </div>
           </div>
 
-          <p className="relative mt-4 text-sm leading-7 text-slate-600">{body}</p>
+          <p className={`relative ${compact ? 'mt-2 text-[12px] leading-5' : 'mt-4 text-sm leading-7'} text-slate-600`}>{body}</p>
 
-          <div className="mt-6 flex-1" />
+          <div className={`${compact ? 'mt-3' : 'mt-6'} flex-1`} />
 
           <div
-            className={`relative mt-2 flex items-center justify-between border-t border-slate-200/70 pt-4 text-sm font-semibold ${disabled ? 'text-rose-600' : 'text-slate-800'
+            className={`relative ${compact ? 'mt-1 pt-2.5 text-[12px]' : 'mt-2 pt-4 text-sm'} flex items-center justify-between border-t border-slate-200/70 font-semibold ${disabled ? 'text-rose-600' : 'text-slate-800'
               } ${rowDirection}`}
           >
             <span>{hint}</span>
@@ -287,7 +302,7 @@ function GuestEntryPanel({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-[32px] border border-white/70 bg-[rgba(248,250,252,0.78)] p-5 shadow-[0_30px_100px_rgba(2,6,23,0.18)] backdrop-blur-2xl sm:p-7 lg:p-8 ${className}`}
+      className={`relative overflow-hidden border border-white/70 bg-[rgba(248,250,252,0.78)] backdrop-blur-2xl ${panelClasses} ${className}`}
     >
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.95),rgba(255,255,255,0.82)_40%,rgba(248,250,252,0.72)_100%)]" />
@@ -300,8 +315,7 @@ function GuestEntryPanel({
           type="button"
           onClick={onClose}
           aria-label={copy.closeLabel}
-          className={`absolute top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/80 bg-white/85 text-slate-700 shadow-lg shadow-slate-900/5 backdrop-blur-md transition-all duration-200 hover:scale-[1.03] hover:bg-white ${isRTL ? 'left-4' : 'right-4'
-            }`}
+          className={closeButtonClasses}
         >
           <X className="h-4 w-4" />
         </button>
@@ -309,16 +323,16 @@ function GuestEntryPanel({
 
       <div className={`relative z-10 ${textAlignClass}`}>
         <div className="max-w-3xl">
-          <h2 className="mt-5 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+          <h2 className={headerTitleClasses}>
             {copy.title}
           </h2>
 
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-[15px]">
+          <p className={headerBodyClasses}>
             {copy.subtitle}
           </p>
         </div>
 
-        <div className={`mt-8 grid gap-4 lg:gap-5 ${gridCols}`}>
+        <div className={`${gridClasses} ${gridCols}`}>
           {registrationEnabled ? (
             <OptionCard
               as={Link}
@@ -379,17 +393,26 @@ function GuestEntryPanel({
 }
 
 function GuestEntryOverlay({ isOpen, isRTL, registrationEnabled, onBrowse, onClose }) {
+  const isMobile = useIsMobile();
+  const panelRef = useRef(null);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[90] bg-[rgba(2,6,23,0.55)] backdrop-blur-md">
+    <div
+      className="fixed inset-0 z-[90] bg-[rgba(2,6,23,0.55)] backdrop-blur-md"
+      onPointerDown={(event) => {
+        if (panelRef.current && !panelRef.current.contains(event.target)) onClose?.();
+      }}
+    >
       <div className="flex min-h-screen items-start justify-center px-4 py-6 sm:items-center sm:px-6 lg:px-8">
-        <div className="w-full max-w-6xl">
+        <div ref={panelRef} className={`w-full ${isMobile ? 'max-w-[22rem]' : 'max-w-6xl'}`}>
           <GuestEntryPanel
             isRTL={isRTL}
             registrationEnabled={registrationEnabled}
             onBrowse={onBrowse}
             onClose={onClose}
+            compact={isMobile}
             className="mx-auto"
           />
         </div>
