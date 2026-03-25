@@ -235,13 +235,14 @@ export const meetingsApi = {
     update: (id, data) => apiClient.patch(`/meetings/sectors/${id}`, data),
     remove: (id) => apiClient.delete(`/meetings/sectors/${id}`),
   },
-  meetings: {
-    list: (params) => apiClient.get('/meetings', { params }),
-    create: (data) => apiClient.post('/meetings', data),
-    uploadAvatarImage: (file) => {
-      const formData = new FormData();
-      formData.append('avatar', file);
-      return apiClient.post('/meetings/upload-avatar', formData);
+    meetings: {
+      list: (params) => apiClient.get('/meetings', { params }),
+      listReminderSettings: () => apiClient.get('/meetings/reminder-settings'),
+      create: (data) => apiClient.post('/meetings', data),
+      uploadAvatarImage: (file) => {
+        const formData = new FormData();
+        formData.append('avatar', file);
+        return apiClient.post('/meetings/upload-avatar', formData);
     },
     getById: (id) => apiClient.get(`/meetings/${id}`),
     getMemberById: (meetingId, memberId) => apiClient.get(`/meetings/${meetingId}/members/${memberId}`),
@@ -251,19 +252,20 @@ export const meetingsApi = {
       apiClient.put(`/meetings/${meetingId}/attendance`, { attendanceDate, attendedMemberUserIds }),
     getDocumentation: (meetingId, documentationDate) =>
       apiClient.get(`/meetings/${meetingId}/documentation`, { params: { documentationDate } }),
-    updateDocumentation: (meetingId, payload) =>
-      apiClient.put(`/meetings/${meetingId}/documentation`, payload),
-    updateMemberNotes: (meetingId, memberId, note) =>
-      apiClient.patch(`/meetings/${meetingId}/members/${memberId}/notes`, { note }),
-    updateBasic: (id, data) => apiClient.patch(`/meetings/${id}/basic`, data),
+      updateDocumentation: (meetingId, payload) =>
+        apiClient.put(`/meetings/${meetingId}/documentation`, payload),
+      updateMemberNotes: (meetingId, memberId, note) =>
+        apiClient.patch(`/meetings/${meetingId}/members/${memberId}/notes`, { note }),
+      updateReminderSettings: (id, data) => apiClient.patch(`/meetings/${id}/reminder-settings`, data),
+      updateBasic: (id, data) => apiClient.patch(`/meetings/${id}/basic`, data),
     updateServants: (id, servants) => apiClient.patch(`/meetings/${id}/servants`, { servants }),
     updateCommittees: (id, committees) => apiClient.patch(`/meetings/${id}/committees`, { committees }),
     updateActivities: (id, activities) => apiClient.patch(`/meetings/${id}/activities`, { activities }),
     remove: (id) => apiClient.delete(`/meetings/${id}`),
   },
   documentationSettings: {
-    get: (params) => apiClient.get('/meetings/documentation-settings', { params }),
-    update: (fields) => apiClient.put('/meetings/documentation-settings', { fields }),
+    get: (meetingId, params) => apiClient.get(`/meetings/${meetingId}/documentation-settings`, { params }),
+    update: (meetingId, fields) => apiClient.put(`/meetings/${meetingId}/documentation-settings`, { fields }),
     uploadAsset: (file, { meetingId, documentationDate } = {}) => {
       const formData = new FormData();
       formData.append('file', file);

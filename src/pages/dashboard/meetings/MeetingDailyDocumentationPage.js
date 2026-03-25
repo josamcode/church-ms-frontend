@@ -165,10 +165,11 @@ export default function MeetingDailyDocumentationPage() {
   });
 
   const settingsQuery = useQuery({
-    queryKey: ['meetings', 'documentation-settings', 'active'],
+    queryKey: ['meetings', 'documentation-settings', id, 'active'],
+    enabled: Boolean(id),
     staleTime: 60000,
     queryFn: async () => {
-      const { data } = await meetingsApi.documentationSettings.get();
+      const { data } = await meetingsApi.documentationSettings.get(id);
       return data?.data || null;
     },
   });
@@ -551,7 +552,7 @@ export default function MeetingDailyDocumentationPage() {
                 title={tf('meetings.documentation.questionsTitle', 'Configured Fields')}
                 subtitle={tf(
                   'meetings.documentation.questionsSubtitle',
-                  'These fields are managed by the system administrators in Meeting Settings.'
+                  'These fields are managed specifically for this meeting by its leadership.'
                 )}
               />
 

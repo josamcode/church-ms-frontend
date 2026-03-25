@@ -622,9 +622,19 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: 'meetings/settings',
+        path: 'meetings/list/:id/settings',
         element: (
-          <PermissionGuard required={['MEETINGS_SETTINGS_MANAGE']}>
+          <PermissionGuard
+            required={[
+              'MEETINGS_VIEW',
+              'MEETINGS_VIEW_OWN',
+              'MEETINGS_UPDATE',
+              'MEETINGS_SERVANTS_MANAGE',
+              'MEETINGS_DOCUMENTATION_MANAGE',
+              'MEETINGS_SETTINGS_MANAGE',
+            ]}
+            mode="any"
+          >
             <Lazy><MeetingSettingsPage /></Lazy>
           </PermissionGuard>
         ),

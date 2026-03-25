@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PlusCircle, Save, Settings2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -39,6 +40,7 @@ const FIELD_TYPE_OPTIONS = [
 ];
 
 export default function MeetingSettingsPage() {
+  const { id } = useParams();
   const queryClient = useQueryClient();
   const { t } = useI18n();
   const tf = (key, fallback) => {
@@ -48,11 +50,22 @@ export default function MeetingSettingsPage() {
 
   const [fields, setFields] = useState([]);
 
-  const settingsQuery = useQuery({
-    queryKey: ['meetings', 'documentation-settings', 'all'],
+  const meetingQuery = useQuery({
+    queryKey: ['meetings', 'details', id],
+    enabled: Boolean(id),
     staleTime: 60000,
     queryFn: async () => {
-      const { data } = await meetingsApi.documentationSettings.get({ includeInactive: true });
+      const { data } = await meetingsApi.meetings.getById(id);
+      return data?.data || null;
+    },
+  });
+
+  const settingsQuery = useQuery({
+    queryKey: ['meetings', 'documentation-settings', id, 'all'],
+    enabled: Boolean(id),
+    staleTime: 60000,
+    queryFn: async () => {
+      const { data } = await meetingsApi.documentationSettings.get(id, { includeInactive: true });
       return data?.data || null;
     },
   });
@@ -75,10 +88,10 @@ export default function MeetingSettingsPage() {
   }, [settingsQuery.data]);
 
   const saveMutation = useMutation({
-    mutationFn: (payload) => meetingsApi.documentationSettings.update(payload),
+    mutationFn: (payload) => meetingsApi.documentationSettings.update(id, payload),
     onSuccess: () => {
       toast.success(tf('meetings.settings.messages.saved', 'Meeting settings saved successfully.'));
-      queryClient.invalidateQueries({ queryKey: ['meetings', 'documentation-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'documentation-settings', id] });
     },
     onError: (error) => {
       toast.error(normalizeApiError(error).message);
@@ -114,17 +127,37 @@ export default function MeetingSettingsPage() {
     );
   };
 
+  const meeting = meetingQuery.data || null;
   const breadcrumbs = [
     { label: t('shared.dashboard'), href: '/dashboard' },
-    { label: t('meetings.meetingsPageTitle'), href: '/dashboard/meetings' },
-    { label: tf('meetings.settings.pageTitle', 'Meeting Settings') },
+    { label: t('meetings.meetingsPageTitle'), href: '/dashboard/meetings/list' },
+    meeting?.name
+      ? { label: meeting.name, href: `/dashboard/meetings/list/${id}` }
+      : { label: tf('meetings.memberDetails.meetingFallback', 'Meeting'), href: `/dashboard/meetings/list/${id}` },
+    { label: tf('meetings.settings.pageTitle', 'Meeting Documentation Settings') },
   ];
 
-  if (settingsQuery.isLoading) {
+  if (meetingQuery.isLoading || settingsQuery.isLoading) {
     return (
       <div className="animate-fade-in space-y-6">
         <Breadcrumbs items={breadcrumbs} />
         <p className="text-sm text-muted">{t('common.loading')}</p>
+      </div>
+    );
+  }
+
+  if (!meeting) {
+    return (
+      <div className="animate-fade-in space-y-6">
+        <Breadcrumbs items={breadcrumbs} />
+        <EmptyState
+          icon={Settings2}
+          title={tf('meetings.meetingDetails.notFoundTitle', 'Meeting not found')}
+          description={tf(
+            'meetings.meetingDetails.notFoundDescription',
+            'This meeting could not be loaded or may have been removed.'
+          )}
+        />
       </div>
     );
   }
@@ -135,14 +168,19 @@ export default function MeetingSettingsPage() {
 
       <PageHeader
         className="border-b border-border pb-6"
-        eyebrow={t('meetings.meetingsPageTitle')}
-        title={tf('meetings.settings.pageTitle', 'Meeting Settings')}
+        eyebrow={meeting.name || t('meetings.meetingsPageTitle')}
+        title={tf('meetings.settings.pageTitle', 'Meeting Documentation Settings')}
         subtitle={tf(
           'meetings.settings.pageSubtitle',
-          'Create and manage the dynamic fields that servants complete on the daily meeting documentation page.'
+          'Create and manage the dynamic documentation fields for this meeting only.'
         )}
         actions={(
           <div className="flex flex-wrap gap-2">
+            <Link to={`/dashboard/meetings/list/${id}`}>
+              <Button type="button" variant="ghost" size="sm">
+                {t('common.actions.back')}
+              </Button>
+            </Link>
             <Button
               type="button"
               variant="outline"
@@ -170,7 +208,7 @@ export default function MeetingSettingsPage() {
           title={tf('meetings.settings.fieldsTitle', 'Documentation Fields')}
           subtitle={tf(
             'meetings.settings.fieldsSubtitle',
-            'These fields appear on the daily meeting documentation page in the same order shown here.'
+            'These fields appear on the daily documentation page for this meeting in the same order shown here.'
           )}
         />
 
@@ -191,7 +229,7 @@ export default function MeetingSettingsPage() {
             title={tf('meetings.settings.emptyTitle', 'No documentation fields yet')}
             description={tf(
               'meetings.settings.emptyDescription',
-              'Add your first field to start collecting structured daily meeting documentation.'
+              'Add your first field to start collecting structured daily documentation for this meeting.'
             )}
           />
         ) : (

@@ -247,9 +247,9 @@ const TITLE_ROUTES = [
     fallback: 'Bookings',
   },
   {
-    pattern: '/dashboard/meetings/settings',
+    pattern: '/dashboard/meetings/list/:id/settings',
     key: 'meetings.settings.pageTitle',
-    fallback: 'Meeting Settings',
+    fallback: 'Meeting Documentation Settings',
   },
   {
     pattern: '/dashboard/meetings/sectors/new',

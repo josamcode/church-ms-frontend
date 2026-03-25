@@ -517,14 +517,6 @@ export default function DashboardLayout() {
           ],
           matchChildren: true,
         },
-        {
-          key: 'meetings-settings',
-          label: tf('dashboardLayout.menu.meetingSettings', 'Meeting Settings'),
-          href: '/dashboard/meetings/settings',
-          icon: Sparkles,
-          permission: 'MEETINGS_SETTINGS_MANAGE',
-          matchChildren: false,
-        },
       ],
     },
     {

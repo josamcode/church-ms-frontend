@@ -1,22 +1,106 @@
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import {
   ArrowUpRight, CalendarClock, CalendarDays, ClipboardCheck, Edit, FileText,
-  Layers3, ListChecks, Phone, UserCircle, Users,
+  Layers3, ListChecks, Phone, Settings2, UserCircle, Users,
 } from 'lucide-react';
 import { meetingsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
+import NotificationTemplateEditor from '../../../components/notifications/NotificationTemplateEditor';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
+import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
+import Tabs from '../../../components/ui/Tabs';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
 import { getActivityTypeLabel, getDayLabel } from './meetingsForm.utils';
 
 const EMPTY = '---';
+const MEETING_REMINDER_DEFAULTS = Object.freeze({
+  leadMinutes: 60,
+  template: {
+    title: {
+      ar: 'تذكير بموعد الاجتماع',
+      en: 'تذكير بموعد الاجتماع',
+    },
+    message: {
+      ar: 'سيتبقى {reminderLeadTime} على اجتماع {meetingName} يوم {meetingDay} في {meetingDateTime}.',
+      en: 'سيتبقى {reminderLeadTime} على اجتماع {meetingName} يوم {meetingDay} في {meetingDateTime}.',
+    },
+  },
+});
+const MEETING_REMINDER_TOKENS = Object.freeze([
+  {
+    key: 'meetingName',
+    token: '{meetingName}',
+    label: { ar: 'اسم الاجتماع', en: 'Meeting name' },
+    sampleValue: { ar: 'اجتماع الشباب', en: 'Youth Meeting' },
+  },
+  {
+    key: 'meetingDay',
+    token: '{meetingDay}',
+    label: { ar: 'يوم الاجتماع', en: 'Meeting day' },
+    sampleValue: { ar: 'الأحد', en: 'Sunday' },
+  },
+  {
+    key: 'meetingTime',
+    token: '{meetingTime}',
+    label: { ar: 'وقت الاجتماع', en: 'Meeting time' },
+    sampleValue: { ar: '6:30 م', en: '6:30 PM' },
+  },
+  {
+    key: 'meetingDateTime',
+    token: '{meetingDateTime}',
+    label: { ar: 'تاريخ ووقت الاجتماع', en: 'Meeting date/time' },
+    sampleValue: { ar: '10 أبريل 2026، 6:30 م', en: 'Apr 10, 2026, 6:30 PM' },
+  },
+  {
+    key: 'sectorName',
+    token: '{sectorName}',
+    label: { ar: 'اسم القطاع', en: 'Sector name' },
+    sampleValue: { ar: 'قطاع الشباب', en: 'Youth Sector' },
+  },
+  {
+    key: 'reminderLeadTime',
+    token: '{reminderLeadTime}',
+    label: { ar: 'المدة قبل الاجتماع', en: 'Reminder lead time' },
+    sampleValue: { ar: 'ساعة واحدة', en: '1 hour' },
+  },
+]);
+
+function buildMeetingReminderForm(reminderSettings = {}) {
+  const titleAr = String(
+    reminderSettings?.template?.title?.ar
+      || MEETING_REMINDER_DEFAULTS.template.title.ar
+  );
+  const messageAr = String(
+    reminderSettings?.template?.message?.ar
+      || MEETING_REMINDER_DEFAULTS.template.message.ar
+  );
+  const parsedLeadMinutes = Number(reminderSettings?.leadMinutes);
+
+  return {
+    leadMinutes: Number.isFinite(parsedLeadMinutes)
+      ? parsedLeadMinutes
+      : MEETING_REMINDER_DEFAULTS.leadMinutes,
+    template: {
+      title: {
+        ar: titleAr,
+        en: String(reminderSettings?.template?.title?.en || titleAr),
+      },
+      message: {
+        ar: messageAr,
+        en: String(reminderSettings?.template?.message?.en || messageAr),
+      },
+    },
+  };
+}
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Primitives
@@ -124,10 +208,16 @@ function UserCard({ user, onOpenMember, showPhone = true }) {
 export default function MeetingDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { t } = useI18n();
   const { hasPermission } = useAuth();
+  const [reminderForm, setReminderForm] = useState(buildMeetingReminderForm);
+  const [showReminderSettings, setShowReminderSettings] = useState(false);
 
-  const tf = (key, fallback) => { const v = t(key); return v === key ? fallback : v; };
+  const tf = useCallback((key, fallback) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  }, [t]);
 
   const canUpdateMeeting =
     hasPermission('MEETINGS_UPDATE') ||
@@ -155,7 +245,30 @@ export default function MeetingDetailsPage() {
     },
   });
 
+  const reminderMutation = useMutation({
+    mutationFn: async (payload) => {
+      const { data } = await meetingsApi.meetings.updateReminderSettings(id, payload);
+      return data?.data || null;
+    },
+    onSuccess: (payload) => {
+      queryClient.setQueryData(['meetings', 'details', id], payload);
+      setReminderForm(buildMeetingReminderForm(payload?.reminderSettings));
+      toast.success(
+        tf('meetings.meetingDetails.reminderSettings.saved', 'Meeting reminder settings saved successfully.')
+      );
+    },
+    onError: (error) => {
+      toast.error(
+        error?.response?.data?.message
+        || error?.message
+        || tf('meetings.meetingDetails.reminderSettings.saveFailed', 'Failed to save meeting reminder settings.')
+      );
+    },
+  });
+
   const meeting = meetingQuery.data || null;
+  const canManageReminderSettings = Boolean(meeting?.viewerContext?.canManageReminderSettings);
+  const canManageDocumentationSettings = Boolean(meeting?.viewerContext?.canManageDocumentationSettings);
   const canViewAllDetails = Boolean(meeting?.viewerContext?.canViewAllDetails);
   const canViewAllServedUsers = Boolean(meeting?.viewerContext?.canViewAllServedUsers);
   const canViewLeadership = Boolean(meeting?.viewerContext?.canViewLeadership ?? canViewAllDetails);
@@ -164,6 +277,81 @@ export default function MeetingDetailsPage() {
   const canViewActivities = Boolean(meeting?.viewerContext?.canViewActivities ?? canViewAllDetails);
   const canOpenMemberFromGroups = meeting?.viewerContext?.accessLevel !== 'member';
   const canViewMemberPhoneInGroups = meeting?.viewerContext?.accessLevel !== 'member';
+
+  useEffect(() => {
+    if (!meeting?.reminderSettings) return;
+    setReminderForm(buildMeetingReminderForm(meeting.reminderSettings));
+  }, [meeting?.id, meeting?.reminderSettings]);
+
+  useEffect(() => {
+    setShowReminderSettings(false);
+  }, [meeting?.id]);
+
+  const updateReminderField = useCallback((field, language, value) => {
+    setReminderForm((current) => {
+      const previousArabicValue = String(current?.template?.[field]?.ar || '');
+      const previousEnglishValue = String(current?.template?.[field]?.en || '');
+      const nextLocalizedField = {
+        ...(current?.template?.[field] || { ar: '', en: '' }),
+        [language]: value,
+      };
+
+      if (language === 'ar') {
+        const shouldMirrorEnglish = !previousEnglishValue.trim() || previousEnglishValue === previousArabicValue;
+        if (shouldMirrorEnglish) {
+          nextLocalizedField.en = value;
+        }
+      }
+
+      return {
+        ...current,
+        template: {
+          ...(current?.template || {}),
+          [field]: nextLocalizedField,
+        },
+      };
+    });
+  }, []);
+
+  const reminderLanguageTabs = useMemo(
+    () => [
+      {
+        label: t('platformSettingsPage.languages.ar'),
+        content: (
+          <NotificationTemplateEditor
+            t={t}
+            language="ar"
+            sectionTitle={tf('meetings.meetingDetails.reminderSettings.title', 'Meeting Reminder Notification')}
+            sectionSubtitle={tf(
+              'meetings.meetingDetails.reminderSettings.subtitle',
+              'Customize the reminder title and message that will be sent before this meeting starts.'
+            )}
+            template={reminderForm?.template}
+            tokenList={MEETING_REMINDER_TOKENS}
+            onFieldChange={updateReminderField}
+          />
+        ),
+      },
+      {
+        label: t('platformSettingsPage.languages.en'),
+        content: (
+          <NotificationTemplateEditor
+            t={t}
+            language="en"
+            sectionTitle={tf('meetings.meetingDetails.reminderSettings.title', 'Meeting Reminder Notification')}
+            sectionSubtitle={tf(
+              'meetings.meetingDetails.reminderSettings.subtitle',
+              'Customize the reminder title and message that will be sent before this meeting starts.'
+            )}
+            template={reminderForm?.template}
+            tokenList={MEETING_REMINDER_TOKENS}
+            onFieldChange={updateReminderField}
+          />
+        ),
+      },
+    ],
+    [reminderForm?.template, t, tf, updateReminderField]
+  );
   const leadershipCards = useMemo(() => {
     const assistants = meeting?.assistantSecretaries || [];
     const leaders = [];
@@ -193,6 +381,13 @@ export default function MeetingDetailsPage() {
     }
     navigate(`/dashboard/meetings/list/${id}/members/${memberId}`);
   };
+
+  const handleSaveReminderSettings = useCallback(() => {
+    reminderMutation.mutate({
+      leadMinutes: Number(reminderForm?.leadMinutes || 0),
+      template: reminderForm?.template || MEETING_REMINDER_DEFAULTS.template,
+    });
+  }, [reminderForm, reminderMutation]);
 
   const breadcrumbs = [
     { label: t('shared.dashboard'), href: '/dashboard' },
@@ -282,6 +477,18 @@ export default function MeetingDetailsPage() {
               <Button variant="ghost" icon={Layers3}>{t('meetings.columns.sector')}</Button>
             </Link>
           )}
+          {canManageReminderSettings && (
+            <Button
+              type="button"
+              variant={showReminderSettings ? 'outline' : 'ghost'}
+              icon={CalendarClock}
+              onClick={() => setShowReminderSettings((current) => !current)}
+            >
+              {showReminderSettings
+                ? tf('meetings.meetingDetails.reminderSettings.hideAction', 'Hide reminder settings')
+                : tf('meetings.meetingDetails.reminderSettings.showAction', 'Reminder settings')}
+            </Button>
+          )}
           {canUpdateMeeting && (
             <Link to={`/dashboard/meetings/${meeting.id}/edit`}>
               <Button variant="outline" icon={Edit}>{t('common.actions.edit')}</Button>
@@ -322,6 +529,62 @@ export default function MeetingDetailsPage() {
         </div>
       )}
 
+      {canManageReminderSettings && showReminderSettings && (
+        <section className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <SectionLabel>
+              {tf('meetings.meetingDetails.reminderSettings.section', 'Meeting reminder settings')}
+            </SectionLabel>
+            <Button
+              type="button"
+              loading={reminderMutation.isPending}
+              onClick={handleSaveReminderSettings}
+            >
+              {t('common.actions.save')}
+            </Button>
+          </div>
+
+          <div className="space-y-6">
+            <Card className="rounded-3xl border border-border/60 bg-surface shadow-card">
+              <CardHeader
+                title={t('platformSettingsPage.notifications.reminderTiming.title')}
+                subtitle={t('platformSettingsPage.notifications.reminderTiming.subtitle')}
+              />
+
+              <div className="grid gap-4 md:grid-cols-[minmax(0,280px)_1fr]">
+                <Input
+                  type="number"
+                  min="0"
+                  max="10080"
+                  step="1"
+                  label={t('platformSettingsPage.notifications.reminderTiming.fieldLabel')}
+                  hint={t('platformSettingsPage.notifications.reminderTiming.hint')}
+                  value={reminderForm?.leadMinutes ?? 0}
+                  onChange={(event) => setReminderForm((current) => ({
+                    ...current,
+                    leadMinutes: event.target.value,
+                  }))}
+                  containerClassName="!mb-0"
+                />
+
+                <div className="rounded-2xl border border-border/60 bg-surface-alt/40 p-4">
+                  <p className="text-sm font-semibold text-heading">
+                    {t('platformSettingsPage.notifications.reminderTiming.previewLabel')}
+                  </p>
+                  <p className="mt-1 text-sm text-muted">
+                    {t('platformSettingsPage.notifications.reminderTiming.previewValue', {
+                      count: Number(reminderForm?.leadMinutes || 0),
+                    })}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            <Tabs variant="inline" tabs={reminderLanguageTabs} />
+          </div>
+        </section>
+      )}
+
       {/* ══ LEADERSHIP ════════════════════════════════════════════════════ */}
       {canViewLeadership && (
         <section className="space-y-4">
@@ -355,6 +618,13 @@ export default function MeetingDetailsPage() {
               <Link to={`/dashboard/meetings/list/${id}/documentation`}>
                 <Button variant="outline" size="sm" icon={FileText}>
                   {tf('meetings.actions.openDailyDocumentation', 'Daily Documentation')}
+                </Button>
+              </Link>
+            )}
+            {canManageDocumentationSettings && (
+              <Link to={`/dashboard/meetings/list/${id}/settings`}>
+                <Button variant="outline" size="sm" icon={Settings2}>
+                  {tf('meetings.actions.openDocumentationSettings', 'Documentation Settings')}
                 </Button>
               </Link>
             )}

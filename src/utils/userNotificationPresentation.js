@@ -48,6 +48,13 @@ export function getUserNotificationPresentation(notification, tf) {
         iconClassName: 'text-secondary',
         badgeClassName: 'bg-secondary/10 text-secondary',
       };
+    case 'meeting_reminder':
+      return {
+        icon: CalendarClock,
+        label: tf('notificationCenter.types.meetingReminder', 'Meeting reminder'),
+        iconClassName: 'text-primary',
+        badgeClassName: 'bg-primary/10 text-primary',
+      };
     case 'confession_next_session':
       return {
         icon: CalendarPlus,
