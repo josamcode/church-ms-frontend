@@ -160,128 +160,217 @@ function GuestEntryPanel({
 }) {
   const copy = isRTL
     ? {
-      eyebrow: 'ابدأ رحلتك',
-      title: 'كيف تريد الدخول إلى النظام؟',
-      subtitle: 'اختر الطريقة المناسبة لك. يمكنك إنشاء طلب حساب جديد، أو تسجيل الدخول إذا كان لديك حساب، أو تصفح النظام أولًا.',
-      joinTitle: 'انضم إلينا الآن بإنشاء حساب',
-      joinBody: 'أرسل بياناتك ليتم حفظها كطلب جديد ومراجعته قبل تفعيل الدخول.',
-      joinClosed: 'التسجيل متوقف حاليًا من إعدادات النظام.',
-      loginTitle: 'هل لديك حساب بالفعل؟',
-      loginBody: 'انتقل مباشرة إلى صفحة تسجيل الدخول للوصول إلى حسابك.',
-      browseTitle: 'هل تريد تصفح النظام أولًا؟',
-      browseBody: 'شاهد الواجهة العامة وتعرّف على الخدمات والحياة داخل الكنيسة.',
+      badge: 'بوابة الدخول',
+      title: 'اختر الطريقة المناسبة للدخول',
+      subtitle:
+        'ابدأ بالطريقة التي تناسبك. يمكنك إرسال طلب حساب جديد، أو تسجيل الدخول إذا كان لديك حساب بالفعل، أو تصفح المنصة أولًا.',
+      joinTitle: 'إنشاء طلب حساب جديد',
+      joinBody:
+        'أرسل بياناتك ليتم مراجعتها واعتماد حسابك قبل تفعيل إمكانية الدخول.',
+      joinHint: 'ابدأ التسجيل',
+      joinClosed: 'التسجيل غير متاح حاليًا',
+      joinClosedBody:
+        'تم إيقاف استقبال طلبات الحسابات الجديدة من إعدادات النظام في الوقت الحالي.',
+      loginTitle: 'تسجيل الدخول',
+      loginBody:
+        'إذا كان لديك حساب بالفعل، انتقل مباشرة إلى صفحة تسجيل الدخول للوصول إلى خدماتك.',
+      loginHint: 'اذهب لتسجيل الدخول',
+      browseTitle: 'تصفح أولًا',
+      browseBody:
+        'استكشف الواجهة العامة وتعرف على الخدمات والأنشطة قبل إنشاء حساب أو تسجيل الدخول.',
+      browseHint: 'ابدأ التصفح',
+      closeLabel: 'إغلاق نافذة الدخول',
     }
     : {
-      eyebrow: 'Start here',
-      title: 'How would you like to enter the system?',
-      subtitle: 'Choose what fits you best. You can create a new account request, sign in if you already have an account, or browse first.',
-      joinTitle: 'Join us now by creating an account',
-      joinBody: 'Send your details as a new request so the team can review and approve your account.',
-      joinClosed: 'Registration is currently turned off in system settings.',
-      loginTitle: 'Do you already have an account?',
-      loginBody: 'Go straight to the sign-in page and access your account.',
-      browseTitle: 'Do you want to browse the system first?',
-      browseBody: 'Explore the public experience and get familiar with church life and services.',
+      badge: 'Entry Gateway',
+      title: 'Choose how you want to continue',
+      subtitle:
+        'Start in the way that fits you best. You can submit a new account request, sign in if you already have an account, or explore the platform first.',
+      joinTitle: 'Create a new account request',
+      joinBody:
+        'Submit your details so the team can review and approve your access.',
+      joinHint: 'Start registration',
+      joinClosed: 'Registration is currently unavailable',
+      joinClosedBody:
+        'New account requests are temporarily disabled from system settings.',
+      loginTitle: 'Sign in',
+      loginBody:
+        'Already have an account? Go directly to the sign-in page and access your services.',
+      loginHint: 'Go to sign in',
+      browseTitle: 'Browse first',
+      browseBody:
+        'Explore the public experience and discover the services and community before continuing.',
+      browseHint: 'Start browsing',
+      closeLabel: 'Close entry modal',
     };
+
   const textAlignClass = isRTL ? 'text-right' : 'text-left';
-  const cardClassName = `group relative overflow-hidden rounded-[1.5rem] border p-5 transition-all duration-300 ${textAlignClass}`;
-  const browseCardClassName = `${cardClassName} border-border/70 bg-surface/85 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/10`;
+  const rowDirection = isRTL ? 'flex-row-reverse' : 'flex-row';
+  const arrowRotate = isRTL ? 'rotate-180' : '';
+  const gridCols = compact ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-3';
+
+  const baseCard =
+    'group relative overflow-hidden rounded-[28px] border border-white/60 bg-white/80 p-5 sm:p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl';
+  const mutedCard =
+    'shadow-[0_10px_30px_rgba(15,23,42,0.06)] hover:border-slate-200 hover:shadow-[0_20px_50px_rgba(15,23,42,0.10)]';
+  const primaryCard =
+    'border-primary/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,255,255,0.90)),radial-gradient(circle_at_top,rgba(var(--color-primary-rgb,59_130_246),0.14),transparent_45%)] shadow-[0_14px_40px_rgba(59,130,246,0.12)] hover:border-primary/30 hover:shadow-[0_22px_60px_rgba(59,130,246,0.16)]';
+
+  const OptionCard = ({
+    as = 'div',
+    to,
+    href,
+    onClick,
+    icon,
+    iconWrapClass,
+    title,
+    body,
+    hint,
+    variant = 'default',
+    disabled = false,
+  }) => {
+    const Component = as;
+    const classes = `${baseCard} ${variant === 'primary' ? primaryCard : mutedCard} ${disabled ? 'cursor-default border-rose-200 bg-rose-50/90 hover:translate-y-0 hover:shadow-none' : ''
+      }`;
+
+    const props = {
+      className: classes,
+      ...(to ? { to } : {}),
+      ...(href ? { href } : {}),
+      ...(onClick ? { onClick } : {}),
+      ...(disabled ? {} : {}),
+    };
+
+    return (
+      <Component {...props}>
+        <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/55 to-transparent" />
+          <div className="absolute -right-10 top-0 h-32 w-32 rounded-full bg-white/30 blur-2xl" />
+        </div>
+
+        <div className={`relative flex h-full flex-col ${textAlignClass}`}>
+          <div className={`flex items-start justify-between gap-4 ${rowDirection}`}>
+            <div className={`flex items-center gap-4 ${rowDirection}`}>
+              <div
+                className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${iconWrapClass}`}
+              >
+                {icon}
+              </div>
+
+              <div>
+                <h3 className="text-lg font-extrabold tracking-tight text-slate-900">
+                  {title}
+                </h3>
+              </div>
+            </div>
+          </div>
+
+          <p className="relative mt-4 text-sm leading-7 text-slate-600">{body}</p>
+
+          <div className="mt-6 flex-1" />
+
+          <div
+            className={`relative mt-2 flex items-center justify-between border-t border-slate-200/70 pt-4 text-sm font-semibold ${disabled ? 'text-rose-600' : 'text-slate-800'
+              } ${rowDirection}`}
+          >
+            <span>{hint}</span>
+            {!disabled ? (
+              <span className={`transition-transform duration-300 group-hover:translate-x-1 ${arrowRotate}`}>
+                →
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </Component>
+    );
+  };
 
   return (
-    <div className={`relative overflow-hidden rounded-[2rem] border border-white/20 bg-white/78 p-5 shadow-2xl shadow-black/10 backdrop-blur-xl sm:p-6 ${className}`}>
-      <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-white to-primary/70" />
+    <div
+      className={`relative overflow-hidden rounded-[32px] border border-white/70 bg-[rgba(248,250,252,0.78)] p-5 shadow-[0_30px_100px_rgba(2,6,23,0.18)] backdrop-blur-2xl sm:p-7 lg:p-8 ${className}`}
+    >
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.95),rgba(255,255,255,0.82)_40%,rgba(248,250,252,0.72)_100%)]" />
+        <div className="absolute -top-24 left-0 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-56 w-56 rounded-full bg-indigo-200/30 blur-3xl" />
+      </div>
+
       {onClose ? (
         <button
           type="button"
           onClick={onClose}
-          className={`absolute top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/50 bg-white/80 text-heading shadow-lg shadow-black/5 transition-colors hover:bg-white ${isRTL ? 'left-4' : 'right-4'}`}
-          aria-label={isRTL ? 'إغلاق لوحة الدخول' : 'Close guest entry panel'}
+          aria-label={copy.closeLabel}
+          className={`absolute top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/80 bg-white/85 text-slate-700 shadow-lg shadow-slate-900/5 backdrop-blur-md transition-all duration-200 hover:scale-[1.03] hover:bg-white ${isRTL ? 'left-4' : 'right-4'
+            }`}
         >
           <X className="h-4 w-4" />
         </button>
       ) : null}
-      <div className={`relative ${textAlignClass}`}>
-        <span className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
-          <Sparkles className="h-3 w-3" />
-          {copy.eyebrow}
-        </span>
-        <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-heading sm:text-[2rem]">
-          {copy.title}
-        </h2>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-muted">
-          {copy.subtitle}
-        </p>
 
-        <div className={`mt-6 grid gap-3 ${compact ? 'grid-cols-1' : 'lg:grid-cols-3'}`}>
+      <div className={`relative z-10 ${textAlignClass}`}>
+        <div className="max-w-3xl">
+          <h2 className="mt-5 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+            {copy.title}
+          </h2>
+
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-[15px]">
+            {copy.subtitle}
+          </p>
+        </div>
+
+        <div className={`mt-8 grid gap-4 lg:gap-5 ${gridCols}`}>
           {registrationEnabled ? (
-            <Link
+            <OptionCard
+              as={Link}
               to="/auth/register"
-              className={`${cardClassName} border-primary/15 bg-gradient-to-br from-primary/12 via-white/80 to-primary/5 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10`}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-              <div className="relative flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/25">
-                  <UserCircle2 className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-heading">{copy.joinTitle}</p>
-                  <p className="mt-2 text-sm leading-6">{copy.joinBody}</p>
-                </div>
-              </div>
-            </Link>
+              title={copy.joinTitle}
+              body={copy.joinBody}
+              hint={copy.joinHint}
+              variant="primary"
+              iconWrapClass="bg-primary text-white shadow-[0_12px_30px_rgba(59,130,246,0.28)]"
+              icon={<UserCircle2 className="h-6 w-6" />}
+            />
           ) : (
-            <div className={`${cardClassName} border-danger/15 bg-danger-light/70`}>
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-danger text-white shadow-lg shadow-danger/20">
-                  <UserCircle2 className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-heading">{copy.joinTitle}</p>
-                  <p className="mt-2 text-sm leading-6">{copy.joinClosed}</p>
-                </div>
-              </div>
-            </div>
+            <OptionCard
+              title={copy.joinClosed}
+              body={copy.joinClosedBody}
+              hint={isRTL ? 'غير متاح الآن' : 'Unavailable right now'}
+              disabled
+              iconWrapClass="bg-rose-500 text-white shadow-[0_12px_30px_rgba(244,63,94,0.20)]"
+              icon={<UserCircle2 className="h-6 w-6" />}
+            />
           )}
 
-          <Link
+          <OptionCard
+            as={Link}
             to="/auth/login"
-            className={`${cardClassName} border-secondary/15 bg-gradient-to-br from-secondary/12 via-white/80 to-secondary/5 hover:-translate-y-0.5 hover:border-secondary/25 hover:shadow-xl hover:shadow-secondary/10`}
-          >
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-secondary text-white shadow-lg shadow-secondary/20">
-                <LogIn className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-heading">{copy.loginTitle}</p>
-                <p className="mt-2 text-sm leading-6">{copy.loginBody}</p>
-              </div>
-            </div>
-          </Link>
+            title={copy.loginTitle}
+            body={copy.loginBody}
+            hint={copy.loginHint}
+            iconWrapClass="bg-slate-900 text-white shadow-[0_12px_30px_rgba(15,23,42,0.18)]"
+            icon={<LogIn className="h-6 w-6" />}
+          />
 
           {onBrowse ? (
-            <button type="button" onClick={onBrowse} className={browseCardClassName}>
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
-                  <Globe className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-heading">{copy.browseTitle}</p>
-                  <p className="mt-2 text-sm leading-6 text-muted">{copy.browseBody}</p>
-                </div>
-              </div>
-            </button>
+            <OptionCard
+              as="button"
+              onClick={onBrowse}
+              title={copy.browseTitle}
+              body={copy.browseBody}
+              hint={copy.browseHint}
+              iconWrapClass="bg-emerald-500 text-white shadow-[0_12px_30px_rgba(16,185,129,0.20)]"
+              icon={<Globe className="h-6 w-6" />}
+            />
           ) : (
-            <a href="#about" className={browseCardClassName}>
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
-                  <Globe className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-heading">{copy.browseTitle}</p>
-                  <p className="mt-2 text-sm leading-6 text-muted">{copy.browseBody}</p>
-                </div>
-              </div>
-            </a>
+            <OptionCard
+              as="a"
+              href="#about"
+              title={copy.browseTitle}
+              body={copy.browseBody}
+              hint={copy.browseHint}
+              iconWrapClass="bg-emerald-500 text-white shadow-[0_12px_30px_rgba(16,185,129,0.20)]"
+              icon={<Globe className="h-6 w-6" />}
+            />
           )}
         </div>
       </div>
@@ -293,15 +382,17 @@ function GuestEntryOverlay({ isOpen, isRTL, registrationEnabled, onBrowse, onClo
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-black/45 px-4 py-6 backdrop-blur-sm sm:items-center sm:px-6">
-      <div className="w-full max-w-5xl">
-        <GuestEntryPanel
-          isRTL={isRTL}
-          registrationEnabled={registrationEnabled}
-          onBrowse={onBrowse}
-          onClose={onClose}
-          className="mx-auto"
-        />
+    <div className="fixed inset-0 z-[90] bg-[rgba(2,6,23,0.55)] backdrop-blur-md">
+      <div className="flex min-h-screen items-start justify-center px-4 py-6 sm:items-center sm:px-6 lg:px-8">
+        <div className="w-full max-w-6xl">
+          <GuestEntryPanel
+            isRTL={isRTL}
+            registrationEnabled={registrationEnabled}
+            onBrowse={onBrowse}
+            onClose={onClose}
+            className="mx-auto"
+          />
+        </div>
       </div>
     </div>
   );
