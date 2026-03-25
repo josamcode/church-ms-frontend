@@ -4,7 +4,13 @@ import Badge from '../../components/ui/Badge';
 import Breadcrumbs from '../../components/ui/Breadcrumbs';
 import PageHeader from '../../components/ui/PageHeader';
 import Skeleton from '../../components/ui/Skeleton';
-import { formatDate, getGenderLabel, getRoleLabel } from '../../utils/formatters';
+import {
+  formatDate,
+  getAccountStatusLabel,
+  getAccountStatusVariant,
+  getGenderLabel,
+  getRoleLabel,
+} from '../../utils/formatters';
 import { useI18n } from '../../i18n/i18n';
 import {
   Calendar, Clock3, Mail, MapPin, Phone,
@@ -74,8 +80,30 @@ export default function ProfilePage() {
 
   const empty = t('common.placeholder.empty');
   const roleLabel = getRoleLabel(user?.role) || empty;
-  const statusLabel = user?.isLocked ? t('common.status.locked') : t('common.status.active');
-  const statusVariant = user?.isLocked ? 'danger' : 'success';
+  const accountStatus = user?.accountStatus || 'approved';
+  const accountStatusLabel = getAccountStatusLabel(accountStatus) || empty;
+  const accountStatusVariant = getAccountStatusVariant(accountStatus);
+  const accountStatusToneClasses =
+    accountStatusVariant === 'success'
+      ? {
+        card: 'border-success/20 bg-success-light',
+        icon: 'text-success',
+        text: 'text-success',
+        divider: 'bg-success',
+      }
+      : accountStatusVariant === 'danger'
+        ? {
+          card: 'border-danger/20 bg-danger-light',
+          icon: 'text-danger',
+          text: 'text-danger',
+          divider: 'bg-danger',
+        }
+        : {
+          card: 'border-warning/20 bg-warning-light',
+          icon: 'text-warning',
+          text: 'text-warning',
+          divider: 'bg-warning',
+        };
   const primaryPhone = user?.phonePrimary || empty;
   const secondaryPhone = user?.phoneSecondary || empty;
   const email = user?.email || empty;
@@ -126,7 +154,8 @@ export default function ProfilePage() {
               childrenClassName="mt-2.5 flex flex-wrap items-center gap-1.5"
             >
               <Badge variant="primary">{roleLabel}</Badge>
-              <Badge variant={statusVariant}>{statusLabel}</Badge>
+              <Badge variant={accountStatusVariant}>{accountStatusLabel}</Badge>
+              {user?.isLocked ? <Badge variant="danger">{t('common.status.locked')}</Badge> : null}
               {user?.ageGroup && <Badge>{user.ageGroup}</Badge>}
             </PageHeader>
           </div>
@@ -192,24 +221,20 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 
           {/* status tile */}
-          <div className={`flex flex-col justify-between rounded-2xl border p-5
-            ${user?.isLocked
-              ? 'border-danger/20 bg-danger-light'
-              : 'border-success/20 bg-success-light'
-            }`}
-          >
+          <div className={`flex flex-col justify-between rounded-2xl border p-5 ${accountStatusToneClasses.card}`}>
             <div className="flex items-center justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
                 {t('profilePage.fields.accountStatus')}
               </p>
-              <ShieldCheck className={`h-4 w-4 ${user?.isLocked ? 'text-danger' : 'text-success'}`} />
+              <ShieldCheck className={`h-4 w-4 ${accountStatusToneClasses.icon}`} />
             </div>
-            <p className={`mt-4 text-2xl font-bold tracking-tight
-              ${user?.isLocked ? 'text-danger' : 'text-success'}`}>
-              {statusLabel}
+            <p className={`mt-4 text-2xl font-bold tracking-tight ${accountStatusToneClasses.text}`}>
+              {accountStatusLabel}
             </p>
-            <div className={`mt-4 h-0.5 w-10 rounded-full
-              ${user?.isLocked ? 'bg-danger' : 'bg-success'}`} />
+            {user?.isLocked ? (
+              <p className="mt-2 text-xs font-medium text-danger">{t('common.status.locked')}</p>
+            ) : null}
+            <div className={`mt-4 h-0.5 w-10 rounded-full ${accountStatusToneClasses.divider}`} />
           </div>
 
           {/* joined */}
@@ -247,14 +272,3 @@ export default function ProfilePage() {
 }
 
 /* ── QuickStat: compact pill for hero strip ─────────────────────────────── */
-function QuickStat({ label, value, ltr = false }) {
-  const { t } = useI18n();
-  return (
-    <div className="rounded-xl border border-border/40 bg-surface/80 px-4 py-3 backdrop-blur-sm sm:min-w-[180px]">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">{label}</p>
-      <p className={`mt-1 text-sm font-semibold text-heading ${ltr ? 'direction-ltr text-left' : ''}`}>
-        {value || t('common.placeholder.empty')}
-      </p>
-    </div>
-  );
-}

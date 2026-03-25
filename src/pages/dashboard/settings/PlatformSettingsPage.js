@@ -5,12 +5,14 @@ import toast from 'react-hot-toast';
 
 import { meetingsApi, platformSettingsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
+import { useAuth } from '../../../auth/auth.hooks';
 import NotificationTemplateEditor from '../../../components/notifications/NotificationTemplateEditor';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
+import Switch from '../../../components/ui/Switch';
 import Tabs from '../../../components/ui/Tabs';
 import { useI18n } from '../../../i18n/i18n';
 import { getDayLabel } from '../meetings/meetingsForm.utils';
@@ -102,6 +104,7 @@ function createDefaultForm() {
   return {
     notificationTemplates,
     meetingReminderLeadMinutes: 60,
+    registrationEnabled: true,
     availableTokens,
     updatedAt: null,
   };
@@ -138,6 +141,10 @@ function buildHydratedForm(payload = {}) {
     meetingReminderLeadMinutes: Number.isFinite(parsedLeadMinutes)
       ? parsedLeadMinutes
       : defaultForm.meetingReminderLeadMinutes,
+    registrationEnabled:
+      typeof payload?.registrationEnabled === 'boolean'
+        ? payload.registrationEnabled
+        : defaultForm.registrationEnabled,
     availableTokens: {
       ...defaultForm.availableTokens,
       ...(payload?.availableTokens || {}),
@@ -174,10 +181,12 @@ function buildMeetingReminderSettingsForm(reminderSettings = {}) {
 
 export default function PlatformSettingsPage() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [form, setForm] = useState(createDefaultForm);
   const [meetingReminderForms, setMeetingReminderForms] = useState({});
   const [hydratedOnce, setHydratedOnce] = useState(false);
+  const canManageRegistration = user?.role === 'SUPER_ADMIN';
   const tf = useCallback((key, fallback, values) => {
     const value = t(key, values);
     return value === key ? fallback : value;
@@ -226,6 +235,9 @@ export default function PlatformSettingsPage() {
       const payload = {
         notificationTemplates: form.notificationTemplates,
         meetingReminderLeadMinutes: Number(form.meetingReminderLeadMinutes || 0),
+        ...(canManageRegistration
+          ? { registrationEnabled: Boolean(form.registrationEnabled) }
+          : {}),
       };
       const { data } = await platformSettingsApi.update(payload);
       return data?.data || null;
@@ -234,6 +246,10 @@ export default function PlatformSettingsPage() {
       const nextForm = buildHydratedForm(payload);
       setForm(nextForm);
       queryClient.setQueryData(['platform-settings', 'manage'], payload);
+      queryClient.setQueryData(['settings', 'public-site'], (current) => ({
+        ...(current || {}),
+        registrationEnabled: nextForm.registrationEnabled,
+      }));
       toast.success(t('platformSettingsPage.messages.saved'));
     },
     onError: (error) => {
@@ -609,6 +625,59 @@ export default function PlatformSettingsPage() {
           </Button>
         )}
       />
+
+      <Card className="rounded-3xl border border-border/60 bg-surface shadow-card">
+        <CardHeader
+          title={tf('platformSettingsPage.registration.title', 'Public registration')}
+          subtitle={tf(
+            'platformSettingsPage.registration.subtitle',
+            'Choose whether guests can submit new account requests from the public registration page.'
+          )}
+        />
+
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-heading">
+                {tf('platformSettingsPage.registration.statusLabel', 'Current status')}
+              </span>
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                form.registrationEnabled
+                  ? 'bg-success-light text-success'
+                  : 'bg-danger-light text-danger'
+              }`}>
+                {form.registrationEnabled
+                  ? tf('platformSettingsPage.registration.enabled', 'Registration enabled')
+                  : tf('platformSettingsPage.registration.disabled', 'Registration disabled')}
+              </span>
+            </div>
+            <p className="text-sm text-muted">
+              {canManageRegistration
+                ? tf(
+                  'platformSettingsPage.registration.superAdminHint',
+                  'New users will either be allowed to submit pending requests or be asked to sign in or browse only.'
+                )
+                : tf(
+                  'platformSettingsPage.registration.readOnlyHint',
+                  'Only the Super Admin can change this setting.'
+                )}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border/60 bg-surface-alt/40 px-4 py-3">
+            <Switch
+              checked={Boolean(form.registrationEnabled)}
+              onChange={(checked) => setForm((current) => ({ ...current, registrationEnabled: checked }))}
+              disabled={!canManageRegistration}
+              label={
+                form.registrationEnabled
+                  ? tf('platformSettingsPage.registration.toggleOn', 'Allow new registration requests')
+                  : tf('platformSettingsPage.registration.toggleOff', 'Stop new registration requests')
+              }
+            />
+          </div>
+        </div>
+      </Card>
 
       <Tabs tabs={editorTabs} framedPanel={false} bodyClassName="p-3 sm:p-4" />
     </div>

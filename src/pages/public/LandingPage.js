@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, ArrowRight, BookOpen, Church, Clock3, Heart, HandHeart,
   Mail, MapPin, Phone, Quote, ShieldCheck, Sparkles, Users, UserCircle2,
@@ -7,6 +8,8 @@ import {
   Home, Share2, X, LogIn, Languages, Facebook, Instagram, Youtube, Twitter,
   MoreHorizontal,
 } from 'lucide-react';
+import { settingsApi } from '../../api/endpoints';
+import { useAuth } from '../../auth/auth.hooks';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import { useI18n } from '../../i18n/i18n';
@@ -144,6 +147,163 @@ function SectionHeader({ label, title, subtitle, centered = true, light = false 
         {subtitle && <p className={`mt-4 text-sm sm:text-base lg:text-lg leading-relaxed ${light ? 'text-white/60' : 'text-muted'}`}>{subtitle}</p>}
       </div>
     </Reveal>
+  );
+}
+
+function GuestEntryPanel({
+  isRTL,
+  registrationEnabled = true,
+  onBrowse,
+  onClose,
+  compact = false,
+  className = '',
+}) {
+  const copy = isRTL
+    ? {
+      eyebrow: 'ابدأ رحلتك',
+      title: 'كيف تريد الدخول إلى النظام؟',
+      subtitle: 'اختر الطريقة المناسبة لك. يمكنك إنشاء طلب حساب جديد، أو تسجيل الدخول إذا كان لديك حساب، أو تصفح النظام أولًا.',
+      joinTitle: 'انضم إلينا الآن بإنشاء حساب',
+      joinBody: 'أرسل بياناتك ليتم حفظها كطلب جديد ومراجعته قبل تفعيل الدخول.',
+      joinClosed: 'التسجيل متوقف حاليًا من إعدادات النظام.',
+      loginTitle: 'هل لديك حساب بالفعل؟',
+      loginBody: 'انتقل مباشرة إلى صفحة تسجيل الدخول للوصول إلى حسابك.',
+      browseTitle: 'هل تريد تصفح النظام أولًا؟',
+      browseBody: 'شاهد الواجهة العامة وتعرّف على الخدمات والحياة داخل الكنيسة.',
+    }
+    : {
+      eyebrow: 'Start here',
+      title: 'How would you like to enter the system?',
+      subtitle: 'Choose what fits you best. You can create a new account request, sign in if you already have an account, or browse first.',
+      joinTitle: 'Join us now by creating an account',
+      joinBody: 'Send your details as a new request so the team can review and approve your account.',
+      joinClosed: 'Registration is currently turned off in system settings.',
+      loginTitle: 'Do you already have an account?',
+      loginBody: 'Go straight to the sign-in page and access your account.',
+      browseTitle: 'Do you want to browse the system first?',
+      browseBody: 'Explore the public experience and get familiar with church life and services.',
+    };
+  const textAlignClass = isRTL ? 'text-right' : 'text-left';
+  const cardClassName = `group relative overflow-hidden rounded-[1.5rem] border p-5 transition-all duration-300 ${textAlignClass}`;
+  const browseCardClassName = `${cardClassName} border-border/70 bg-surface/85 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/10`;
+
+  return (
+    <div className={`relative overflow-hidden rounded-[2rem] border border-white/20 bg-white/78 p-5 shadow-2xl shadow-black/10 backdrop-blur-xl sm:p-6 ${className}`}>
+      <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-white to-primary/70" />
+      {onClose ? (
+        <button
+          type="button"
+          onClick={onClose}
+          className={`absolute top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/50 bg-white/80 text-heading shadow-lg shadow-black/5 transition-colors hover:bg-white ${isRTL ? 'left-4' : 'right-4'}`}
+          aria-label={isRTL ? 'إغلاق لوحة الدخول' : 'Close guest entry panel'}
+        >
+          <X className="h-4 w-4" />
+        </button>
+      ) : null}
+      <div className={`relative ${textAlignClass}`}>
+        <span className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+          <Sparkles className="h-3 w-3" />
+          {copy.eyebrow}
+        </span>
+        <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-heading sm:text-[2rem]">
+          {copy.title}
+        </h2>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-muted">
+          {copy.subtitle}
+        </p>
+
+        <div className={`mt-6 grid gap-3 ${compact ? 'grid-cols-1' : 'lg:grid-cols-3'}`}>
+          {registrationEnabled ? (
+            <Link
+              to="/auth/register"
+              className={`${cardClassName} border-primary/15 bg-gradient-to-br from-primary/12 via-white/80 to-primary/5 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10`}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <div className="relative flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/25">
+                  <UserCircle2 className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-heading">{copy.joinTitle}</p>
+                  <p className="mt-2 text-sm leading-6">{copy.joinBody}</p>
+                </div>
+              </div>
+            </Link>
+          ) : (
+            <div className={`${cardClassName} border-danger/15 bg-danger-light/70`}>
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-danger text-white shadow-lg shadow-danger/20">
+                  <UserCircle2 className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-heading">{copy.joinTitle}</p>
+                  <p className="mt-2 text-sm leading-6">{copy.joinClosed}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Link
+            to="/auth/login"
+            className={`${cardClassName} border-secondary/15 bg-gradient-to-br from-secondary/12 via-white/80 to-secondary/5 hover:-translate-y-0.5 hover:border-secondary/25 hover:shadow-xl hover:shadow-secondary/10`}
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-secondary text-white shadow-lg shadow-secondary/20">
+                <LogIn className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-heading">{copy.loginTitle}</p>
+                <p className="mt-2 text-sm leading-6">{copy.loginBody}</p>
+              </div>
+            </div>
+          </Link>
+
+          {onBrowse ? (
+            <button type="button" onClick={onBrowse} className={browseCardClassName}>
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
+                  <Globe className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-heading">{copy.browseTitle}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted">{copy.browseBody}</p>
+                </div>
+              </div>
+            </button>
+          ) : (
+            <a href="#about" className={browseCardClassName}>
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
+                  <Globe className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-heading">{copy.browseTitle}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted">{copy.browseBody}</p>
+                </div>
+              </div>
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GuestEntryOverlay({ isOpen, isRTL, registrationEnabled, onBrowse, onClose }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-black/45 px-4 py-6 backdrop-blur-sm sm:items-center sm:px-6">
+      <div className="w-full max-w-5xl">
+        <GuestEntryPanel
+          isRTL={isRTL}
+          registrationEnabled={registrationEnabled}
+          onBrowse={onBrowse}
+          onClose={onClose}
+          className="mx-auto"
+        />
+      </div>
+    </div>
   );
 }
 
@@ -385,7 +545,15 @@ function MobileSectionLabel({ label, isRTL }) {
 /* ══════════════════════════════════════════════════════
    MOBILE HOME SCREEN
    ══════════════════════════════════════════════════════ */
-function MobileHomeScreen({ t, isRTL, priests, stats, verses, heroImageSrc, quickActionsData }) {
+function MobileHomeScreen({
+  t,
+  isRTL,
+  priests,
+  stats,
+  verses,
+  heroImageSrc,
+  quickActionsData,
+}) {
   const [statsRef, statsInView] = useInView(0.1);
 
   const quickActions = [
@@ -429,6 +597,7 @@ function MobileHomeScreen({ t, isRTL, priests, stats, verses, heroImageSrc, quic
           </p>
         </div>
       </div>
+
 
       {/* ── Quick action grid — full width 2×2 ── */}
       <div className="px-3 mt-3 grid grid-cols-4 gap-2">
@@ -774,6 +943,7 @@ function MobileTabBar({ active, onTab, tabs, onMore }) {
    ══════════════════════════════════════════════════════ */
 export default function LandingPage() {
   const { language, isRTL, toggleLanguage } = useI18n();
+  const { isAuthenticated } = useAuth();
   const {
     text: t,
     getOptionalText,
@@ -790,6 +960,26 @@ export default function LandingPage() {
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('home');
   const [moreOpen, setMoreOpen] = useState(false);
+  const [guestEntryOpen, setGuestEntryOpen] = useState(!isAuthenticated);
+  const publicSiteQuery = useQuery({
+    queryKey: ['settings', 'public-site'],
+    queryFn: async () => (await settingsApi.getPublicSite()).data?.data || null,
+    staleTime: 60000,
+  });
+  const registrationEnabled = publicSiteQuery.data?.registrationEnabled !== false;
+
+  useEffect(() => {
+    setGuestEntryOpen(!isAuthenticated);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!guestEntryOpen || typeof document === 'undefined') return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [guestEntryOpen]);
 
   const getOptional = (k) => getOptionalText(k, '');
   const getOpt = (k, fb) => getOptionalText(k, fb);
@@ -797,30 +987,30 @@ export default function LandingPage() {
   /* ── Shared data ── */
   const priests = (contentPriests || []).length
     ? contentPriests.map((entry) => ({
-        name: entry?.user?.fullName || '',
-        role: getLocalizedValue(entry?.role, language, 'en', ''),
-        bio: getLocalizedValue(entry?.bio, language, 'en', ''),
-        alt: getLocalizedValue(entry?.alt, language, 'en', entry?.user?.fullName || ''),
-        image: entry?.user?.avatar?.url || '',
-      }))
+      name: entry?.user?.fullName || '',
+      role: getLocalizedValue(entry?.role, language, 'en', ''),
+      bio: getLocalizedValue(entry?.bio, language, 'en', ''),
+      alt: getLocalizedValue(entry?.alt, language, 'en', entry?.user?.fullName || ''),
+      image: entry?.user?.avatar?.url || '',
+    }))
     : [
-        { name: t('landing.priests.items.one.name'), role: t('landing.priests.items.one.role'), bio: t('landing.priests.items.one.bio'), alt: t('landing.priests.items.one.alt'), image: getOptional('landing.priests.items.one.image') },
-        { name: t('landing.priests.items.two.name'), role: t('landing.priests.items.two.role'), bio: t('landing.priests.items.two.bio'), alt: t('landing.priests.items.two.alt'), image: getOptional('landing.priests.items.two.image') },
-        { name: t('landing.priests.items.three.name'), role: t('landing.priests.items.three.role'), bio: t('landing.priests.items.three.bio'), alt: t('landing.priests.items.three.alt'), image: getOptional('landing.priests.items.three.image') },
-      ];
+      { name: t('landing.priests.items.one.name'), role: t('landing.priests.items.one.role'), bio: t('landing.priests.items.one.bio'), alt: t('landing.priests.items.one.alt'), image: getOptional('landing.priests.items.one.image') },
+      { name: t('landing.priests.items.two.name'), role: t('landing.priests.items.two.role'), bio: t('landing.priests.items.two.bio'), alt: t('landing.priests.items.two.alt'), image: getOptional('landing.priests.items.two.image') },
+      { name: t('landing.priests.items.three.name'), role: t('landing.priests.items.three.role'), bio: t('landing.priests.items.three.bio'), alt: t('landing.priests.items.three.alt'), image: getOptional('landing.priests.items.three.image') },
+    ];
   const stats = (contentStats || []).length
     ? [
-        { icon: Users, value: contentStats.find((entry) => entry.id === 'families')?.resolvedValue || '0', label: t('landing.stats.items.families.label'), accent: 'from-blue-400 to-blue-500' },
-        { icon: Heart, value: contentStats.find((entry) => entry.id === 'members')?.resolvedValue || '0', label: t('landing.stats.items.members.label'), accent: 'from-rose-400 to-rose-500' },
-        { icon: Church, value: contentStats.find((entry) => entry.id === 'services')?.resolvedValue || '0', label: t('landing.stats.items.services.label'), accent: 'from-amber-400 to-amber-500' },
-        { icon: HandHeart, value: contentStats.find((entry) => entry.id === 'servants')?.resolvedValue || '0', label: t('landing.stats.items.servants.label'), accent: 'from-emerald-400 to-emerald-500' },
-      ]
+      { icon: Users, value: contentStats.find((entry) => entry.id === 'families')?.resolvedValue || '0', label: t('landing.stats.items.families.label'), accent: 'from-blue-400 to-blue-500' },
+      { icon: Heart, value: contentStats.find((entry) => entry.id === 'members')?.resolvedValue || '0', label: t('landing.stats.items.members.label'), accent: 'from-rose-400 to-rose-500' },
+      { icon: Church, value: contentStats.find((entry) => entry.id === 'services')?.resolvedValue || '0', label: t('landing.stats.items.services.label'), accent: 'from-amber-400 to-amber-500' },
+      { icon: HandHeart, value: contentStats.find((entry) => entry.id === 'servants')?.resolvedValue || '0', label: t('landing.stats.items.servants.label'), accent: 'from-emerald-400 to-emerald-500' },
+    ]
     : [
-        { icon: Users, value: t('landing.stats.items.families.value'), label: t('landing.stats.items.families.label'), accent: 'from-blue-400 to-blue-500' },
-        { icon: Heart, value: t('landing.stats.items.members.value'), label: t('landing.stats.items.members.label'), accent: 'from-rose-400 to-rose-500' },
-        { icon: Church, value: t('landing.stats.items.services.value'), label: t('landing.stats.items.services.label'), accent: 'from-amber-400 to-amber-500' },
-        { icon: HandHeart, value: t('landing.stats.items.servants.value'), label: t('landing.stats.items.servants.label'), accent: 'from-emerald-400 to-emerald-500' },
-      ];
+      { icon: Users, value: t('landing.stats.items.families.value'), label: t('landing.stats.items.families.label'), accent: 'from-blue-400 to-blue-500' },
+      { icon: Heart, value: t('landing.stats.items.members.value'), label: t('landing.stats.items.members.label'), accent: 'from-rose-400 to-rose-500' },
+      { icon: Church, value: t('landing.stats.items.services.value'), label: t('landing.stats.items.services.label'), accent: 'from-amber-400 to-amber-500' },
+      { icon: HandHeart, value: t('landing.stats.items.servants.value'), label: t('landing.stats.items.servants.label'), accent: 'from-emerald-400 to-emerald-500' },
+    ];
   const verses = [
     { text: t('landing.verses.items.one.text'), reference: t('landing.verses.items.one.reference') },
     { text: t('landing.verses.items.two.text'), reference: t('landing.verses.items.two.reference') },
@@ -892,7 +1082,17 @@ export default function LandingPage() {
       <div className="bg-page mt-16" dir={isRTL ? 'rtl' : 'ltr'}>
         {/* Screen */}
         <div key={activeTab} style={{ animation: 'appIn 0.2s ease' }}>
-          {activeTab === 'home' && <MobileHomeScreen t={t} isRTL={isRTL} priests={priests} stats={stats} verses={verses} heroImageSrc={managedHeroImageSrc} quickActionsData={mobileQuickActions} />}
+          {activeTab === 'home' && (
+            <MobileHomeScreen
+              t={t}
+              isRTL={isRTL}
+              priests={priests}
+              stats={stats}
+              verses={verses}
+              heroImageSrc={managedHeroImageSrc}
+              quickActionsData={mobileQuickActions}
+            />
+          )}
           {activeTab === 'about' && <MobileAboutScreen t={t} isRTL={isRTL} />}
           {activeTab === 'visit' && <MobileVisitScreen t={t} isRTL={isRTL} contacts={managedContacts} churchPlaceName={managedChurchPlaceName} churchPlusCode={managedChurchPlusCode} churchAddressLine={managedChurchAddressLine} locationMapEmbedUrl={managedLocationMapEmbedUrl} directionsUrl={managedDirectionsUrl} verses={verses} locationDirectionsLabel={managedLocationDirections} />}
           {activeTab === 'social' && <MobileSocialScreen t={t} isRTL={isRTL} socialLinks={socialLinks} />}
@@ -901,6 +1101,13 @@ export default function LandingPage() {
         <MobileMoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} isRTL={isRTL} toggleLanguage={toggleLanguage} t={t} />
         {/* Tab bar */}
         <MobileTabBar active={activeTab} onTab={setActiveTab} tabs={managedMobileTabs} onMore={() => setMoreOpen(true)} />
+        <GuestEntryOverlay
+          isOpen={!isAuthenticated && guestEntryOpen}
+          isRTL={isRTL}
+          registrationEnabled={registrationEnabled}
+          onBrowse={() => setGuestEntryOpen(false)}
+          onClose={() => setGuestEntryOpen(false)}
+        />
         <style>{`
           @keyframes appIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
           .scrollbar-hide { -ms-overflow-style:none; scrollbar-width:none; }
@@ -1166,6 +1373,13 @@ export default function LandingPage() {
       </section>
 
       <style>{`@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}`}</style>
+      <GuestEntryOverlay
+        isOpen={!isAuthenticated && guestEntryOpen}
+        isRTL={isRTL}
+        registrationEnabled={registrationEnabled}
+        onBrowse={() => setGuestEntryOpen(false)}
+        onClose={() => setGuestEntryOpen(false)}
+      />
     </div>
   );
 }

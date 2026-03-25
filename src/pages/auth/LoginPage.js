@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Phone, Lock } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
@@ -15,11 +15,18 @@ export default function LoginPage() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [locked, setLocked] = useState(null);
+  const [accountNotice, setAccountNotice] = useState(null);
 
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/dashboard';
+
+  useEffect(() => {
+    if (location.state?.notice) {
+      setAccountNotice(location.state.notice);
+    }
+  }, [location.state]);
 
   const validate = () => {
     const errs = {};
@@ -32,6 +39,7 @@ export default function LoginPage() {
     e.preventDefault();
     setErrors({});
     setLocked(null);
+    setAccountNotice(null);
 
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
@@ -51,6 +59,12 @@ export default function LoginPage() {
         setErrors(mapFieldErrors(normalized.details));
       } else if (normalized.code === 'AUTH_ACCOUNT_LOCKED') {
         setLocked(normalized.message);
+      } else if (
+        normalized.code === 'AUTH_ACCOUNT_PENDING' ||
+        normalized.code === 'AUTH_ACCOUNT_REJECTED' ||
+        normalized.code === 'AUTH_REGISTRATION_DISABLED'
+      ) {
+        setAccountNotice(normalized.message);
       } else {
         toast.error(normalized.message);
       }
@@ -71,6 +85,13 @@ export default function LoginPage() {
           <p className="font-semibold mb-1">{t('auth.lockedTitle')}</p>
           <p>{locked}</p>
           <p className="mt-2 text-xs">{t('auth.lockedHint')}</p>
+        </div>
+      )}
+
+      {accountNotice && (
+        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-4 text-sm text-primary">
+          <p className="font-semibold mb-1">حالة الحساب</p>
+          <p>{accountNotice}</p>
         </div>
       )}
 

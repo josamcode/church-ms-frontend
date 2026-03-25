@@ -1,4 +1,4 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Church } from 'lucide-react';
 import AppRouteEffects from '../../app/AppRouteEffects';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
@@ -6,11 +6,13 @@ import { useI18n } from '../../i18n/i18n';
 
 export default function AuthLayout() {
   const { t } = useI18n();
+  const location = useLocation();
+  const isRegisterPage = location.pathname === '/auth/register';
 
   return (
     <div className="min-h-screen bg-page flex items-center justify-center p-4">
       <AppRouteEffects />
-      <div className="w-full max-w-md">
+      <div className={`w-full ${isRegisterPage ? 'max-w-6xl' : 'max-w-md'}`}>
         <div className="flex justify-end mb-3">
           <LanguageSwitcher />
         </div>
@@ -27,7 +29,7 @@ export default function AuthLayout() {
           </Link>
         </div>
 
-        <div className="bg-surface rounded-xl border border-border shadow-card p-6 sm:p-8">
+        <div className={`bg-surface rounded-xl border border-border shadow-card ${isRegisterPage ? 'p-4 sm:p-6 lg:p-8' : 'p-6 sm:p-8'}`}>
           <Outlet />
         </div>
 

@@ -19,12 +19,14 @@ const Lazy = ({ children }) => <Suspense fallback={<PageLoader />}>{children}</S
 const LandingPage = lazy(() => import('../pages/public/LandingPage'));
 const BookingPublicPage = lazy(() => import('../pages/public/BookingPublicPage'));
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
+const UserRegisterPage = lazy(() => import('../pages/dashboard/users/UserRegisterPage'));
 const DashboardHome = lazy(() => import('../pages/dashboard/DashboardHome'));
 const ProfilePage = lazy(() => import('../pages/dashboard/ProfilePage'));
 const AccountSettingsPage = lazy(() => import('../pages/dashboard/settings/AccountSettingsPage'));
 const PlatformSettingsPage = lazy(() => import('../pages/dashboard/settings/PlatformSettingsPage'));
 const ChatsPage = lazy(() => import('../pages/dashboard/chats/ChatsPage'));
 const UsersListPage = lazy(() => import('../pages/dashboard/users/UsersListPage'));
+const UsersRequestsListPage = lazy(() => import('../pages/dashboard/users/UsersRequestsListPage'));
 const UsersExplorerPage = lazy(() => import('../pages/dashboard/users/UsersExplorerPage'));
 const FamilyHouseAnalyticsPage = lazy(() => import('../pages/dashboard/users/FamilyHouseAnalyticsPage'));
 const FamilyHouseLookupPage = lazy(() => import('../pages/dashboard/users/FamilyHouseLookupPage'));
@@ -113,6 +115,7 @@ const router = createBrowserRouter([
     element: <GuestGuard><AuthLayout /></GuestGuard>,
     children: [
       { path: 'auth/login', element: <Lazy><LoginPage /></Lazy> },
+      { path: 'auth/register', element: <Lazy><UserRegisterPage /></Lazy> },
     ],
   },
 
@@ -167,6 +170,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['USERS_VIEW']}>
             <Lazy><UsersExplorerPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'users/requests',
+        element: (
+          <PermissionGuard required={['USERS_VIEW']}>
+            <Lazy><UsersRequestsListPage /></Lazy>
           </PermissionGuard>
         ),
       },

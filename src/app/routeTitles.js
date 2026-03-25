@@ -169,6 +169,12 @@ const TITLE_ROUTES = [
     fallback: 'User Explorer',
   },
   {
+    pattern: '/dashboard/users/requests',
+    key: 'routeTitles.userRequests',
+    fallback: 'User Requests',
+    fallbackAr: 'طلبات المستخدمين',
+  },
+  {
     pattern: '/dashboard/users/new',
     key: 'usersForm.create.title',
     fallback: 'Create User',
@@ -333,6 +339,12 @@ const TITLE_ROUTES = [
     pattern: '/auth/login',
     key: 'auth.title',
     fallback: 'Sign In',
+  },
+  {
+    pattern: '/auth/register',
+    key: 'routeTitles.register',
+    fallback: 'Create Account',
+    fallbackAr: 'إنشاء حساب',
   },
   {
     pattern: '/',

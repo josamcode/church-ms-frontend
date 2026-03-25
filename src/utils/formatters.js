@@ -26,6 +26,19 @@ const ROLE_LABELS_BY_LANG = {
   },
 };
 
+const ACCOUNT_STATUS_LABELS_BY_LANG = {
+  en: {
+    pending: 'Pending approval',
+    approved: 'Approved',
+    rejected: 'Rejected',
+  },
+  ar: {
+    pending: 'قيد المراجعة',
+    approved: 'معتمد',
+    rejected: 'مرفوض',
+  },
+};
+
 const AGE_GROUPS_BY_LANG = {
   en: ['Child', 'Teen', 'Youth', 'Middle-aged', 'Senior'],
   ar: ['طفل', 'مراهق', 'شاب', 'متوسط العمر', 'كبير سن'],
@@ -199,6 +212,17 @@ export function getRoleLabel(role) {
   return getLanguageObject(ROLE_LABELS_BY_LANG)[role] || role;
 }
 
+export function getAccountStatusLabel(accountStatus) {
+  if (!accountStatus) return EMPTY_VALUE;
+  return getLanguageObject(ACCOUNT_STATUS_LABELS_BY_LANG)[accountStatus] || accountStatus;
+}
+
+export function getAccountStatusVariant(accountStatus) {
+  if (accountStatus === 'approved') return 'success';
+  if (accountStatus === 'rejected') return 'danger';
+  return 'warning';
+}
+
 export function getRelationLabel(relation) {
   if (!relation) return EMPTY_VALUE;
   return getLanguageObject(RELATION_LABELS_BY_LANG)[relation] || relation;
@@ -206,6 +230,7 @@ export function getRelationLabel(relation) {
 
 export const GENDER_LABELS = createObjectProxy(GENDER_LABELS_BY_LANG);
 export const ROLE_LABELS = createObjectProxy(ROLE_LABELS_BY_LANG);
+export const ACCOUNT_STATUS_LABELS = createObjectProxy(ACCOUNT_STATUS_LABELS_BY_LANG);
 export const RELATION_LABELS = createObjectProxy(RELATION_LABELS_BY_LANG);
 export const AGE_GROUPS = createArrayProxy(AGE_GROUPS_BY_LANG);
 export const LOCK_REASONS = createArrayProxy(LOCK_REASONS_BY_LANG);

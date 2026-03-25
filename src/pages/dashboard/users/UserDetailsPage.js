@@ -10,7 +10,14 @@ import { confessionsApi, meetingsApi, usersApi, visitationsApi } from '../../../
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import { useI18n } from '../../../i18n/i18n';
-import { formatDate, formatDateTime, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
+import {
+  formatDate,
+  formatDateTime,
+  getAccountStatusLabel,
+  getAccountStatusVariant,
+  getGenderLabel,
+  getRoleLabel,
+} from '../../../utils/formatters';
 import { localizeSessionTypeName } from '../../../utils/sessionTypeLocalization';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
@@ -363,6 +370,9 @@ export default function UserDetailsPage() {
                 childrenClassName="mt-2.5 flex flex-wrap items-center gap-1.5"
               >
                 <Badge variant="primary">{getRoleLabel(user.role)}</Badge>
+                <Badge variant={getAccountStatusVariant(user.accountStatus || 'approved')}>
+                  {getAccountStatusLabel(user.accountStatus || 'approved')}
+                </Badge>
                 <Badge variant={user.isLocked ? 'danger' : 'success'}>
                   {user.isLocked ? t('common.status.locked') : t('common.status.active')}
                 </Badge>

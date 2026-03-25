@@ -1,122 +1,119 @@
-import { useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { divineLiturgiesApi, usersApi } from '../../../api/endpoints';
-import { normalizeApiError, mapFieldErrors } from '../../../api/errors';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+import { authApi, settingsApi } from '../../../api/endpoints';
+import { mapFieldErrors, normalizeApiError } from '../../../api/errors';
+import { useAuth } from '../../../auth/auth.hooks';
+import UserFormSectionTabs from '../../../components/users/UserFormSectionTabs';
+import Button from '../../../components/ui/Button';
+import CreatableComboboxInput from '../../../components/ui/CreatableComboboxInput';
+import CreatableTagComboboxInput from '../../../components/ui/CreatableTagComboboxInput';
 import Input from '../../../components/ui/Input';
 import PhoneInput from '../../../components/ui/PhoneInput';
 import Select from '../../../components/ui/Select';
 import TextArea from '../../../components/ui/TextArea';
-import Button from '../../../components/ui/Button';
-import Breadcrumbs from '../../../components/ui/Breadcrumbs';
-import PageHeader from '../../../components/ui/PageHeader';
-import HouseholdSocioeconomicSection, {
-  buildSocioeconomicPayload,
-  getSocioeconomicInitialValues,
-} from '../../../components/users/HouseholdSocioeconomicSection';
-import UserEducationSection, {
-  buildEducationPayload,
-  getEducationInitialValues,
-} from '../../../components/users/UserEducationSection';
-import UserFormSectionTabs from '../../../components/users/UserFormSectionTabs';
-import { extractBirthDateFromNationalId } from '../../../utils/egyptianNationalId';
+import { getEducationStageOptions } from '../../../constants/education';
+import {
+  getEmploymentStatusOptions,
+  getGenderOptions,
+  getPresenceStatusOptions,
+} from '../../../constants/householdProfiles';
 import { useI18n } from '../../../i18n/i18n';
-import toast from 'react-hot-toast';
-import { ArrowRight, Plus, Save, Trash2, Upload, Users, X } from 'lucide-react';
-
-/* ── constants ───────────────────────────────────────────────────────────── */
-
-const genderOptions = [
-  { value: 'male', label: 'ذكر' },
-  { value: 'female', label: 'أنثى' },
-  { value: 'other', label: 'آخر' },
-];
-
-const roleOptions = [
-  { value: 'USER', label: 'مستخدم' },
-  { value: 'ADMIN', label: 'مسؤول' },
-  { value: 'SUPER_ADMIN', label: 'مدير النظام' },
-];
-
-/* ── primitives ──────────────────────────────────────────────────────────── */
+import { extractBirthDateFromNationalId } from '../../../utils/egyptianNationalId';
 
 function SectionLabel({ children }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-        {children}
-      </span>
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{children}</span>
       <div className="h-px flex-1 bg-border/60" />
     </div>
   );
 }
 
-function StepBadge({ n }) {
+function QuestionLabel({ text, required, language }) {
   return (
-    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
-      {n}
-    </div>
+    <span className="flex flex-wrap items-center gap-2">
+      <span>{text}</span>
+      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${required ? 'bg-danger/10 text-danger' : 'bg-surface-alt text-muted'}`}>
+        {required ? (language === 'ar' ? 'مطلوب' : 'Required') : language === 'ar' ? 'اختياري' : 'Optional'}
+      </span>
+    </span>
   );
 }
 
-function getCreateFormSections(language = 'ar') {
-  if (language === 'ar') {
-    return [
-      { id: 'basic', step: 1, label: 'البيانات الأساسية' },
-      { id: 'additional', step: 2, label: 'معلومات إضافية' },
-      { id: 'address', step: 3, label: 'العنوان' },
-      { id: 'custom', step: 4, label: 'تفاصيل مخصصة' },
-      { id: 'socioeconomic', step: 5, label: 'الملف الاقتصادي والصحي' },
-    ];
-  }
-
-  return [
-    { id: 'basic', step: 1, label: 'Basic information' },
-    { id: 'additional', step: 2, label: 'Additional information' },
-    { id: 'address', step: 3, label: 'Address' },
-    { id: 'custom', step: 4, label: 'Custom details' },
-    { id: 'socioeconomic', step: 5, label: 'Socioeconomic profile' },
-  ];
+function normalizeOptionValues(values = []) {
+  return [...new Set((Array.isArray(values) ? values : [])
+    .map((value) => String(value || '').trim())
+    .filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 }
 
-/** Minimal combobox — reused for family name and house name */
-function getCreateFormSectionsWithEducation(language = 'ar') {
-  const baseSections = getCreateFormSections(language);
-  const educationSection = {
-    id: 'education',
-    step: 3,
-    label: language === 'ar' ? 'التعليم' : 'Education',
-  };
-
-  return [
-    ...baseSections.slice(0, 2),
-    educationSection,
-    ...baseSections.slice(2).map((section, index) => ({
-      ...section,
-      step: index + 4,
-    })),
-  ];
+function guessGrandfatherName(fullName) {
+  const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 3) return parts[2];
+  if (parts.length >= 2) return parts[parts.length - 1];
+  return '';
 }
 
-function NameCombobox({ label, value, onChange, options, placeholder }) {
+const EASY_PASSWORD_WORDS = ['Grace', 'Olive', 'Peace', 'Light', 'Cedar', 'River', 'Hope', 'Amen'];
+
+function generateEasyPassword(fullName, nationalId) {
+  const firstToken = String(fullName || '').trim().split(/\s+/).filter(Boolean)[0] || '';
+  const latinFirstToken = firstToken.replace(/[^A-Za-z]/g, '');
+  const base =
+    latinFirstToken.length >= 3
+      ? `${latinFirstToken.charAt(0).toUpperCase()}${latinFirstToken.slice(1, 7)}`
+      : EASY_PASSWORD_WORDS[Math.floor(Math.random() * EASY_PASSWORD_WORDS.length)];
+  const digitSource = String(nationalId || '').replace(/\D/g, '');
+  const suffix = digitSource.slice(-3) || String(100 + Math.floor(Math.random() * 900));
+  return `${base}${suffix}`;
+}
+
+function normalizeRegisterErrors(details = []) {
+  const raw = mapFieldErrors(details);
+  const normalized = { ...raw };
+
+  Object.entries(raw).forEach(([field, message]) => {
+    const leaf = field.split('.').pop();
+    if (leaf && !normalized[leaf]) normalized[leaf] = message;
+  });
+
+  return normalized;
+}
+
+function NameCombobox({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  hint,
+  error,
+}) {
   const [open, setOpen] = useState(false);
-  const filtered = options
-    .filter((n) => !value || n.toLowerCase().includes(value.toLowerCase().trim()))
+  const filtered = normalizeOptionValues(options)
+    .filter((name) => !value || name.toLowerCase().includes(String(value).toLowerCase().trim()))
     .slice(0, 20);
 
   return (
     <div className="relative">
-      <label className="mb-1.5 block text-sm font-medium text-base">{label}</label>
+      {label ? <label className="mb-1.5 block text-sm font-medium text-base">{label}</label> : null}
       <input
         type="text"
         value={value}
-        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onChange={(event) => {
+          onChange(event.target.value);
+          setOpen(true);
+        }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder={placeholder}
-        className="input-base w-full"
+        className={`input-base w-full ${error ? 'border-danger focus:border-danger focus:ring-danger' : ''}`}
       />
-      {open && filtered.length > 0 && (
+      {open && filtered.length > 0 ? (
         <ul
           role="listbox"
           className="absolute z-30 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-border bg-surface py-1 shadow-lg"
@@ -126,673 +123,710 @@ function NameCombobox({ label, value, onChange, options, placeholder }) {
               key={name}
               role="option"
               aria-selected={value === name}
-              onMouseDown={(e) => { e.preventDefault(); onChange(name); setOpen(false); }}
-              className={`cursor-pointer px-3 py-2 text-sm transition-colors
-                ${value === name
+              onMouseDown={(event) => {
+                event.preventDefault();
+                onChange(name);
+                setOpen(false);
+              }}
+              className={`cursor-pointer px-3 py-2 text-sm transition-colors ${
+                value === name
                   ? 'bg-primary/8 font-semibold text-primary'
                   : 'text-heading hover:bg-primary/8 hover:text-primary'
-                }`}
+              }`}
             >
               {name}
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
+      {hint && !error ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
+      {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
     </div>
   );
 }
 
-/* ── page ────────────────────────────────────────────────────────────────── */
+function getCopy(isArabic) {
+  return isArabic
+    ? {
+        eyebrow: 'طلب مستخدم جديد',
+        title: 'لننشئ طلب حسابك خطوة بخطوة',
+        subtitle: 'أجب عن الأسئلة السريعة التالية. بعد الإرسال سيتم حفظ بياناتك كطلب قيد المراجعة، ولن تتمكن من تسجيل الدخول قبل الموافقة على الحساب.',
+        disabledTitle: 'هل تريد إنشاء حساب الآن؟',
+        disabledBody: 'التسجيل متوقف حاليًا من إعدادات النظام. يمكنك تسجيل الدخول إذا كان لديك حساب بالفعل، أو تصفح النظام أولًا.',
+        successTitle: 'تم استلام طلبك',
+        successBody: 'تم حفظ بياناتك كطلب مستخدم جديد قيد المراجعة. احتفظ بكلمة المرور جيدًا، وستتمكن من تسجيل الدخول بعد اعتماد الحساب.',
+        loginNotice: 'طلب حسابك ما زال قيد المراجعة. ستتمكن من تسجيل الدخول بعد الموافقة عليه.',
+        remember: 'احفظ كلمة المرور جيدًا لأنك ستستخدمها لاحقًا بمجرد الموافقة على الحساب.',
+        generatedPassword: 'تم إنشاء كلمة مرور سهلة وإضافتها في الحقلين.',
+        back: 'السابق',
+        next: 'التالي',
+        submit: 'إرسال الطلب',
+        login: 'هل لديك حساب بالفعل؟',
+        browse: 'هل تريد تصفح النظام أولًا؟',
+        toLogin: 'الذهاب إلى صفحة الدخول',
+        toHome: 'العودة إلى الرئيسية',
+        generatePassword: 'أنشئ كلمة مرور سهلة لي',
+        submitHint: 'زر الإرسال يظل معطلًا حتى تصل إلى الخطوة الأخيرة وتكمل كل الحقول المطلوبة.',
+        steps: [
+          { id: 'identity', label: 'من أنت؟' },
+          { id: 'contact', label: 'كيف يمكننا الوصول إليك؟' },
+          { id: 'profile', label: 'ما وضعك الحالي؟' },
+          { id: 'security', label: 'كيف نحمي حسابك؟' },
+        ],
+        q: {
+          fullName: 'ما اسمك الكامل؟',
+          nationalId: 'ما الرقم القومي الخاص بك؟',
+          birthDate: 'ما تاريخ ميلادك؟',
+          gender: 'ما نوعك؟',
+          familyName: 'ما اسم العائلة؟',
+          houseName: 'ما اسم البيت أو الأسرة؟',
+          phonePrimary: 'ما رقم الهاتف الأساسي الخاص بك؟',
+          governorate: 'في أي محافظة تسكن؟',
+          city: 'في أي مدينة أو قرية تسكن؟',
+          whatsappNumber: 'ما رقم الواتساب الخاص بك؟',
+          phoneSecondary: 'هل لديك رقم هاتف إضافي؟',
+          email: 'ما بريدك الإلكتروني؟',
+          street: 'ما الشارع أو المنطقة التي تسكن فيها؟',
+          details: 'هل تريد إضافة تفاصيل أخرى للعنوان؟',
+          educationStage: 'ما المرحلة التعليمية التي أنت فيها؟',
+          employmentStatus: 'ما حالتك الحالية من جهة العمل؟',
+          presenceStatus: 'هل أنت موجود حاليًا أم مسافر؟',
+          travelDestination: 'إلى أين تسافر الآن؟',
+          travelReason: 'ما سبب السفر؟',
+          healthConditions: 'هل لديك أي حالات صحية أو أمراض نحتاج أن نعرفها؟',
+          notes: 'هل تريد إضافة أي ملاحظات أخرى؟',
+          password: 'ما كلمة المرور التي تريد استخدامها؟',
+          confirmPassword: 'هل يمكنك كتابة كلمة المرور مرة أخرى؟',
+        },
+        hints: {
+          nationalId: 'إذا كتبت الرقم القومي سنحاول تعبئة تاريخ الميلاد تلقائيًا.',
+          familyName: 'يمكنك الاختيار من أسماء العائلات الموجودة أو كتابة اسم جديد.',
+          houseName: 'سنبدأ باسم الجد تلقائيًا، ويمكنك تغييره بالاختيار من النظام أو بالكتابة.',
+          whatsappNumber: 'سننسخ رقم الهاتف الأساسي هنا تلقائيًا حتى تغيّره بنفسك.',
+          travelDestination: 'يمكنك الاختيار من الوجهات المسجلة أو كتابة وجهة جديدة.',
+          travelReason: 'يمكنك الاختيار من الأسباب المسجلة أو كتابة سبب جديد.',
+          healthConditions: 'اختر من الحالات الصحية الموجودة أو اكتب حالة جديدة ثم أضفها.',
+          password: 'اجعل كلمة المرور سهلة التذكر واحفظها جيدًا.',
+        },
+      }
+    : {
+        eyebrow: 'New User Request',
+        title: 'Let us build your account request step by step',
+        subtitle: 'Answer these quick questions. After submission, your information will be saved as a pending request, and you will not be able to sign in before approval.',
+        disabledTitle: 'Would you like to create an account now?',
+        disabledBody: 'Registration is currently disabled from the system settings. You can sign in if you already have an account, or browse the system first.',
+        successTitle: 'Your request was received',
+        successBody: 'Your information was saved as a pending user request. Please remember your password carefully. You will be able to sign in after your account is approved.',
+        loginNotice: 'Your account request is still pending review. Please sign in after approval.',
+        remember: 'Please remember this password carefully because you will use it later once your account is approved.',
+        generatedPassword: 'An easy password was generated and added to both fields.',
+        back: 'Back',
+        next: 'Next',
+        submit: 'Submit Request',
+        login: 'Do you already have an account?',
+        browse: 'Do you want to browse the system first?',
+        toLogin: 'Go to the sign-in page',
+        toHome: 'Return to the home page',
+        generatePassword: 'Generate an easy password for me',
+        submitHint: 'The submit button stays disabled until you reach the last step and complete every required field.',
+        steps: [
+          { id: 'identity', label: 'Who are you?' },
+          { id: 'contact', label: 'How can we reach you?' },
+          { id: 'profile', label: 'What is your current situation?' },
+          { id: 'security', label: 'How should we protect your account?' },
+        ],
+        q: {
+          fullName: 'What is your full name?',
+          nationalId: 'What is your national ID number?',
+          birthDate: 'What is your date of birth?',
+          gender: 'What is your gender?',
+          familyName: 'What is your family name?',
+          houseName: 'What is your household name?',
+          phonePrimary: 'What is your primary phone number?',
+          governorate: 'Which governorate do you live in?',
+          city: 'Which city or village do you live in?',
+          whatsappNumber: 'What is your WhatsApp number?',
+          phoneSecondary: 'Do you have another phone number?',
+          email: 'What is your email address?',
+          street: 'What street or area do you live in?',
+          details: 'Would you like to add extra address details?',
+          educationStage: 'What stage of education are you in?',
+          employmentStatus: 'What is your current employment status?',
+          presenceStatus: 'Are you currently present or traveling?',
+          travelDestination: 'Where are you traveling now?',
+          travelReason: 'Why are you traveling?',
+          healthConditions: 'Do you have any health conditions we should know about?',
+          notes: 'Would you like to add any other notes?',
+          password: 'What password would you like to use?',
+          confirmPassword: 'Can you type your password again?',
+        },
+        hints: {
+          nationalId: 'If you enter your national ID, we will try to fill your birth date automatically.',
+          familyName: 'You can choose an existing family name from the system or type a new one.',
+          houseName: 'We start with your grandfather name automatically, and you can change it by choosing from the system or typing.',
+          whatsappNumber: 'We copy your primary phone here until you change it yourself.',
+          travelDestination: 'Choose a saved destination or type a new one.',
+          travelReason: 'Choose a saved reason or type a new one.',
+          healthConditions: 'Choose saved health conditions or type a new one, then add it.',
+          password: 'Use a password you can remember easily and keep it safe.',
+        },
+      };
+}
 
-export default function UserCreatePage() {
+function stepComplete(stepId, form) {
+  if (stepId === 'identity') return Boolean(form.fullName.trim() && form.birthDate && form.gender);
+  if (stepId === 'contact') return Boolean(form.phonePrimary.trim() && form.governorate.trim() && form.city.trim());
+  if (stepId === 'profile') return true;
+  if (stepId === 'security') return Boolean(form.password && form.confirmPassword && form.password === form.confirmPassword);
+  return false;
+}
+
+export default function UserRegisterPage() {
+  const { language } = useI18n();
+  const isArabic = language === 'ar';
+  const copy = useMemo(() => getCopy(isArabic), [isArabic]);
+  const { register } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { t, language } = useI18n();
 
   const [form, setForm] = useState({
-    fullName: '', phonePrimary: '', email: '', birthDate: '',
-    gender: 'male', nationalId: '', notes: '', phoneSecondary: '',
-    whatsappNumber: '', familyName: '', houseName: '', role: 'USER', password: '',
-    confessionFather: null,
-    governorate: '', city: '', street: '', details: '',
-    ...getEducationInitialValues(),
-    ...getSocioeconomicInitialValues(),
+    fullName: '',
+    nationalId: '',
+    birthDate: '',
+    gender: 'male',
+    familyName: '',
+    houseName: '',
+    phonePrimary: '',
+    governorate: 'المنيا',
+    city: 'القطوشة',
+    whatsappNumber: '',
+    phoneSecondary: '',
+    email: '',
+    street: '',
+    details: '',
+    educationStage: '',
+    employmentStatus: '',
+    presenceStatus: '',
+    travelDestination: '',
+    travelReason: '',
+    healthConditions: [],
+    notes: '',
+    password: '',
+    confirmPassword: '',
   });
-  const [avatar, setAvatar] = useState(null);
-  const [avatarUploading, setAvatarUploading] = useState(false);
-  const [activeSection, setActiveSection] = useState('basic');
   const [errors, setErrors] = useState({});
+  const [activeStep, setActiveStep] = useState(copy.steps[0].id);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [whatsappNumberTouched, setWhatsappNumberTouched] = useState(false);
-  const [customDetailsRows, setCustomDetailsRows] = useState([{ id: 1, key: '', value: '' }]);
-  const fileInputRef = useRef(null);
-  const nextCustomDetailId = useRef(2);
-  const formSections = useMemo(() => getCreateFormSectionsWithEducation(language), [language]);
-  const activeSectionIndex = formSections.findIndex((section) => section.id === activeSection);
-  const previousSection = activeSectionIndex > 0 ? formSections[activeSectionIndex - 1] : null;
-  const nextSection =
-    activeSectionIndex >= 0 && activeSectionIndex < formSections.length - 1
-      ? formSections[activeSectionIndex + 1]
-      : null;
-  const sectionNavCopy = language === 'ar'
-    ? { previous: 'السابق', next: 'التالي' }
-    : { previous: 'Previous', next: 'Next' };
+  const [houseNameTouched, setHouseNameTouched] = useState(false);
 
-  /* ── queries ── */
-  const { data: savedKeysRes } = useQuery({
-    queryKey: ['users', 'custom-detail-keys'],
-    queryFn: async () => {
-      const res = await usersApi.getCustomDetailKeys();
-      const data = res.data?.data ?? res.data;
-      return Array.isArray(data) ? data : [];
-    },
-  });
-  const savedKeys = Array.isArray(savedKeysRes) ? savedKeysRes : [];
+  useEffect(() => {
+    if (!copy.steps.some((step) => step.id === activeStep)) {
+      setActiveStep(copy.steps[0].id);
+    }
+  }, [activeStep, copy.steps]);
 
-  const { data: familyNamesRes } = useQuery({
-    queryKey: ['users', 'family-names'],
-    queryFn: async () => {
-      const res = await usersApi.getFamilyNames();
-      const data = res.data?.data ?? res.data;
-      return Array.isArray(data) ? data : [];
-    },
-  });
-  const familyNames = Array.isArray(familyNamesRes) ? familyNamesRes : [];
-
-  const { data: houseNamesRes } = useQuery({
-    queryKey: ['users', 'house-names'],
-    queryFn: async () => {
-      const res = await usersApi.getHouseNames();
-      const data = res.data?.data ?? res.data;
-      return Array.isArray(data) ? data : [];
-    },
-  });
-  const houseNames = Array.isArray(houseNamesRes) ? houseNamesRes : [];
-
-  const { data: divineLiturgiesOverview } = useQuery({
-    queryKey: ['divine-liturgies', 'overview', 'spiritual-father-options'],
-    queryFn: async () => {
-      const { data } = await divineLiturgiesApi.getOverview();
-      return data?.data || null;
-    },
+  const settingsQuery = useQuery({
+    queryKey: ['settings', 'public-site'],
+    queryFn: async () => (await settingsApi.getPublicSite()).data?.data || null,
     staleTime: 60000,
   });
-  const churchPriests = useMemo(
-    () =>
-      Array.isArray(divineLiturgiesOverview?.churchPriests)
-        ? divineLiturgiesOverview.churchPriests
-        : [],
-    [divineLiturgiesOverview]
-  );
-  const churchPriestLookup = useMemo(
-    () =>
-      new Map(
-        churchPriests
-          .map((entry) => entry?.user)
-          .filter((entry) => entry?.id)
-          .map((entry) => [
-            entry.id,
-            { _id: entry.id, fullName: entry.fullName || '', phonePrimary: entry.phonePrimary || '' },
-          ])
-      ),
-    [churchPriests]
-  );
-  const churchPriestOptions = useMemo(
-    () => [
-      {
-        value: '',
-        label: language === 'ar' ? 'بدون أب روحي' : 'No Spiritual Father',
-      },
-      ...churchPriests
-        .map((entry) => entry?.user)
-        .filter((entry) => entry?.id && entry?.fullName)
-        .map((entry) => ({
-          value: entry.id,
-          label: entry.fullName,
-        })),
-    ],
-    [churchPriests, language]
-  );
+  const registrationEnabled = settingsQuery.data?.registrationEnabled !== false;
 
-  /* ── mutation ── */
-  const mutation = useMutation({
-    mutationFn: (data) => usersApi.create(data),
-    onSuccess: () => {
-      toast.success('تم إنشاء المستخدم بنجاح');
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['users', 'custom-detail-keys'] });
-      queryClient.invalidateQueries({ queryKey: ['users', 'family-names'] });
-      queryClient.invalidateQueries({ queryKey: ['users', 'house-names'] });
-      queryClient.invalidateQueries({ queryKey: ['users', 'profile-option-values'] });
-      navigate('/dashboard/users');
-    },
-    onError: (err) => {
-      const normalized = normalizeApiError(err);
-      if (normalized.code === 'VALIDATION_ERROR') setErrors(mapFieldErrors(normalized.details));
-      toast.error(normalized.message);
-    },
+  const registrationOptionsQuery = useQuery({
+    queryKey: ['auth', 'register-options'],
+    queryFn: async () => (await authApi.getRegistrationOptions()).data?.data || {},
+    staleTime: 60000,
+    enabled: registrationEnabled,
   });
 
-  /* ── helpers ── */
+  const familyNames = useMemo(
+    () => normalizeOptionValues(registrationOptionsQuery.data?.familyNames),
+    [registrationOptionsQuery.data?.familyNames],
+  );
+  const houseNames = useMemo(
+    () => normalizeOptionValues(registrationOptionsQuery.data?.houseNames),
+    [registrationOptionsQuery.data?.houseNames],
+  );
+  const profileOptionValues = useMemo(
+    () => ({
+      travelDestinations: normalizeOptionValues(registrationOptionsQuery.data?.profileOptionValues?.travelDestinations),
+      travelReasons: normalizeOptionValues(registrationOptionsQuery.data?.profileOptionValues?.travelReasons),
+      healthConditions: normalizeOptionValues(registrationOptionsQuery.data?.profileOptionValues?.healthConditions),
+    }),
+    [registrationOptionsQuery.data?.profileOptionValues],
+  );
+
+  const activeIndex = copy.steps.findIndex((step) => step.id === activeStep);
+  const previousStep = activeIndex > 0 ? copy.steps[activeIndex - 1] : null;
+  const nextStep = activeIndex < copy.steps.length - 1 ? copy.steps[activeIndex + 1] : null;
+  const highestUnlocked = useMemo(() => {
+    let index = 0;
+    while (index < copy.steps.length - 1 && stepComplete(copy.steps[index].id, form)) index += 1;
+    return index;
+  }, [copy.steps, form]);
+  const canSubmit = activeStep === copy.steps[copy.steps.length - 1].id && copy.steps.every((step) => stepComplete(step.id, form));
+
+  const genderOptions = useMemo(() => getGenderOptions(language), [language]);
+  const educationOptions = useMemo(() => getEducationStageOptions(language), [language]);
+  const employmentOptions = useMemo(() => getEmploymentStatusOptions(language), [language]);
+  const presenceOptions = useMemo(() => getPresenceStatusOptions(language), [language]);
+
   const update = (field, value) => {
     setForm((prev) => {
       const next = { ...prev, [field]: value };
-      if (field === 'phonePrimary' && !whatsappNumberTouched) next.whatsappNumber = value;
-      if (field === 'nationalId' && !prev.birthDate) {
-        const extractedBirthDate = extractBirthDateFromNationalId(value);
-        if (extractedBirthDate) next.birthDate = extractedBirthDate;
+
+      if (field === 'phonePrimary' && !whatsappNumberTouched) {
+        next.whatsappNumber = value;
       }
+
+      if (field === 'nationalId') {
+        const previousBirthDateFromId = extractBirthDateFromNationalId(prev.nationalId);
+        const nextBirthDateFromId = extractBirthDateFromNationalId(value);
+        if (nextBirthDateFromId && (!prev.birthDate || prev.birthDate === previousBirthDateFromId)) {
+          next.birthDate = nextBirthDateFromId;
+        }
+      }
+
+      if (field === 'fullName' && !houseNameTouched) {
+        const previousAutoHouseName = guessGrandfatherName(prev.fullName);
+        const nextAutoHouseName = guessGrandfatherName(value);
+        if (!prev.houseName || prev.houseName === previousAutoHouseName) {
+          next.houseName = nextAutoHouseName;
+        }
+      }
+
+      if (field === 'presenceStatus' && value !== 'traveling') {
+        next.travelDestination = '';
+        next.travelReason = '';
+      }
+
       return next;
     });
+
     setErrors((prev) => ({
       ...prev,
       [field]: undefined,
       ...(field === 'nationalId' ? { birthDate: undefined } : {}),
+      ...(field === 'presenceStatus' ? { travelDestination: undefined, travelReason: undefined } : {}),
     }));
+
     if (field === 'whatsappNumber') setWhatsappNumberTouched(true);
+    if (field === 'houseName') setHouseNameTouched(true);
   };
 
-  const validate = () => {
-    const e = {};
-    if (!form.fullName.trim()) e.fullName = 'الاسم الكامل مطلوب';
-    if (!form.phonePrimary.trim()) e.phonePrimary = 'رقم الهاتف الأساسي مطلوب';
-    if (!form.birthDate) e.birthDate = 'تاريخ الميلاد مطلوب';
-    delete e.phonePrimary;
-    delete e.birthDate;
-    if (form.password && !form.email.trim() && !form.phonePrimary.trim()) {
-      e.password = 'يجب توفير بريد إلكتروني أو رقم هاتف لإنشاء حساب دخول';
+  const validateStep = (stepId) => {
+    const nextErrors = {};
+
+    if (stepId === 'identity') {
+      if (!form.fullName.trim()) nextErrors.fullName = copy.q.fullName;
+      if (!form.birthDate) nextErrors.birthDate = copy.q.birthDate;
+      if (!form.gender) nextErrors.gender = copy.q.gender;
     }
-    return e;
+
+    if (stepId === 'contact') {
+      if (!form.phonePrimary.trim()) nextErrors.phonePrimary = copy.q.phonePrimary;
+      if (!form.governorate.trim()) nextErrors.governorate = copy.q.governorate;
+      if (!form.city.trim()) nextErrors.city = copy.q.city;
+    }
+
+    if (stepId === 'security') {
+      if (!form.password) nextErrors.password = copy.q.password;
+      if (!form.confirmPassword) nextErrors.confirmPassword = copy.q.confirmPassword;
+      if (form.password && form.confirmPassword && form.password !== form.confirmPassword) {
+        nextErrors.confirmPassword = isArabic ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match';
+      }
+    }
+
+    return nextErrors;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setErrors({});
-    const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) { setErrors(validationErrors); return; }
+  const validateAll = () => ({
+    ...validateStep('identity'),
+    ...validateStep('contact'),
+    ...validateStep('security'),
+  });
 
+  const buildPayload = () => {
     const payload = {
-      fullName: form.fullName,
+      fullName: form.fullName.trim(),
+      birthDate: form.birthDate,
       gender: form.gender,
-      role: form.role,
+      phonePrimary: form.phonePrimary.trim(),
+      password: form.password,
     };
-    if (form.phonePrimary) payload.phonePrimary = form.phonePrimary;
-    if (form.birthDate) payload.birthDate = form.birthDate;
-    if (form.email) payload.email = form.email;
-    if (form.nationalId) payload.nationalId = form.nationalId;
-    if (form.notes) payload.notes = form.notes;
-    if (form.phoneSecondary) payload.phoneSecondary = form.phoneSecondary;
-    if (form.whatsappNumber) payload.whatsappNumber = form.whatsappNumber;
-    if (form.familyName) payload.familyName = form.familyName;
-    if (form.houseName) payload.houseName = form.houseName;
-    if (form.password) payload.password = form.password;
-    if (form.confessionFather?._id || form.confessionFather?.id) {
-      payload.confessionFatherUserId = form.confessionFather._id || form.confessionFather.id;
-      payload.confessionFatherName = form.confessionFather.fullName || '';
-    }
-    if (form.governorate || form.city || form.street || form.details) {
+
+    ['nationalId', 'familyName', 'houseName', 'whatsappNumber', 'phoneSecondary', 'email', 'notes'].forEach((field) => {
+      const value = String(form[field] || '').trim();
+      if (value) payload[field] = value;
+    });
+
+    if (form.governorate.trim() || form.city.trim() || form.street.trim() || form.details.trim()) {
       payload.address = {};
-      if (form.governorate) payload.address.governorate = form.governorate;
-      if (form.city) payload.address.city = form.city;
-      if (form.street) payload.address.street = form.street;
-      if (form.details) payload.address.details = form.details;
+      ['governorate', 'city', 'street', 'details'].forEach((field) => {
+        const value = String(form[field] || '').trim();
+        if (value) payload.address[field] = value;
+      });
     }
-    if (avatar?.url && avatar?.publicId) payload.avatar = avatar;
-    const educationPayload = buildEducationPayload(form);
-    if (educationPayload) payload.education = educationPayload;
-    Object.assign(payload, buildSocioeconomicPayload(form));
 
-    const customDetails = customDetailsRows
-      .filter((r) => r.key && r.key.trim() && r.key !== '__new__')
-      .reduce((acc, r) => ({ ...acc, [r.key.trim()]: (r.value || '').trim() }), {});
-    if (Object.keys(customDetails).length > 0) payload.customDetails = customDetails;
+    if (form.educationStage) payload.education = { stage: form.educationStage };
+    if (form.employmentStatus) payload.employment = { status: form.employmentStatus };
 
-    mutation.mutate(payload);
+    if (form.presenceStatus || form.travelDestination.trim() || form.travelReason.trim()) {
+      payload.presence = {
+        status: form.presenceStatus === 'traveling' ? 'traveling' : 'present',
+      };
+      if (form.presenceStatus === 'traveling' && form.travelDestination.trim()) {
+        payload.presence.travelDestination = form.travelDestination.trim();
+      }
+      if (form.presenceStatus === 'traveling' && form.travelReason.trim()) {
+        payload.presence.travelReason = form.travelReason.trim();
+      }
+    }
+
+    const healthConditions = [...new Set((form.healthConditions || []).map((entry) => String(entry || '').trim()).filter(Boolean))];
+    if (healthConditions.length > 0) {
+      payload.health = {
+        conditions: healthConditions.map((name) => ({ name })),
+      };
+    }
+
+    return payload;
   };
 
-  /* custom details helpers */
-  const addCustomDetailRow = () => setCustomDetailsRows((prev) => [...prev, { id: nextCustomDetailId.current++, key: '', value: '' }]);
-  const updateCustomDetailRow = (id, field, value) => setCustomDetailsRows((prev) => prev.map((r) => r.id === id ? { ...r, [field]: value } : r));
-  const removeCustomDetailRow = (id) => setCustomDetailsRows((prev) => prev.length > 1 ? prev.filter((r) => r.id !== id) : prev);
+  const goNext = () => {
+    if (!nextStep) return;
+    const nextErrors = validateStep(activeStep);
+    setErrors((prev) => ({ ...prev, ...nextErrors }));
+    if (Object.keys(nextErrors).length > 0) return;
+    setActiveStep(nextStep.id);
+  };
 
-  /* avatar helpers */
-  const handleAvatarChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { toast.error('يرجى اختيار صورة (JPEG، PNG، GIF أو WEBP)'); return; }
-    setAvatarUploading(true);
+  const handleGeneratePassword = () => {
+    const password = generateEasyPassword(form.fullName, form.nationalId);
+    setForm((prev) => ({ ...prev, password, confirmPassword: password }));
+    setErrors((prev) => ({ ...prev, password: undefined, confirmPassword: undefined }));
+    toast.success(copy.generatedPassword);
+  };
+
+  const submit = async (event) => {
+    event.preventDefault();
+    const nextErrors = validateAll();
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0 || !registrationEnabled || !canSubmit) return;
+
+    setSubmitting(true);
     try {
-      const { data } = await usersApi.uploadAvatarImage(file);
-      setAvatar(data.data);
-      toast.success('تم رفع الصورة بنجاح');
-    } catch (err) {
-      toast.error(normalizeApiError(err).message);
+      await register(buildPayload());
+      setSubmitted(true);
+    } catch (error) {
+      const normalized = normalizeApiError(error);
+      if (normalized.code === 'VALIDATION_ERROR') {
+        setErrors(normalizeRegisterErrors(normalized.details));
+      }
+      toast.error(normalized.message);
     } finally {
-      setAvatarUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setSubmitting(false);
     }
   };
-  const clearAvatar = () => { setAvatar(null); if (fileInputRef.current) fileInputRef.current.value = ''; };
 
-  /* ── render ── */
+  if (settingsQuery.isLoading) {
+    return <div className="flex min-h-[320px] items-center justify-center rounded-[28px] border border-border bg-surface text-muted">{isArabic ? 'جارٍ تجهيز النموذج...' : 'Preparing the form...'}</div>;
+  }
+
+  if (!registrationEnabled) {
+    return (
+      <div className="mx-auto max-w-3xl rounded-[28px] border border-border bg-surface p-6 sm:p-8">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><AlertCircle className="h-6 w-6" /></div>
+          <div className="space-y-4">
+            <h1 className="text-2xl font-bold text-heading">{copy.disabledTitle}</h1>
+            <p className="text-sm leading-7 text-muted">{copy.disabledBody}</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link to="/auth/login"><Button>{copy.login}</Button></Link>
+              <Link to="/"><Button variant="outline">{copy.browse}</Button></Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="mx-auto max-w-3xl rounded-[28px] border border-success/20 bg-success-light/40 p-6 sm:p-8">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-success text-white"><CheckCircle2 className="h-6 w-6" /></div>
+          <div className="space-y-4">
+            <h1 className="text-2xl font-bold text-heading">{copy.successTitle}</h1>
+            <p className="text-sm leading-7 text-muted">{copy.successBody}</p>
+            <div className="rounded-2xl border border-success/20 bg-surface px-4 py-4 text-sm text-heading">
+              <div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 text-success" /><p>{copy.remember}</p></div>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button onClick={() => navigate('/auth/login', { state: { notice: copy.loginNotice } })}>{copy.toLogin}</Button>
+              <Link to="/"><Button variant="outline">{copy.toHome}</Button></Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="animate-fade-in space-y-8 pb-10">
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="rounded-[28px] border border-border bg-surface px-5 py-6 shadow-card sm:px-7 sm:py-8">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">{copy.eyebrow}</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-heading sm:text-4xl">{copy.title}</h1>
+        <p className="mt-4 max-w-3xl text-sm leading-7 text-muted">{copy.subtitle}</p>
+      </div>
 
-      <Breadcrumbs items={[
-        { label: t('shared.dashboard'), href: '/dashboard' },
-        { label: t('shared.users'), href: '/dashboard/users' },
-        { label: t('usersForm.create.title') },
-      ]} />
+      <form onSubmit={submit} className="space-y-6">
+        <UserFormSectionTabs
+          sections={copy.steps.map((step, index) => ({ ...step, step: index + 1 }))}
+          activeSection={activeStep}
+          onChange={(stepId) => copy.steps.findIndex((step) => step.id === stepId) <= highestUnlocked && setActiveStep(stepId)}
+        />
 
-      {/* ══ HEADER ══════════════════════════════════════════════════════ */}
-      <PageHeader
-        className="border-b border-border pb-6"
-        eyebrow={t('shared.users')}
-        title={t('usersForm.create.title')}
-        subtitle={t('usersForm.create.subtitle')}
-        actions={(
-          <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => navigate(-1)}>
-            {t('common.actions.back')}
-          </Button>
-        )}
-      />
-
-      {/* ══ FORM ════════════════════════════════════════════════════════ */}
-      <form onSubmit={handleSubmit} noValidate>
-        <div className="mx-auto max-w-7xl space-y-8">
-          <UserFormSectionTabs
-            sections={formSections}
-            activeSection={activeSection}
-            onChange={setActiveSection}
-          />
-
-          {/* ── STEP 1 · الصورة والبيانات الأساسية ─────────────────── */}
-          {activeSection === 'basic' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={1} />
-                <SectionLabel>البيانات الأساسية</SectionLabel>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
-
-                {/* avatar upload */}
-                <div>
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted">
-                    الصورة الشخصية
-                  </p>
-                  <div className="flex items-center gap-4 flex-wrap">
-                    {avatar?.url ? (
-                      <div className="relative inline-block">
-                        <img
-                          src={avatar.url}
-                          alt="معاينة"
-                          className="h-20 w-20 rounded-2xl border-2 border-primary/20 object-cover shadow-sm"
-                        />
-                        <button
-                          type="button"
-                          onClick={clearAvatar}
-                          className="absolute -top-1.5 -left-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-danger text-white shadow-sm hover:opacity-90"
-                          aria-label="إزالة الصورة"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface-alt">
-                        <Users className="h-8 w-8 text-muted" />
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-1">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/jpeg,image/png,image/gif,image/webp"
-                        onChange={handleAvatarChange}
-                        disabled={avatarUploading}
-                        className="hidden"
-                        id="create-user-avatar"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        icon={Upload}
-                        loading={avatarUploading}
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        {avatar?.url ? 'تغيير الصورة' : 'رفع صورة'}
-                      </Button>
-                      <span className="text-xs text-muted">JPEG, PNG, GIF أو WEBP — حتى 5 ميجابايت</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <section className="space-y-4">
+          <SectionLabel>{copy.steps[activeIndex].label}</SectionLabel>
+          <div className="rounded-[28px] border border-border bg-surface p-5 sm:p-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {activeStep === 'identity' ? (
+                <>
                   <Input
-                    label="الاسم الكامل" required
+                    label={<QuestionLabel text={copy.q.fullName} required language={language} />}
                     value={form.fullName}
-                    placeholder="اسم المستخدم"
-                    onChange={(e) => update('fullName', e.target.value)}
+                    onChange={(event) => update('fullName', event.target.value)}
                     error={errors.fullName}
                     autoFocus
-                    containerClassName="!mb-0"
                   />
                   <Input
-                    label="تاريخ الميلاد"
-                    type="date"
+                    label={<QuestionLabel text={copy.q.nationalId} language={language} />}
+                    value={form.nationalId}
+                    onChange={(event) => update('nationalId', event.target.value)}
+                    error={errors.nationalId}
+                    hint={copy.hints.nationalId}
                     dir="ltr"
                     className="text-left"
-                    value={form.birthDate}
-                    onChange={(e) => update('birthDate', e.target.value)}
-                    error={errors.birthDate}
-                    containerClassName="!mb-0"
                   />
-
-                  <PhoneInput
-                    label="رقم الهاتف الأساسي"
-                    placeholder="رقم الهاتف"
-                    value={form.phonePrimary}
-                    onChange={(e) => update('phonePrimary', e.target.value)}
-                    error={errors.phonePrimary}
-                    containerClassName="!mb-0"
+                  <Input
+                    label={<QuestionLabel text={copy.q.birthDate} required language={language} />}
+                    type="date"
+                    value={form.birthDate}
+                    onChange={(event) => update('birthDate', event.target.value)}
+                    error={errors.birthDate}
+                    dir="ltr"
+                    className="text-left"
                   />
                   <Select
-                    label="الجنس"
+                    label={<QuestionLabel text={copy.q.gender} required language={language} />}
                     options={genderOptions}
                     value={form.gender}
-                    onChange={(e) => update('gender', e.target.value)}
+                    onChange={(event) => update('gender', event.target.value)}
+                    error={errors.gender}
+                    placeholder={copy.q.gender}
                     containerClassName="!mb-0"
                   />
+                  <div className="md:col-span-2">
+                    <NameCombobox
+                      label={<QuestionLabel text={copy.q.familyName} language={language} />}
+                      value={form.familyName}
+                      onChange={(value) => update('familyName', value)}
+                      options={familyNames}
+                      placeholder={copy.q.familyName}
+                      hint={copy.hints.familyName}
+                      error={errors.familyName}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <NameCombobox
+                      label={<QuestionLabel text={copy.q.houseName} language={language} />}
+                      value={form.houseName}
+                      onChange={(value) => update('houseName', value)}
+                      options={houseNames}
+                      placeholder={copy.q.houseName}
+                      hint={copy.hints.houseName}
+                      error={errors.houseName}
+                    />
+                  </div>
+                </>
+              ) : null}
+
+              {activeStep === 'contact' ? (
+                <>
+                  <PhoneInput
+                    label={<QuestionLabel text={copy.q.phonePrimary} required language={language} />}
+                    value={form.phonePrimary}
+                    onChange={(event) => update('phonePrimary', event.target.value)}
+                    error={errors.phonePrimary}
+                  />
                   <Input
-                    label="الرقم القومي"
+                    label={<QuestionLabel text={copy.q.governorate} required language={language} />}
+                    value={form.governorate}
+                    onChange={(event) => update('governorate', event.target.value)}
+                    error={errors.governorate}
+                  />
+                  <Input
+                    label={<QuestionLabel text={copy.q.city} required language={language} />}
+                    value={form.city}
+                    onChange={(event) => update('city', event.target.value)}
+                    error={errors.city}
+                  />
+                  <PhoneInput
+                    label={<QuestionLabel text={copy.q.whatsappNumber} language={language} />}
+                    value={form.whatsappNumber}
+                    onChange={(event) => update('whatsappNumber', event.target.value)}
+                    hint={copy.hints.whatsappNumber}
+                  />
+                  <PhoneInput
+                    label={<QuestionLabel text={copy.q.phoneSecondary} language={language} />}
+                    value={form.phoneSecondary}
+                    onChange={(event) => update('phoneSecondary', event.target.value)}
+                  />
+                  <Input
+                    label={<QuestionLabel text={copy.q.email} language={language} />}
+                    type="email"
+                    value={form.email}
+                    onChange={(event) => update('email', event.target.value)}
+                    error={errors.email}
                     dir="ltr"
                     className="text-left"
-                    placeholder="الرقم القومي"
-                    value={form.nationalId}
-                    onChange={(e) => update('nationalId', e.target.value)}
-                    error={errors.nationalId}
-                    containerClassName="!mb-0"
-                  />
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* ── STEP 2 · معلومات إضافية ──────────────────────────────── */}
-          {activeSection === 'additional' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={2} />
-                <SectionLabel>معلومات إضافية</SectionLabel>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <PhoneInput
-                    label="الهاتف الثانوي"
-                    placeholder="رقم الهاتف الثانوي"
-                    value={form.phoneSecondary}
-                    onChange={(e) => update('phoneSecondary', e.target.value)}
-                    containerClassName="!mb-0"
-                  />
-                  <PhoneInput
-                    label="رقم الواتساب"
-                    placeholder="رقم الواتساب"
-                    value={form.whatsappNumber}
-                    onChange={(e) => update('whatsappNumber', e.target.value)}
-                    containerClassName="!mb-0"
                   />
                   <Input
-                    label="البريد الإلكتروني" type="email" dir="ltr" className="text-left"
-                    placeholder="البريد الإلكتروني"
-                    value={form.email}
-                    onChange={(e) => update('email', e.target.value)}
-                    error={errors.email}
-                    containerClassName="!mb-0"
-                  />
-                  <Input
-                    label="الرقم القومي" dir="ltr" className="text-left"
-                    placeholder="الرقم القومي"
-                    value={form.nationalId}
-                    onChange={(e) => update('nationalId', e.target.value)}
-                    error={errors.nationalId}
-                    containerClassName="hidden !mb-0"
-                  />
-
-                  {/* family name combobox */}
-                  <NameCombobox
-                    label="اسم العائلة"
-                    value={form.familyName}
-                    onChange={(val) => update('familyName', val)}
-                    options={familyNames}
-                    placeholder="ابحث أو اكتب اسم العائلة"
-                  />
-
-                  {/* house name combobox */}
-                  <NameCombobox
-                    label="اسم البيت"
-                    value={form.houseName}
-                    onChange={(val) => update('houseName', val)}
-                    options={houseNames}
-                    placeholder="ابحث أو اكتب اسم البيت"
-                  />
-
-                  <Select
-                    label={language === 'ar' ? 'الأب الروحي' : 'Spiritual Father'}
-                    value={form.confessionFather?._id || form.confessionFather?.id || ''}
-                    onChange={(event) =>
-                      update('confessionFather', churchPriestLookup.get(event.target.value) || null)
-                    }
-                    options={churchPriestOptions}
-                    placeholder={language === 'ar' ? 'اختر الأب الروحي' : 'Select Spiritual Father'}
-                    containerClassName="!mb-0"
-                  />
-
-                  <Select
-                    label="الدور"
-                    options={roleOptions}
-                    value={form.role}
-                    onChange={(e) => update('role', e.target.value)}
-                    containerClassName="!mb-0"
-                  />
-                  <Input
-                    label="كلمة المرور" type="password" dir="ltr" className="text-left"
-                    hint="اتركها فارغة إذا لم تريد إنشاء حساب دخول"
-                    placeholder="كلمة المرور"
-                    value={form.password}
-                    onChange={(e) => update('password', e.target.value)}
-                    error={errors.password}
-                    containerClassName="!mb-0"
-                  />
-                </div>
-
-                <TextArea
-                  label="ملاحظات"
-                  value={form.notes}
-                  onChange={(e) => update('notes', e.target.value)}
-                  placeholder="اي ملاحظات إضافية"
-                  containerClassName="!mb-0"
-                />
-              </div>
-            </section>
-          )}
-
-          {/* ── STEP 3 · العنوان ─────────────────────────────────────── */}
-          {activeSection === 'education' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={3} />
-                <SectionLabel>التعليم</SectionLabel>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-5">
-                <UserEducationSection
-                  form={form}
-                  errors={errors}
-                  onChange={update}
-                />
-              </div>
-            </section>
-          )}
-
-          {activeSection === 'address' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={4} />
-                <SectionLabel>العنوان</SectionLabel>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-5">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Input
-                    label="المحافظة"
-                    placeholder="المحافظة"
-                    value={form.governorate || 'المنيا'}
-                    onChange={(e) => update('governorate', e.target.value)}
-                    containerClassName="!mb-0"
-                  />
-                  <Input
-                    label="المدينة"
-                    placeholder="المدينة"
-                    value={form.city || 'سمالوط'}
-                    onChange={(e) => update('city', e.target.value)}
-                    containerClassName="!mb-0"
-                  />
-                  <Input
-                    label="الشارع"
-                    placeholder="الشارع"
+                    label={<QuestionLabel text={copy.q.street} language={language} />}
                     value={form.street}
-                    onChange={(e) => update('street', e.target.value)}
-                    containerClassName="!mb-0"
+                    onChange={(event) => update('street', event.target.value)}
                   />
                   <Input
-                    label="تفاصيل إضافية"
-                    placeholder="اي تفاصيل إضافية"
+                    label={<QuestionLabel text={copy.q.details} language={language} />}
                     value={form.details}
-                    onChange={(e) => update('details', e.target.value)}
+                    onChange={(event) => update('details', event.target.value)}
+                  />
+                </>
+              ) : null}
+              {activeStep === 'profile' ? (
+                <>
+                  <Select
+                    label={<QuestionLabel text={copy.q.educationStage} language={language} />}
+                    options={educationOptions}
+                    value={form.educationStage}
+                    onChange={(event) => update('educationStage', event.target.value)}
+                    placeholder={copy.q.educationStage}
+                    containerClassName="!mb-0 md:col-span-2"
+                  />
+                  <Select
+                    label={<QuestionLabel text={copy.q.employmentStatus} language={language} />}
+                    options={employmentOptions}
+                    value={form.employmentStatus}
+                    onChange={(event) => update('employmentStatus', event.target.value)}
+                    placeholder={copy.q.employmentStatus}
                     containerClassName="!mb-0"
                   />
-                </div>
-              </div>
-            </section>
-          )}
+                  <Select
+                    label={<QuestionLabel text={copy.q.presenceStatus} language={language} />}
+                    options={presenceOptions}
+                    value={form.presenceStatus}
+                    onChange={(event) => update('presenceStatus', event.target.value)}
+                    placeholder={copy.q.presenceStatus}
+                    containerClassName="!mb-0"
+                  />
+                  {form.presenceStatus === 'traveling' ? (
+                    <>
+                      <CreatableComboboxInput
+                        label={<QuestionLabel text={copy.q.travelDestination} language={language} />}
+                        options={profileOptionValues.travelDestinations}
+                        value={form.travelDestination}
+                        onChange={(value) => update('travelDestination', value)}
+                        error={errors.travelDestination}
+                        hint={copy.hints.travelDestination}
+                        placeholder={copy.q.travelDestination}
+                        containerClassName="!mb-0"
+                      />
+                      <CreatableComboboxInput
+                        label={<QuestionLabel text={copy.q.travelReason} language={language} />}
+                        options={profileOptionValues.travelReasons}
+                        value={form.travelReason}
+                        onChange={(value) => update('travelReason', value)}
+                        error={errors.travelReason}
+                        hint={copy.hints.travelReason}
+                        placeholder={copy.q.travelReason}
+                        containerClassName="!mb-0"
+                      />
+                    </>
+                  ) : null}
+                  <div className="md:col-span-2">
+                    <CreatableTagComboboxInput
+                      label={<QuestionLabel text={copy.q.healthConditions} language={language} />}
+                      values={form.healthConditions}
+                      onChange={(next) => update('healthConditions', next)}
+                      error={errors.healthConditions}
+                      hint={copy.hints.healthConditions}
+                      suggestions={profileOptionValues.healthConditions}
+                      placeholder={copy.q.healthConditions}
+                      containerClassName="!mb-0"
+                    />
+                  </div>
+                  <TextArea
+                    label={<QuestionLabel text={copy.q.notes} language={language} />}
+                    value={form.notes}
+                    onChange={(event) => update('notes', event.target.value)}
+                    containerClassName="!mb-0 md:col-span-2"
+                  />
+                </>
+              ) : null}
 
-          {/* ── STEP 4 · تفاصيل مخصصة ───────────────────────────────── */}
-          {activeSection === 'custom' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={5} />
-                <SectionLabel>تفاصيل مخصصة</SectionLabel>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
-                <p className="text-xs text-muted">
-                  أضف حقولاً مخصصة (مفتاح وقيمة). المفاتيح المستخدمة سابقاً تظهر كاقتراحات عند الإضافة.
-                </p>
-
-                <div className="space-y-2.5">
-                  {customDetailsRows.map((row) => {
-                    const showCustomKeyInput =
-                      savedKeys.length > 0 &&
-                      (row.key === '__new__' || (row.key && !savedKeys.includes(row.key)));
-                    const selectValue = savedKeys.includes(row.key) ? row.key : '';
-
-                    return (
-                      <div key={row.id} className="flex flex-wrap items-center gap-2">
-                        {savedKeys.length > 0 && !showCustomKeyInput ? (
-                          <Select
-                            containerClassName="mb-0 flex-1 min-w-[140px]"
-                            options={[
-                              { value: '', label: 'اختر المفتاح' },
-                              ...savedKeys.map((k) => ({ value: k, label: k })),
-                              { value: '__new__', label: '+ مفتاح جديد' },
-                            ]}
-                            value={selectValue}
-                            onChange={(e) => updateCustomDetailRow(row.id, 'key', e.target.value)}
-                          />
-                        ) : (
-                          <input
-                            value={row.key === '__new__' ? '' : row.key}
-                            onChange={(e) => updateCustomDetailRow(row.id, 'key', e.target.value)}
-                            placeholder={showCustomKeyInput ? 'المفتاح (جديد)' : 'المفتاح'}
-                            className="input-base flex-1 min-w-[120px]"
-                          />
-                        )}
-
-                        <input
-                          value={row.value}
-                          onChange={(e) => updateCustomDetailRow(row.id, 'value', e.target.value)}
-                          placeholder="القيمة"
-                          className="input-base flex-1 min-w-[120px]"
-                        />
-
-                        <button
-                          type="button"
-                          onClick={() => removeCustomDetailRow(row.id)}
-                          aria-label="حذف"
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border text-muted transition-colors hover:border-danger/30 hover:bg-danger-light hover:text-danger"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+              {activeStep === 'security' ? (
+                <>
+                  <div className="md:col-span-2 flex flex-col gap-3 rounded-2xl border border-primary/15 bg-primary/6 px-4 py-4 text-sm text-heading sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3">
+                      <ShieldCheck className="mt-0.5 h-5 w-5 text-primary" />
+                      <div>
+                        <p>{copy.remember}</p>
+                        <p className="mt-1 text-xs text-muted">{copy.hints.password}</p>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={handleGeneratePassword}>
+                      {copy.generatePassword}
+                    </Button>
+                  </div>
+                  <Input
+                    label={<QuestionLabel text={copy.q.password} required language={language} />}
+                    type="password"
+                    value={form.password}
+                    onChange={(event) => update('password', event.target.value)}
+                    error={errors.password}
+                    dir="ltr"
+                    className="text-left"
+                  />
+                  <Input
+                    label={<QuestionLabel text={copy.q.confirmPassword} required language={language} />}
+                    type="password"
+                    value={form.confirmPassword}
+                    onChange={(event) => update('confirmPassword', event.target.value)}
+                    error={errors.confirmPassword}
+                    dir="ltr"
+                    className="text-left"
+                  />
+                </>
+              ) : null}
+            </div>
+          </div>
+        </section>
 
-                <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addCustomDetailRow}>
-                  إضافة حقل
-                </Button>
-              </div>
-            </section>
-          )}
-
-          {/* ── ACTIONS ───────────────────────────────────────────────── */}
-          {activeSection === 'socioeconomic' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={6} />
-                <SectionLabel>الملف الاقتصادي والصحي</SectionLabel>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-5">
-                <HouseholdSocioeconomicSection
-                  form={form}
-                  errors={errors}
-                  onChange={update}
-                />
-              </div>
-            </section>
-          )}
-
-          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-[28px] border border-border bg-surface px-4 py-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-1 gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => previousSection && setActiveSection(previousSection.id)}
-                disabled={!previousSection}
-              >
-                {sectionNavCopy.previous}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => nextSection && setActiveSection(nextSection.id)}
-                disabled={!nextSection}
-              >
-                {sectionNavCopy.next}
-              </Button>
+              <Button type="button" variant="ghost" onClick={() => previousStep && setActiveStep(previousStep.id)} disabled={!previousStep}>{copy.back}</Button>
+              <Button type="button" variant="outline" onClick={goNext} disabled={!nextStep}>{copy.next}</Button>
             </div>
-            <div className="flex gap-2">
-              <Button variant="ghost" type="button" onClick={() => navigate(-1)}>إلغاء</Button>
-              <Button type="submit" icon={Save} loading={mutation.isPending}>حفظ المستخدم</Button>
+            <div className="flex flex-col items-start gap-2 lg:items-end">
+              <Button type="submit" loading={submitting} disabled={!canSubmit}>{copy.submit}</Button>
+              <p className="text-xs text-muted">{copy.submitHint}</p>
             </div>
-
           </div>
         </div>
       </form>
     </div>
   );
 }
-
-

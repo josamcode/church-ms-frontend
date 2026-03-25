@@ -10,6 +10,7 @@ import {
   Menu,
   ChevronLeft,
   ChevronRight,
+  FileClock,
   Sun,
   Moon,
   Construction,
@@ -222,6 +223,14 @@ export default function DashboardLayout() {
         matchChildren: true,
       },
       children: [
+        {
+          key: 'users-requests',
+          label: tf('dashboardLayout.menu.userRequests', 'User Requests'),
+          href: '/dashboard/users/requests',
+          icon: FileClock,
+          permission: 'USERS_VIEW',
+          matchChildren: false,
+        },
         // {
         //   key: 'family-house-lookup',
         //   label: tf('dashboardLayout.menu.familyHouseLookup', 'Family & House Lookup'),

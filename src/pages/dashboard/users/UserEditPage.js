@@ -612,6 +612,21 @@ export default function UserEditPage() {
     return base;
   }, [canManagePermissionOverrides, form?.role]);
 
+  const accountStatusOptions = useMemo(() => ([
+    {
+      value: 'pending',
+      label: language === 'ar' ? 'قيد المراجعة' : 'Pending approval',
+    },
+    {
+      value: 'approved',
+      label: language === 'ar' ? 'معتمد' : 'Approved',
+    },
+    {
+      value: 'rejected',
+      label: language === 'ar' ? 'مرفوض' : 'Rejected',
+    },
+  ]), [language]);
+
   const selectedRolePermissions = useMemo(() => {
     if (!form?.role) return [];
     if (form.role === 'SUPER_ADMIN') return [...PERMISSIONS];
@@ -685,6 +700,7 @@ export default function UserEditPage() {
             }
             : null,
         role: user.role || 'USER',
+        accountStatus: user.accountStatus || 'approved',
         hasLogin: Boolean(user.hasLogin),
         password: '',
         extraPermissions: filterAssignablePermissions(user.role || 'USER', user.extraPermissions),
@@ -877,6 +893,9 @@ export default function UserEditPage() {
       payload.confessionFatherName = nextConfessionFatherName || null;
     }
     if (form.role !== user.role) payload.role = form.role;
+    if (form.accountStatus !== (user.accountStatus || 'approved')) {
+      payload.accountStatus = form.accountStatus;
+    }
     if (form.hasLogin !== Boolean(user.hasLogin)) payload.hasLogin = Boolean(form.hasLogin);
     if (form.hasLogin && (form.password || '').trim()) payload.password = form.password.trim();
 
@@ -1104,6 +1123,13 @@ export default function UserEditPage() {
                   <NameCombobox label="اسم العائلة" value={form.familyName} onChange={(v) => update('familyName', v)} options={familyNames} placeholder="ابحث أو اكتب اسم العائلة" />
                   <NameCombobox label="اسم البيت" value={form.houseName} onChange={(v) => update('houseName', v)} options={houseNames} placeholder="ابحث أو اكتب اسم البيت" />
                   <Select label="الدور" options={roleOptionsForEditor} value={form.role} onChange={(e) => update('role', e.target.value)} containerClassName="!mb-0" />
+                  <Select
+                    label={language === 'ar' ? 'حالة الحساب' : 'Account Status'}
+                    options={accountStatusOptions}
+                    value={form.accountStatus}
+                    onChange={(e) => update('accountStatus', e.target.value)}
+                    containerClassName="!mb-0"
+                  />
                   <Select
                     label={language === 'ar' ? 'الأب الروحي' : 'Spiritual Father'}
                     value={form.confessionFather?._id || form.confessionFather?.id || ''}

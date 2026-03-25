@@ -4,6 +4,7 @@ import apiClient from './client';
 
 export const authApi = {
   register: (data) => apiClient.post('/auth/register', data),
+  getRegistrationOptions: () => apiClient.get('/auth/register/options'),
   login: (data) => apiClient.post('/auth/login', data),
   refresh: (refreshToken) => apiClient.post('/auth/refresh', { refreshToken }),
   logout: (refreshToken) => apiClient.post('/auth/logout', { refreshToken }),
@@ -161,6 +162,10 @@ export const notificationsApi = {
 export const platformSettingsApi = {
   getManage: () => apiClient.get('/settings/platform'),
   update: (data) => apiClient.patch('/settings/platform', data),
+};
+
+export const settingsApi = {
+  getPublicSite: () => apiClient.get('/settings/public/site'),
 };
 
 export const userNotificationsApi = {
