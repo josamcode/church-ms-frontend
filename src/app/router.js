@@ -22,6 +22,7 @@ const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
 const DashboardHome = lazy(() => import('../pages/dashboard/DashboardHome'));
 const ProfilePage = lazy(() => import('../pages/dashboard/ProfilePage'));
 const AccountSettingsPage = lazy(() => import('../pages/dashboard/settings/AccountSettingsPage'));
+const PlatformSettingsPage = lazy(() => import('../pages/dashboard/settings/PlatformSettingsPage'));
 const ChatsPage = lazy(() => import('../pages/dashboard/chats/ChatsPage'));
 const UsersListPage = lazy(() => import('../pages/dashboard/users/UsersListPage'));
 const UsersExplorerPage = lazy(() => import('../pages/dashboard/users/UsersExplorerPage'));
@@ -134,6 +135,14 @@ const router = createBrowserRouter([
         element: (
           <PermissionGuard required={['AUTH_VIEW_SELF']}>
             <Lazy><AccountSettingsPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'settings/platform',
+        element: (
+          <PermissionGuard required={['NOTIFICATIONS_TEMPLATES_MANAGE']}>
+            <Lazy><PlatformSettingsPage /></Lazy>
           </PermissionGuard>
         ),
       },

@@ -145,8 +145,8 @@ export default function NotificationInboxPage() {
       } catch (error) {
         toast.error(
           error?.response?.data?.message ||
-            error?.message ||
-            tf('notificationCenter.markReadFailed', 'Failed to update the notification status.')
+          error?.message ||
+          tf('notificationCenter.markReadFailed', 'Failed to update the notification status.')
         );
       } finally {
         setOpeningNotificationId('');
@@ -158,8 +158,8 @@ export default function NotificationInboxPage() {
       } catch (error) {
         toast.error(
           error?.response?.data?.message ||
-            error?.message ||
-            tf('notificationCenter.markReadFailed', 'Failed to update the notification status.')
+          error?.message ||
+          tf('notificationCenter.markReadFailed', 'Failed to update the notification status.')
         );
       } finally {
         setOpeningNotificationId('');
@@ -218,6 +218,31 @@ export default function NotificationInboxPage() {
             >
               {t('common.actions.back')}
             </Button>
+            {pushSupported ? (
+              pushSubscribed ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  loading={pushLoading}
+                  onClick={handleDisablePush}
+                >
+                  {tf('notificationCenter.push.turnOff', 'Turn off')}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  loading={pushLoading}
+                  onClick={handleEnablePush}
+                >
+                  {tf('notificationCenter.push.turnOn', 'Turn on')}
+                </Button>
+              )
+            ) : (
+              <BellOff className="h-4 w-4 text-muted" />
+            )}
             <Button
               type="button"
               variant="outline"
@@ -231,7 +256,7 @@ export default function NotificationInboxPage() {
         )}
       />
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+      <section className="grid">
         <div className="rounded-3xl border border-border bg-surface p-5 shadow-card">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
@@ -241,17 +266,14 @@ export default function NotificationInboxPage() {
               <p className="mt-1 text-sm text-muted">
                 {unreadBadge
                   ? tf('notificationCenter.unreadSummary', `${unreadBadge} unread`, {
-                      count: unreadBadge,
-                    })
+                    count: unreadBadge,
+                  })
                   : tf('notificationCenter.allCaughtUp', 'You are all caught up.')}
               </p>
             </div>
-            <div className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              {tf('notificationCenter.savedGuarantee', 'Saved even if push fails')}
-            </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
             {notificationsQuery.isLoading ? (
               <div className="flex items-center justify-center rounded-2xl border border-dashed border-border bg-surface-alt/30 p-8 text-sm text-muted">
                 <Loader2 className="me-2 h-4 w-4 animate-spin" />
@@ -291,65 +313,6 @@ export default function NotificationInboxPage() {
               cursors={cursorStack}
               loading={notificationsQuery.isLoading}
             />
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-border bg-surface p-5 shadow-card">
-          <p className="text-sm font-semibold text-heading">
-            {tf('notificationCenter.push.cardTitle', 'Push Notifications')}
-          </p>
-          <p className="mt-2 text-sm text-muted">
-            {tf(
-              'notificationCenter.push.cardSubtitle',
-              'Enable browser push to receive alerts even when this tab or browser window is closed.'
-            )}
-          </p>
-
-          <div className="mt-5 rounded-2xl border border-border bg-surface-alt/30 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                  {tf('notificationCenter.push.status', 'Status')}
-                </p>
-                <p className="mt-1 text-sm font-medium text-heading">
-                  {!pushSupported
-                    ? tf('notificationCenter.push.unsupported', 'Not supported here')
-                    : pushSubscribed
-                      ? tf('notificationCenter.push.active', 'Active on this browser')
-                      : pushPermission === 'denied'
-                        ? tf('notificationCenter.push.blocked', 'Blocked in browser settings')
-                        : tf('notificationCenter.push.inactive', 'Not enabled yet')}
-                </p>
-              </div>
-
-              {pushSupported ? (
-                pushSubscribed ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    loading={pushLoading}
-                    onClick={handleDisablePush}
-                  >
-                    {tf('notificationCenter.push.turnOff', 'Turn off')}
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    loading={pushLoading}
-                    onClick={handleEnablePush}
-                  >
-                    {tf('notificationCenter.push.turnOn', 'Turn on')}
-                  </Button>
-                )
-              ) : (
-                <BellOff className="h-4 w-4 text-muted" />
-              )}
-            </div>
-
-            {pushError ? <p className="mt-3 text-xs text-danger">{pushError}</p> : null}
           </div>
         </div>
       </section>

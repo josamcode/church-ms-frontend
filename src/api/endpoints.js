@@ -158,6 +158,11 @@ export const notificationsApi = {
   },
 };
 
+export const platformSettingsApi = {
+  getManage: () => apiClient.get('/settings/platform'),
+  update: (data) => apiClient.patch('/settings/platform', data),
+};
+
 export const userNotificationsApi = {
   list: (params) => apiClient.get('/notifications', { params }),
   unreadCount: () => apiClient.get('/notifications/unread-count'),

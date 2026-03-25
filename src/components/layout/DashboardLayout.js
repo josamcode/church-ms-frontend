@@ -521,6 +521,14 @@ export default function DashboardLayout() {
       },
       children: [
         {
+          key: 'platform-settings',
+          label: tf('dashboardLayout.menu.platformSettings', 'Platform Settings'),
+          href: '/dashboard/settings/platform',
+          icon: BellRing,
+          permission: 'NOTIFICATIONS_TEMPLATES_MANAGE',
+          matchChildren: false,
+        },
+        {
           label: t('dashboardLayout.menu.landingContent'),
           href: '/dashboard/public-site/landing',
           icon: Church,

@@ -1,6 +1,8 @@
 import { Loader } from 'lucide-react';
 import { formatDateTime } from '../../utils/formatters';
 import { getUserNotificationPresentation } from '../../utils/userNotificationPresentation';
+import { useI18n } from '../../i18n/i18n';
+import { getLocalizedUserNotificationContent } from '../../utils/userNotificationContent';
 
 export default function NotificationListItem({
   notification,
@@ -9,8 +11,12 @@ export default function NotificationListItem({
   compact = false,
   loading = false,
 }) {
+  const { language } = useI18n();
   const presentation = getUserNotificationPresentation(notification, tf);
   const Icon = presentation.icon;
+  const nextSessionAt =
+    notification?.type === 'confession_next_session' ? notification?.metadata?.nextSessionAt : null;
+  const content = getLocalizedUserNotificationContent(notification, language);
 
   return (
     <button
@@ -45,7 +51,7 @@ export default function NotificationListItem({
           <div className="mt-2 flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <h3 className="truncate text-sm font-semibold text-heading">
-                {notification?.title || tf('notificationCenter.defaults.title', 'Notification')}
+                {content.title || tf('notificationCenter.defaults.title', 'Notification')}
               </h3>
               <p
                 className={[
@@ -53,8 +59,15 @@ export default function NotificationListItem({
                   compact ? 'truncate' : '',
                 ].join(' ')}
               >
-                {notification?.message || tf('notificationCenter.defaults.message', 'Open to view the details.')}
+                {content.message || tf('notificationCenter.defaults.message', 'Open to view the details.')}
               </p>
+              {nextSessionAt ? (
+                <p className="mt-1 text-xs font-medium text-heading">
+                  {tf('notificationCenter.confessionNextSession.scheduledFor', 'Scheduled for {date}', {
+                    date: formatDateTime(nextSessionAt),
+                  })}
+                </p>
+              ) : null}
             </div>
 
             {loading ? <Loader className="mt-0.5 h-4 w-4 animate-spin text-primary" /> : null}

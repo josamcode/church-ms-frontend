@@ -1,5 +1,6 @@
 import {
   Bell,
+  CalendarPlus,
   CalendarClock,
   Megaphone,
   MessageSquare,
@@ -43,6 +44,13 @@ export function getUserNotificationPresentation(notification, tf) {
       return {
         icon: CalendarClock,
         label: tf('notificationCenter.types.aidReminder', 'Aid reminder'),
+        iconClassName: 'text-secondary',
+        badgeClassName: 'bg-secondary/10 text-secondary',
+      };
+    case 'confession_next_session':
+      return {
+        icon: CalendarPlus,
+        label: tf('notificationCenter.types.confessionNextSession', 'Next confession session'),
         iconClassName: 'text-secondary',
         badgeClassName: 'bg-secondary/10 text-secondary',
       };

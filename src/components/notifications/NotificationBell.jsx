@@ -9,6 +9,7 @@ import Button from '../ui/Button';
 import Modal from '../ui/Modal';
 import { useI18n } from '../../i18n/i18n';
 import usePushNotifications from '../../hooks/notifications/usePushNotifications';
+import { getLocalizedUserNotificationContent } from '../../utils/userNotificationContent';
 import NotificationListItem from './NotificationListItem';
 import {
   getChatNotificationThreadId,
@@ -34,7 +35,7 @@ const DESKTOP_DROPDOWN_WIDTH = 300;
 const PUSH_ENABLE_PROMPT_SESSION_KEY = 'church_push_enable_prompt_seen';
 
 export default function NotificationBell() {
-  const { t, isRTL } = useI18n();
+  const { t, isRTL, language } = useI18n();
   const {
     supported: pushSupported,
     subscribed: pushSubscribed,
@@ -218,8 +219,9 @@ export default function NotificationBell() {
     }
 
     const destination = getNotificationDestination(notification);
+    const content = getLocalizedUserNotificationContent(notification, language);
     const options = {
-      body: notification.message || '',
+      body: content.message || '',
       icon: '/logo192.png',
       badge: '/logo192.png',
       tag: `user-notification:${notification.id}`,
@@ -234,7 +236,7 @@ export default function NotificationBell() {
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.getRegistration();
       if (registration?.showNotification) {
-        await registration.showNotification(notification.title || tf('notificationCenter.title', 'Notification Center'), options);
+        await registration.showNotification(content.title || tf('notificationCenter.title', 'Notification Center'), options);
         return true;
       }
     }
@@ -244,7 +246,7 @@ export default function NotificationBell() {
     }
 
     const browserNotification = new window.Notification(
-      notification.title || tf('notificationCenter.title', 'Notification Center'),
+      content.title || tf('notificationCenter.title', 'Notification Center'),
       options
     );
 
@@ -312,7 +314,8 @@ export default function NotificationBell() {
     }
 
     if (location.pathname !== '/dashboard/notifications/inbox') {
-      toast.success(`${notification.title}`, {
+      const content = getLocalizedUserNotificationContent(notification, language);
+      toast.success(`${content.title || notification.title || tf('notificationCenter.defaults.title', 'Notification')}`, {
         duration: 3500,
       });
     }

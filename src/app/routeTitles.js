@@ -294,6 +294,12 @@ const TITLE_ROUTES = [
     fallback: 'Account Settings',
   },
   {
+    pattern: '/dashboard/settings/platform',
+    key: 'platformSettingsPage.title',
+    fallback: 'Platform Settings',
+    fallbackAr: 'إعدادات المنصة',
+  },
+  {
     pattern: '/dashboard/chats',
     key: 'dashboardLayout.menu.chats',
     fallback: 'Chats',

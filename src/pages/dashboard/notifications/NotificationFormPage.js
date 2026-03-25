@@ -21,9 +21,7 @@ import { useI18n } from '../../../i18n/i18n';
 import { localizeNotificationTypeName } from '../../../utils/notificationTypeLocalization';
 
 const DEFAULT_AUDIENCE_PERMISSIONS = [
-  'NOTIFICATIONS_CREATE',
-  'NOTIFICATIONS_UPDATE',
-  'NOTIFICATIONS_TYPES_MANAGE',
+  'NOTIFICATIONS_VIEW',
 ];
 
 function createDetail(kind = 'text') {
@@ -236,12 +234,12 @@ export default function NotificationFormPage() {
       details:
         Array.isArray(notification.details) && notification.details.length > 0
           ? notification.details.map((detail) => ({
-              localId: detail.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-              kind: detail.kind || 'text',
-              title: detail.title || '',
-              content: detail.content || '',
-              url: detail.url || '',
-            }))
+            localId: detail.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            kind: detail.kind || 'text',
+            title: detail.title || '',
+            content: detail.content || '',
+            url: detail.url || '',
+          }))
           : [createDetail('text')],
     });
 
@@ -549,7 +547,7 @@ export default function NotificationFormPage() {
             subtitle={t('notifications.form.sectionBasicsSubtitle')}
           />
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mb-4">
             <NotificationTypeCombobox
               label={t('notifications.form.type')}
               value={typeInput}
@@ -579,7 +577,7 @@ export default function NotificationFormPage() {
               onChange={(event) => updateField('eventDate', event.target.value)}
               containerClassName="!mb-0"
             />
-            <div className="mb-4 flex items-end">
+            <div className="flex items-end">
               <Button
                 type="button"
                 variant={form.isActive ? 'success' : 'outline'}
@@ -588,57 +586,6 @@ export default function NotificationFormPage() {
                 {form.isActive ? t('notifications.actions.setInactive') : t('notifications.actions.setActive')}
               </Button>
             </div>
-          </div>
-
-          <div className="rounded-xl border border-border bg-surface-alt/30 p-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Select
-                label={tf('notifications.form.audienceType', 'Audience')}
-                value={form.audienceType}
-                onChange={(event) => updateAudienceType(event.target.value)}
-                options={[
-                  {
-                    value: 'permissions',
-                    label: tf('notifications.form.audienceRestricted', 'Restricted by permission'),
-                  },
-                  {
-                    value: 'all',
-                    label: tf('notifications.form.audienceAll', 'All notification viewers'),
-                  },
-                ]}
-                containerClassName="!mb-0"
-              />
-              <div className="flex items-center rounded-xl border border-border bg-surface px-4 py-3 text-xs text-muted">
-                {form.audienceType === 'all'
-                  ? tf(
-                    'notifications.form.audienceAllHint',
-                    'Everyone who can open notifications will be able to see this item.'
-                  )
-                  : tf(
-                    'notifications.form.audienceRestrictedHint',
-                    'Only users who hold at least one of the selected permissions will be able to see this item.'
-                  )}
-              </div>
-            </div>
-
-            {form.audienceType === 'permissions' ? (
-              <MultiSelectChips
-                label={tf('notifications.form.audiencePermissions', 'Allowed permissions')}
-                values={form.audiencePermissions}
-                options={audiencePermissionOptions}
-                onChange={updateAudiencePermissions}
-                error={formErrors.audiencePermissions}
-                hint={tf(
-                  'notifications.form.audiencePermissionsHint',
-                  'Choose the internal audiences that should receive this notification.'
-                )}
-                placeholder={tf(
-                  'notifications.form.audiencePermissionsPlaceholder',
-                  'Select one or more permissions'
-                )}
-                containerClassName="!mb-0 mt-4"
-              />
-            ) : null}
           </div>
 
           <TextArea

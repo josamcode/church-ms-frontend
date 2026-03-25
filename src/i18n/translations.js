@@ -1,4 +1,4 @@
-export const translations = {
+﻿export const translations = {
   en: {
     common: {
       appName: 'Church Management',
@@ -332,11 +332,66 @@ export const translations = {
         meetingsManagement: 'Meetings Management',
         meetingSettings: 'Meeting Settings',
         accountSettings: 'Account Settings',
+        platformSettings: 'Platform Settings',
         systemAnalytics: 'System Analytics',
         underDevelopment: 'Under Development',
       },
       expandSidebar: 'Expand sidebar',
       collapseSidebar: 'Collapse sidebar',
+    },
+    platformSettingsPage: {
+      title: 'Platform Settings',
+      subtitle: 'Manage internal notification templates and shared platform text from one place.',
+      actions: {
+        save: 'Save Platform Settings',
+      },
+      tabs: {
+        notifications: 'Notifications',
+      },
+      languages: {
+        ar: 'Arabic',
+        en: 'English',
+      },
+      states: {
+        loading: 'Loading platform settings...',
+      },
+      messages: {
+        saved: 'Platform settings saved successfully.',
+      },
+      notifications: {
+        tabs: {
+          confessionNextSession: 'Next confession notification',
+        },
+        confessionNextSession: {
+          title: 'Next Confession Notification',
+          subtitle: 'Edit the text sent when a next confession session date is assigned to a user.',
+        },
+        availableTokens: 'Available placeholders',
+        tokenInsertHint: 'Click a placeholder to insert it into the selected field.',
+        insertingInto: 'Inserting into: {field}',
+        tokenLabels: {
+          nextSessionAt: 'Next session date/time',
+          creatorName: 'Creator name',
+          sessionTypeName: 'Session type',
+        },
+        fields: {
+          title: 'Notification title',
+          message: 'Notification message',
+          templateHint: 'You can use placeholders like {nextSessionAt} inside the text.',
+          englishSyncHint:
+            'English starts by following the Arabic value. Once you edit it here, it becomes independent.',
+        },
+        preview: {
+          title: 'Live preview',
+          subtitle: 'The preview uses sample values for placeholders and updates as you type.',
+          badge: 'Notification preview',
+          sampleValues: {
+            generic: 'Sample value',
+            personName: 'Fr. Youhanna',
+            sessionType: 'Confession session',
+          },
+        },
+      },
     },
     landingContentPage: {
       title: 'Landing Page Content',
@@ -2515,7 +2570,11 @@ export const translations = {
         backupSuccess: 'Backup success',
         backupFailure: 'Backup failure',
         aidReminder: 'Aid reminder',
+        confessionNextSession: 'Next confession session',
         system: 'System',
+      },
+      confessionNextSession: {
+        scheduledFor: 'Scheduled for {date}',
       },
       push: {
         title: 'Browser Push',
@@ -3077,12 +3136,67 @@ export const translations = {
         meetingsManagement: 'إدارة الاجتماعات',
         meetingSettings: 'إعدادات الاجتماع',
         accountSettings: 'إعدادات الحساب',
+        platformSettings: 'إعدادات المنصة',
         systemAnalytics: 'تحليلات النظام',
         underDevelopment: 'قيد التطوير',
       },
 
       expandSidebar: 'توسيع الشريط الجانبي',
       collapseSidebar: 'طي الشريط الجانبي',
+    },
+    platformSettingsPage: {
+      title: 'إعدادات المنصة',
+      subtitle: 'تحكم في قوالب الإشعارات الداخلية والنصوص المشتركة للمنصة من مكان واحد.',
+      actions: {
+        save: 'حفظ إعدادات المنصة',
+      },
+      tabs: {
+        notifications: 'الإشعارات',
+      },
+      languages: {
+        ar: 'العربية',
+        en: 'الإنجليزية',
+      },
+      states: {
+        loading: 'جارٍ تحميل إعدادات المنصة...',
+      },
+      messages: {
+        saved: 'تم حفظ إعدادات المنصة بنجاح.',
+      },
+      notifications: {
+        tabs: {
+          confessionNextSession: 'إشعار موعد الاعتراف القادم',
+        },
+        confessionNextSession: {
+          title: 'إشعار موعد الاعتراف القادم',
+          subtitle: 'عدّل النص المرسل عند تحديد موعد جلسة الاعتراف القادمة للمستخدم.',
+        },
+        availableTokens: 'المتغيرات المتاحة',
+        tokenInsertHint: 'اضغط على أي متغير لإدراجه داخل الحقل المحدد.',
+        insertingInto: 'سيتم الإدراج داخل: {field}',
+        tokenLabels: {
+          nextSessionAt: 'تاريخ ووقت الجلسة القادمة',
+          creatorName: 'اسم منشئ الجلسة',
+          sessionTypeName: 'نوع الجلسة',
+        },
+        fields: {
+          title: 'عنوان الإشعار',
+          message: 'نص الإشعار',
+          templateHint: 'يمكنك استخدام متغيرات مثل {nextSessionAt} داخل النص.',
+          englishSyncHint:
+            'اللغة الإنجليزية تبدأ بنفس قيمة العربية. بمجرد تعديلها هنا تصبح مستقلة.',
+        },
+        preview: {
+          title: 'معاينة مباشرة',
+          subtitle: 'شاهد كيف يبدو الاشعار فى الحقيقة',
+          badge: 'معاينة الإشعار',
+          sampleValues: {
+            generic: 'قيمة تجريبية',
+            personName: 'أبونا يوحنا',
+            sessionType: 'جلسة اعتراف',
+          },
+        },
+      },
     },
     landingContentPage: {
       title: 'محتوى الصفحة الرئيسية',
@@ -5220,7 +5334,11 @@ export const translations = {
         backupSuccess: 'نجاح النسخ الاحتياطي',
         backupFailure: 'فشل النسخ الاحتياطي',
         aidReminder: 'تذكير مساعدة',
+        confessionNextSession: 'موعد الاعتراف القادم',
         system: 'النظام',
+      },
+      confessionNextSession: {
+        scheduledFor: 'الموعد المحدد: {date}',
       },
       push: {
         title: 'إشعارات المتصفح',

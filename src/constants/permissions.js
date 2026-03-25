@@ -62,6 +62,7 @@ export const PERMISSIONS = [
   'NOTIFICATIONS_CREATE',
   'NOTIFICATIONS_UPDATE',
   'NOTIFICATIONS_TYPES_MANAGE',
+  'NOTIFICATIONS_TEMPLATES_MANAGE',
   'CHATS_VIEW',
   'CHATS_START',
   'CHATS_SEND',
@@ -254,6 +255,7 @@ export const PERMISSION_LABELS = {
   NOTIFICATIONS_CREATE: 'Create notifications',
   NOTIFICATIONS_UPDATE: 'Update notifications',
   NOTIFICATIONS_TYPES_MANAGE: 'Manage notification types',
+  NOTIFICATIONS_TEMPLATES_MANAGE: 'Manage notification templates',
   CHATS_VIEW: 'View chats',
   CHATS_START: 'Start chats',
   CHATS_SEND: 'Send chat messages',
@@ -380,6 +382,7 @@ export const PERMISSION_GROUPS = [
       'NOTIFICATIONS_CREATE',
       'NOTIFICATIONS_UPDATE',
       'NOTIFICATIONS_TYPES_MANAGE',
+      'NOTIFICATIONS_TEMPLATES_MANAGE',
     ],
   },
   {
