@@ -349,8 +349,8 @@ const TITLE_ROUTES = [
   {
     pattern: '/',
     key: 'routeTitles.landing',
-    fallback: 'Home',
-    fallbackAr: 'الرئيسية',
+    fallback: 'St. Michael Church',
+    fallbackAr: 'كنيسة الملاك ميخائيل',
   },
 ];
 
@@ -379,8 +379,8 @@ export function buildDocumentTitle(pageTitle, t, language) {
     t,
     language,
     'common.appName',
-    'Church Management',
-    'نظام إدارة الكنيسة'
+    'St. Michael Church',
+    'كنيسة الملاك ميخائيل'
   );
 
   if (!pageTitle || pageTitle === appName) {

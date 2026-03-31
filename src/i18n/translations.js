@@ -1,7 +1,7 @@
 ﻿export const translations = {
   en: {
     common: {
-      appName: 'Church Management',
+      appName: 'St. Michael Church',
       placeholder: {
         empty: '---',
       },
@@ -105,7 +105,7 @@
         title: 'A Living Church Family in',
         highlight: 'Faith, Love, and Service',
         description:
-          'Discover our worship life, pastoral care, and community journey as one family in Christ.',
+          'A home for everyone who wants to grow closer to God and live in true love.',
         primaryCta: 'Learn About Our Church',
         secondaryCta: 'Plan Your Visit',
         cardLabel: 'Weekly Rhythm',
@@ -2868,7 +2868,7 @@
   },
   ar: {
     common: {
-      appName: 'نظام إدارة الكنيسة',
+      appName: 'كنيسة الملاك ميخائيل',
       placeholder: {
         empty: '---',
       },
@@ -2971,7 +2971,7 @@
         badge: 'كنيسة الملاك ميخائيل',
         title: 'كنيسة حية تنمو في',
         highlight: 'الإيمان والمحبة والخدمة',
-        description: 'اكتشف حياة العبادة والرعاية الكنسية وخدمة المجتمع كعائلة واحدة في المسيح.',
+        description: 'بيت لكل واحد عايز يقرب من ربنا ويعيش وسط محبة حقيقية.',
         primaryCta: 'تعرّف على كنيستنا',
         secondaryCta: 'خطط لزيارتك',
         cardLabel: 'إيقاع الأسبوع',
