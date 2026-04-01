@@ -45,6 +45,7 @@ function SectionLabel({ children }) {
 ───────────────────────────────────────────────────────────────────────────── */
 
 export default function UsersListPage() {
+  const visibleAccountStatus = 'approved';
   const { hasPermission } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -58,6 +59,7 @@ export default function UsersListPage() {
 
   const queryParams = {
     limit, sort: 'createdAt', order: 'desc',
+    accountStatus: visibleAccountStatus,
     ...(cursor && { cursor }),
     ...(filters.fullName && { fullName: filters.fullName }),
     ...(filters.ageGroup && { ageGroup: filters.ageGroup }),
@@ -76,9 +78,9 @@ export default function UsersListPage() {
   });
 
   const { data: totalUsersCount = 0, refetch: refetchTotalUsers } = useQuery({
-    queryKey: ['users', 'totalCount'],
+    queryKey: ['users', 'totalCount', visibleAccountStatus],
     queryFn: async () => {
-      const allUsers = await fetchUsersWithPagination();
+      const allUsers = await fetchUsersWithPagination({ accountStatus: visibleAccountStatus });
       return allUsers.length;
     },
     staleTime: 120000,
