@@ -59,17 +59,36 @@ function guessGrandfatherName(fullName) {
 }
 
 const EASY_PASSWORD_WORDS = ['Grace', 'Olive', 'Peace', 'Light', 'Cedar', 'River', 'Hope', 'Amen'];
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_SPECIAL_CHARACTERS = '!@#$%^&*';
+const PASSWORD_EXTRA_LOWERCASE = 'abcdefghjkmnpqrstuvwxyz';
+
+function pickRandomCharacter(characters) {
+  return characters[Math.floor(Math.random() * characters.length)];
+}
+
+function isStrongPassword(password) {
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(String(password || ''));
+}
 
 function generateEasyPassword(fullName, nationalId) {
   const firstToken = String(fullName || '').trim().split(/\s+/).filter(Boolean)[0] || '';
   const latinFirstToken = firstToken.replace(/[^A-Za-z]/g, '');
+  const fallbackWord = EASY_PASSWORD_WORDS[Math.floor(Math.random() * EASY_PASSWORD_WORDS.length)];
+  const rawBase = latinFirstToken.length >= 3 ? latinFirstToken : fallbackWord;
+  const normalizedBase = `${rawBase.charAt(0).toUpperCase()}${rawBase.slice(1).toLowerCase()}`;
   const base =
-    latinFirstToken.length >= 3
-      ? `${latinFirstToken.charAt(0).toUpperCase()}${latinFirstToken.slice(1, 7)}`
-      : EASY_PASSWORD_WORDS[Math.floor(Math.random() * EASY_PASSWORD_WORDS.length)];
+    normalizedBase.length >= 4
+      ? normalizedBase.slice(0, 5)
+      : `${normalizedBase}${fallbackWord.toLowerCase()}`.slice(0, 4);
   const digitSource = String(nationalId || '').replace(/\D/g, '');
-  const suffix = digitSource.slice(-3) || String(100 + Math.floor(Math.random() * 900));
-  return `${base}${suffix}`;
+  const suffix = (digitSource.slice(-3) || String(100 + Math.floor(Math.random() * 900))).padStart(3, '0');
+  const specialSymbol = pickRandomCharacter(PASSWORD_SPECIAL_CHARACTERS);
+  const trailingLowercase = pickRandomCharacter(PASSWORD_EXTRA_LOWERCASE);
+  const password = `${base}${suffix}${specialSymbol}${trailingLowercase}`;
+
+  if (password.length >= PASSWORD_MIN_LENGTH && isStrongPassword(password)) return password;
+  return `Grace123!a`;
 }
 
 function normalizeRegisterErrors(details = []) {
@@ -157,7 +176,7 @@ function getCopy(isArabic) {
         successBody: 'تم حفظ بياناتك كطلب مستخدم جديد قيد المراجعة. احتفظ بكلمة المرور جيدًا، وستتمكن من تسجيل الدخول بعد اعتماد الحساب.',
         loginNotice: 'طلب حسابك ما زال قيد المراجعة. ستتمكن من تسجيل الدخول بعد الموافقة عليه.',
         remember: 'احفظ كلمة المرور جيدًا لأنك ستستخدمها لاحقًا بمجرد الموافقة على الحساب.',
-        generatedPassword: 'تم إنشاء كلمة مرور سهلة وإضافتها في الحقلين.',
+        generatedPassword: 'تم إنشاء كلمة مرور آمنة تستوفي الشروط وإضافتها في الحقلين.',
         back: 'السابق',
         next: 'التالي',
         submit: 'إرسال الطلب',
@@ -165,7 +184,7 @@ function getCopy(isArabic) {
         browse: 'هل تريد تصفح النظام أولًا؟',
         toLogin: 'الذهاب إلى صفحة الدخول',
         toHome: 'العودة إلى الرئيسية',
-        generatePassword: 'أنشئ كلمة مرور سهلة لي',
+        generatePassword: 'أنشئ كلمة مرور آمنة لي',
         submitHint: 'زر الإرسال يظل معطلًا حتى تصل إلى الخطوة الأخيرة وتكمل كل الحقول المطلوبة.',
         steps: [
           { id: 'identity', label: 'من أنت؟' },
@@ -206,7 +225,7 @@ function getCopy(isArabic) {
           travelDestination: 'يمكنك الاختيار من الوجهات المسجلة أو كتابة وجهة جديدة.',
           travelReason: 'يمكنك الاختيار من الأسباب المسجلة أو كتابة سبب جديد.',
           healthConditions: 'اختر من الحالات الصحية الموجودة أو اكتب حالة جديدة ثم أضفها.',
-          password: 'اجعل كلمة المرور سهلة التذكر واحفظها جيدًا.',
+          password: 'يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل، وتتضمن حرفًا كبيرًا وحرفًا صغيرًا ورقمًا ورمزًا خاصًا.',
         },
       }
     : {
@@ -219,7 +238,7 @@ function getCopy(isArabic) {
         successBody: 'Your information was saved as a pending user request. Please remember your password carefully. You will be able to sign in after your account is approved.',
         loginNotice: 'Your account request is still pending review. Please sign in after approval.',
         remember: 'Please remember this password carefully because you will use it later once your account is approved.',
-        generatedPassword: 'An easy password was generated and added to both fields.',
+        generatedPassword: 'A secure password that meets the rules was generated and added to both fields.',
         back: 'Back',
         next: 'Next',
         submit: 'Submit Request',
@@ -227,7 +246,7 @@ function getCopy(isArabic) {
         browse: 'Do you want to browse the system first?',
         toLogin: 'Go to the sign-in page',
         toHome: 'Return to the home page',
-        generatePassword: 'Generate an easy password for me',
+        generatePassword: 'Generate a secure password for me',
         submitHint: 'The submit button stays disabled until you reach the last step and complete every required field.',
         steps: [
           { id: 'identity', label: 'Who are you?' },
@@ -268,7 +287,7 @@ function getCopy(isArabic) {
           travelDestination: 'Choose a saved destination or type a new one.',
           travelReason: 'Choose a saved reason or type a new one.',
           healthConditions: 'Choose saved health conditions or type a new one, then add it.',
-          password: 'Use a password you can remember easily and keep it safe.',
+          password: 'Use at least 8 characters with an uppercase letter, a lowercase letter, a number, and a special symbol.',
         },
       };
 }
@@ -277,7 +296,7 @@ function stepComplete(stepId, form) {
   if (stepId === 'identity') return Boolean(form.fullName.trim() && form.birthDate && form.gender);
   if (stepId === 'contact') return Boolean(form.phonePrimary.trim() && form.governorate.trim() && form.city.trim());
   if (stepId === 'profile') return true;
-  if (stepId === 'security') return Boolean(form.password && form.confirmPassword && form.password === form.confirmPassword);
+  if (stepId === 'security') return Boolean(isStrongPassword(form.password) && form.confirmPassword && form.password === form.confirmPassword);
   return false;
 }
 
@@ -432,6 +451,7 @@ export default function UserRegisterPage() {
 
     if (stepId === 'security') {
       if (!form.password) nextErrors.password = copy.q.password;
+      if (form.password && !isStrongPassword(form.password)) nextErrors.password = copy.hints.password;
       if (!form.confirmPassword) nextErrors.confirmPassword = copy.q.confirmPassword;
       if (form.password && form.confirmPassword && form.password !== form.confirmPassword) {
         nextErrors.confirmPassword = isArabic ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match';

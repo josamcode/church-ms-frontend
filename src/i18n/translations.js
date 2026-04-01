@@ -299,6 +299,7 @@
         dashboard: 'Dashboard',
         profile: 'Profile',
         users: 'Users',
+        userRequests: 'User requests',
         usersExplorer: 'User Explorer',
         familyHouseLookup: 'Family & House Lookup',
         familyHouseAnalytics: 'Family Analytics',
@@ -358,6 +359,17 @@
       },
       messages: {
         saved: 'Platform settings saved successfully.',
+      },
+      registration: {
+        title: 'Public registration',
+        subtitle: 'Choose whether guests can submit new account requests from the public registration page.',
+        statusLabel: 'Current status',
+        enabled: 'Registration enabled',
+        disabled: 'Registration disabled',
+        superAdminHint: 'New users will either be allowed to submit pending requests or be asked to sign in or browse only.',
+        readOnlyHint: 'Only the Super Admin can change this setting.',
+        toggleOn: 'Allow new registration requests',
+        toggleOff: 'Stop new registration requests',
       },
       meetingReminders: {
         title: 'Meeting reminder settings',
@@ -3165,6 +3177,7 @@
         dashboard: 'لوحة التحكم',
         profile: 'الملف الشخصي',
         users: 'الافراد',
+        userRequests: 'طلبات الافراد',
         usersExplorer: 'مستكشف الأفراد',
         familyHouseLookup: 'العائلات والمنازل',
         familyHouseAnalytics: 'تحليلات العائلات',
@@ -3225,6 +3238,17 @@
       },
       messages: {
         saved: 'تم حفظ إعدادات المنصة بنجاح.',
+      },
+      registration: {
+        title: 'التسجيل العام',
+        subtitle: 'اختر ما إذا كان يمكن للزوار إرسال طلبات حسابات جديدة من صفحة التسجيل العامة.',
+        statusLabel: 'الحالة الحالية',
+        enabled: 'التسجيل مفعّل',
+        disabled: 'التسجيل معطّل',
+        superAdminHint: 'سيُسمح للمستخدمين الجدد إما بإرسال طلبات انضمام معلقة أو سيُطلب منهم تسجيل الدخول أو التصفح فقط.',
+        readOnlyHint: 'فقط المدير العام يمكنه تغيير هذا الإعداد.',
+        toggleOn: 'السماح بطلبات تسجيل جديدة',
+        toggleOff: 'إيقاف طلبات التسجيل الجديدة',
       },
       meetingReminders: {
         title: 'إعدادات تذكيرات الاجتماعات',
