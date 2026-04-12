@@ -19,11 +19,11 @@ export default function AuthLayout() {
 
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex flex-col items-center gap-2">
-            <div className="w-14 h-14 bg-primary rounded-xl flex items-center justify-center">
-              <Church className="w-8 h-8 text-white" />
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center">
+              <img src='/logo.PNG' />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-heading">كنيسة الملاك ميخائيل</h1>
+              <h1 className="text-xl font-bold text-heading">كنيسة الملاك ميخائيل بالقطوشة</h1>
               <p className="text-xs text-muted">{t('auth.authLayoutSubTitle')}</p>
             </div>
           </Link>

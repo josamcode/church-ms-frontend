@@ -839,9 +839,9 @@ export default function DashboardLayout() {
             <button
               type="button"
               onClick={() => navigate('/')}
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary text-white/90 shadow-md shadow-primary/25 transition-all hover:scale-105 active:scale-95"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-white/90 shadow-md shadow-primary/25 transition-all hover:scale-105 active:scale-95"
             >
-              <Church className="h-[18px] w-[18px]" />
+              <img src='/logo.PNG' />
             </button>
             {!collapsed && (
               <div className="min-w-0">
@@ -892,9 +892,9 @@ export default function DashboardLayout() {
                 <button
                   type="button"
                   onClick={() => navigate('/')}
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary text-white/90 shadow-md shadow-primary/25"
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-white/90 shadow-md shadow-primary/25"
                 >
-                  <Church className="h-[18px] w-[18px]" />
+                  <img src='/logo.PNG' />
                 </button>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[14px] font-bold leading-tight tracking-tight text-heading">
