@@ -19,7 +19,6 @@ import Modal from '../../../components/ui/Modal';
 import PageHeader from '../../../components/ui/PageHeader';
 import toast from 'react-hot-toast';
 import { AGE_GROUPS, formatAgeFromBirthDate, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
-import { fetchUsersWithPagination } from './familyHouseLookup.shared';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Helpers
@@ -80,8 +79,13 @@ export default function UsersListPage() {
   const { data: totalUsersCount = 0, refetch: refetchTotalUsers } = useQuery({
     queryKey: ['users', 'totalCount', visibleAccountStatus],
     queryFn: async () => {
-      const allUsers = await fetchUsersWithPagination({ accountStatus: visibleAccountStatus });
-      return allUsers.length;
+      const { data } = await usersApi.list({
+        limit: 1,
+        sort: 'createdAt',
+        order: 'desc',
+        accountStatus: visibleAccountStatus,
+      });
+      return Number(data?.meta?.totalCount || 0);
     },
     staleTime: 120000,
   });

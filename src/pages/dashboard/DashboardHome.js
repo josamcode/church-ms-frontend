@@ -293,32 +293,33 @@ export default function DashboardHome() {
     enabled: systemMode && canUsers,
     staleTime: 60000,
     queryFn: async () => {
-      const limit = 100;
-      let cursor = null;
-      let total = 0;
-      let locked = 0;
-      let hasMore = true;
-      const familyNames = new Set();
-
-      while (hasMore) {
-        const { data } = await usersApi.list({
-          limit,
+      const [totalUsersResponse, lockedUsersResponse, familyNamesResponse] = await Promise.all([
+        usersApi.list({
+          limit: 1,
           sort: 'createdAt',
           order: 'desc',
-          ...(cursor ? { cursor } : {}),
-        });
-        const rows = Array.isArray(data?.data) ? data.data : [];
-        total += rows.length;
-        locked += rows.filter((row) => row.isLocked).length;
-        rows.forEach((row) => {
-          const familyName = typeof row?.familyName === 'string' ? row.familyName.trim() : '';
-          if (familyName) familyNames.add(familyName);
-        });
-        hasMore = Boolean(data?.meta?.hasMore && data?.meta?.nextCursor);
-        cursor = data?.meta?.nextCursor || null;
-      }
+        }),
+        usersApi.list({
+          limit: 1,
+          sort: 'createdAt',
+          order: 'desc',
+          isLocked: true,
+        }),
+        usersApi.getFamilyNames(),
+      ]);
 
-      return { total, active: total - locked, locked, families: familyNames.size };
+      const total = Number(totalUsersResponse?.data?.meta?.totalCount || 0);
+      const locked = Number(lockedUsersResponse?.data?.meta?.totalCount || 0);
+      const familyNames = Array.isArray(familyNamesResponse?.data?.data)
+        ? familyNamesResponse.data.data
+        : [];
+
+      return {
+        total,
+        active: Math.max(0, total - locked),
+        locked,
+        families: familyNames.length,
+      };
     },
   });
 
