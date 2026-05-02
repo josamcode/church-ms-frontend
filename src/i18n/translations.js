@@ -63,8 +63,9 @@
     auth: {
       title: 'Sign In',
       subtitle: 'Enter your credentials to access the dashboard.',
-      identifierLabel: 'Phone or Email',
-      identifierRequired: 'Phone number or email is required.',
+      identifierLabel: 'Phone, Email, or National ID',
+      identifierPlaceholder: 'Phone, email, or national ID',
+      identifierRequired: 'Phone number, email, or national ID is required.',
       passwordLabel: 'Password',
       passwordRequired: 'Password is required.',
       submit: 'Sign In',
@@ -2942,8 +2943,9 @@
     auth: {
       title: 'تسجيل الدخول',
       subtitle: 'أدخل بياناتك للوصول إلى لوحة التحكم.',
-      identifierLabel: 'رقم الهاتف أو البريد الإلكتروني',
-      identifierRequired: 'رقم الهاتف أو البريد الإلكتروني مطلوب.',
+      identifierLabel: 'رقم الهاتف أو البريد الإلكتروني أو الرقم القومي',
+      identifierPlaceholder: 'رقم الهاتف أو البريد الإلكتروني أو الرقم القومي',
+      identifierRequired: 'رقم الهاتف أو البريد الإلكتروني أو الرقم القومي مطلوب.',
       passwordLabel: 'كلمة المرور',
       passwordRequired: 'كلمة المرور مطلوبة.',
       submit: 'تسجيل الدخول',

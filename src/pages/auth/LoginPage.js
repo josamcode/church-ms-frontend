@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Phone, Lock } from 'lucide-react';
+import { Lock, User } from 'lucide-react';
 import { useAuth } from '../../auth/auth.hooks';
 import { normalizeApiError, mapFieldErrors } from '../../api/errors';
 import Input from '../../components/ui/Input';
@@ -98,8 +98,8 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} noValidate>
         <Input
           label={t('auth.identifierLabel')}
-          placeholder="01xxxxxxxxx"
-          icon={Phone}
+          placeholder={t('auth.identifierPlaceholder')}
+          icon={User}
           value={identifier}
           onChange={(e) => setIdentifier(e.target.value)}
           error={errors.identifier}

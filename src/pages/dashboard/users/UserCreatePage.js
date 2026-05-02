@@ -298,7 +298,7 @@ export default function UserCreatePage() {
     if (!form.birthDate) e.birthDate = 'تاريخ الميلاد مطلوب';
     delete e.phonePrimary;
     delete e.birthDate;
-    if (form.password && !form.email.trim() && !form.phonePrimary.trim()) {
+    if (form.password && !form.email.trim() && !form.phonePrimary.trim() && !form.nationalId.trim()) {
       e.password = 'يجب توفير بريد إلكتروني أو رقم هاتف لإنشاء حساب دخول';
     }
     return e;

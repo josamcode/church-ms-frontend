@@ -859,7 +859,7 @@ export default function UserEditPage() {
       return;
     }
 
-    if (form.hasLogin && !String(form.email || '').trim() && !String(form.phonePrimary || '').trim()) {
+    if (form.hasLogin && !String(form.email || '').trim() && !String(form.phonePrimary || '').trim() && !String(form.nationalId || '').trim()) {
       setErrors({
         password: 'يجب توفير بريد إلكتروني أو رقم هاتف لتفعيل تسجيل الدخول',
       });

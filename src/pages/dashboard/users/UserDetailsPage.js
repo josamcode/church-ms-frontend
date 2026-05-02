@@ -793,7 +793,7 @@ function ProfileTab({ user }) {
         </div>
       </div>
 
-      {customDetails.length > 0 && (
+      {/* {customDetails.length > 0 && (
         <div className="space-y-4">
           <SectionLabel count={customDetails.length}>
             {t('userDetails.profile.customDetailsTitle')}
@@ -806,7 +806,7 @@ function ProfileTab({ user }) {
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 }
