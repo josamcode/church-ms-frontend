@@ -1,5 +1,11 @@
 const EDUCATION_STAGE_DEFINITIONS = [
   {
+    value: 'kindergarten_unspecified_year',
+    group: 'kindergarten',
+    context: 'kindergarten',
+    labels: { en: 'Kindergarten - Unspecified Year', ar: 'رياض الاطفال - سنة غير محددة' },
+  },
+  {
     value: 'kindergarten_kg1',
     group: 'kindergarten',
     context: 'kindergarten',
@@ -10,6 +16,12 @@ const EDUCATION_STAGE_DEFINITIONS = [
     group: 'kindergarten',
     context: 'kindergarten',
     labels: { en: 'KG2', ar: 'KG2' },
+  },
+  {
+    value: 'primary_unspecified_year',
+    group: 'primary',
+    context: 'school',
+    labels: { en: 'Primary Stage - Unspecified Year', ar: 'المرحلة الابتدائية - سنة غير محددة' },
   },
   {
     value: 'primary_grade_1',
@@ -48,6 +60,12 @@ const EDUCATION_STAGE_DEFINITIONS = [
     labels: { en: 'Grade 6 Primary', ar: 'الصف السادس الابتدائي' },
   },
   {
+    value: 'preparatory_unspecified_year',
+    group: 'preparatory',
+    context: 'school',
+    labels: { en: 'Preparatory Stage - Unspecified Year', ar: 'المرحلة الاعدادية - سنة غير محددة' },
+  },
+  {
     value: 'preparatory_grade_1',
     group: 'preparatory',
     context: 'school',
@@ -64,6 +82,12 @@ const EDUCATION_STAGE_DEFINITIONS = [
     group: 'preparatory',
     context: 'school',
     labels: { en: 'Grade 3 Preparatory', ar: 'الصف الثالث الإعدادي' },
+  },
+  {
+    value: 'secondary_unspecified_year',
+    group: 'secondary_general',
+    context: 'school',
+    labels: { en: 'Secondary Stage - Unspecified Year', ar: 'المرحلة الثانوية - سنة غير محددة' },
   },
   {
     value: 'secondary_general_year_1',
@@ -162,6 +186,12 @@ const EDUCATION_STAGE_DEFINITIONS = [
     labels: { en: 'Finished Education', ar: 'منتهي التعليم' },
   },
   {
+    value: 'university_unspecified_year',
+    group: 'university',
+    context: 'university',
+    labels: { en: 'University Stage - Unspecified Year', ar: 'المرحلة الجامعية - سنة غير محددة' },
+  },
+  {
     value: 'university_year_1',
     group: 'university',
     context: 'university',
@@ -197,6 +227,24 @@ const EDUCATION_STAGE_DEFINITIONS = [
     context: 'university',
     labels: { en: 'Graduate', ar: 'خريج' },
   },
+  {
+    value: 'uneducated',
+    group: 'other',
+    context: 'other',
+    labels: { en: 'Uneducated', ar: 'غير متعلم' },
+  },
+  {
+    value: 'literacy',
+    group: 'other',
+    context: 'other',
+    labels: { en: 'Literacy', ar: 'محو امية' },
+  },
+  {
+    value: 'student',
+    group: 'other',
+    context: 'other',
+    labels: { en: 'Student', ar: 'طالب' },
+  },
 ];
 
 const GROUP_ORDER = [
@@ -207,6 +255,7 @@ const GROUP_ORDER = [
   'secondary_technical',
   'finished',
   'university',
+  'other',
 ];
 
 const GROUP_LABELS = {
@@ -218,6 +267,7 @@ const GROUP_LABELS = {
     secondary_technical: 'Technical Secondary',
     finished: 'Finished Education',
     university: 'University Stage',
+    other: 'Other',
   },
   ar: {
     kindergarten: 'رياض الأطفال',
@@ -227,6 +277,7 @@ const GROUP_LABELS = {
     secondary_technical: 'الثانوي الفني',
     finished: 'منتهي التعليم',
     university: 'المرحلة الجامعية',
+    other: 'أخرى',
   },
 };
 
@@ -291,13 +342,13 @@ export function getEducationStageOptions(language = 'en') {
 
     return options.length > 0
       ? [
-          {
-            value: `__group_${group}`,
-            label: GROUP_LABELS[locale][group],
-            disabled: true,
-          },
-          ...options,
-        ]
+        {
+          value: `__group_${group}`,
+          label: GROUP_LABELS[locale][group],
+          disabled: true,
+        },
+        ...options,
+      ]
       : [];
   });
 }
