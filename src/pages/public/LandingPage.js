@@ -6,9 +6,9 @@ import {
   Mail, MapPin, Phone, Quote, ShieldCheck, Sparkles, Users, UserCircle2,
   Cross, Star, Globe, Navigation, ExternalLink, ChevronRight, ChevronLeft,
   Home, Share2, X, LogIn, Languages, Facebook, Instagram, Youtube, Twitter,
-  MoreHorizontal,
+  MoreHorizontal, CalendarDays, Sun, Sunrise, CalendarClock, Info,
 } from 'lucide-react';
-import { settingsApi } from '../../api/endpoints';
+import { settingsApi, divineLiturgiesApi } from '../../api/endpoints';
 import { useAuth } from '../../auth/auth.hooks';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
@@ -470,6 +470,197 @@ function DesktopVerseCard({ verse, isRTL, index }) {
 }
 
 /* ══════════════════════════════════════════════════════
+   DESKTOP SERVICES SECTION
+   ══════════════════════════════════════════════════════ */
+function DesktopServiceCard({ entry, language, t, isRTL, accent, accentText, index }) {
+  const start = formatServiceTime(entry.startTime, language);
+  const end = formatServiceTime(entry.endTime, language);
+  const sep = t('landing.services.timeSeparator');
+  return (
+    <Reveal delay={index * 0.06}>
+      <div className={`group relative h-full overflow-hidden rounded-[1.5rem] border border-border bg-surface p-6 transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-0.5 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className={`absolute inset-y-0 ${isRTL ? 'right-0' : 'left-0'} w-1.5 bg-gradient-to-b ${accent}`} />
+        <div className={`flex items-start gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${accent} shadow-lg`}>
+            <Clock3 className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-base font-extrabold text-heading leading-tight">
+              {entry.dayOfWeek ? translateDayLabel(entry.dayOfWeek, t) : entry.displayName}
+            </p>
+            {entry.dayOfWeek && entry.name ? (
+              <p className="mt-0.5 text-xs text-muted">{entry.name}</p>
+            ) : null}
+            <p className={`mt-2 text-sm font-bold tracking-wide ${accentText}`} dir="ltr">
+              {start}
+              {end ? ` ${sep} ${end}` : ''}
+            </p>
+            <ServicePriestList priests={entry.priests} isRTL={isRTL} t={t} />
+          </div>
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
+function DesktopUpcomingExceptionCard({ entry, language, t, isRTL, index }) {
+  const start = formatServiceTime(entry.startTime, language);
+  const end = formatServiceTime(entry.endTime, language);
+  const sep = t('landing.services.timeSeparator');
+  return (
+    <Reveal delay={index * 0.06}>
+      <div className={`group relative h-full overflow-hidden rounded-[1.5rem] border border-amber-500/20 bg-gradient-to-br from-amber-500/8 via-amber-500/3 to-transparent p-6 hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className={`absolute top-4 ${isRTL ? 'left-4' : 'right-4'} text-amber-500/15`}>
+          <CalendarClock className="h-16 w-16" />
+        </div>
+        <div className={`relative flex items-start gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg">
+            <Star className="h-5 w-5 text-white fill-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-base font-extrabold text-heading leading-tight">{entry.displayName}</p>
+            <p className="mt-1 text-xs text-muted leading-relaxed">{formatExceptionDate(entry.date, language)}</p>
+            <p className="mt-2 text-sm font-bold text-amber-600 tracking-wide" dir="ltr">
+              {start}
+              {end ? ` ${sep} ${end}` : ''}
+            </p>
+            <ServicePriestList priests={entry.priests} isRTL={isRTL} t={t} />
+          </div>
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
+function DesktopServicesSection({ t, isRTL, language, schedule, isLoading }) {
+  const liturgies = schedule?.recurringDivineLiturgies || [];
+  const vespers = schedule?.recurringVespers || [];
+  const upcoming = schedule?.exceptionalDivineLiturgies || [];
+
+  return (
+    <section id="services" className="relative py-20 sm:py-28 lg:py-32">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-surface/40 via-transparent to-surface/40" />
+        <div className="absolute top-1/3 -end-32 h-[400px] w-[400px] rounded-full bg-primary/[0.04] blur-[140px]" />
+        <div className="absolute bottom-1/4 -start-32 h-[360px] w-[360px] rounded-full bg-indigo-500/[0.05] blur-[140px]" />
+      </div>
+      <div className="page-container relative">
+        <SectionHeader
+          label={t('landing.services.label')}
+          title={t('landing.services.title')}
+          subtitle={t('landing.services.subtitle')}
+          centered
+        />
+
+        {/* Divine Liturgies */}
+        <div className="mt-12 sm:mt-16">
+          <Reveal>
+            <div className={`flex items-center gap-3 mb-5 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-dark shadow-md">
+                <Sun className="h-4 w-4 text-white" />
+              </div>
+              <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider text-heading">
+                {t('landing.services.liturgies')}
+              </h3>
+            </div>
+          </Reveal>
+          {isLoading ? (
+            <div className="rounded-[1.5rem] border border-border bg-surface p-8 text-center">
+              <p className="text-sm text-muted">{t('landing.services.loading')}</p>
+            </div>
+          ) : liturgies.length === 0 ? (
+            <div className="rounded-[1.5rem] border border-dashed border-border bg-surface p-8 text-center">
+              <p className="text-sm text-muted">{t('landing.services.empty')}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {liturgies.map((entry, i) => (
+                <DesktopServiceCard
+                  key={entry.id}
+                  entry={entry}
+                  language={language}
+                  t={t}
+                  isRTL={isRTL}
+                  accent="from-primary to-primary-dark"
+                  accentText="text-primary"
+                  index={i}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Vespers */}
+        <div className="mt-10 sm:mt-12">
+          <Reveal>
+            <div className={`flex items-center gap-3 mb-5 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl shadow-md">
+                <Sunrise className="h-4 w-4 text-primary" />
+              </div>
+              <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider text-heading">
+                {t('landing.services.vespers')}
+              </h3>
+            </div>
+          </Reveal>
+          {isLoading ? (
+            <div className="rounded-[1.5rem] border border-border bg-surface p-8 text-center">
+              <p className="text-sm text-muted">{t('landing.services.loading')}</p>
+            </div>
+          ) : vespers.length === 0 ? (
+            <div className="rounded-[1.5rem] border border-dashed border-border bg-surface p-8 text-center">
+              <p className="text-sm text-muted">{t('landing.services.emptyVespers')}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {vespers.map((entry, i) => (
+                <DesktopServiceCard
+                  key={entry.id}
+                  entry={entry}
+                  language={language}
+                  t={t}
+                  isRTL={isRTL}
+                  accent="from-indigo-500 to-purple-600"
+                  accentText="text-indigo-600"
+                  index={i}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Upcoming exceptional services */}
+        {upcoming.length > 0 ? (
+          <div className="mt-10 sm:mt-12">
+            <Reveal>
+              <div className={`flex items-center gap-3 mb-5 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-md">
+                  <CalendarClock className="h-4 w-4 text-white" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider text-heading">
+                  {t('landing.services.upcoming')}
+                </h3>
+              </div>
+            </Reveal>
+            <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {upcoming.map((entry, i) => (
+                <DesktopUpcomingExceptionCard
+                  key={entry.id}
+                  entry={entry}
+                  language={language}
+                  t={t}
+                  isRTL={isRTL}
+                  index={i}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
    MOBILE PRIEST CAROUSEL — stacked 3D, auto 3s
    ══════════════════════════════════════════════════════ */
 function MobilePriestCarousel({ priests, isRTL }) {
@@ -559,8 +750,15 @@ function PriestMiniCard({ priest, isRTL, isCenter }) {
 /* ══════════════════════════════════════════════════════
    MOBILE MORE MENU (sheet from bottom, triggered by tab)
    ══════════════════════════════════════════════════════ */
-function MobileMoreSheet({ open, onClose, isRTL, toggleLanguage, t }) {
+function MobileMoreSheet({ open, onClose, isRTL, toggleLanguage, t, onAbout }) {
   const items = [
+    {
+      icon: Info,
+      label: isRTL ? 'عن الكنيسة' : 'About the Church',
+      desc: isRTL ? 'قصتنا ورسالتنا ورؤيتنا' : 'Our story, mission, and vision',
+      action: () => onAbout?.(),
+      accent: 'bg-amber-500/10 text-amber-600',
+    },
     {
       icon: LogIn,
       label: isRTL ? 'تسجيل الدخول' : 'Login',
@@ -579,11 +777,16 @@ function MobileMoreSheet({ open, onClose, isRTL, toggleLanguage, t }) {
   const translatedItems = [
     {
       ...items[0],
+      label: t('landing.mobile.moreSheet.aboutLabel'),
+      desc: t('landing.mobile.moreSheet.aboutDescription'),
+    },
+    {
+      ...items[1],
       label: t('landing.mobile.moreSheet.loginLabel'),
       desc: t('landing.mobile.moreSheet.loginDescription'),
     },
     {
-      ...items[1],
+      ...items[2],
       label: t('landing.mobile.moreSheet.languageLabel'),
       desc: t('landing.mobile.moreSheet.languageDescription'),
     },
@@ -883,6 +1086,242 @@ function MobileAboutScreen({ t, isRTL }) {
 }
 
 /* ══════════════════════════════════════════════════════
+   SERVICES UTILITIES
+   ══════════════════════════════════════════════════════ */
+const SERVICE_DAY_KEYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function translateDayLabel(day, t) {
+  if (!day) return '';
+  const key = `meetings.days.${day}`;
+  const value = t(key);
+  return value && value !== key ? value : day;
+}
+
+function formatServiceTime(value, language) {
+  if (!value || typeof value !== 'string') return '';
+  const match = value.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return value;
+  const hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  try {
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    const locale = language === 'ar' ? 'ar-EG' : 'en-US';
+    return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit', hour12: true }).format(date);
+  } catch (_e) {
+    return value;
+  }
+}
+
+function formatExceptionDate(dateStr, language) {
+  if (!dateStr) return '';
+  try {
+    const [year, month, day] = dateStr.split('-').map((part) => parseInt(part, 10));
+    const date = new Date(year, month - 1, day);
+    const locale = language === 'ar' ? 'ar-EG' : 'en-US';
+    return new Intl.DateTimeFormat(locale, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
+  } catch (_e) {
+    return dateStr;
+  }
+}
+
+function ServicePriestList({ priests, isRTL, t }) {
+  if (!Array.isArray(priests) || priests.length === 0) return null;
+  const label = priests.length > 1 ? t('landing.services.priestsLabelMany') : t('landing.services.priestsLabel');
+  return (
+    <div className={`mt-3 flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className={`flex flex-wrap items-center gap-1.5`}>
+        {priests.map((priest, i) => (
+          <span
+            key={priest.id || `${priest.fullName}-${i}`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary/8 border border-primary/15 px-2.5 py-1 text-[11px] font-bold text-primary"
+          >
+            {priest.avatar?.url ? (
+              <img src={priest.avatar.url} alt="" className="h-4 w-4 rounded-full object-cover" />
+            ) : (
+              <UserCircle2 className="h-3.5 w-3.5" />
+            )}
+            <span className="text-heading/85">{priest.fullName}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ServiceTimeRow({ entry, language, t, isRTL, accent }) {
+  const start = formatServiceTime(entry.startTime, language);
+  const end = formatServiceTime(entry.endTime, language);
+  const sep = t('landing.services.timeSeparator');
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border border-border bg-surface px-4 py-3.5 ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className={`absolute top-0 ${isRTL ? 'right-0' : 'left-0'} h-full w-1 bg-gradient-to-b ${accent}`} />
+      <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${accent} shadow-sm`}>
+          <Clock3 className="h-4 w-4 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className={`flex flex-wrap items-baseline gap-x-2 gap-y-0.5`}>
+            <p className="text-sm font-extrabold text-heading leading-tight">
+              {entry.dayOfWeek ? translateDayLabel(entry.dayOfWeek, t) : entry.displayName}
+            </p>
+            {entry.dayOfWeek && entry.displayName && entry.displayName !== entry.name ? (
+              <span className="text-[11px] text-muted">· {entry.name || entry.displayName}</span>
+            ) : null}
+          </div>
+          <p className="mt-1 text-[12px] font-bold text-primary tracking-wide" dir="ltr">
+            {start}
+            {end ? ` ${sep} ${end}` : ''}
+          </p>
+          <ServicePriestList priests={entry.priests} isRTL={isRTL} t={t} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UpcomingExceptionCard({ entry, language, t, isRTL }) {
+  const start = formatServiceTime(entry.startTime, language);
+  const end = formatServiceTime(entry.endTime, language);
+  const sep = t('landing.services.timeSeparator');
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/8 via-amber-500/3 to-transparent p-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} text-amber-500/15`}>
+        <CalendarClock className="h-12 w-12" />
+      </div>
+      <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-sm">
+          <Star className="h-4 w-4 text-white fill-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-extrabold text-heading leading-tight">{entry.displayName}</p>
+          <p className="mt-0.5 text-[11px] text-muted leading-relaxed">{formatExceptionDate(entry.date, language)}</p>
+          <p className="mt-1 text-[12px] font-bold text-amber-600 tracking-wide" dir="ltr">
+            {start}
+            {end ? ` ${sep} ${end}` : ''}
+          </p>
+          <ServicePriestList priests={entry.priests} isRTL={isRTL} t={t} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   MOBILE SERVICES SCREEN
+   ══════════════════════════════════════════════════════ */
+function MobileServicesScreen({ t, isRTL, language, schedule, isLoading }) {
+  const ta = isRTL ? 'text-right' : 'text-left';
+  const liturgies = schedule?.recurringDivineLiturgies || [];
+  const vespers = schedule?.recurringVespers || [];
+  const upcoming = schedule?.exceptionalDivineLiturgies || [];
+
+  return (
+    <div className="pb-28">
+      <div className={`px-5 pt-0 pb-3 ${ta}`}>
+        <p className="text-[10px] font-black uppercase tracking-widest text-primary">{t('landing.services.label')}</p>
+        <h1 className="text-2xl font-black text-heading tracking-tight mt-0.5">{t('landing.services.title')}</h1>
+        <p className="mt-1.5 text-[11px] text-muted leading-relaxed">{t('landing.services.subtitle')}</p>
+      </div>
+
+      <div className="px-3 space-y-6 mt-2">
+        {/* Divine Liturgies */}
+        <div>
+          <div className={`flex items-center gap-2 px-2 mb-2 `}>
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg shadow-sm">
+              <Sun className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <h2 className="text-[13px] font-black text-heading uppercase tracking-wider">{t('landing.services.liturgies')}</h2>
+          </div>
+          {isLoading ? (
+            <div className={`bg-surface border border-border rounded-2xl p-5 ${ta}`}>
+              <p className="text-sm text-muted">{t('landing.services.loading')}</p>
+            </div>
+          ) : liturgies.length === 0 ? (
+            <div className={`bg-surface border border-dashed border-border rounded-2xl p-5 ${ta}`}>
+              <p className="text-sm text-muted">{t('landing.services.empty')}</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {liturgies.map((entry) => (
+                <ServiceTimeRow
+                  key={entry.id}
+                  entry={entry}
+                  language={language}
+                  t={t}
+                  isRTL={isRTL}
+                  accent="from-primary to-primary-dark"
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Vespers */}
+        <div>
+          <div className={`flex items-center gap-2 px-2 mb-2`}>
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg  shadow-sm">
+              <Sunrise className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <h2 className="text-[13px] font-black text-heading uppercase tracking-wider">{t('landing.services.vespers')}</h2>
+          </div>
+          {isLoading ? (
+            <div className={`bg-surface border border-border rounded-2xl p-5 ${ta}`}>
+              <p className="text-sm text-muted">{t('landing.services.loading')}</p>
+            </div>
+          ) : vespers.length === 0 ? (
+            <div className={`bg-surface border border-dashed border-border rounded-2xl p-5 ${ta}`}>
+              <p className="text-sm text-muted">{t('landing.services.emptyVespers')}</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {vespers.map((entry) => (
+                <ServiceTimeRow
+                  key={entry.id}
+                  entry={entry}
+                  language={language}
+                  t={t}
+                  isRTL={isRTL}
+                  accent="from-indigo-500 to-purple-600"
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Upcoming exceptional services */}
+        {upcoming.length > 0 ? (
+          <div>
+            <div className={`flex items-center gap-2 px-2 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 shadow-sm">
+                <CalendarClock className="h-3.5 w-3.5 text-white" />
+              </div>
+              <h2 className="text-[13px] font-black text-heading uppercase tracking-wider">{t('landing.services.upcoming')}</h2>
+            </div>
+            <div className="space-y-2">
+              {upcoming.map((entry) => (
+                <UpcomingExceptionCard
+                  key={entry.id}
+                  entry={entry}
+                  language={language}
+                  t={t}
+                  isRTL={isRTL}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
    MOBILE VISIT SCREEN
    ══════════════════════════════════════════════════════ */
 function MobileVisitScreen({ t, isRTL, contacts, churchPlaceName, churchPlusCode, churchAddressLine, locationMapEmbedUrl, directionsUrl, verses, locationDirectionsLabel }) {
@@ -1121,6 +1560,13 @@ export default function LandingPage() {
   });
   const registrationEnabled = publicSiteQuery.data?.registrationEnabled !== false;
 
+  const divineLiturgiesQuery = useQuery({
+    queryKey: ['public', 'divine-liturgies'],
+    queryFn: async () => (await divineLiturgiesApi.getPublicOverview()).data?.data || null,
+    staleTime: 60000,
+  });
+  const divineLiturgiesSchedule = divineLiturgiesQuery.data || null;
+
   useEffect(() => {
     setGuestEntryOpen(!isAuthenticated);
   }, [isAuthenticated]);
@@ -1208,7 +1654,7 @@ export default function LandingPage() {
   ];
   const managedMobileTabs = [
     { id: 'home', label: t('landing.mobile.tabs.home'), icon: Home },
-    { id: 'about', label: t('landing.mobile.tabs.about'), icon: Church },
+    { id: 'services', label: t('landing.mobile.tabs.services'), icon: CalendarDays },
     { id: 'visit', label: t('landing.mobile.tabs.visit'), icon: MapPin },
     { id: 'social', label: t('landing.mobile.tabs.social'), icon: Share2 },
     { id: 'more', label: t('landing.mobile.tabs.more'), icon: MoreHorizontal },
@@ -1222,7 +1668,7 @@ export default function LandingPage() {
   /* 5-tab bar (4 screens + More) */
   const mobileTabs = [
     { id: 'home', label: isRTL ? 'الرئيسية' : 'Home', icon: Home },
-    { id: 'about', label: isRTL ? 'عن الكنيسة' : 'About', icon: Church },
+    { id: 'services', label: isRTL ? 'القداسات' : 'Services', icon: CalendarDays },
     { id: 'visit', label: isRTL ? 'زيارة' : 'Visit', icon: MapPin },
     { id: 'social', label: isRTL ? 'تواصل' : 'Social', icon: Share2 },
     { id: 'more', label: isRTL ? 'المزيد' : 'More', icon: MoreHorizontal },
@@ -1247,11 +1693,27 @@ export default function LandingPage() {
             />
           )}
           {activeTab === 'about' && <MobileAboutScreen t={t} isRTL={isRTL} />}
+          {activeTab === 'services' && (
+            <MobileServicesScreen
+              t={t}
+              isRTL={isRTL}
+              language={language}
+              schedule={divineLiturgiesSchedule}
+              isLoading={divineLiturgiesQuery.isLoading}
+            />
+          )}
           {activeTab === 'visit' && <MobileVisitScreen t={t} isRTL={isRTL} contacts={managedContacts} churchPlaceName={managedChurchPlaceName} churchPlusCode={managedChurchPlusCode} churchAddressLine={managedChurchAddressLine} locationMapEmbedUrl={managedLocationMapEmbedUrl} directionsUrl={managedDirectionsUrl} verses={verses} locationDirectionsLabel={managedLocationDirections} />}
           {activeTab === 'social' && <MobileSocialScreen t={t} isRTL={isRTL} socialLinks={socialLinks} />}
         </div>
         {/* More bottom sheet */}
-        <MobileMoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} isRTL={isRTL} toggleLanguage={toggleLanguage} t={t} />
+        <MobileMoreSheet
+          open={moreOpen}
+          onClose={() => setMoreOpen(false)}
+          isRTL={isRTL}
+          toggleLanguage={toggleLanguage}
+          t={t}
+          onAbout={() => setActiveTab('about')}
+        />
         {/* Tab bar */}
         <MobileTabBar active={activeTab} onTab={setActiveTab} tabs={managedMobileTabs} onMore={() => setMoreOpen(true)} />
         <GuestEntryOverlay
@@ -1375,6 +1837,15 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* SERVICES (Divine Liturgies & Vespers) */}
+      <DesktopServicesSection
+        t={t}
+        isRTL={isRTL}
+        language={language}
+        schedule={divineLiturgiesSchedule}
+        isLoading={divineLiturgiesQuery.isLoading}
+      />
 
       {/* STATS */}
       <section id="stats" className="py-20 sm:py-28 lg:py-32">
