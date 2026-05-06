@@ -52,7 +52,7 @@ export default function UsersListPage() {
   const [filters, setFilters] = useState({ fullName: '', ageGroup: '', gender: '', role: '' });
   const [cursor, setCursor] = useState(null);
   const [cursorStack, setCursorStack] = useState([null]);
-  const [limit] = useState(10);
+  const [limit] = useState(100);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 

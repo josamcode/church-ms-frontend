@@ -996,12 +996,51 @@ function MobileSocialScreen({ t, isRTL, socialLinks = [] }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-extrabold text-heading">{s.name}</p>
-              <p className="text-[11px] text-muted mt-0.5">{s.handle}</p>
+              {/* <p className="text-[11px] text-muted mt-0.5">{s.handle}</p> */}
               <p className="text-[10px] text-muted/70 mt-0.5">{s.desc}</p>
             </div>
             <ExternalLink className="h-4 w-4 text-muted flex-shrink-0" />
           </a>
         ))}
+        <a
+          href="https://josam-portfolio.vercel.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`flex items-center gap-4 p-4 rounded-2xl border active:scale-[0.98] transition-transform duration-150 ${isRTL ? "flex-row-reverse text-right" : ""
+            }`}
+          style={{
+            background: "linear-gradient(135deg, #ecfdf5, #f0fdf4)",
+            borderColor: "#bbf7d0",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          <div
+            className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg overflow-hidden"
+            style={{ backgroundColor: "#15803d" }}
+          >
+            <img
+              src="/images/me.jpg"
+              alt={t('landing.social.items.portfolio.alt')}
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-extrabold text-heading">
+              {t('landing.social.items.portfolio.name')}
+            </p>
+
+            {/* <p className="text-[11px] text-muted mt-0.5">
+              {t('landing.social.items.portfolio.handle')}
+            </p> */}
+
+            <p className="text-[10px] text-muted/70 mt-0.5">
+              {t('landing.social.items.portfolio.description')}
+            </p>
+          </div>
+
+          <ExternalLink className="h-4 w-4 text-muted flex-shrink-0" />
+        </a>
         {/* Share card */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary-dark to-primary p-5">
           <div className="absolute top-0 right-0 w-20 h-20 rounded-bl-full bg-white/5 pointer-events-none" />

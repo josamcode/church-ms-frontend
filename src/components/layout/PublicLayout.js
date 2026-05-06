@@ -141,14 +141,14 @@ export default function PublicLayout() {
                 </Button>
               </Link>
             )}
-            <button
+            {/* <button
               onClick={() => setMobileOpen(true)}
               className={`lg:hidden p-2.5 rounded-xl transition-colors ${scrolled ? 'text-muted hover:bg-primary/5 hover:text-primary' : 'text-muted/80 hover:text-primary'
                 }`}
               aria-label={text('publicLayout.menu')}
             >
               <Menu className="w-5 h-5" />
-            </button>
+            </button> */}
           </div>
         </div>
       </header>

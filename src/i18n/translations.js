@@ -249,6 +249,13 @@
             name: 'X / Twitter',
             description: 'Latest news & updates',
           },
+          portfolio: {
+            name: 'Gerges Samuel Gabra',
+            handle: 'josam-portfolio.vercel.app',
+            description: 'Full Stack Web Developer',
+            alt: 'Gerges Samuel Gabra',
+            description: 'Software Engineer | Built this system',
+          },
         },
       },
       mobile: {
@@ -3127,6 +3134,12 @@
           twitter: {
             name: 'إكس / تويتر',
             description: 'آخر الأخبار والتحديثات',
+          },
+          portfolio: {
+            name: 'جرجس صموئيل جبرة',
+            handle: 'josam-portfolio.vercel.app',
+            description: 'مهندس برمجيات | مطور النظام',
+            alt: 'جرجس صموئيل جبرة',
           },
         },
       },
