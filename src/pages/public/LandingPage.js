@@ -476,29 +476,71 @@ function DesktopServiceCard({ entry, language, t, isRTL, accent, accentText, ind
   const start = formatServiceTime(entry.startTime, language);
   const end = formatServiceTime(entry.endTime, language);
   const sep = t('landing.services.timeSeparator');
+
+  const title = entry.dayOfWeek
+    ? translateDayLabel(entry.dayOfWeek, t)
+    : entry.displayName;
+
   return (
     <Reveal delay={index * 0.06}>
-      <div className={`group relative h-full overflow-hidden rounded-[1.5rem] border border-border bg-surface p-6 transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-0.5 ${isRTL ? 'text-right' : 'text-left'}`}>
-        <div className={`absolute inset-y-0 ${isRTL ? 'right-0' : 'left-0'} w-1.5 bg-gradient-to-b ${accent}`} />
-        <div className={`flex items-start gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${accent} shadow-lg`}>
-            <Clock3 className="h-5 w-5 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-base font-extrabold text-heading leading-tight">
-              {entry.dayOfWeek ? translateDayLabel(entry.dayOfWeek, t) : entry.displayName}
-            </p>
-            {entry.dayOfWeek && entry.name ? (
-              <p className="mt-0.5 text-xs text-muted">{entry.name}</p>
-            ) : null}
-            <p className={`mt-2 text-sm font-bold tracking-wide ${accentText}`} dir="ltr">
-              {start}
-              {end ? ` ${sep} ${end}` : ''}
-            </p>
-            <ServicePriestList priests={entry.priests} isRTL={isRTL} t={t} />
+      <article
+        className={`
+          group relative h-full rounded-2xl border border-border bg-surface p-5
+          transition-all duration-300
+          hover:border-primary/25 hover:shadow-md
+          ${isRTL ? 'text-right' : 'text-left'}
+        `}
+      >
+        <div className={`flex h-full gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          {/* Accent marker */}
+          <div
+            className={`
+              mt-1 h-10 w-1 flex-shrink-0 rounded-full bg-gradient-to-b ${accent}
+            `}
+          />
+
+          <div className="min-w-0 flex-1">
+            {/* Header */}
+            <div
+              className={`
+                flex items-start justify-between gap-4
+                ${isRTL ? 'flex-row-reverse' : ''}
+              `}
+            >
+              <div className="min-w-0">
+                <h3 className="text-base font-bold leading-tight text-heading">
+                  {title}
+                </h3>
+
+                {entry.dayOfWeek && entry.name ? (
+                  <p className="mt-1 text-sm leading-5 text-muted">
+                    {entry.name}
+                  </p>
+                ) : null}
+              </div>
+
+              <div
+                className={`
+                  flex shrink-0 items-center gap-1.5 rounded-full border border-border
+                  bg-background px-3 py-1 text-xs font-semibold ${accentText}
+                `}
+                dir="ltr"
+              >
+                <Clock3 className="h-3.5 w-3.5" />
+                <span>
+                  {start}
+                  {end ? ` ${sep} ${end}` : ''}
+                </span>
+              </div>
+            </div>
+
+            {/* Priests */}
+            <div className="mt-4 border-t border-border/70 pt-4">
+              <ServicePriestList priests={entry.priests} isRTL={isRTL} t={t} />
+            </div>
           </div>
         </div>
-      </div>
+      </article>
     </Reveal>
   );
 }
@@ -556,9 +598,6 @@ function DesktopServicesSection({ t, isRTL, language, schedule, isLoading }) {
         <div className="mt-12 sm:mt-16">
           <Reveal>
             <div className={`flex items-center gap-3 mb-5 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-dark shadow-md">
-                <Sun className="h-4 w-4 text-white" />
-              </div>
               <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider text-heading">
                 {t('landing.services.liturgies')}
               </h3>
@@ -594,9 +633,6 @@ function DesktopServicesSection({ t, isRTL, language, schedule, isLoading }) {
         <div className="mt-10 sm:mt-12">
           <Reveal>
             <div className={`flex items-center gap-3 mb-5 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl shadow-md">
-                <Sunrise className="h-4 w-4 text-primary" />
-              </div>
               <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider text-heading">
                 {t('landing.services.vespers')}
               </h3>

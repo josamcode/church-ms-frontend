@@ -23,6 +23,7 @@ export const usersApi = {
   getHouseNames: () => apiClient.get('/users/house-names'),
   getProfileOptionValues: () => apiClient.get('/users/profile-option-values'),
   getRelationRoles: () => apiClient.get('/users/relation-roles'),
+  getFamilyHouseAnalytics: () => apiClient.get('/users/family-house-analytics'),
   createRelationRole: (label) => apiClient.post('/users/relation-roles', { label }),
   create: (data) => apiClient.post('/users', data),
   update: (id, data) => apiClient.patch(`/users/${id}`, data),

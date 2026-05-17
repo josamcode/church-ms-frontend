@@ -204,6 +204,11 @@ function toFiniteNumber(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function toCount(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : 0;
+}
+
 function matchesContains(source, query) {
   if (!query) return true;
   return normalizeText(source).includes(query);
@@ -293,9 +298,9 @@ function buildFlags(user, derived) {
   if (derived.customDetailsCount > 0) flags.add('has_custom_details');
   if (user?.familyName) flags.add('has_family_name');
   if (user?.houseName) flags.add('has_house_name');
-  if (user?.father) flags.add('has_father');
-  if (user?.mother) flags.add('has_mother');
-  if (user?.spouse) flags.add('has_spouse');
+  if (user?.father || user?.hasFather) flags.add('has_father');
+  if (user?.mother || user?.hasMother) flags.add('has_mother');
+  if (user?.spouse || user?.hasSpouse) flags.add('has_spouse');
   if (derived.siblingCount > 0) flags.add('has_siblings');
   if (derived.childrenCount > 0) flags.add('has_children');
   if (derived.otherFamilyCount > 0) flags.add('has_other_relatives');
@@ -365,30 +370,41 @@ export function deriveUsersExplorerDataset(users = []) {
     const deniedPermissions = normalizeStringList(
       filterAssignablePermissions(user?.role || 'USER', user?.deniedPermissions)
     );
-    const siblingCount = Array.isArray(user?.siblings) ? user.siblings.length : 0;
-    const childrenCount = Array.isArray(user?.children) ? user.children.length : 0;
-    const otherFamilyCount = Array.isArray(user?.familyMembers) ? user.familyMembers.length : 0;
-    const familyConnectionsCount =
-      (user?.father ? 1 : 0) +
-      (user?.mother ? 1 : 0) +
-      (user?.spouse ? 1 : 0) +
+    const siblingCount = Array.isArray(user?.siblings) ? user.siblings.length : toCount(user?.siblingCount);
+    const childrenCount = Array.isArray(user?.children) ? user.children.length : toCount(user?.childrenCount);
+    const otherFamilyCount = Array.isArray(user?.familyMembers)
+      ? user.familyMembers.length
+      : toCount(user?.otherFamilyCount);
+    const familyConnectionsCount = toCount(user?.familyConnectionsCount) || (
+      (user?.father || user?.hasFather ? 1 : 0) +
+      (user?.mother || user?.hasMother ? 1 : 0) +
+      (user?.spouse || user?.hasSpouse ? 1 : 0) +
       siblingCount +
       childrenCount +
-      otherFamilyCount;
+      otherFamilyCount
+    );
 
-    const meetingIdsCount = Array.isArray(user?.meetingIds) ? user.meetingIds.length : 0;
+    const meetingIdsCount = Array.isArray(user?.meetingIds) ? user.meetingIds.length : toCount(user?.meetingIdsCount);
     const meetingAttendance = Array.isArray(user?.meetingAttendance) ? user.meetingAttendance : [];
     const divineAttendance = Array.isArray(user?.divineLiturgyAttendance) ? user.divineLiturgyAttendance : [];
-    const lastMeetingAttendanceDate = meetingAttendance
-      .map((entry) => entry?.attendanceDate)
-      .filter(Boolean)
-      .sort()
-      .slice(-1)[0] || null;
-    const lastDivineAttendanceDate = divineAttendance
-      .map((entry) => entry?.attendanceDate)
-      .filter(Boolean)
-      .sort()
-      .slice(-1)[0] || null;
+    const meetingAttendanceCount = meetingAttendance.length || toCount(user?.meetingAttendanceCount);
+    const divineAttendanceCount = divineAttendance.length || toCount(user?.divineAttendanceCount);
+    const lastMeetingAttendanceDate =
+      user?.lastMeetingAttendanceDate ||
+      meetingAttendance
+        .map((entry) => entry?.attendanceDate)
+        .filter(Boolean)
+        .sort()
+        .slice(-1)[0] ||
+      null;
+    const lastDivineAttendanceDate =
+      user?.lastDivineAttendanceDate ||
+      divineAttendance
+        .map((entry) => entry?.attendanceDate)
+        .filter(Boolean)
+        .sort()
+        .slice(-1)[0] ||
+      null;
 
     const ageValue = Number(formatAgeFromBirthDate(user?.birthDate));
     const age = Number.isFinite(ageValue) ? ageValue : null;
@@ -466,9 +482,11 @@ export function deriveUsersExplorerDataset(users = []) {
       deniedPermissions,
       effectivePermissions,
       meetingIdsCount,
-      meetingAttendanceCount: meetingAttendance.length,
-      divineAttendanceCount: divineAttendance.length,
-      confessionSessionCount: Array.isArray(user?.confessionSessionIds) ? user.confessionSessionIds.length : 0,
+      meetingAttendanceCount,
+      divineAttendanceCount,
+      confessionSessionCount: Array.isArray(user?.confessionSessionIds)
+        ? user.confessionSessionIds.length
+        : toCount(user?.confessionSessionCount),
       siblingCount,
       childrenCount,
       otherFamilyCount,

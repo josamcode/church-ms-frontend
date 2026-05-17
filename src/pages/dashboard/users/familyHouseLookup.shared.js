@@ -73,6 +73,7 @@ export async function fetchUsersWithPagination(filters = {}) {
       limit: PAGE_LIMIT,
       sort: 'createdAt',
       order: 'asc',
+      fields: 'explorer',
       ...(cursor ? { cursor } : {}),
       ...filters,
     });

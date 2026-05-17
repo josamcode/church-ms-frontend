@@ -239,14 +239,14 @@ export default function DashboardLayout() {
         //   permission: 'USERS_VIEW',
         //   matchChildren: false,
         // },
-        {
-          key: 'users-explorer',
-          label: tf('dashboardLayout.menu.usersExplorer', 'User Explorer'),
-          href: '/dashboard/users/explorer',
-          icon: Sparkles,
-          permission: 'USERS_VIEW',
-          matchChildren: false,
-        },
+        // {
+        //   key: 'users-explorer',
+        //   label: tf('dashboardLayout.menu.usersExplorer', 'User Explorer'),
+        //   href: '/dashboard/users/explorer',
+        //   icon: Sparkles,
+        //   permission: 'USERS_VIEW',
+        //   matchChildren: false,
+        // },
         {
           key: 'family-house-analytics',
           label: tf('dashboardLayout.menu.familyHouseAnalytics', 'Family Analytics'),
