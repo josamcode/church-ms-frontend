@@ -1795,7 +1795,7 @@ export default function LandingPage() {
         <div className="relative flex-1 flex flex-col items-center justify-center page-container w-full pt-28 sm:pt-32 lg:pt-36 pb-52 sm:pb-60 md:pb-64 lg:pb-72">
           <Reveal delay={0.05}>
             <Badge variant="secondary" className="mb-5 sm:mb-6 !rounded-full !px-5 !py-2 !text-[10px] sm:!text-xs !font-bold !border !border-primary/10 !bg-surface/80 !backdrop-blur-sm">
-              <Star className="me-1.5 h-3 w-3 fill-current text-primary" />{t('landing.hero.badge')}
+             {t('landing.hero.badge')}
             </Badge>
           </Reveal>
           <Reveal delay={0.15}>

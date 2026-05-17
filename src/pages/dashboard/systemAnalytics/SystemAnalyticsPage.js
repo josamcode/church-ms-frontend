@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Activity,
   BarChart3,
+  ChevronDown,
   Clock3,
   Globe2,
   Shield,
@@ -81,10 +82,20 @@ function compactPath(path) {
   return value.length > 40 ? `${value.slice(0, 37)}...` : value;
 }
 
+function getSessionDisplayName(session, t) {
+  return (
+    session.user?.fullName ||
+    t('systemAnalyticsPage.table.anonymous', {
+      id: String(session.visitorId || '').slice(-6),
+    })
+  );
+}
+
 export default function SystemAnalyticsPage() {
   const { language, t } = useI18n();
   const [days, setDays] = useState('7');
   const [surface, setSurface] = useState('all');
+  const [selectedSessionId, setSelectedSessionId] = useState('');
 
   const { data: analytics, isLoading } = useQuery({
     queryKey: ['system-analytics', { days, surface }],
@@ -105,6 +116,12 @@ export default function SystemAnalyticsPage() {
   const recentSessions = Array.isArray(analytics?.recentSessions) ? analytics.recentSessions : [];
   const surfaceBreakdown = Array.isArray(analytics?.surfaceBreakdown)
     ? analytics.surfaceBreakdown
+    : [];
+  const selectedSession = recentSessions.find(
+    (session) => session.sessionId === selectedSessionId
+  );
+  const selectedSessionPaths = Array.isArray(selectedSession?.paths)
+    ? selectedSession.paths
     : [];
 
   const maxTrendSessions = Math.max(...dailyTrend.map((entry) => entry.sessions || 0), 1);
@@ -162,18 +179,28 @@ export default function SystemAnalyticsPage() {
         key: 'visitor',
         label: t('systemAnalyticsPage.table.visitorOrUser'),
         render: (row) => (
-          <div className="max-w-[220px]">
-            <p className="truncate font-medium text-heading">
-              {row.user?.fullName ||
-                t('systemAnalyticsPage.table.anonymous', {
-                  id: String(row.visitorId || '').slice(-6),
-                })}
-            </p>
-            <p className="truncate text-xs text-muted">
-              {row.user?.role || row.sessionId}
-            </p>
+          <div
+            className="flex max-w-[240px] items-center gap-2 rounded-lg px-2 py-1 text-left transition-colors hover:bg-surface-alt focus:outline-none focus:ring-2 focus:ring-primary/20"
+            aria-expanded={selectedSessionId === row.sessionId}
+          >
+            <span className="min-w-0">
+              <span className="block truncate font-medium text-heading">
+                {getSessionDisplayName(row, t)}
+              </span>
+              <span className="block truncate text-xs text-muted">
+                {row.user?.role || row.sessionId}
+              </span>
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-muted transition-transform ${
+                selectedSessionId === row.sessionId ? 'rotate-180' : ''
+              }`}
+            />
           </div>
         ),
+        onClick: (row) => {
+          setSelectedSessionId((current) => (current === row.sessionId ? '' : row.sessionId));
+        },
       },
       {
         key: 'surface',
@@ -229,7 +256,7 @@ export default function SystemAnalyticsPage() {
         ),
       },
     ],
-    [t]
+    [selectedSessionId, t]
   );
 
   return (
@@ -505,6 +532,65 @@ export default function SystemAnalyticsPage() {
           <SectionLabel>{t('systemAnalyticsPage.sections.recentSessions')}</SectionLabel>
           <span className="text-xs text-muted">{recentSessions.length}</span>
         </div>
+
+        {selectedSession ? (
+          <div className="rounded-2xl border border-border bg-surface p-4">
+            <div className="flex flex-col gap-2 border-b border-border/70 pb-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-heading">
+                  {t('systemAnalyticsPage.text.sessionPagesTitle', {
+                    name: getSessionDisplayName(selectedSession, t),
+                  })}
+                </p>
+                <p className="mt-1 truncate text-xs text-muted">
+                  {selectedSession.sessionId}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant={surfaceVariant(selectedSession.surface)}>
+                  {formatSurfaceLabel(selectedSession.surface, t)}
+                </Badge>
+                <Badge variant="primary">
+                  {t('systemAnalyticsPage.text.pagesSummary', {
+                    views: selectedSession.totalPageViews,
+                    paths: selectedSession.pathsVisitedCount,
+                  })}
+                </Badge>
+              </div>
+            </div>
+
+            {selectedSessionPaths.length === 0 ? (
+              <p className="pt-4 text-sm text-muted">
+                {t('systemAnalyticsPage.states.noSessionPaths')}
+              </p>
+            ) : (
+              <div className="mt-3 divide-y divide-border/70">
+                {selectedSessionPaths.map((entry) => (
+                  <div
+                    key={`${selectedSession.sessionId}-${entry.path}`}
+                    className="grid gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto]"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-heading">
+                        {entry.title || compactPath(entry.path)}
+                      </p>
+                      <p className="break-all text-xs text-muted">{entry.path}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted sm:justify-end">
+                      <span>
+                        {t('systemAnalyticsPage.text.viewsCount', {
+                          count: entry.views,
+                        })}
+                      </span>
+                      <span>{formatDuration(entry.activeSeconds, t)}</span>
+                      {entry.lastSeenAt ? <span>{formatDateTime(entry.lastSeenAt)}</span> : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
 
         <div className="overflow-hidden tttable">
           <Table

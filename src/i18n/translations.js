@@ -596,6 +596,7 @@
         noSessionData: 'No session data was recorded in this period.',
         noTopPages: 'Top pages will appear after tracked sessions are saved.',
         noRecentSessions: 'Recent sessions will appear here once traffic is tracked.',
+        noSessionPaths: 'No page paths were recorded for this session.',
         emptyTitle: 'No recent sessions yet',
         emptyDescription: 'Sessions will be stored here after visitors start using the site.',
       },
@@ -615,6 +616,7 @@
         viewsCount: '{count} views',
         durationAndSessions: '{duration} • {sessions} sessions',
         pagesSummary: '{views} views / {paths} paths',
+        sessionPagesTitle: 'Pages opened by {name}',
       },
       units: {
         hoursShort: 'h',
@@ -3577,6 +3579,7 @@
         noSessionData: 'لم يتم تسجيل بيانات جلسات خلال هذه الفترة.',
         noTopPages: 'ستظهر الصفحات الأكثر نشاطًا بعد حفظ جلسات التتبع.',
         noRecentSessions: 'ستظهر الجلسات الحديثة هنا بعد بدء تتبع الزيارات.',
+        noSessionPaths: 'لم يتم تسجيل مسارات صفحات لهذه الجلسة.',
         emptyTitle: 'لا توجد جلسات حديثة بعد',
         emptyDescription: 'سيتم حفظ الجلسات هنا بعد بدء الزوار باستخدام الموقع.',
       },
@@ -3596,6 +3599,7 @@
         viewsCount: '{count} مشاهدة',
         durationAndSessions: '{duration} • {sessions} جلسات',
         pagesSummary: '{views} مشاهدات / {paths} مسارات',
+        sessionPagesTitle: 'الصفحات التي فتحها {name}',
       },
       units: {
         hoursShort: 'س',
