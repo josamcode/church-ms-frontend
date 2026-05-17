@@ -334,7 +334,6 @@ export default function FamilyHouseAnalyticsPage() {
       />
 
       <PageHeader
-        eyebrow={tr('familyHouseAnalytics.eyebrow')}
         title={tr('familyHouseLookup.analyticsPage.title')}
         subtitle={tr('familyHouseLookup.analyticsPage.subtitle')}
         className="border-b border-border pb-6"
@@ -551,7 +550,7 @@ function KpiTile({ item, language, loading }) {
             <div className="h-10 w-24 animate-pulse rounded-md bg-surface-alt" />
           ) : (
             <p className="text-4xl font-semibold tracking-tight text-heading tabular-nums">
-              {formatNumber(item.value, language)}
+              {item.value}
             </p>
           )}
           <p className="mt-2 text-sm text-muted">{item.detail}</p>

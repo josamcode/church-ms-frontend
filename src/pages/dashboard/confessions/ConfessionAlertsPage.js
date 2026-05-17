@@ -11,6 +11,7 @@ import SearchInput from '../../../components/ui/SearchInput';
 import Table from '../../../components/ui/Table';
 import Badge from '../../../components/ui/Badge';
 import PageHeader from '../../../components/ui/PageHeader';
+import Pagination from '../../../components/ui/Pagination';
 import { formatDateTime } from '../../../utils/formatters';
 import toast from 'react-hot-toast';
 import { useI18n } from '../../../i18n/i18n';
@@ -39,7 +40,9 @@ export default function ConfessionAlertsPage() {
 
   const canManageThreshold = hasPermission('CONFESSIONS_ALERTS_MANAGE');
   const [searchName, setSearchName] = useState('');
+  const [alertsPage, setAlertsPage] = useState(1);
   const [thresholdDraft, setThresholdDraft] = useState('');
+  const alertsPageSize = 100;
 
   /* ── queries ── */
   const { data: configRes, isLoading: configLoading } = useQuery({
@@ -58,9 +61,13 @@ export default function ConfessionAlertsPage() {
   }, [configRes]);
 
   const { data: alertsRes, isLoading: alertsLoading } = useQuery({
-    queryKey: ['confessions', 'alerts', { fullName: searchName }],
+    queryKey: ['confessions', 'alerts', { fullName: searchName, page: alertsPage, limit: alertsPageSize }],
     queryFn: async () => {
-      const { data } = await confessionsApi.getAlerts({ ...(searchName && { fullName: searchName }) });
+      const { data } = await confessionsApi.getAlerts({
+        page: alertsPage,
+        limit: alertsPageSize,
+        ...(searchName && { fullName: searchName }),
+      });
       return data?.data || null;
     },
     keepPreviousData: true,
@@ -81,8 +88,20 @@ export default function ConfessionAlertsPage() {
 
   /* ── derived ── */
   const thresholdDays = alertsRes?.thresholdDays || configRes?.alertThresholdDays || 0;
-  const alerts = Array.isArray(alertsRes?.alerts) ? alertsRes.alerts : [];
+  const alerts = useMemo(
+    () => (Array.isArray(alertsRes?.alerts) ? alertsRes.alerts : []),
+    [alertsRes?.alerts]
+  );
   const alertsCount = alertsRes?.count ?? alerts.length;
+  const alertsMeta = alertsRes?.meta || {};
+  const alertsTotalPages = Math.max(Number(alertsMeta.totalPages) || 1, 1);
+  const currentAlertsPage = Number(alertsMeta.page) || alertsPage;
+
+  useEffect(() => {
+    if (alertsPage > alertsTotalPages) {
+      setAlertsPage(alertsTotalPages);
+    }
+  }, [alertsPage, alertsTotalPages]);
 
   const handleSaveThreshold = () => {
     const parsed = parseInt(thresholdDraft, 10);
@@ -261,7 +280,10 @@ export default function ConfessionAlertsPage() {
         <div className="max-w-sm">
           <SearchInput
             value={searchName}
-            onChange={setSearchName}
+            onChange={(nextValue) => {
+              setSearchName(nextValue);
+              setAlertsPage(1);
+            }}
             placeholder={t('confessions.alerts.searchPlaceholder')}
           />
         </div>
@@ -274,6 +296,16 @@ export default function ConfessionAlertsPage() {
             emptyTitle={t('confessions.alerts.emptyTitle')}
             emptyDescription={t('confessions.alerts.emptyDescription')}
           />
+          {alertsTotalPages > 1 && (
+            <div className="border-t border-border px-4 pb-4 pt-2">
+              <Pagination
+                page={currentAlertsPage}
+                totalPages={alertsTotalPages}
+                onPageChange={setAlertsPage}
+                loading={alertsLoading}
+              />
+            </div>
+          )}
         </div>
       </section>
 

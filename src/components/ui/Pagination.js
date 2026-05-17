@@ -9,26 +9,47 @@ export default function Pagination({
   loading = false,
   cursors = [],
   pageInfo = null,
+  page,
+  totalPages,
+  onPageChange,
 }) {
   const { t, isRTL } = useI18n();
 
-  if (!meta) return null;
+  const explicitPage = Number(page);
+  const explicitTotalPages = Number(totalPages ?? meta?.totalPages);
+  const hasPagePagination = Number.isFinite(explicitPage) || Number.isFinite(explicitTotalPages);
+  const hasCursorPagination = Boolean(meta);
 
-  const canGoBack = cursors && cursors.length > 1;
-  const canLoadMore = Boolean(meta?.hasMore ?? meta?.nextCursor);
-  const currentPage = Math.max(Array.isArray(cursors) ? cursors.length : 1, 1);
-  const totalPages = meta?.hasMore ? '?' : currentPage;
-  const resolvedPageInfo = pageInfo || `${currentPage}/${totalPages}`;
+  if (!hasCursorPagination && !hasPagePagination) return null;
+
+  const currentPage = Math.max(
+    Number.isFinite(explicitPage) ? explicitPage : Array.isArray(cursors) ? cursors.length : 1,
+    1
+  );
+  const knownTotalPages = Number.isFinite(explicitTotalPages)
+    ? Math.max(explicitTotalPages, 1)
+    : null;
+  const canGoBack = hasPagePagination
+    ? currentPage > 1
+    : Array.isArray(cursors) && cursors.length > 1;
+  const canLoadMore = hasPagePagination
+    ? currentPage < knownTotalPages
+    : Boolean(meta?.hasMore ?? meta?.nextCursor);
+  const handlePrevious = onPageChange ? () => onPageChange(currentPage - 1) : onPrev;
+  const handleNext = onPageChange ? () => onPageChange(currentPage + 1) : onLoadMore;
+  const resolvedPageInfo = pageInfo || (
+    knownTotalPages ? `${currentPage}/${knownTotalPages}` : String(currentPage)
+  );
 
   return (
     <div className="flex items-center justify-end pt-4">
       {/* <p className="text-sm text-muted">{t('common.pagination.showing', { count: meta.count })}</p> */}
       <div className="flex items-center gap-2">
-        {onPrev && (
+        {(onPrev || onPageChange) && (
           <Button
             variant="outline"
             size="sm"
-            onClick={onPrev}
+            onClick={handlePrevious}
             disabled={!canGoBack || loading}
             icon={isRTL ? ChevronRight : ChevronLeft}
           >
@@ -41,7 +62,7 @@ export default function Pagination({
         <Button
           variant="outline"
           size="sm"
-          onClick={onLoadMore}
+          onClick={handleNext}
           disabled={!canLoadMore || loading}
           loading={loading}
           icon={isRTL ? ChevronLeft : ChevronRight}
