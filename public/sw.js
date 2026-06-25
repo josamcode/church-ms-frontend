@@ -42,8 +42,10 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const rawLink = event.notification.data?.link || '/dashboard/notifications/inbox';
-  const destination = new URL(rawLink, self.location.origin).toString();
+  const rawLink = event.notification.data?.link || '';
+  const SAFE_PATH = /^\/[a-zA-Z0-9\-_.~@:?&=+%#!$'()*,;][a-zA-Z0-9/\-_.~@:?&=+%#!$'()*,;]*$/;
+  const safeLink = SAFE_PATH.test(rawLink) ? rawLink : '/dashboard/notifications/inbox';
+  const destination = new URL(safeLink, self.location.origin).toString();
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
