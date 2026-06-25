@@ -8,8 +8,9 @@ import {
   useState,
 } from 'react';
 import { io } from 'socket.io-client';
+import toast from 'react-hot-toast';
 import { useAuth } from '../auth/auth.hooks';
-import { AUTH_TOKENS_CHANGED_EVENT, getAccessToken } from '../auth/auth.store';
+import { clearAuth, AUTH_TOKENS_CHANGED_EVENT, getAccessToken } from '../auth/auth.store';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 const SOCKET_URL = API_URL.replace(/\/api\/?$/, '');
@@ -117,14 +118,43 @@ export function SocketProvider({ children }) {
     const handleDisconnect = () => setConnected(false);
     const handleConnectError = () => setConnected(false);
 
+    // ── auth:revoked — server forcibly ended this session ──
+    const handleAuthRevoked = (payload = {}) => {
+      const reasonMessages = {
+        account_locked: 'Your account has been locked. Please contact an administrator.',
+        account_disabled: 'Your account has been disabled. Please contact an administrator.',
+        auth_version_changed: 'Your session has been invalidated. Please sign in again.',
+        deleted: 'Your account has been deactivated. Please contact an administrator.',
+        no_login: 'Your account does not currently have sign-in access.',
+      };
+      const message =
+        reasonMessages[payload?.reason] ||
+        'Your session has expired. Please sign in again.';
+
+      // Clear all local auth state
+      clearAuth();
+
+      // Show a user-facing message
+      try {
+        toast.error(message, { duration: 6000 });
+      } catch (_e) {
+        // toast may unmount before showing; best-effort
+      }
+
+      // Redirect to login — full page load guarantees clean state
+      window.location.href = '/auth/login';
+    };
+
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     socket.on('connect_error', handleConnectError);
+    socket.on('auth:revoked', handleAuthRevoked);
 
     return () => {
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
       socket.off('connect_error', handleConnectError);
+      socket.off('auth:revoked', handleAuthRevoked);
       listeners.forEach((handlers, eventName) => {
         handlers.forEach((handler) => {
           socket.off(eventName, handler);
