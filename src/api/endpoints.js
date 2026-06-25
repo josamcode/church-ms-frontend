@@ -28,7 +28,7 @@ export const usersApi = {
   create: (data) => apiClient.post('/users', data),
   update: (id, data) => apiClient.patch(`/users/${id}`, data),
   remove: (id) => apiClient.delete(`/users/${id}`),
-  /** Upload image only (for new user). Returns { url, publicId }. */
+  /** Upload image only (for new user). Returns { url, storageKey }. */
   uploadAvatarImage: (file) => {
     const formData = new FormData();
     formData.append('avatar', file);

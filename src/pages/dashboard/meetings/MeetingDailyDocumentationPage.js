@@ -516,7 +516,7 @@ export default function MeetingDailyDocumentationPage() {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {attachments.map((asset, index) => (
                   <AssetPreviewCard
-                    key={`${asset.publicId || asset.url || 'asset'}-${index}`}
+                    key={`${asset.storageKey || asset.url || 'asset'}-${index}`}
                     asset={asset}
                     onRemove={() =>
                       setAttachments((current) => current.filter((_, assetIndex) => assetIndex !== index))
@@ -635,7 +635,7 @@ export default function MeetingDailyDocumentationPage() {
                             <div className="grid grid-cols-1 gap-3">
                               {draft.assets.map((asset, index) => (
                                 <AssetPreviewCard
-                                  key={`${asset.publicId || asset.url || 'field-asset'}-${index}`}
+                                  key={`${asset.storageKey || asset.url || 'field-asset'}-${index}`}
                                   asset={asset}
                                   onRemove={() =>
                                     updateFieldDraft(field.id, {

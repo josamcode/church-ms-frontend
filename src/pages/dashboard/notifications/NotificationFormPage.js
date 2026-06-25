@@ -154,6 +154,10 @@ export default function NotificationFormPage() {
     summary: '',
     eventDate: '',
     coverImageUrl: '',
+    coverImageStorageKey: '',
+    coverImageProvider: '',
+    coverImageMimeType: '',
+    coverImageSize: 0,
     isActive: true,
     audienceType: 'permissions',
     audiencePermissions: DEFAULT_AUDIENCE_PERMISSIONS,
@@ -225,6 +229,10 @@ export default function NotificationFormPage() {
       summary: notification.summary || '',
       eventDate: toDateInputValue(notification.eventDate),
       coverImageUrl: notification.coverImageUrl || '',
+      coverImageStorageKey: notification.coverImageStorageKey || '',
+      coverImageProvider: notification.coverImageProvider || '',
+      coverImageMimeType: notification.coverImageMimeType || '',
+      coverImageSize: notification.coverImageSize || 0,
       isActive: notification.isActive !== false,
       audienceType: notification.audienceType === 'all' ? 'all' : 'permissions',
       audiencePermissions:
@@ -347,7 +355,7 @@ export default function NotificationFormPage() {
     if (!payload?.url) {
       throw new Error('Invalid upload response');
     }
-    return payload.url;
+    return payload;
   };
 
   const getUploadErrorMessage = (error) => {
@@ -364,8 +372,12 @@ export default function NotificationFormPage() {
 
     setCoverUploading(true);
     try {
-      const imageUrl = await uploadImage(file);
-      updateField('coverImageUrl', imageUrl);
+      const image = await uploadImage(file);
+      updateField('coverImageUrl', image.url);
+      updateField('coverImageStorageKey', image.storageKey || '');
+      updateField('coverImageProvider', image.provider || 'r2');
+      updateField('coverImageMimeType', image.mimeType || '');
+      updateField('coverImageSize', image.size || 0);
       toast.success(tf('notifications.messages.imageUploaded', 'Image uploaded successfully.'));
     } catch (error) {
       toast.error(getUploadErrorMessage(error));
@@ -381,8 +393,8 @@ export default function NotificationFormPage() {
 
     setDetailUploading((prev) => ({ ...prev, [localId]: true }));
     try {
-      const imageUrl = await uploadImage(file);
-      updateDetail(localId, 'url', imageUrl);
+      const image = await uploadImage(file);
+      updateDetail(localId, 'url', image.url);
       toast.success(tf('notifications.messages.imageUploaded', 'Image uploaded successfully.'));
     } catch (error) {
       toast.error(getUploadErrorMessage(error));
@@ -496,6 +508,10 @@ export default function NotificationFormPage() {
       })),
       eventDate: form.eventDate ? new Date(form.eventDate).toISOString() : null,
       coverImageUrl: form.coverImageUrl.trim() || null,
+      coverImageStorageKey: form.coverImageStorageKey || null,
+      coverImageProvider: form.coverImageProvider || null,
+      coverImageMimeType: form.coverImageMimeType || null,
+      coverImageSize: Number(form.coverImageSize) || null,
       isActive: !!form.isActive,
       audienceType: form.audienceType,
       audiencePermissions:

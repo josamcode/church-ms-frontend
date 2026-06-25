@@ -92,7 +92,10 @@ export function mapSectorToForm(sector) {
     avatar: sector?.avatar?.url
       ? {
           url: sector.avatar.url,
-          publicId: sector?.avatar?.publicId || '',
+          storageKey: sector?.avatar?.storageKey || '',
+          provider: sector?.avatar?.provider || 'r2',
+          mimeType: sector?.avatar?.mimeType || '',
+          size: sector?.avatar?.size || 0,
         }
       : null,
     avatarRemoved: false,
@@ -108,7 +111,7 @@ export function mapSectorToForm(sector) {
 
 export function buildSectorPayload(form) {
   const avatarUrl = String(form?.avatar?.url || form?.avatarUrl || '').trim();
-  const avatarPublicId = String(form?.avatar?.publicId || form?.avatarPublicId || '').trim();
+  const avatarStorageKey = String(form?.avatar?.storageKey || form?.avatarStorageKey || '').trim();
 
   return {
     name: String(form.name || '').trim(),
@@ -116,8 +119,11 @@ export function buildSectorPayload(form) {
     ...(avatarUrl && {
       avatar: {
         url: avatarUrl,
-        ...(avatarPublicId && {
-          publicId: avatarPublicId,
+        ...(avatarStorageKey && {
+          storageKey: avatarStorageKey,
+          provider: form?.avatar?.provider || 'r2',
+          mimeType: form?.avatar?.mimeType || '',
+          size: form?.avatar?.size || 0,
         }),
       },
     }),
@@ -154,7 +160,10 @@ export function mapMeetingToForm(meeting) {
     avatar: meeting?.avatar?.url
       ? {
           url: meeting.avatar.url,
-          publicId: meeting?.avatar?.publicId || '',
+          storageKey: meeting?.avatar?.storageKey || '',
+          provider: meeting?.avatar?.provider || 'r2',
+          mimeType: meeting?.avatar?.mimeType || '',
+          size: meeting?.avatar?.size || 0,
         }
       : null,
     avatarRemoved: false,
@@ -210,7 +219,7 @@ export function buildMeetingPayload(form, options = {}) {
 
   const serviceSecretary = toPersonPayload(form.serviceSecretaryUser, form.serviceSecretaryName);
   const avatarUrl = String(form?.avatar?.url || form?.avatarUrl || '').trim();
-  const avatarPublicId = String(form?.avatar?.publicId || form?.avatarPublicId || '').trim();
+  const avatarStorageKey = String(form?.avatar?.storageKey || form?.avatarStorageKey || '').trim();
   const groups = uniqueStringList(form.groups || []);
   const groupAssignments = groups.map((groupName) => ({
     group: groupName,
@@ -227,8 +236,11 @@ export function buildMeetingPayload(form, options = {}) {
     ...(avatarUrl && {
       avatar: {
         url: avatarUrl,
-        ...(avatarPublicId && {
-          publicId: avatarPublicId,
+        ...(avatarStorageKey && {
+          storageKey: avatarStorageKey,
+          provider: form?.avatar?.provider || 'r2',
+          mimeType: form?.avatar?.mimeType || '',
+          size: form?.avatar?.size || 0,
         }),
       },
     }),

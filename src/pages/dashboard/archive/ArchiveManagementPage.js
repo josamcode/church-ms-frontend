@@ -199,7 +199,7 @@ function PhotoGalleryEditor({
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {photos.map((photo, index) => (
-            <div key={`${photo.publicId || photo.url}-${index}`} className="rounded-2xl border border-border p-3">
+            <div key={`${photo.storageKey || photo.url}-${index}`} className="rounded-2xl border border-border p-3">
               <img
                 src={photo.url}
                 alt={photo.caption || ''}
@@ -447,7 +447,7 @@ function CollectionPhotoGallery({ collection, onOpenImage }) {
     <div className="grid auto-rows-[180px] gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {photos.map((photo, index) => (
         <button
-          key={`${photo.publicId || photo.url}-${index}`}
+          key={`${photo.storageKey || photo.url}-${index}`}
           type="button"
           onClick={() => onOpenImage(index)}
           className={[
@@ -609,7 +609,7 @@ function ImageLightbox({
             <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
               {photos.map((photo, index) => (
                 <button
-                  key={`${photo.publicId || photo.url}-${index}`}
+                  key={`${photo.storageKey || photo.url}-${index}`}
                   type="button"
                   onClick={() => onSelectPhoto(index)}
                   className={[

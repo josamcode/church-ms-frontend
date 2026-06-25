@@ -336,7 +336,7 @@ export default function UserCreatePage() {
       if (form.street) payload.address.street = form.street;
       if (form.details) payload.address.details = form.details;
     }
-    if (avatar?.url && avatar?.publicId) payload.avatar = avatar;
+    if (avatar?.url && avatar?.storageKey) payload.avatar = avatar;
     const educationPayload = buildEducationPayload(form);
     if (educationPayload) payload.education = educationPayload;
     Object.assign(payload, buildSocioeconomicPayload(form));
