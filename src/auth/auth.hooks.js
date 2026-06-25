@@ -15,11 +15,22 @@ export function AuthProvider({ children }) {
   const [permissions, setPermissions] = useState(() => getPermissions());
   const [loading, setLoading] = useState(true);
 
-  const applyAuthenticatedSession = useCallback((userData, accessToken, refreshToken) => {
+  const applyAuthenticatedSession = useCallback((userData, accessToken, refreshToken, responseEffectivePermissions) => {
     setTokens(accessToken, refreshToken);
     setUser(userData);
     storeUser(userData);
-    const perms = computeEffectivePermissions(userData);
+
+    // Prefer backend-authoritative effectivePermissions when available.
+    // Fall back to local computation for backward compatibility.
+    let perms;
+    if (Array.isArray(responseEffectivePermissions) && responseEffectivePermissions.length > 0) {
+      perms = responseEffectivePermissions;
+    } else if (Array.isArray(userData?.effectivePermissions) && userData.effectivePermissions.length > 0) {
+      perms = userData.effectivePermissions;
+    } else {
+      perms = computeEffectivePermissions(userData);
+    }
+
     setPermissions(perms);
     storePermissions(perms);
     return perms;
@@ -40,9 +51,18 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await authApi.me();
       const userData = data.data;
+
       setUser(userData);
       storeUser(userData);
-      const perms = computeEffectivePermissions(userData);
+
+      // Prefer backend-authoritative effectivePermissions from the user object
+      let perms;
+      if (Array.isArray(userData?.effectivePermissions) && userData.effectivePermissions.length > 0) {
+        perms = userData.effectivePermissions;
+      } else {
+        perms = computeEffectivePermissions(userData);
+      }
+
       setPermissions(perms);
       storePermissions(perms);
     } catch (err) {
@@ -81,8 +101,8 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (identifier, password) => {
     const { data } = await authApi.login({ identifier, password });
-    const { user: userData, accessToken, refreshToken } = data.data;
-    applyAuthenticatedSession(userData, accessToken, refreshToken);
+    const { user: userData, accessToken, refreshToken, effectivePermissions: responsePerms } = data.data;
+    applyAuthenticatedSession(userData, accessToken, refreshToken, responsePerms);
     return userData;
   }, [applyAuthenticatedSession]);
 
