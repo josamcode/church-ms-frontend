@@ -20,6 +20,11 @@ export default function MultiSelectChips({
   options = [],
   values = [],
   onChange,
+  onSearchChange,
+  loading = false,
+  hasMore = false,
+  onLoadMore,
+  isLoadingMore = false,
   placeholder,
   disabled = false,
   containerClassName = '',
@@ -40,17 +45,20 @@ export default function MultiSelectChips({
 
   const selectedValues = [...new Set((values || []).map((value) => String(value || '').trim()).filter(Boolean))];
   const selectedSet = new Set(selectedValues);
+  const hasRemoteSearch = typeof onSearchChange === 'function';
 
   const selectedOptions = selectedValues.map((value) => {
     const found = normalizedOptions.find((opt) => opt.value === value);
     return found || { value, label: value };
   });
 
-  const filteredOptions = normalizedOptions.filter((option) => {
-    if (!query.trim()) return true;
-    const normalizedQuery = query.trim().toLowerCase();
-    return option.label.toLowerCase().includes(normalizedQuery);
-  });
+  const filteredOptions = hasRemoteSearch
+    ? normalizedOptions
+    : normalizedOptions.filter((option) => {
+      if (!query.trim()) return true;
+      const normalizedQuery = query.trim().toLowerCase();
+      return option.label.toLowerCase().includes(normalizedQuery);
+    });
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -62,6 +70,10 @@ export default function MultiSelectChips({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    onSearchChange?.(query);
+  }, [onSearchChange, query]);
 
   const toggleValue = (value) => {
     if (disabled) return;
@@ -139,7 +151,9 @@ export default function MultiSelectChips({
             </div>
 
             <ul className="max-h-56 overflow-auto py-1">
-              {filteredOptions.length === 0 ? (
+              {loading ? (
+                <li className="px-3 py-3 text-sm text-muted text-center">{t('common.search.loading')}</li>
+              ) : filteredOptions.length === 0 ? (
                 <li className="px-3 py-3 text-sm text-muted text-center">{t('common.search.noResults')}</li>
               ) : (
                 filteredOptions.map((option) => {
@@ -158,6 +172,18 @@ export default function MultiSelectChips({
                     </li>
                   );
                 })
+              )}
+              {!loading && hasMore && (
+                <li className="border-t border-border px-2 py-2">
+                  <button
+                    type="button"
+                    onClick={() => onLoadMore?.()}
+                    disabled={isLoadingMore}
+                    className="w-full rounded-md px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/8 disabled:opacity-60"
+                  >
+                    {isLoadingMore ? t('common.search.loading') : t('common.actions.loadMore')}
+                  </button>
+                </li>
               )}
             </ul>
           </div>

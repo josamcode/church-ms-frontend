@@ -23,6 +23,7 @@
         logout: 'Logout',
         openMenu: 'Open menu',
         close: 'Close',
+        loadMore: 'Load more',
       },
       status: {
         active: 'Active',
@@ -3007,6 +3008,7 @@
         logout: 'تسجيل الخروج',
         openMenu: 'فتح القائمة',
         close: 'إغلاق',
+        loadMore: 'تحميل المزيد',
       },
       status: {
         active: 'نشط',

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Save, Star, UserCircle2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Save, UserCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { divineLiturgiesApi, usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
@@ -11,13 +11,105 @@ import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 
-function SectionLabel({ children }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{children}</span>
-      <div className="h-px flex-1 bg-border/60" />
-    </div>
-  );
+const PRIEST_OPTIONS_LIMIT = 50;
+const APPROVED_ACCOUNT_STATUS = 'approved';
+
+function useDebouncedValue(value, delay = 300) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedValue(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [delay, value]);
+
+  return debouncedValue;
+}
+
+function getUserId(user) {
+  return user?._id || user?.id || null;
+}
+
+function userToOption(user) {
+  const id = getUserId(user);
+  if (!id) return null;
+  return {
+    value: String(id),
+    label: user?.fullName || user?.phonePrimary || String(id),
+  };
+}
+
+function dedupeOptions(options = []) {
+  const seen = new Set();
+  const result = [];
+
+  options.forEach((option) => {
+    if (!option?.value || seen.has(option.value)) return;
+    seen.add(option.value);
+    result.push(option);
+  });
+
+  return result;
+}
+
+function usePriestUserOptions({ search, selectedUsers, enabled }) {
+  const debouncedSearch = useDebouncedValue(String(search || '').trim(), 300);
+
+  const query = useInfiniteQuery({
+    queryKey: [
+      'divine-liturgies',
+      'priest-user-options',
+      debouncedSearch,
+      APPROVED_ACCOUNT_STATUS,
+      PRIEST_OPTIONS_LIMIT,
+    ],
+    enabled,
+    initialPageParam: null,
+    queryFn: async ({ pageParam }) => {
+      const cursor = pageParam || null;
+      const { data } = await usersApi.list({
+        limit: PRIEST_OPTIONS_LIMIT,
+        sort: 'createdAt',
+        order: 'desc',
+        accountStatus: APPROVED_ACCOUNT_STATUS,
+        ...(debouncedSearch ? { search: debouncedSearch } : {}),
+        ...(cursor ? { cursor } : {}),
+      });
+
+      return {
+        cursor,
+        rows: Array.isArray(data?.data) ? data.data : [],
+        meta: data?.meta || {},
+      };
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      const nextCursor = lastPage?.meta?.nextCursor || null;
+      if (!lastPage?.meta?.hasNextPage || !nextCursor) return undefined;
+      if (nextCursor === lastPage?.cursor) return undefined;
+
+      const requestedCursors = new Set(
+        (allPages || [])
+          .map((page) => page?.cursor)
+          .filter(Boolean)
+      );
+      if (requestedCursors.has(nextCursor)) return undefined;
+
+      return nextCursor;
+    },
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+  });
+
+  const options = useMemo(() => {
+    const selectedOptions = (selectedUsers || []).map(userToOption).filter(Boolean);
+    const loadedOptions = (query.data?.pages || [])
+      .flatMap((page) => page?.rows || [])
+      .map(userToOption)
+      .filter(Boolean);
+
+    return dedupeOptions([...selectedOptions, ...loadedOptions]);
+  }, [query.data?.pages, selectedUsers]);
+
+  return { ...query, options, debouncedSearch };
 }
 
 function PriestCard({ entry, t }) {
@@ -84,6 +176,7 @@ export default function ChurchPriestsPage() {
   const canManagePriests = hasPermission('DIVINE_LITURGIES_PRIESTS_MANAGE');
   const [selectedPriestIds, setSelectedPriestIds] = useState([]);
   const [priestsDirty, setPriestsDirty] = useState(false);
+  const [priestSearch, setPriestSearch] = useState('');
 
   const overviewQuery = useQuery({
     queryKey: ['divine-liturgies', 'overview'],
@@ -92,42 +185,6 @@ export default function ChurchPriestsPage() {
       return data?.data || null;
     },
     staleTime: 30000,
-  });
-
-  const usersQuery = useQuery({
-    queryKey: ['divine-liturgies', 'users'],
-    enabled: canManagePriests,
-    queryFn: async () => {
-      const allUsers = [];
-      const seen = new Set();
-      let cursor = null;
-
-      for (let index = 0; index < 30; index += 1) {
-        const { data } = await usersApi.list({
-          limit: 100,
-          sort: 'createdAt',
-          order: 'desc',
-          ...(cursor && { cursor }),
-        });
-
-        const rows = Array.isArray(data?.data) ? data.data : [];
-        rows.forEach((row) => {
-          const id = row?._id || row?.id;
-          if (!id || seen.has(id)) return;
-          seen.add(id);
-          allUsers.push(row);
-        });
-
-        const nextCursor = data?.meta?.nextCursor || null;
-        if (!nextCursor || rows.length < 100) break;
-        cursor = nextCursor;
-      }
-
-      return allUsers.sort((a, b) =>
-        String(a?.fullName || '').localeCompare(String(b?.fullName || ''))
-      );
-    },
-    staleTime: 60000,
   });
 
   const priestsMutation = useMutation({
@@ -145,6 +202,17 @@ export default function ChurchPriestsPage() {
     [overviewQuery.data]
   );
 
+  const selectedPriestUsers = useMemo(
+    () => churchPriests.map((entry) => entry?.user).filter(Boolean),
+    [churchPriests]
+  );
+
+  const priestOptionsQuery = usePriestUserOptions({
+    search: priestSearch,
+    selectedUsers: selectedPriestUsers,
+    enabled: canManagePriests,
+  });
+
   useEffect(() => {
     if (priestsDirty) return;
     setSelectedPriestIds(
@@ -154,13 +222,18 @@ export default function ChurchPriestsPage() {
     );
   }, [churchPriests, priestsDirty]);
 
+  const handlePriestSearchChange = useCallback((value) => {
+    setPriestSearch(value);
+  }, []);
+
+  const handleLoadMorePriestOptions = useCallback(() => {
+    if (!priestOptionsQuery.hasNextPage || priestOptionsQuery.isFetchingNextPage) return;
+    priestOptionsQuery.fetchNextPage();
+  }, [priestOptionsQuery]);
+
   const userOptions = useMemo(
-    () =>
-      (Array.isArray(usersQuery.data) ? usersQuery.data : []).map((user) => ({
-        value: user._id || user.id,
-        label: user.fullName || user.phonePrimary || user._id || user.id,
-      })),
-    [usersQuery.data]
+    () => priestOptionsQuery.options,
+    [priestOptionsQuery.options]
   );
 
   return (
@@ -179,8 +252,6 @@ export default function ChurchPriestsPage() {
       />
 
       <section className="space-y-4">
-        {/* <SectionLabel>{t('divineLiturgies.sections.priests')}</SectionLabel> */}
-
         <div className="rounded-2xl space-y-4">
           {/* <div className="text-sm text-muted">
             {canManagePriests
@@ -198,6 +269,11 @@ export default function ChurchPriestsPage() {
                   setPriestsDirty(true);
                   setSelectedPriestIds(values);
                 }}
+                onSearchChange={handlePriestSearchChange}
+                loading={priestOptionsQuery.isFetching && !priestOptionsQuery.isFetchingNextPage}
+                hasMore={Boolean(priestOptionsQuery.hasNextPage)}
+                onLoadMore={handleLoadMorePriestOptions}
+                isLoadingMore={priestOptionsQuery.isFetchingNextPage}
                 placeholder={t('common.search.placeholder')}
                 containerClassName="!mb-0"
               />
