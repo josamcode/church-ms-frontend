@@ -10,6 +10,18 @@ import toast from 'react-hot-toast';
 
 const AuthContext = createContext(null);
 
+export function resolveEffectivePermissions(userData, responseEffectivePermissions) {
+  if (Array.isArray(responseEffectivePermissions)) {
+    return responseEffectivePermissions;
+  }
+
+  if (Array.isArray(userData?.effectivePermissions)) {
+    return userData.effectivePermissions;
+  }
+
+  return computeEffectivePermissions(userData);
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => getUser());
   const [permissions, setPermissions] = useState(() => getPermissions());
@@ -22,14 +34,7 @@ export function AuthProvider({ children }) {
 
     // Prefer backend-authoritative effectivePermissions when available.
     // Fall back to local computation for backward compatibility.
-    let perms;
-    if (Array.isArray(responseEffectivePermissions) && responseEffectivePermissions.length > 0) {
-      perms = responseEffectivePermissions;
-    } else if (Array.isArray(userData?.effectivePermissions) && userData.effectivePermissions.length > 0) {
-      perms = userData.effectivePermissions;
-    } else {
-      perms = computeEffectivePermissions(userData);
-    }
+    const perms = resolveEffectivePermissions(userData, responseEffectivePermissions);
 
     setPermissions(perms);
     storePermissions(perms);
@@ -55,13 +60,8 @@ export function AuthProvider({ children }) {
       setUser(userData);
       storeUser(userData);
 
-      // Prefer backend-authoritative effectivePermissions from the user object
-      let perms;
-      if (Array.isArray(userData?.effectivePermissions) && userData.effectivePermissions.length > 0) {
-        perms = userData.effectivePermissions;
-      } else {
-        perms = computeEffectivePermissions(userData);
-      }
+      // Prefer backend-authoritative effectivePermissions from the user object.
+      const perms = resolveEffectivePermissions(userData);
 
       setPermissions(perms);
       storePermissions(perms);
