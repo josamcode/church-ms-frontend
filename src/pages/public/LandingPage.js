@@ -502,10 +502,7 @@ function DesktopServiceCard({ entry, language, t, isRTL, accent, accentText, ind
           <div className="min-w-0 flex-1">
             {/* Header */}
             <div
-              className={`
-                flex items-start justify-between gap-4
-                ${isRTL ? 'flex-row-reverse' : ''}
-              `}
+              className={`flex items-start justify-between gap-4`}
             >
               <div className="min-w-0">
                 <h3 className="text-base font-bold leading-tight text-heading">
@@ -526,8 +523,7 @@ function DesktopServiceCard({ entry, language, t, isRTL, accent, accentText, ind
                 `}
                 dir="ltr"
               >
-                <Clock3 className="h-3.5 w-3.5" />
-                <span>
+                <span className='text-lg'>
                   {start}
                   {end ? ` ${sep} ${end}` : ''}
                 </span>
@@ -535,9 +531,11 @@ function DesktopServiceCard({ entry, language, t, isRTL, accent, accentText, ind
             </div>
 
             {/* Priests */}
-            <div className="mt-4 border-t border-border/70 pt-4">
-              <ServicePriestList priests={entry.priests} isRTL={isRTL} t={t} />
-            </div>
+            {Array.isArray(entry.priests) && entry.priests.length > 0 && (
+              <div className="mt-4 border-t border-border/70 pt-4">
+                <ServicePriestList priests={entry.priests} isRTL={isRTL} t={t} />
+              </div>
+            )}
           </div>
         </div>
       </article>
@@ -1194,27 +1192,83 @@ function ServiceTimeRow({ entry, language, t, isRTL, accent }) {
   const start = formatServiceTime(entry.startTime, language);
   const end = formatServiceTime(entry.endTime, language);
   const sep = t('landing.services.timeSeparator');
+
+  const dayLabel = entry.dayOfWeek
+    ? translateDayLabel(entry.dayOfWeek, t)
+    : entry.displayName;
+
+  const serviceName = entry.name || entry.displayName;
+  const hasSecondaryName =
+    entry.dayOfWeek && entry.displayName && entry.displayName !== entry.name;
+
   return (
-    <div className={`relative overflow-hidden rounded-2xl border border-border bg-surface px-4 py-3.5 ${isRTL ? 'text-right' : 'text-left'}`}>
-      <div className={`absolute top-0 ${isRTL ? 'right-0' : 'left-0'} h-full w-1 bg-gradient-to-b ${accent}`} />
-      <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${accent} shadow-sm`}>
-          <Clock3 className="h-4 w-4 text-white" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className={`flex flex-wrap items-baseline gap-x-2 gap-y-0.5`}>
-            <p className="text-sm font-extrabold text-heading leading-tight">
-              {entry.dayOfWeek ? translateDayLabel(entry.dayOfWeek, t) : entry.displayName}
-            </p>
-            {entry.dayOfWeek && entry.displayName && entry.displayName !== entry.name ? (
-              <span className="text-[11px] text-muted">· {entry.name || entry.displayName}</span>
+    <div
+      className={[
+        'group relative overflow-hidden rounded-[1.75rem] border border-border/80 bg-surface/95',
+        'px-5 py-5 shadow-card transition-all duration-300',
+        'hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-xl',
+        isRTL ? 'text-right' : 'text-left',
+      ].join(' ')}
+    >
+      {/* side accent */}
+      <div
+        className={`absolute inset-y-0 ${isRTL ? 'right-0' : 'left-0'
+          } w-1.5 bg-gradient-to-b ${accent}`}
+      />
+
+      {/* soft background glow */}
+      <div
+        className={`pointer-events-none absolute -top-16 ${isRTL ? '-left-16' : '-right-16'
+          } h-36 w-36 rounded-full bg-primary/10 blur-3xl transition-opacity group-hover:opacity-90`}
+      />
+
+      <div
+        className={[
+          'relative grid gap-5',
+          'sm:grid-cols-[1fr_auto_1.35fr]',
+          isRTL ? 'sm:[direction:ltr]' : '',
+        ].join(' ')}
+      >
+        {/* details */}
+        <div
+          className={[
+            'flex min-w-0 flex-col justify-center',
+            isRTL ? 'sm:[direction:rtl]' : '',
+          ].join(' ')}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-2xl font-black leading-tight text-heading">
+                {dayLabel}
+              </p>
+
+              {hasSecondaryName ? (
+                <p className="mt-1 truncate text-sm font-semibold text-muted">
+                  {serviceName}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-surface-alt text-primary shadow-sm ring-1 ring-border/70">
+              <Clock3 className="h-5 w-5" />
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-end gap-2" dir="ltr">
+            <span className="text-5xl font-black leading-none tracking-tight text-primary">
+              {start || '—'}
+            </span>
+
+            {end ? (
+              <span className="pb-1 text-xs font-bold text-muted">
+                {sep} {end}
+              </span>
             ) : null}
           </div>
-          <p className="mt-1 text-[12px] font-bold text-primary tracking-wide" dir="ltr">
-            {start}
-            {end ? ` ${sep} ${end}` : ''}
-          </p>
-          <ServicePriestList priests={entry.priests} isRTL={isRTL} t={t} />
+
+          <div className="mt-5">
+            <ServicePriestList priests={entry.priests} isRTL={isRTL} t={t} />
+          </div>
         </div>
       </div>
     </div>
@@ -1795,7 +1849,7 @@ export default function LandingPage() {
         <div className="relative flex-1 flex flex-col items-center justify-center page-container w-full pt-28 sm:pt-32 lg:pt-36 pb-52 sm:pb-60 md:pb-64 lg:pb-72">
           <Reveal delay={0.05}>
             <Badge variant="secondary" className="mb-5 sm:mb-6 !rounded-full !px-5 !py-2 !text-[10px] sm:!text-xs !font-bold !border !border-primary/10 !bg-surface/80 !backdrop-blur-sm">
-             {t('landing.hero.badge')}
+              {t('landing.hero.badge')}
             </Badge>
           </Reveal>
           <Reveal delay={0.15}>
