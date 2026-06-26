@@ -1,17 +1,22 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
+  Activity,
   ArrowUpRight,
   BarChart3,
   BellRing,
   Building2,
   CalendarCheck2,
   CalendarDays,
+  Church,
+  Clock,
   Home,
   MessageCircle,
   NotebookPen,
   ShieldCheck,
+  Sparkles,
+  TrendingUp,
   UserCircle,
   Users,
 } from 'lucide-react';
@@ -28,11 +33,25 @@ import {
 } from '../../api/endpoints';
 import { useAuth } from '../../auth/auth.hooks';
 import Badge from '../../components/ui/Badge';
-import PageHeader from '../../components/ui/PageHeader';
+import Skeleton from '../../components/ui/Skeleton';
 import { useI18n } from '../../i18n/i18n';
 import { formatDate, getRoleLabel } from '../../utils/formatters';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+// Maps a Tailwind background utility (used across the existing data layer) to a
+// concrete themed colour so SVG strokes/fills stay in sync with dark mode.
+const SERIES_COLOR_VAR = {
+  'bg-primary': 'var(--color-primary)',
+  'bg-accent': 'var(--color-accent)',
+  'bg-success': 'var(--color-success)',
+  'bg-warning': 'var(--color-warning)',
+  'bg-danger': 'var(--color-danger)',
+};
+
+function seriesColor(bgClass) {
+  return SERIES_COLOR_VAR[bgClass] || 'var(--color-primary)';
+}
 
 function isoDate(value) {
   if (!value) return null;
@@ -105,95 +124,387 @@ function familyLinksCount(profile = {}) {
   );
 }
 
-function SectionHeading({ eyebrow, title, subtitle, icon: Icon }) {
+// ─────────────────────────────────────────────────────────────────────────────
+// Presentational building blocks
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SectionHeading({ eyebrow, title, subtitle, icon: Icon, action }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">{eyebrow}</p>
-        <h2 className="mt-2 text-xl font-semibold text-heading">{title}</h2>
-        {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
-      </div>
-      {Icon ? <Icon className="h-5 w-5 text-primary" /> : null}
-    </div>
-  );
-}
-
-function StatCard({ label, value, hint, tone = 'default' }) {
-  const surface =
-    tone === 'success'
-      ? 'border-success/20 bg-success-light'
-      : tone === 'warning'
-        ? 'border-warning/20 bg-warning-light'
-        : tone === 'primary'
-          ? 'border-primary/20 bg-primary/8'
-          : 'border-border bg-surface';
-  const color =
-    tone === 'success'
-      ? 'text-success'
-      : tone === 'warning'
-        ? 'text-warning'
-        : tone === 'primary'
-          ? 'text-primary'
-          : 'text-heading';
-
-  return (
-    <div className={`rounded-3xl border p-5 ${surface}`}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</p>
-      <p className={`mt-4 text-4xl font-bold tracking-tight ${color}`}>{value}</p>
-      {hint ? <p className="mt-2 text-sm text-muted">{hint}</p> : null}
-    </div>
-  );
-}
-
-function StackedBars({ buckets, emptyLabel, lastLabel }) {
-  if (!buckets.length || buckets.every((bucket) => bucket.total === 0)) {
-    return <p className="text-sm text-muted">{emptyLabel}</p>;
-  }
-  const maxTotal = Math.max(...buckets.map((bucket) => bucket.total), 1);
-
-  return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap gap-2">
-        {buckets[0].parts.map((part) => (
-          <span
-            key={part.key}
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-alt/50 px-3 py-1 text-xs font-medium text-heading"
-          >
-            <span className={`h-2.5 w-2.5 rounded-full ${part.color}`} />
-            {part.label}
+      <div className="flex items-start gap-3">
+        {Icon ? (
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Icon className="h-[18px] w-[18px]" />
           </span>
-        ))}
-        <span className="inline-flex items-center rounded-full border border-border bg-surface-alt/35 px-3 py-1 text-xs font-medium text-muted">
-          {lastLabel}
+        ) : null}
+        <div className="min-w-0">
+          {eyebrow ? (
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">{eyebrow}</p>
+          ) : null}
+          <h2 className="mt-1 text-lg font-bold tracking-tight text-heading">{title}</h2>
+          {subtitle ? <p className="mt-1 text-sm leading-5 text-muted">{subtitle}</p> : null}
+        </div>
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </div>
+  );
+}
+
+const KPI_TONES = {
+  default: { icon: 'bg-primary/10 text-primary', value: 'text-heading', accent: 'before:bg-primary/40' },
+  primary: { icon: 'bg-primary/10 text-primary', value: 'text-heading', accent: 'before:bg-primary/50' },
+  success: { icon: 'bg-success-light text-success', value: 'text-heading', accent: 'before:bg-success/50' },
+  warning: { icon: 'bg-warning-light text-warning', value: 'text-warning', accent: 'before:bg-warning/60' },
+};
+
+function KpiCard({ label, value, hint, tone = 'default', icon: Icon = Activity }) {
+  const palette = KPI_TONES[tone] || KPI_TONES.default;
+  return (
+    <div
+      className={`group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:rounded-t-3xl before:opacity-0 before:transition-opacity before:content-[''] group-hover:before:opacity-100 ${palette.accent}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${palette.icon}`}>
+          <Icon className="h-5 w-5" />
         </span>
+        {tone === 'warning' && value !== '...' && Number(value) > 0 ? (
+          <span className="flex h-2.5 w-2.5 rounded-full bg-warning ring-4 ring-warning/15" />
+        ) : null}
+      </div>
+      <p className={`mt-4 text-3xl font-bold tracking-tight ${palette.value}`}>{value}</p>
+      <p className="mt-1 text-[13px] font-semibold text-heading">{label}</p>
+      {hint ? <p className="mt-0.5 text-xs leading-5 text-muted">{hint}</p> : null}
+    </div>
+  );
+}
+
+function KpiSkeleton() {
+  return (
+    <div className="flex h-full flex-col rounded-3xl border border-border bg-surface p-5 shadow-card">
+      <Skeleton className="h-11 w-11 !rounded-2xl" />
+      <Skeleton className="mt-4 h-8 w-16" />
+      <Skeleton className="mt-2 h-3.5 w-24" />
+      <Skeleton className="mt-2 h-3 w-20" />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Monthly activity chart — modern SVG area chart with a segmented control
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CHART_W = 640;
+const CHART_H = 240;
+const CHART_PX_H = 210;
+const PAD_X = 16;
+const PAD_TOP = 18;
+const PAD_BOTTOM = 16;
+
+function buildSmoothPath(points) {
+  if (!points.length) return '';
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const p0 = points[i];
+    const p1 = points[i + 1];
+    const midX = (p0.x + p1.x) / 2;
+    d += ` C ${midX} ${p0.y}, ${midX} ${p1.y}, ${p1.x} ${p1.y}`;
+  }
+  return d;
+}
+
+function MonthlyActivityChart({ buckets, isRTL, loading, emptyLabel, periodLabel, allLabel, tx }) {
+  const gradientBase = useId().replace(/[:]/g, '');
+  const [activeKey, setActiveKey] = useState('all');
+  const [hovered, setHovered] = useState(null);
+
+  const seriesDefs = useMemo(() => (buckets[0]?.parts || []).map((part) => ({
+    key: part.key,
+    label: part.label,
+    color: seriesColor(part.color),
+  })), [buckets]);
+
+  const ordered = useMemo(() => (isRTL ? [...buckets].reverse() : buckets), [buckets, isRTL]);
+
+  const hasData = buckets.length > 0 && buckets.some((bucket) => bucket.total > 0);
+
+  const activeSeries = useMemo(() => {
+    if (activeKey === 'all') return seriesDefs;
+    return seriesDefs.filter((s) => s.key === activeKey);
+  }, [activeKey, seriesDefs]);
+
+  const maxValue = useMemo(() => {
+    let max = 0;
+    ordered.forEach((bucket) => {
+      bucket.parts.forEach((part) => {
+        if (activeKey !== 'all' && part.key !== activeKey) return;
+        if (part.value > max) max = part.value;
+      });
+    });
+    return Math.max(max, 1);
+  }, [ordered, activeKey]);
+
+  const scaleMax = maxValue * 1.18;
+  const innerW = CHART_W - PAD_X * 2;
+  const innerH = CHART_H - PAD_TOP - PAD_BOTTOM;
+  const n = ordered.length;
+
+  const xFor = useCallback(
+    (index) => (n <= 1 ? CHART_W / 2 : PAD_X + (innerW * index) / (n - 1)),
+    [n, innerW]
+  );
+  const yFor = useCallback(
+    (value) => PAD_TOP + innerH - (value / scaleMax) * innerH,
+    [innerH, scaleMax]
+  );
+
+  const computedSeries = useMemo(
+    () =>
+      activeSeries.map((series) => {
+        const points = ordered.map((bucket, index) => {
+          const part = bucket.parts.find((p) => p.key === series.key);
+          return { x: xFor(index), y: yFor(part?.value || 0), value: part?.value || 0 };
+        });
+        const line = buildSmoothPath(points);
+        const area = points.length
+          ? `${line} L ${points[points.length - 1].x} ${PAD_TOP + innerH} L ${points[0].x} ${PAD_TOP + innerH} Z`
+          : '';
+        return { ...series, points, line, area };
+      }),
+    [activeSeries, ordered, xFor, yFor, innerH]
+  );
+
+  const gridLines = [0, 0.25, 0.5, 0.75, 1];
+  const single = activeSeries.length === 1;
+
+  const segments = [
+    { key: 'all', label: allLabel },
+    ...seriesDefs.map((s) => ({ key: s.key, label: s.label })),
+  ];
+
+  if (loading) {
+    return (
+      <div className="mt-6 space-y-4">
+        <Skeleton className="h-9 w-56 !rounded-2xl" />
+        <Skeleton className="h-[240px] w-full !rounded-3xl" />
+      </div>
+    );
+  }
+
+  if (!hasData) {
+    return (
+      <div className="mt-6 flex flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-surface-alt/30 py-14 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface text-muted shadow-card">
+          <BarChart3 className="h-6 w-6" />
+        </span>
+        <p className="mt-4 text-sm font-semibold text-heading">{emptyLabel}</p>
+        <p className="mt-1 text-xs text-muted">{periodLabel}</p>
+      </div>
+    );
+  }
+
+  const hoveredBucket = hovered != null ? ordered[hovered] : null;
+
+  return (
+    <div className="mt-6 space-y-5">
+      {/* Segmented control + legend */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-border bg-surface-alt/50 p-1">
+          {segments.map((segment) => {
+            const isActive = segment.key === activeKey;
+            return (
+              <button
+                key={segment.key}
+                type="button"
+                onClick={() => {
+                  setActiveKey(segment.key);
+                  setHovered(null);
+                }}
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                  isActive
+                    ? 'bg-surface text-primary shadow-sm'
+                    : 'text-muted hover:text-heading'
+                }`}
+              >
+                {segment.label}
+              </button>
+            );
+          })}
+        </div>
+        <Badge variant="default" className="gap-1.5">
+          <Clock className="h-3 w-3" />
+          {periodLabel}
+        </Badge>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        {buckets.map((bucket) => (
-          <div key={bucket.key} className="flex flex-col items-center gap-2">
-            <p className="text-xs font-semibold text-heading">{bucket.total}</p>
-            <div className="flex h-40 w-full max-w-[72px] items-end rounded-3xl border border-border bg-surface-alt/30 p-1.5">
-              <div className="flex h-full w-full flex-col justify-end overflow-hidden rounded-[18px] bg-surface">
-                {bucket.total === 0 ? (
-                  <div className="h-2 rounded-full bg-border/70" />
-                ) : (
-                  bucket.parts.map((part) => (
-                    <div
-                      key={`${bucket.key}-${part.key}`}
-                      className={part.color}
-                      style={{ height: `${(part.value / maxTotal) * 100}%` }}
-                      title={`${part.label}: ${part.value}`}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-xs font-medium text-heading">{bucket.label}</p>
-              <p className="text-[11px] text-muted">{bucket.fullLabel}</p>
+      {/* Chart */}
+      <div className="relative">
+        <div className="relative" style={{ height: CHART_PX_H }}>
+        <svg
+          viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+          className="block h-full w-full"
+          role="img"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            {computedSeries.map((series, index) => (
+              <linearGradient key={series.key} id={`${gradientBase}-${index}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={series.color} stopOpacity={single ? 0.28 : 0.16} />
+                <stop offset="100%" stopColor={series.color} stopOpacity="0" />
+              </linearGradient>
+            ))}
+          </defs>
+
+          {/* Horizontal grid lines */}
+          {gridLines.map((ratio) => {
+            const y = PAD_TOP + innerH * ratio;
+            return (
+              <line
+                key={ratio}
+                x1={PAD_X}
+                x2={CHART_W - PAD_X}
+                y1={y}
+                y2={y}
+                stroke="var(--color-border)"
+                strokeWidth="1"
+                strokeDasharray={ratio === 1 ? '0' : '4 6'}
+                opacity={ratio === 1 ? 0.9 : 0.5}
+              />
+            );
+          })}
+
+          {/* Area fills + lines */}
+          {computedSeries.map((series, index) => (
+            <g key={series.key}>
+              <path d={series.area} fill={`url(#${gradientBase}-${index})`} />
+              <path
+                d={series.line}
+                fill="none"
+                stroke={series.color}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
+          ))}
+
+          {/* Hover guide line */}
+          {hovered != null ? (
+            <line
+              x1={xFor(hovered)}
+              x2={xFor(hovered)}
+              y1={PAD_TOP}
+              y2={PAD_TOP + innerH}
+              stroke="var(--color-primary)"
+              strokeWidth="1.5"
+              strokeDasharray="3 4"
+              opacity="0.6"
+            />
+          ) : null}
+
+          {/* Invisible hover bands */}
+          {ordered.map((bucket, index) => {
+            const bandW = innerW / Math.max(n - 1, 1);
+            return (
+              <rect
+                key={`band-${bucket.key}`}
+                x={xFor(index) - bandW / 2}
+                y={0}
+                width={bandW}
+                height={CHART_H}
+                fill="transparent"
+                onMouseEnter={() => setHovered(index)}
+                onMouseLeave={() => setHovered(null)}
+              />
+            );
+          })}
+        </svg>
+
+          {/* Data points (HTML overlay — perfectly round under the stretched SVG) */}
+          {computedSeries.map((series) =>
+            series.points.map((point, index) => {
+              const active = hovered === index;
+              return (
+                <span
+                  key={`${series.key}-${index}`}
+                  className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-surface transition-all"
+                  style={{
+                    left: `${(point.x / CHART_W) * 100}%`,
+                    top: `${(point.y / CHART_H) * 100}%`,
+                    width: active ? 12 : single ? 8 : 7,
+                    height: active ? 12 : single ? 8 : 7,
+                    borderColor: series.color,
+                  }}
+                />
+              );
+            })
+          )}
+        </div>
+
+        {/* Month labels (HTML overlay — stays crisp under the stretched SVG) */}
+        <div className="relative mt-1.5 h-4">
+          {ordered.map((bucket, index) => (
+            <span
+              key={bucket.key}
+              className={`absolute -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold transition-colors ${
+                hovered === index ? 'text-primary' : 'text-muted'
+              }`}
+              style={{ left: `${(xFor(index) / CHART_W) * 100}%` }}
+            >
+              {bucket.label}
+            </span>
+          ))}
+        </div>
+
+        {/* Tooltip */}
+        {hoveredBucket ? (
+          <div
+            className="pointer-events-none absolute top-2 z-10 min-w-[150px] -translate-x-1/2 rounded-2xl border border-border bg-surface/95 p-3 shadow-dropdown backdrop-blur-sm"
+            style={{ left: `${(xFor(hovered) / CHART_W) * 100}%` }}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{hoveredBucket.fullLabel}</p>
+            <div className="mt-2 space-y-1.5">
+              {seriesDefs
+                .filter((s) => activeKey === 'all' || s.key === activeKey)
+                .map((s) => {
+                  const part = hoveredBucket.parts.find((p) => p.key === s.key);
+                  return (
+                    <div key={s.key} className="flex items-center justify-between gap-4 text-xs">
+                      <span className="flex items-center gap-1.5 text-muted">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+                        {s.label}
+                      </span>
+                      <span className="font-bold text-heading">{part?.value || 0}</span>
+                    </div>
+                  );
+                })}
+              {activeKey === 'all' ? (
+                <div className="mt-1 flex items-center justify-between gap-4 border-t border-border pt-1.5 text-xs">
+                  <span className="text-muted">{tx('Total', 'الإجمالي')}</span>
+                  <span className="font-bold text-primary">{hoveredBucket.total}</span>
+                </div>
+              ) : null}
             </div>
           </div>
-        ))}
+        ) : null}
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-3">
+        {seriesDefs.map((s) => {
+          const dimmed = activeKey !== 'all' && activeKey !== s.key;
+          return (
+            <span
+              key={s.key}
+              className={`inline-flex items-center gap-2 text-xs font-medium transition-opacity ${
+                dimmed ? 'text-muted opacity-50' : 'text-heading'
+              }`}
+            >
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+              {s.label}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -201,7 +512,12 @@ function StackedBars({ buckets, emptyLabel, lastLabel }) {
 
 function MetricBars({ items, emptyLabel }) {
   if (!items.length || items.every((item) => item.value === 0)) {
-    return <p className="text-sm text-muted">{emptyLabel}</p>;
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-alt/30 py-8 text-center">
+        <Sparkles className="h-5 w-5 text-muted" />
+        <p className="mt-2 text-sm text-muted">{emptyLabel}</p>
+      </div>
+    );
   }
   const max = Math.max(...items.map((item) => item.value), 1);
 
@@ -216,9 +532,9 @@ function MetricBars({ items, emptyLabel }) {
             </div>
             <Badge variant={item.variant || 'primary'}>{item.value}</Badge>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-surface-alt">
+          <div className="h-2.5 overflow-hidden rounded-full bg-surface-alt">
             <div
-              className={`h-full rounded-full ${item.color || 'bg-primary'}`}
+              className={`h-full rounded-full transition-all duration-500 ${item.color || 'bg-primary'}`}
               style={{ width: `${Math.max((item.value / max) * 100, item.value > 0 ? 6 : 0)}%` }}
             />
           </div>
@@ -228,33 +544,35 @@ function MetricBars({ items, emptyLabel }) {
   );
 }
 
-function QuickAction({ action, isRTL, openLabel }) {
+function QuickAction({ action, isRTL }) {
   const Icon = action.icon;
   return (
     <Link
       to={action.href}
-      className="group flex items-start justify-between gap-3 rounded-2xl border border-border bg-surface-alt/20 p-4 transition-all hover:border-primary/25 hover:bg-surface-alt/35"
+      className="group flex items-center gap-3 rounded-2xl border border-border bg-surface p-3.5 transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-card"
     >
-      <div className="flex min-w-0 gap-3">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${action.iconTone}`}>
-          <Icon className="h-4.5 w-4.5" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-heading">{action.label}</p>
-          <p className="mt-1 text-xs leading-5 text-muted">{action.desc}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Badge variant={action.variant || 'primary'}>{action.metric}</Badge>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">{openLabel}</span>
-          </div>
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${action.iconTone}`}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-sm font-semibold text-heading">{action.label}</p>
+          <Badge variant={action.variant || 'primary'}>{action.metric}</Badge>
         </div>
+        <p className="mt-0.5 truncate text-xs leading-5 text-muted">{action.desc}</p>
       </div>
       <ArrowUpRight
-        className={`mt-1 h-4 w-4 shrink-0 text-border transition-all group-hover:text-primary ${isRTL ? 'group-hover:-translate-x-0.5' : 'group-hover:translate-x-0.5'
-          }`}
+        className={`h-4 w-4 shrink-0 text-border transition-all group-hover:text-primary ${
+          isRTL ? 'group-hover:-translate-x-0.5' : 'group-hover:translate-x-0.5'
+        }`}
       />
     </Link>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dashboard
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function DashboardHome() {
   const { user, hasPermission, hasAnyPermission } = useAuth();
@@ -498,21 +816,21 @@ export default function DashboardHome() {
   }));
 
   const adminCards = [
-    canUsers ? { label: tx('Total users', 'إجمالي الأفراد'), value: usersQuery.isLoading && !usersQuery.data ? dots : usersQuery.data?.total ?? 0, hint: `${usersQuery.data?.active ?? 0} ${tx('active', 'نشط')}` } : null,
-    canUsers ? { label: tx('Families', 'العائلات'), value: usersQuery.isLoading && !usersQuery.data ? dots : usersQuery.data?.families ?? 0, hint: tx('Distinct family', 'عدد العائلات') } : null,
-    canConfessionAnalytics ? { label: tx('Confessions in 6 months', 'جلسات الاعتراف خلال 6 أشهر'), value: confAnalyticsQuery.isLoading && !confAnalyticsQuery.data ? dots : confSummary.sessionsInPeriod ?? 0, hint: `${confSummary.uniqueAttendees ?? 0} ${tx('unique people', 'شخص مختلف')}`, tone: 'primary' } : null,
-    canConfessionAlerts || canConfessionAnalytics ? { label: tx('Overdue follow-up', 'متابعة متأخرة'), value: (confAlertsQuery.isLoading && !confAlertsQuery.data) || (confAnalyticsQuery.isLoading && !confAnalyticsQuery.data) ? dots : overdueAlerts, hint: `${confSummary.upcomingSessions ?? 0} ${tx('upcoming', 'قادم')}`, tone: overdueAlerts > 0 ? 'warning' : 'success' } : null,
-    canVisitationAnalytics ? { label: tx('Visitations in 6 months', 'الزيارات خلال 6 أشهر'), value: visitAnalyticsQuery.isLoading && !visitAnalyticsQuery.data ? dots : visitSummary.visitationsInPeriod ?? 0, hint: `${visitSummary.avgDurationMinutes ?? 0} ${tx('avg. minutes', 'متوسط دقيقة')}`, tone: 'primary' } : null,
-    canVisitationAnalytics ? { label: tx('Visited houses', 'المنازل التي تمت زيارتها'), value: visitAnalyticsQuery.isLoading && !visitAnalyticsQuery.data ? dots : visitSummary.uniqueHouses ?? 0, hint: `${(visitAnalyticsQuery.data?.topRecorders || []).length} ${tx('active recorders', 'مسجل نشط')}` } : null,
+    canUsers ? { icon: Users, label: tx('Total users', 'إجمالي الأفراد'), value: usersQuery.isLoading && !usersQuery.data ? dots : usersQuery.data?.total ?? 0, hint: `${usersQuery.data?.active ?? 0} ${tx('active', 'نشط')}` } : null,
+    canUsers ? { icon: Building2, label: tx('Families', 'العائلات'), value: usersQuery.isLoading && !usersQuery.data ? dots : usersQuery.data?.families ?? 0, hint: tx('Distinct family', 'عدد العائلات') } : null,
+    canConfessionAnalytics ? { icon: CalendarCheck2, label: tx('Confessions in 6 months', 'الاعترافات اخر 6 أشهر'), value: confAnalyticsQuery.isLoading && !confAnalyticsQuery.data ? dots : confSummary.sessionsInPeriod ?? 0, hint: `${confSummary.uniqueAttendees ?? 0} ${tx('unique people', 'شخص مختلف')}`, tone: 'primary' } : null,
+    canConfessionAlerts || canConfessionAnalytics ? { icon: BellRing, label: tx('Overdue follow-up', 'متابعة متأخرة'), value: (confAlertsQuery.isLoading && !confAlertsQuery.data) || (confAnalyticsQuery.isLoading && !confAnalyticsQuery.data) ? dots : overdueAlerts, hint: `${confSummary.upcomingSessions ?? 0} ${tx('upcoming', 'قادم')}`, tone: overdueAlerts > 0 ? 'warning' : 'success' } : null,
+    canVisitationAnalytics ? { icon: Home, label: tx('Visitations in 6 months', 'الزيارات خلال 6 أشهر'), value: visitAnalyticsQuery.isLoading && !visitAnalyticsQuery.data ? dots : visitSummary.visitationsInPeriod ?? 0, hint: `${visitSummary.avgDurationMinutes ?? 0} ${tx('avg. minutes', 'متوسط دقيقة')}`, tone: 'primary' } : null,
+    canVisitationAnalytics ? { icon: Building2, label: tx('Visited houses', 'المنازل التي تمت زيارتها'), value: visitAnalyticsQuery.isLoading && !visitAnalyticsQuery.data ? dots : visitSummary.uniqueHouses ?? 0, hint: `${(visitAnalyticsQuery.data?.topRecorders || []).length} ${tx('active recorders', 'مسجل نشط')}` } : null,
   ].filter(Boolean);
 
   const memberCards = [
-    { label: tx('Profile completion', 'اكتمال الملف الشخصي'), value: meQuery.isLoading && !meQuery.data ? dots : `${profileScore}%`, hint: me?.houseName || tx('No house name yet', 'لا يوجد اسم بيت بعد'), tone: profileScore >= 70 ? 'success' : 'primary' },
-    { label: tx('Family links', 'روابط العائلة'), value: meQuery.isLoading && !meQuery.data ? dots : familyLinksCount(me), hint: me?.familyName || tx('No family name yet', 'لا يوجد اسم عائلة بعد') },
-    { label: tx('Meeting attendance', 'حضور الاجتماعات'), value: meQuery.isLoading && !meQuery.data ? dots : meetingAttendance.length, hint: `${meetings.length} ${tx('visible meetings', 'اجتماعات ظاهرة')}`, tone: 'primary' },
-    { label: tx('Divine attendance', 'حضور القداسات'), value: meQuery.isLoading && !meQuery.data ? dots : divineAttendance.length, hint: `${weeklyServices} ${tx('weekly services', 'خدمات أسبوعية')}`, tone: 'success' },
-    canBookings ? { label: tx('Pending bookings', 'الحجوزات المعلقة'), value: bookingsQuery.isLoading && !bookingsQuery.data ? dots : pendingBookings, hint: `${bookings.length} ${tx('total bookings', 'إجمالي الحجوزات')}`, tone: pendingBookings > 0 ? 'warning' : 'default' } : null,
-    canChats ? { label: tx('Unread chats', 'دردشات غير مقروءة'), value: chatsQuery.isLoading && !chatsQuery.data ? dots : unreadChats, hint: `${chats.length} ${tx('chat threads', 'محادثة')}`, tone: unreadChats > 0 ? 'warning' : 'default' } : null,
+    { icon: UserCircle, label: tx('Profile completion', 'اكتمال الملف الشخصي'), value: meQuery.isLoading && !meQuery.data ? dots : `${profileScore}%`, hint: me?.houseName || tx('No house name yet', 'لا يوجد اسم بيت بعد'), tone: profileScore >= 70 ? 'success' : 'primary' },
+    { icon: Users, label: tx('Family links', 'روابط العائلة'), value: meQuery.isLoading && !meQuery.data ? dots : familyLinksCount(me), hint: me?.familyName || tx('No family name yet', 'لا يوجد اسم عائلة بعد') },
+    { icon: CalendarDays, label: tx('Meeting attendance', 'حضور الاجتماعات'), value: meQuery.isLoading && !meQuery.data ? dots : meetingAttendance.length, hint: `${meetings.length} ${tx('visible meetings', 'اجتماعات ظاهرة')}`, tone: 'primary' },
+    { icon: Church, label: tx('Divine attendance', 'حضور القداسات'), value: meQuery.isLoading && !meQuery.data ? dots : divineAttendance.length, hint: `${weeklyServices} ${tx('weekly services', 'خدمات أسبوعية')}`, tone: 'success' },
+    canBookings ? { icon: NotebookPen, label: tx('Pending bookings', 'الحجوزات المعلقة'), value: bookingsQuery.isLoading && !bookingsQuery.data ? dots : pendingBookings, hint: `${bookings.length} ${tx('total bookings', 'إجمالي الحجوزات')}`, tone: pendingBookings > 0 ? 'warning' : 'default' } : null,
+    canChats ? { icon: MessageCircle, label: tx('Unread chats', 'دردشات غير مقروءة'), value: chatsQuery.isLoading && !chatsQuery.data ? dots : unreadChats, hint: `${chats.length} ${tx('chat threads', 'محادثة')}`, tone: unreadChats > 0 ? 'warning' : 'default' } : null,
   ].filter(Boolean);
 
   const actionTone = (warning = false) => (warning ? 'bg-warning-light text-warning' : 'bg-primary/10 text-primary');
@@ -561,122 +879,215 @@ export default function DashboardHome() {
     color: index % 2 === 0 ? 'bg-primary' : 'bg-accent',
   }));
 
+  // ── Derived presentation flags ───────────────────────────────────────────
+  const lastUpdated = useMemo(() => {
+    const stamps = [
+      usersQuery.dataUpdatedAt,
+      confAnalyticsQuery.dataUpdatedAt,
+      confAlertsQuery.dataUpdatedAt,
+      visitAnalyticsQuery.dataUpdatedAt,
+      meQuery.dataUpdatedAt,
+      meetingsQuery.dataUpdatedAt,
+      bookingsQuery.dataUpdatedAt,
+      divineQuery.dataUpdatedAt,
+    ].filter((value) => Number(value) > 0);
+    if (!stamps.length) return null;
+    return new Intl.DateTimeFormat(language === 'ar' ? 'ar-EG' : 'en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(Math.max(...stamps)));
+  }, [
+    usersQuery.dataUpdatedAt,
+    confAnalyticsQuery.dataUpdatedAt,
+    confAlertsQuery.dataUpdatedAt,
+    visitAnalyticsQuery.dataUpdatedAt,
+    meQuery.dataUpdatedAt,
+    meetingsQuery.dataUpdatedAt,
+    bookingsQuery.dataUpdatedAt,
+    divineQuery.dataUpdatedAt,
+    language,
+  ]);
+
+  const cards = systemMode ? adminCards : memberCards;
+  const cardsLoading = systemMode
+    ? usersQuery.isLoading && !usersQuery.data && canUsers
+    : meQuery.isLoading && !meQuery.data;
+  const activeBuckets = systemMode ? adminBuckets : memberBuckets;
+  const chartLoading = systemMode
+    ? (canConfessionAnalytics && confAnalyticsQuery.isLoading && !confAnalyticsQuery.data) ||
+      (canVisitationAnalytics && visitAnalyticsQuery.isLoading && !visitAnalyticsQuery.data)
+    : meQuery.isLoading && !meQuery.data;
+  const actions = systemMode ? systemActions : memberActions;
+  const periodLabel = tx('Last 6 months', 'آخر 6 أشهر');
+
   return (
-    <div className="animate-fade-in space-y-8 pb-10">
-      <PageHeader
-        className="border-b border-border pb-6"
-        eyebrow={todayLabel}
-        title={t('dashboardHome.welcome', { name: user?.fullName || '' })}
-        subtitle={
-          systemMode
-            ? tx('Live church analytics built from your system data.', 'لوحة تحليلات حية مبنية من بيانات النظام.')
-            : tx('Your own church activity, requests, and household context.', 'نشاطك الشخصي وطلباتك وسياق البيت الخاص بك.')
-        }
-        actions={(
-          <div className="flex flex-wrap gap-2">
+    <div className="animate-fade-in space-y-6 pb-10 sm:space-y-7">
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/[0.09] via-surface to-surface-alt/50 p-6 shadow-card sm:p-7">
+        <div className="pointer-events-none absolute inset-0 -z-0 overflow-hidden" aria-hidden>
+          <div className={`absolute -top-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl ${isRTL ? '-left-12' : '-right-12'}`} />
+          <div className={`absolute -bottom-20 h-44 w-44 rounded-full bg-accent/10 blur-3xl ${isRTL ? 'right-1/3' : 'left-1/3'}`} />
+        </div>
+        <div className="relative flex flex-wrap items-start justify-between gap-5">
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1 text-[11px] font-semibold text-muted backdrop-blur-sm">
+              <CalendarDays className="h-3.5 w-3.5 text-primary" />
+              {todayLabel}
+            </div>
+            <h1 className="mt-3 text-2xl font-bold tracking-tight text-heading sm:text-3xl">
+              {t('dashboardHome.welcome', { name: user?.fullName || '' })}
+            </h1>
+            <p className="mt-1.5 max-w-xl text-sm leading-6 text-muted">
+              {systemMode
+                ? tx('Live church analytics built from your system data.', 'لوحة تحليلات حية مبنية من بيانات النظام.')
+                : tx('Your own church activity, requests, and household context.', 'نشاطك الشخصي وطلباتك وسياق البيت الخاص بك.')}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-success/20 bg-success-light px-3 py-1 text-xs font-semibold text-success">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success/60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+              </span>
+              {tx('System online', 'النظام يعمل')}
+            </span>
             <Badge variant="primary">{getRoleLabel(user?.role)}</Badge>
             <Badge variant={user?.isLocked ? 'danger' : 'success'}>
               {user?.isLocked ? t('common.status.locked') : t('common.status.active')}
             </Badge>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1 text-xs font-medium text-muted">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs font-medium text-muted backdrop-blur-sm">
               <ShieldCheck className="h-3 w-3" />
               {systemMode ? tx('System analytics', 'تحليلات النظام') : tx('My analytics', 'تحليلاتي')}
             </span>
+            {lastUpdated ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs font-medium text-muted backdrop-blur-sm">
+                <Clock className="h-3 w-3" />
+                {tx('Updated', 'آخر تحديث')} {lastUpdated}
+              </span>
+            ) : null}
           </div>
-        )}
-      />
+        </div>
+      </section>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {(systemMode ? adminCards : memberCards).map((card) => (
-          <StatCard key={card.label} {...card} />
-        ))}
+      {/* ── KPI cards ────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
+        {cardsLoading && cards.length === 0
+          ? Array.from({ length: 6 }).map((_, index) => <KpiSkeleton key={index} />)
+          : cards.map((card) => <KpiCard key={card.label} {...card} />)}
       </div>
 
+      {/* ── Main analytics + Quick actions ───────────────────────────────── */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="space-y-6 xl:col-span-2">
-          <section className="rounded-3xl border border-border bg-surface p-6 shadow-card">
-            <SectionHeading
-              eyebrow={tx('Last 6 months', 'آخر 6 أشهر')}
-              title={systemMode ? tx('Monthly ministry activity', 'النشاط الشهري للخدمة') : tx('My activity timeline', 'مخطط نشاطي')}
-              subtitle={
-                systemMode
-                  ? tx('Confession sessions and visitations stacked together.', 'جلسات الاعتراف والزيارات مكدسة معًا.')
-                  : tx('Meetings, liturgies, and bookings over time.', 'الاجتماعات والقداسات والحجوزات عبر الوقت.')
-              }
-              icon={BarChart3}
-            />
-            <div className="mt-6">
-              <StackedBars
-                buckets={systemMode ? adminBuckets : memberBuckets}
-                emptyLabel={tx('No data available yet.', 'لا توجد بيانات بعد.')}
-                lastLabel={tx('Last 6 months', 'آخر 6 أشهر')}
-              />
-            </div>
-          </section>
+        <section className="rounded-3xl border border-border bg-surface p-6 shadow-card xl:col-span-2">
+          <SectionHeading
+            eyebrow={periodLabel}
+            title={systemMode ? tx('Monthly ministry activity', 'النشاط الشهري للخدمة') : tx('My activity timeline', 'مخطط نشاطي')}
+            subtitle={
+              systemMode
+                ? tx('Confession sessions and visitations across recent months.', 'جلسات الاعتراف والزيارات خلال الأشهر الأخيرة.')
+                : tx('Meetings, liturgies, and bookings over time.', 'الاجتماعات والقداسات والحجوزات عبر الوقت.')
+            }
+            icon={TrendingUp}
+          />
+          <MonthlyActivityChart
+            buckets={activeBuckets}
+            isRTL={isRTL}
+            loading={chartLoading}
+            emptyLabel={tx('No activity recorded yet.', 'لا توجد بيانات نشاط بعد.')}
+            periodLabel={periodLabel}
+            allLabel={tx('All', 'الكل')}
+            tx={tx}
+          />
+        </section>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <section className="rounded-3xl border border-border bg-surface p-6 shadow-card">
-              <SectionHeading
-                eyebrow={systemMode ? tx('Confession analytics', 'تحليلات الاعتراف') : tx('Household details', 'تفاصيل البيت')}
-                title={systemMode ? tx('Confession session mix', 'توزيع أنواع جلسات الاعتراف') : tx('Family and household context', 'سياق العائلة والبيت')}
-                subtitle={
-                  systemMode
-                    ? tx('The session types most used in the current period.', 'أكثر أنواع الجلسات استخدامًا في الفترة الحالية.')
-                    : tx('House data available from your own profile record.', 'بيانات البيت المتاحة من ملفك الشخصي فقط.')
-                }
-              />
-              {!systemMode ? (
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <Badge variant="secondary">{tx('Family', 'العائلة')}: {me?.familyName || tx('No family name yet', 'لا يوجد اسم عائلة بعد')}</Badge>
-                  <Badge variant="primary">{tx('House', 'البيت')}: {me?.houseName || tx('No house name yet', 'لا يوجد اسم بيت بعد')}</Badge>
-                </div>
-              ) : null}
-              <div className="mt-6">
-                <MetricBars
-                  items={systemMode ? confessionItems : familyItems}
-                  emptyLabel={tx('No data available yet.', 'لا توجد بيانات بعد.')}
-                />
-              </div>
-            </section>
-
-            <section className="rounded-3xl border border-border bg-surface p-6 shadow-card">
-              <SectionHeading
-                eyebrow={systemMode ? tx('Visitation analytics', 'تحليلات الزيارات') : tx('My bookings', 'حجوزاتي')}
-                title={systemMode ? tx('Top visited houses', 'أكثر المنازل افتقادًا') : tx('My booking status', 'حالة حجوزاتي')}
-                subtitle={
-                  systemMode
-                    ? tx('Homes receiving the highest visitation volume.', 'المنازل التي تستقبل أكبر حجم من الزيارات.')
-                    : tx('How your requests are distributed right now.', 'توزيع طلباتك الحالية حسب الحالة.')
-                }
-              />
-              <div className="mt-6">
-                <MetricBars
-                  items={systemMode ? houseItems : bookingItems}
-                  emptyLabel={systemMode ? tx('No data available yet.', 'لا توجد بيانات بعد.') : tx('You have not submitted any bookings yet.', 'لم تقم بإرسال أي حجز بعد.')}
-                />
-              </div>
-            </section>
+        <section className="flex flex-col rounded-3xl border border-border bg-surface p-6 shadow-card">
+          <SectionHeading
+            eyebrow={tx('Shortcuts', 'اختصارات')}
+            title={tx('Quick actions', 'إجراءات سريعة')}
+            subtitle={tx('Jump into the modules you need next.', 'انتقل سريعًا إلى الوحدات التي تحتاجها.')}
+            icon={Sparkles}
+          />
+          <div className="mt-6 space-y-3">
+            {actions.length === 0 ? (
+              <p className="text-sm text-muted">{tx('No quick actions are available for your current access.', 'لا توجد إجراءات سريعة ضمن صلاحياتك الحالية.')}</p>
+            ) : (
+              actions.map((action) => (
+                <QuickAction key={action.href} action={action} isRTL={isRTL} />
+              ))
+            )}
           </div>
-        </div>
+        </section>
+      </div>
 
-        <div className="space-y-6">
-          <section className="rounded-3xl border border-border bg-surface p-6 shadow-card">
-            <SectionHeading
-              eyebrow={tx('Open', 'فتح')}
-              title={tx('Quick actions', 'إجراءات سريعة')}
-              subtitle={tx('Use the dashboard as a launchpad into the modules you need next.', 'استخدم لوحة البداية للوصول السريع إلى الوحدات التي تحتاجها.')}
-            />
-            <div className="mt-6 space-y-3">
-              {(systemMode ? systemActions : memberActions).length === 0 ? (
-                <p className="text-sm text-muted">{tx('No quick actions are available for your current access.', 'لا توجد إجراءات سريعة ضمن صلاحياتك الحالية.')}</p>
-              ) : (
-                (systemMode ? systemActions : memberActions).map((action) => (
-                  <QuickAction key={action.href} action={action} isRTL={isRTL} openLabel={tx('Open', 'فتح')} />
-                ))
-              )}
+      {/* ── Insight cards ────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <section className="rounded-3xl border border-border bg-surface p-6 shadow-card">
+          <SectionHeading
+            eyebrow={systemMode ? tx('Confession analytics', 'تحليلات الاعتراف') : tx('Household details', 'تفاصيل البيت')}
+            title={systemMode ? tx('Confession session mix', 'توزيع أنواع جلسات الاعتراف') : tx('Family and household context', 'سياق العائلة والبيت')}
+            subtitle={
+              systemMode
+                ? tx('Most used session types this period.', 'أكثر أنواع الجلسات استخدامًا في الفترة الحالية.')
+                : tx('House data from your own profile record.', 'بيانات البيت المتاحة من ملفك الشخصي فقط.')
+            }
+            icon={BarChart3}
+          />
+          {!systemMode ? (
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Badge variant="secondary">{tx('Family', 'العائلة')}: {me?.familyName || tx('No family name yet', 'لا يوجد اسم عائلة بعد')}</Badge>
+              <Badge variant="primary">{tx('House', 'البيت')}: {me?.houseName || tx('No house name yet', 'لا يوجد اسم بيت بعد')}</Badge>
             </div>
-          </section>
-        </div>
+          ) : null}
+          <div className="mt-6">
+            <MetricBars
+              items={systemMode ? confessionItems : familyItems}
+              emptyLabel={tx('No data available yet.', 'لا توجد بيانات بعد.')}
+            />
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-border bg-surface p-6 shadow-card">
+          <SectionHeading
+            eyebrow={systemMode ? tx('Visitation analytics', 'تحليلات الزيارات') : tx('My bookings', 'حجوزاتي')}
+            title={systemMode ? tx('Top visited houses', 'أكثر المنازل افتقادًا') : tx('My booking status', 'حالة حجوزاتي')}
+            subtitle={
+              systemMode
+                ? tx('Homes receiving the most visitation volume.', 'المنازل التي تستقبل أكبر حجم من الزيارات.')
+                : tx('How your requests are distributed right now.', 'توزيع طلباتك الحالية حسب الحالة.')
+            }
+            icon={Home}
+          />
+          <div className="mt-6">
+            <MetricBars
+              items={systemMode ? houseItems : bookingItems}
+              emptyLabel={systemMode ? tx('No data available yet.', 'لا توجد بيانات بعد.') : tx('You have not submitted any bookings yet.', 'لم تقم بإرسال أي حجز بعد.')}
+            />
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-border bg-surface p-6 shadow-card">
+          <SectionHeading
+            eyebrow={tx('Summary', 'ملخص')}
+            title={systemMode ? tx('Key highlights', 'أبرز المؤشرات') : tx('At a glance', 'لمحة سريعة')}
+            subtitle={
+              systemMode
+                ? tx('Standout figures from the current period.', 'أبرز الأرقام من الفترة الحالية.')
+                : tx('A quick look at your church activity.', 'نظرة سريعة على نشاطك في الكنيسة.')
+            }
+            icon={Activity}
+          />
+          <div className="mt-6 space-y-2.5">
+            {highlights.map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface-alt/30 px-4 py-3"
+              >
+                <span className="text-xs font-medium text-muted">{item.label}</span>
+                <span className="truncate text-sm font-semibold text-heading">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
