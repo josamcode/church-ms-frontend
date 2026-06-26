@@ -87,6 +87,7 @@ export default function Table({
   sortField,
   sortOrder,
   onSort,
+  renderMode = 'auto',
 }) {
   const { isRTL, t } = useI18n();
   const isSmallScreen = useIsSmallScreen();
@@ -97,7 +98,10 @@ export default function Table({
     (column) => column !== primaryColumn && !isActionColumn(column)
   );
   const actionColumns = columns.filter((column) => column !== primaryColumn && isActionColumn(column));
-  const showCardView = isSmallScreen && mobileView === 'cards';
+  const controlledRenderMode = renderMode === 'cards' || renderMode === 'table' ? renderMode : 'auto';
+  const showCardView =
+    controlledRenderMode === 'cards' ||
+    (controlledRenderMode === 'auto' && isSmallScreen && mobileView === 'cards');
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -128,7 +132,7 @@ export default function Table({
 
   return (
     <div className="space-y-3">
-      {isSmallScreen && (
+      {controlledRenderMode === 'auto' && isSmallScreen && (
         <div dir="ltr" className="flex justify-start">
           <div className="inline-flex items-center gap-1 rounded-sm border border-border/70 bg-surface/95 p-1 m-2 mb-0 shadow-card backdrop-blur-sm">
             <button

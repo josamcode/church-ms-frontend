@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus, Eye, Edit, Lock, Unlock, Trash2,
-  Users, UserCheck,
+  Users, UserCheck, Flame, LayoutGrid, TableProperties,
 } from 'lucide-react';
 import { usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
@@ -17,8 +17,57 @@ import Pagination from '../../../components/ui/Pagination';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Modal from '../../../components/ui/Modal';
 import PageHeader from '../../../components/ui/PageHeader';
+import EmptyState from '../../../components/ui/EmptyState';
 import toast from 'react-hot-toast';
 import { AGE_GROUPS, formatAgeFromBirthDate, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
+import { AGE_GROUP_VALUES } from '../../../constants/householdProfiles';
+
+const USERS_VIEW_MODE_STORAGE_KEY = 'users:viewMode';
+const DESKTOP_QUERY = '(min-width: 640px)';
+const AGE_GROUP_TONES = ['child', 'teenager', 'young', 'middleAge', 'senior'];
+
+const AGE_GROUP_BADGE_CLASSES = {
+  child: 'bg-slate-50 text-slate-500 ring-slate-200',
+  teenager: 'bg-violet-50 text-violet-600 ring-violet-200',
+  young: 'bg-emerald-50 text-emerald-600 ring-emerald-200',
+  middleAge: 'bg-amber-50 text-amber-600 ring-amber-200',
+  senior: 'bg-rose-50 text-rose-600 ring-rose-200',
+  unknown: 'bg-surface-alt text-muted ring-border',
+};
+
+const AGE_GROUP_FALLBACK_TONES = {
+  child: 'child',
+  children: 'child',
+  kid: 'child',
+  teenager: 'teenager',
+  teen: 'teenager',
+  young: 'young',
+  youth: 'young',
+  middle_age: 'middleAge',
+  middle_aged: 'middleAge',
+  senior: 'senior',
+  elderly: 'senior',
+};
+
+function normalizeViewMode(value) {
+  return value === 'cards' ? 'cards' : 'table';
+}
+
+function getDefaultUsersViewMode() {
+  if (typeof window === 'undefined') return 'table';
+
+  const stored = window.localStorage.getItem(USERS_VIEW_MODE_STORAGE_KEY);
+  if (stored === 'table' || stored === 'cards') return stored;
+
+  const isDesktop =
+    typeof window.matchMedia === 'function' && window.matchMedia(DESKTOP_QUERY).matches;
+  return isDesktop ? 'table' : 'cards';
+}
+
+function persistUsersViewMode(nextMode) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(USERS_VIEW_MODE_STORAGE_KEY, nextMode);
+}
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Helpers
@@ -29,12 +78,198 @@ function getInitial(name) {
   return String(name).trim().charAt(0).toUpperCase();
 }
 
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function getGenderTone(value) {
+  const normalized = normalizeText(value);
+  if (['male', 'm', 'ذكر', 'ولد', 'رجل'].includes(normalized)) return 'male';
+  if (['female', 'f', 'أنثى', 'انثى', 'بنت', 'سيدة'].includes(normalized)) return 'female';
+  return 'unknown';
+}
+
+function getAvatarToneClass(gender) {
+  const tone = getGenderTone(gender);
+  if (tone === 'male') return 'border-sky-200 ring-sky-200 bg-sky-50 text-sky-700';
+  if (tone === 'female') return 'border-pink-200 ring-pink-200 bg-pink-50 text-pink-700';
+  return 'border-border ring-border bg-surface-alt text-muted';
+}
+
+function getAgeGroupTone(ageGroup) {
+  const normalized = normalizeText(ageGroup);
+  if (!normalized) return 'unknown';
+
+  const existingValueIndex = AGE_GROUP_VALUES.findIndex((value) => normalizeText(value) === normalized);
+  if (existingValueIndex >= 0) return AGE_GROUP_TONES[existingValueIndex] || 'unknown';
+
+  const localizedValueIndex = AGE_GROUPS.findIndex((value) => normalizeText(value) === normalized);
+  if (localizedValueIndex >= 0) return AGE_GROUP_TONES[localizedValueIndex] || 'unknown';
+
+  return AGE_GROUP_FALLBACK_TONES[normalized] || 'unknown';
+}
+
+function getUserPhone(user) {
+  return user.phonePrimary || user.phone || user.mobile || user.mobileNumber || '';
+}
+
 /** Thin overline section label — shared pattern across redesigned pages */
 function SectionLabel({ children }) {
   return (
     <div className="flex items-center gap-3">
       <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{children}</span>
       <div className="h-px flex-1 bg-border/60" />
+    </div>
+  );
+}
+
+function ViewModeToggle({ value, onChange, t }) {
+  const options = [
+    { value: 'table', icon: TableProperties, label: t('common.table.tableView') },
+    { value: 'cards', icon: LayoutGrid, label: t('common.table.cardsView') },
+  ];
+
+  return (
+    <div dir="ltr" className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-border/80 bg-surface p-1 shadow-sm">
+      {options.map((option) => {
+        const Icon = option.icon;
+        const active = value === option.value;
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            aria-pressed={active}
+            aria-label={option.label}
+            title={option.label}
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
+              active
+                ? 'bg-primary text-white shadow-sm'
+                : 'text-muted hover:bg-surface-alt hover:text-heading'
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            <span className="sr-only">{option.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function AgeGroupBadge({ ageGroup }) {
+  const tone = getAgeGroupTone(ageGroup);
+
+  return (
+    <span
+      className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full ring-1 ${AGE_GROUP_BADGE_CLASSES[tone] || AGE_GROUP_BADGE_CLASSES.unknown}`}
+      aria-label={ageGroup || 'Unknown age group'}
+      title={ageGroup || 'Unknown age group'}
+    >
+      <Flame className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+    </span>
+  );
+}
+
+function UserMemberCard({ user, actions, onOpen, emptyValue }) {
+  const phone = getUserPhone(user);
+  const avatarClassName = getAvatarToneClass(user.gender);
+
+  return (
+    <article
+      dir="rtl"
+      className="group flex min-h-[84px] items-center gap-3 rounded-2xl border border-border/80 bg-white px-3 py-2.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-card"
+    >
+      <button
+        type="button"
+        onClick={onOpen}
+        className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 text-sm font-bold ring-2 ring-offset-2 ring-offset-white transition-colors ${avatarClassName}`}
+        aria-label={user.fullName || emptyValue}
+      >
+        {user.avatar?.url ? (
+          <img
+            src={user.avatar.url}
+            alt=""
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span aria-hidden="true">{getInitial(user.fullName)}</span>
+        )}
+      </button>
+
+      <button
+        type="button"
+        onClick={onOpen}
+        className="min-w-0 flex-1 text-right"
+      >
+        <p className="truncate text-sm font-bold leading-5 text-heading transition-colors group-hover:text-primary">
+          {user.fullName || emptyValue}
+        </p>
+        <p className="mt-0.5 truncate text-xs font-medium leading-4 text-muted">
+          {user.familyName || emptyValue}
+        </p>
+        <p dir="ltr" className="mt-0.5 truncate text-right text-[11px] font-medium leading-4 text-muted/90">
+          {phone || emptyValue}
+        </p>
+      </button>
+
+      <AgeGroupBadge ageGroup={user.ageGroup} />
+
+      <div className="shrink-0">
+        <RowActions actions={actions} />
+      </div>
+    </article>
+  );
+}
+
+function UsersCardsGrid({
+  users,
+  loading,
+  skeletonRows,
+  emptyTitle,
+  emptyDescription,
+  emptyIcon,
+  getActions,
+  onOpenUser,
+  emptyValue,
+}) {
+  if (!loading && users.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-surface">
+        <EmptyState title={emptyTitle} description={emptyDescription} icon={emptyIcon} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+      {loading
+        ? Array.from({ length: skeletonRows }).map((_, index) => (
+          <div
+            key={index}
+            className="flex min-h-[84px] animate-pulse items-center gap-3 rounded-2xl border border-border/80 bg-white px-3 py-2.5 shadow-sm"
+          >
+            <div className="h-12 w-12 shrink-0 rounded-full bg-surface-alt" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="h-4 w-2/3 rounded bg-surface-alt" />
+              <div className="h-3 w-1/2 rounded bg-surface-alt" />
+              <div className="h-3 w-1/3 rounded bg-surface-alt" />
+            </div>
+            <div className="h-7 w-7 shrink-0 rounded-full bg-surface-alt" />
+            <div className="h-8 w-8 shrink-0 rounded-md bg-surface-alt" />
+          </div>
+        ))
+        : users.map((user) => (
+          <UserMemberCard
+            key={user._id || user.id}
+            user={user}
+            actions={getActions(user)}
+            onOpen={() => onOpenUser(user)}
+            emptyValue={emptyValue}
+          />
+        ))}
     </div>
   );
 }
@@ -55,6 +290,7 @@ export default function UsersListPage() {
   const [limit] = useState(100);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [viewMode, setViewMode] = useState(getDefaultUsersViewMode);
 
   const queryParams = {
     limit, sort: 'createdAt', order: 'desc',
@@ -137,9 +373,32 @@ export default function UsersListPage() {
     }
   };
 
+  const handleViewModeChange = useCallback((nextMode) => {
+    const normalizedMode = normalizeViewMode(nextMode);
+    setViewMode(normalizedMode);
+    persistUsersViewMode(normalizedMode);
+  }, []);
+
+  const getUserActions = useCallback((row) => [
+    { label: t('common.actions.view'), icon: Eye, onClick: () => navigate(`/dashboard/users/${row._id}`) },
+    ...(hasPermission('USERS_UPDATE')
+      ? [{ label: t('common.actions.edit'), icon: Edit, onClick: () => navigate(`/dashboard/users/${row._id}/edit`) }]
+      : []),
+    ...(hasPermission('USERS_LOCK') && !row.isLocked
+      ? [{ label: t('common.actions.lock'), icon: Lock, onClick: () => navigate(`/dashboard/users/${row._id}/lock`) }]
+      : []),
+    ...(hasPermission('USERS_UNLOCK') && row.isLocked
+      ? [{ label: t('common.actions.unlock'), icon: Unlock, onClick: () => navigate(`/dashboard/users/${row._id}/unlock`) }]
+      : []),
+    ...(hasPermission('USERS_DELETE')
+      ? [{ divider: true }, { label: t('common.actions.delete'), icon: Trash2, danger: true, onClick: () => setDeleteTarget(row) }]
+      : []),
+  ], [hasPermission, navigate, t]);
+
   const hasActiveFilters = useMemo(() => Object.values(filters).some(Boolean), [filters]);
   const lockedCount = useMemo(() => users.filter((r) => r.isLocked).length, [users]);
   const activeCount = users.length - lockedCount;
+  const emptyValue = t('common.placeholder.empty');
 
   const roleOptions = [
     { value: 'SUPER_ADMIN', label: getRoleLabel('SUPER_ADMIN') },
@@ -212,26 +471,10 @@ export default function UsersListPage() {
       label: '',
       cellClassName: 'w-10',
       render: (row) => (
-        <RowActions
-          actions={[
-            { label: t('common.actions.view'), icon: Eye, onClick: () => navigate(`/dashboard/users/${row._id}`) },
-            ...(hasPermission('USERS_UPDATE')
-              ? [{ label: t('common.actions.edit'), icon: Edit, onClick: () => navigate(`/dashboard/users/${row._id}/edit`) }]
-              : []),
-            ...(hasPermission('USERS_LOCK') && !row.isLocked
-              ? [{ label: t('common.actions.lock'), icon: Lock, onClick: () => navigate(`/dashboard/users/${row._id}/lock`) }]
-              : []),
-            ...(hasPermission('USERS_UNLOCK') && row.isLocked
-              ? [{ label: t('common.actions.unlock'), icon: Unlock, onClick: () => navigate(`/dashboard/users/${row._id}/unlock`) }]
-              : []),
-            ...(hasPermission('USERS_DELETE')
-              ? [{ divider: true }, { label: t('common.actions.delete'), icon: Trash2, danger: true, onClick: () => setDeleteTarget(row) }]
-              : []),
-          ]}
-        />
+        <RowActions actions={getUserActions(row)} />
       ),
     },
-  ], [hasPermission, navigate, t]);
+  ], [getUserActions, navigate, t]);
 
   /* ── render ── */
   return (
@@ -352,26 +595,48 @@ export default function UsersListPage() {
 
       {/* ══ TABLE ═════════════════════════════════════════════════════════ */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <SectionLabel>{t('usersListPage.table.title')}</SectionLabel>
-          <span className="text-xs text-muted">
-            {t('usersListPage.table.results', { count: meta?.count ?? users.length })}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted">
+              {t('usersListPage.table.results', { count: meta?.count ?? users.length })}
+            </span>
+            <ViewModeToggle value={viewMode} onChange={handleViewModeChange} t={t} />
+          </div>
         </div>
 
         <div className="overflow-hidden tttable">
-          <Table
-            columns={columns}
-            data={users}
-            loading={isLoading}
-            emptyTitle={t('usersListPage.empty.title')}
-            emptyDescription={
-              hasActiveFilters
-                ? t('usersListPage.empty.descriptionFiltered')
-                : t('usersListPage.empty.descriptionDefault')
-            }
-            emptyIcon={Users}
-          />
+          {viewMode === 'cards' ? (
+            <UsersCardsGrid
+              users={users}
+              loading={isLoading}
+              skeletonRows={5}
+              emptyTitle={t('usersListPage.empty.title')}
+              emptyDescription={
+                hasActiveFilters
+                  ? t('usersListPage.empty.descriptionFiltered')
+                  : t('usersListPage.empty.descriptionDefault')
+              }
+              emptyIcon={Users}
+              getActions={getUserActions}
+              onOpenUser={(user) => navigate(`/dashboard/users/${user._id}`)}
+              emptyValue={emptyValue}
+            />
+          ) : (
+            <Table
+              columns={columns}
+              data={users}
+              loading={isLoading}
+              emptyTitle={t('usersListPage.empty.title')}
+              emptyDescription={
+                hasActiveFilters
+                  ? t('usersListPage.empty.descriptionFiltered')
+                  : t('usersListPage.empty.descriptionDefault')
+              }
+              emptyIcon={Users}
+              renderMode="table"
+            />
+          )}
 
           <div className="border-t border-border px-4 pb-4 pt-2">
             <Pagination
