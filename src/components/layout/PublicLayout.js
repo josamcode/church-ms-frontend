@@ -33,7 +33,7 @@ export default function PublicLayout() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const { t, isRTL } = useI18n();
-  const { text, socialLinks } = useLandingPublicContent();
+  const { text, getOptionalText, socialLinks } = useLandingPublicContent();
 
   useEffect(() => {
     const handler = () => {
@@ -57,9 +57,10 @@ export default function PublicLayout() {
       { label: text('publicLayout.about'), href: '#about' },
       { label: text('publicLayout.priests'), href: '#priests' },
       { label: text('publicLayout.verses'), href: '#verses' },
+      { label: getOptionalText('publicLayout.archive', 'Archive'), href: '/archive' },
       { label: text('publicLayout.visit'), href: '#visit' },
     ],
-    [text]
+    [text, getOptionalText]
   );
 
   const enabledSocialLinks = useMemo(
@@ -72,6 +73,7 @@ export default function PublicLayout() {
 
   const isLinkActive = (href) => {
     if (href === '/') return location.pathname === '/' && !location.hash;
+    if (href.startsWith('/')) return location.pathname === href;
     return location.pathname === '/' && location.hash === href;
   };
 

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   Award,
@@ -9,10 +10,9 @@ import {
   ExternalLink,
   FileText,
   FolderOpen,
-  ImagePlus,
   Pencil,
+  Plus,
   RefreshCw,
-  Save,
   Trash2,
   X,
 } from 'lucide-react';
@@ -25,12 +25,9 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
-import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
-import Select from '../../../components/ui/Select';
 import StatCard from '../../../components/ui/StatCard';
 import Skeleton from '../../../components/ui/Skeleton';
-import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
 
 const DEFAULT_ARCHIVE_DATA = {
@@ -46,18 +43,6 @@ const DEFAULT_ARCHIVE_DATA = {
     publishedHonorees: 0,
   },
 };
-
-function createEmptyCollectionForm() {
-  return {
-    id: null,
-    title: '',
-    slug: '',
-    description: '',
-    narrative: '',
-    status: 'draft',
-    photos: [],
-  };
-}
 
 function createEmptyStoryForm() {
   return {
@@ -102,142 +87,6 @@ function formatDateValue(value, locale, emptyLabel) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString(locale);
-}
-
-function PhotoGalleryEditor({
-  label,
-  photos,
-  onChange,
-  onUpload,
-  uploading,
-  canUpload,
-  readOnly,
-}) {
-  const { t } = useI18n();
-  const inputRef = useRef(null);
-
-  const updateCaption = (index, caption) => {
-    const next = [...photos];
-    next[index] = {
-      ...next[index],
-      caption,
-    };
-    onChange(next);
-  };
-
-  const removePhoto = (index) => {
-    onChange(photos.filter((_, currentIndex) => currentIndex !== index));
-  };
-
-  const handleFileChange = async (event) => {
-    const files = Array.from(event.target.files || []);
-    event.target.value = '';
-    if (!files.length) return;
-
-    const validFiles = files.filter((file) => file.type.startsWith('image/'));
-
-    if (!validFiles.length) {
-      toast.error(t('archivePage.gallery.invalidImage'));
-      return;
-    }
-
-    if (validFiles.length !== files.length) {
-      toast.error(t('archivePage.gallery.invalidImage'));
-    }
-
-    const uploadedPhotos = [];
-
-    for (const file of validFiles) {
-      try {
-        const uploaded = await onUpload(file);
-        if (uploaded?.url) {
-          uploadedPhotos.push(uploaded);
-        }
-      } catch (_error) {
-        // Upload errors are already handled by the mutation.
-      }
-    }
-
-    if (uploadedPhotos.length) {
-      onChange([...(photos || []), ...uploadedPhotos]);
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-heading">{label}</p>
-        {!readOnly && canUpload ? (
-          <>
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
-              multiple
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              icon={ImagePlus}
-              loading={uploading}
-              onClick={() => inputRef.current?.click()}
-            >
-              {t('archivePage.gallery.uploadImage')}
-            </Button>
-          </>
-        ) : null}
-      </div>
-
-      {!canUpload && !readOnly ? (
-        <p className="text-xs text-muted">
-          {t('archivePage.gallery.uploadPermissionHint')}
-        </p>
-      ) : null}
-
-      {!photos?.length ? (
-        <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted">
-          {t('archivePage.gallery.noPhotos')}
-        </div>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {photos.map((photo, index) => (
-            <div key={`${photo.storageKey || photo.url}-${index}`} className="rounded-2xl border border-border p-3">
-              <img
-                src={photo.url}
-                alt={photo.caption || ''}
-                className="mb-3 h-40 w-full rounded-xl object-cover"
-              />
-              {readOnly ? (
-                <p className="text-xs text-muted">{photo.caption || '---'}</p>
-              ) : (
-                <div className="space-y-3">
-                  <Input
-                    label={t('archivePage.gallery.caption')}
-                    value={photo.caption || ''}
-                    onChange={(event) => updateCaption(index, event.target.value)}
-                    containerClassName="!mb-0"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    icon={Trash2}
-                    className="text-danger"
-                    onClick={() => removePhoto(index)}
-                  >
-                    {t('archivePage.gallery.removePhoto')}
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 function ArchiveListItem({
@@ -777,7 +626,7 @@ export default function ArchiveManagementPage() {
   const { t, language } = useI18n();
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
-  const [collectionForm, setCollectionForm] = useState(createEmptyCollectionForm);
+  const navigate = useNavigate();
   const [storyForm, setStoryForm] = useState(createEmptyStoryForm);
   const [honoreeForm, setHonoreeForm] = useState(createEmptyHonoreeForm);
   const [activeCollectionId, setActiveCollectionId] = useState(null);
@@ -793,7 +642,6 @@ export default function ArchiveManagementPage() {
   const formatArchiveDate = (value) => formatDateValue(value, locale, ta('placeholders.noDate'));
 
   const canViewArchive = hasPermission('ARCHIVE_VIEW');
-  const canUpload = hasPermission('ARCHIVE_UPLOAD');
   const canManageCollections = hasPermission('ARCHIVE_COLLECTIONS_MANAGE');
   const canManageStories = hasPermission('ARCHIVE_STORIES_MANAGE');
   const canManageHonorees = hasPermission('ARCHIVE_HONOREES_MANAGE');
@@ -821,14 +669,6 @@ export default function ArchiveManagementPage() {
   });
 
   const archiveData = archiveQuery.data || DEFAULT_ARCHIVE_DATA;
-
-  const statusOptions = useMemo(() => {
-    const base = [{ value: 'draft', label: ta('status.draft') }];
-    if (canPublish) {
-      base.push({ value: 'published', label: ta('status.published') });
-    }
-    return base;
-  }, [canPublish, ta]);
 
   const collectionDirectory = useMemo(
     () =>
@@ -925,38 +765,8 @@ export default function ArchiveManagementPage() {
     queryClient.setQueryData(['archive', 'manage'], payload);
   };
 
-  const resetCollectionForm = () => setCollectionForm(createEmptyCollectionForm());
   const resetStoryForm = () => setStoryForm(createEmptyStoryForm());
   const resetHonoreeForm = () => setHonoreeForm(createEmptyHonoreeForm());
-
-  const uploadImageMutation = useMutation({
-    mutationFn: async (file) => {
-      const { data } = await archiveApi.uploadImage(file);
-      return data?.data || null;
-    },
-    onError: (error) => {
-      toast.error(normalizeApiError(error).message);
-    },
-  });
-
-  const saveCollectionMutation = useMutation({
-    mutationFn: async (payload) => {
-      if (payload.id) {
-        const { data } = await archiveApi.updateCollection(payload.id, payload);
-        return data?.data || null;
-      }
-      const { data } = await archiveApi.createCollection(payload);
-      return data?.data || null;
-    },
-    onSuccess: (payload) => {
-      syncPayload(payload);
-      resetCollectionForm();
-      toast.success(ta('messages.collectionSaved'));
-    },
-    onError: (error) => {
-      toast.error(normalizeApiError(error).message);
-    },
-  });
 
   const deleteCollectionMutation = useMutation({
     mutationFn: async (id) => {
@@ -965,9 +775,6 @@ export default function ArchiveManagementPage() {
     },
     onSuccess: (payload) => {
       syncPayload(payload);
-      if (collectionForm.id && !payload.collections.some((entry) => entry.id === collectionForm.id)) {
-        resetCollectionForm();
-      }
       toast.success(ta('messages.collectionDeleted'));
     },
     onError: (error) => {
@@ -1047,10 +854,12 @@ export default function ArchiveManagementPage() {
     },
   });
 
-  const uploadArchivePhoto = async (file) => uploadImageMutation.mutateAsync(file);
   const openCollectionBrowser = (collection) => {
     setActiveCollectionId(collection.id);
   };
+  const goToNewCollection = () => navigate('/dashboard/archive/collections/new');
+  const goToEditCollection = (collection) =>
+    navigate(`/dashboard/archive/collections/${collection.id}/edit`);
   const openImageLightbox = useCallback((collection, photoIndex = 0) => {
     if (!collection?.photos?.length) return;
     setLightboxCollectionId(collection.id);
@@ -1141,16 +950,7 @@ export default function ArchiveManagementPage() {
       return;
     }
 
-    openCollectionBrowser(collection);
-    setCollectionForm({
-      id: collection.id,
-      title: collection.title || '',
-      slug: collection.slug || '',
-      description: collection.description || '',
-      narrative: collection.narrative || '',
-      status: collection.status || 'draft',
-      photos: collection.photos || [],
-    });
+    goToEditCollection(collection);
   };
 
   const selectStoryForEdit = (story) => {
@@ -1219,18 +1019,6 @@ export default function ArchiveManagementPage() {
     if (window.confirm(ta('confirmations.deleteHonoree', { name: honoree.fullName }))) {
       deleteHonoreeMutation.mutate(honoree.id);
     }
-  };
-
-  const handleCollectionSubmit = () => {
-    saveCollectionMutation.mutate({
-      id: collectionForm.id,
-      title: collectionForm.title,
-      slug: collectionForm.slug,
-      description: collectionForm.description,
-      narrative: collectionForm.narrative,
-      status: collectionForm.status,
-      photos: collectionForm.photos,
-    });
   };
 
   const handleStorySubmit = () => {
@@ -1361,6 +1149,11 @@ export default function ArchiveManagementPage() {
               <Button variant="outline" icon={RefreshCw} onClick={() => archiveQuery.refetch()}>
                 {ta('actions.refresh')}
               </Button>
+              {canManageCollections ? (
+                <Button icon={Plus} onClick={goToNewCollection}>
+                  {ta('actions.createCollection')}
+                </Button>
+              ) : null}
             </div>
           ) : null
         )}
@@ -1400,7 +1193,7 @@ export default function ArchiveManagementPage() {
               />
               <div
                 className={`grid gap-6 ${
-                  canManageCollections && collectionDirectory.length
+                  collectionDirectory.length
                     ? 'xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]'
                     : ''
                 }`}
@@ -1412,6 +1205,11 @@ export default function ArchiveManagementPage() {
                         icon={FolderOpen}
                         title={ta('collections.empty.title')}
                         description={ta('collections.empty.description')}
+                        action={(
+                          <Button icon={Plus} onClick={goToNewCollection}>
+                            {ta('actions.createCollection')}
+                          </Button>
+                        )}
                       />
                     ) : null
                   ) : (
@@ -1430,98 +1228,21 @@ export default function ArchiveManagementPage() {
                   )}
                 </div>
 
-                {collectionDirectory.length || canManageCollections ? (
+                {collectionDirectory.length ? (
                   <div className="space-y-6">
-                    {collectionDirectory.length ? (
-                      <CollectionBrowserPanel
-                        collection={activeCollection}
-                        onOpenImage={(photoIndex) => openImageLightbox(activeCollection, photoIndex)}
-                        storyCount={activeCollectionStoryCount}
-                        honoreeCount={activeCollectionHonoreeCount}
-                        relatedStories={activeCollectionStories}
-                        relatedHonorees={activeCollectionHonorees}
-                        formatArchiveDate={formatArchiveDate}
-                        canEdit={canManageCollections && (canPublish || activeCollection?.status !== 'published')}
-                        canDelete={canManageCollections && (canPublish || activeCollection?.status !== 'published')}
-                        onEdit={activeCollection ? () => selectCollectionForEdit(activeCollection) : undefined}
-                        onDelete={activeCollection ? () => confirmDeleteCollection(activeCollection) : undefined}
-                      />
-                    ) : null}
-
-                    {canManageCollections ? (
-                      <div className="space-y-4 rounded-[28px] border border-border bg-page/50 p-5 xl:sticky xl:top-24">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-semibold text-heading">
-                            {collectionForm.id ? ta('collections.form.editTitle') : ta('collections.form.newTitle')}
-                          </p>
-                          {collectionForm.id ? (
-                            <Button type="button" variant="ghost" size="sm" onClick={resetCollectionForm}>
-                              {t('common.actions.cancel')}
-                            </Button>
-                          ) : null}
-                        </div>
-                        <Input
-                          label={ta('collections.form.title')}
-                          value={collectionForm.title}
-                          onChange={(event) =>
-                            setCollectionForm((current) => ({ ...current, title: event.target.value }))
-                          }
-                          containerClassName="!mb-0"
-                        />
-                        <Input
-                          label={ta('collections.form.slug')}
-                          value={collectionForm.slug}
-                          onChange={(event) =>
-                            setCollectionForm((current) => ({ ...current, slug: event.target.value }))
-                          }
-                          hint={ta('collections.form.slugHint')}
-                          containerClassName="!mb-0"
-                        />
-                        <TextArea
-                          label={ta('collections.form.description')}
-                          value={collectionForm.description}
-                          onChange={(event) =>
-                            setCollectionForm((current) => ({ ...current, description: event.target.value }))
-                          }
-                          rows={3}
-                          containerClassName="!mb-0"
-                        />
-                        <TextArea
-                          label={ta('collections.form.narrative')}
-                          value={collectionForm.narrative}
-                          onChange={(event) =>
-                            setCollectionForm((current) => ({ ...current, narrative: event.target.value }))
-                          }
-                          rows={6}
-                          containerClassName="!mb-0"
-                        />
-                        <Select
-                          label={ta('collections.form.status')}
-                          value={collectionForm.status}
-                          options={statusOptions}
-                          onChange={(event) =>
-                            setCollectionForm((current) => ({ ...current, status: event.target.value }))
-                          }
-                        />
-                        <PhotoGalleryEditor
-                          label={ta('collections.form.photos')}
-                          photos={collectionForm.photos}
-                          onChange={(photos) => setCollectionForm((current) => ({ ...current, photos }))}
-                          onUpload={uploadArchivePhoto}
-                          uploading={uploadImageMutation.isPending}
-                          canUpload={canUpload}
-                          readOnly={false}
-                        />
-                        <Button
-                          type="button"
-                          icon={Save}
-                          loading={saveCollectionMutation.isPending}
-                          onClick={handleCollectionSubmit}
-                        >
-                          {collectionForm.id ? ta('actions.updateCollection') : ta('actions.createCollection')}
-                        </Button>
-                      </div>
-                    ) : null}
+                    <CollectionBrowserPanel
+                      collection={activeCollection}
+                      onOpenImage={(photoIndex) => openImageLightbox(activeCollection, photoIndex)}
+                      storyCount={activeCollectionStoryCount}
+                      honoreeCount={activeCollectionHonoreeCount}
+                      relatedStories={activeCollectionStories}
+                      relatedHonorees={activeCollectionHonorees}
+                      formatArchiveDate={formatArchiveDate}
+                      canEdit={canManageCollections && (canPublish || activeCollection?.status !== 'published')}
+                      canDelete={canManageCollections && (canPublish || activeCollection?.status !== 'published')}
+                      onEdit={activeCollection ? () => selectCollectionForEdit(activeCollection) : undefined}
+                      onDelete={activeCollection ? () => confirmDeleteCollection(activeCollection) : undefined}
+                    />
                   </div>
                 ) : null}
               </div>

@@ -4,9 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, ArrowRight, BookOpen, Church, Clock3, Heart, HandHeart,
   Mail, MapPin, Phone, Quote, ShieldCheck, Sparkles, Users, UserCircle2,
-  Cross, Star, Globe, Navigation, ExternalLink, CalendarClock,
+  Cross, Star, Globe, Navigation, ExternalLink, CalendarClock, Library,
 } from 'lucide-react';
-import { settingsApi, divineLiturgiesApi } from '../../api/endpoints';
+import { settingsApi, divineLiturgiesApi, archiveApi } from '../../api/endpoints';
 import { useAuth } from '../../auth/auth.hooks';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
@@ -294,6 +294,100 @@ function DesktopServicesSection({ t, isRTL, language, schedule, isLoading }) {
   );
 }
 
+function DesktopArchiveCard({ collection, isRTL, index, tf }) {
+  const cover = collection?.photos?.[0] || null;
+  const photoCount = collection?.photos?.length || 0;
+
+  return (
+    <Reveal delay={index * 0.12}>
+      <Link
+        to="/archive"
+        className={`group relative block h-full overflow-hidden rounded-[1.75rem] border border-primary/8 bg-surface hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/8 transition-all duration-500 ${isRTL ? 'text-right' : 'text-left'}`}
+      >
+        <div className="relative h-56 overflow-hidden bg-gradient-to-br from-primary/10 via-surface to-page">
+          {cover ? (
+            <>
+              <img
+                src={cover.url}
+                alt={cover.caption || collection.title}
+                loading="lazy"
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+            </>
+          ) : (
+            <div className="flex h-full items-center justify-center text-primary/40">
+              <Library className="h-12 w-12" />
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 p-5">
+            <p className={`text-lg font-extrabold leading-tight ${cover ? 'text-white' : 'text-heading'}`}>
+              {collection.title}
+            </p>
+            <p className={`mt-1 text-xs font-semibold uppercase tracking-wider ${cover ? 'text-white/80' : 'text-muted'}`}>
+              {tf('landing.archive.photos', `${photoCount} photos`, { count: photoCount })}
+            </p>
+          </div>
+        </div>
+      </Link>
+    </Reveal>
+  );
+}
+
+function DesktopArchiveSection({ isRTL, collections, isLoading, tf }) {
+  const teaser = (Array.isArray(collections) ? collections : [])
+    .filter((collection) => Array.isArray(collection?.photos) && collection.photos.length)
+    .slice(0, 3);
+
+  // Degrade gracefully: hide the whole section when there is nothing to show.
+  if (!isLoading && !teaser.length) return null;
+
+  return (
+    <section id="archive" className="relative py-20 sm:py-28 lg:py-32 bg-surface">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--color-primary)_0%,transparent_70%)] opacity-[0.03]" />
+      </div>
+      <div className="page-container relative">
+        <SectionHeader
+          label={tf('landing.archive.label', 'Our Archive')}
+          title={tf('landing.archive.title', 'Moments and memories')}
+          subtitle={tf('landing.archive.subtitle', 'A glimpse of our published collections.')}
+          centered
+        />
+
+        {isLoading ? (
+          <div className="mt-12 rounded-[1.5rem] border border-border bg-surface p-8 text-center">
+            <p className="text-sm text-muted">{tf('landing.archive.loading', 'Loading archive...')}</p>
+          </div>
+        ) : (
+          <>
+            <div className="mt-12 sm:mt-16 grid grid-cols-1 gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {teaser.map((collection, i) => (
+                <DesktopArchiveCard
+                  key={collection.id}
+                  collection={collection}
+                  isRTL={isRTL}
+                  index={i}
+                  tf={tf}
+                />
+              ))}
+            </div>
+            <Reveal>
+              <div className="mt-10 flex justify-center">
+                <Link to="/archive">
+                  <Button size="lg" className="!rounded-xl !font-bold">
+                    {tf('landing.archive.viewAll', 'View the full archive')}
+                  </Button>
+                </Link>
+              </div>
+            </Reveal>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 /* ══════════════════════════════════════════════════════
    MAIN EXPORT
    ══════════════════════════════════════════════════════ */
@@ -329,6 +423,15 @@ export default function LandingPage() {
   });
   const divineLiturgiesSchedule = divineLiturgiesQuery.data || null;
 
+  const archiveQuery = useQuery({
+    queryKey: ['archive', 'public'],
+    queryFn: async () => (await archiveApi.getPublic()).data?.data || null,
+    staleTime: 60000,
+  });
+  const archiveCollections = Array.isArray(archiveQuery.data?.collections)
+    ? archiveQuery.data.collections
+    : [];
+
   useEffect(() => {
     setGuestEntryOpen(!isAuthenticated);
   }, [isAuthenticated]);
@@ -344,6 +447,13 @@ export default function LandingPage() {
 
   const getOptional = (k) => getOptionalText(k, '');
   const getOpt = (k, fb) => getOptionalText(k, fb);
+  const tf = (k, fb, values) => {
+    const resolved = getOptionalText(k, fb);
+    if (!values) return resolved;
+    return String(resolved).replace(/\{(\w+)\}/g, (_, name) =>
+      values[name] == null ? `{${name}}` : String(values[name])
+    );
+  };
 
   /* ── Shared data ── */
   const priests = (contentPriests || []).length
@@ -551,6 +661,14 @@ export default function LandingPage() {
         language={language}
         schedule={divineLiturgiesSchedule}
         isLoading={divineLiturgiesQuery.isLoading}
+      />
+
+      {/* ARCHIVE (teaser) */}
+      <DesktopArchiveSection
+        isRTL={isRTL}
+        collections={archiveCollections}
+        isLoading={archiveQuery.isLoading}
+        tf={tf}
       />
 
       {/* STATS */}

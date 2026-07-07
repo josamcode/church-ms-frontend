@@ -18,6 +18,7 @@ const Lazy = ({ children }) => <Suspense fallback={<PageLoader />}>{children}</S
 /* Lazy-loaded pages */
 const LandingPage = lazy(() => import('../pages/public/LandingPage'));
 const BookingPublicPage = lazy(() => import('../pages/public/BookingPublicPage'));
+const ArchivePublicPage = lazy(() => import('../pages/public/ArchivePublicPage'));
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
 const UserRegisterPage = lazy(() => import('../pages/dashboard/users/UserRegisterPage'));
 const DashboardHome = lazy(() => import('../pages/dashboard/DashboardHome'));
@@ -65,6 +66,7 @@ const PastoralVisitationAnalyticsPage = lazy(() => import('../pages/dashboard/vi
 const DivineLiturgiesPage = lazy(() => import('../pages/dashboard/divineLiturgies/DivineLiturgiesPage'));
 const ChurchPriestsPage = lazy(() => import('../pages/dashboard/divineLiturgies/ChurchPriestsPage'));
 const ArchiveManagementPage = lazy(() => import('../pages/dashboard/archive/ArchiveManagementPage'));
+const ArchiveCollectionFormPage = lazy(() => import('../pages/dashboard/archive/ArchiveCollectionFormPage'));
 const DivineLiturgyAttendanceCheckInPage = lazy(() =>
   import('../pages/dashboard/divineLiturgies/DivineLiturgyAttendanceCheckInPage')
 );
@@ -107,6 +109,7 @@ const router = createBrowserRouter([
       { index: true, element: <Lazy><LandingPage /></Lazy> },
       { path: 'bookings', element: <Lazy><BookingPublicPage /></Lazy> },
       { path: 'bookings/new', element: <Lazy><BookingPublicPage /></Lazy> },
+      { path: 'archive', element: <Lazy><ArchivePublicPage /></Lazy> },
     ],
   },
 
@@ -411,6 +414,22 @@ const router = createBrowserRouter([
             mode="any"
           >
             <Lazy><ArchiveManagementPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'archive/collections/new',
+        element: (
+          <PermissionGuard required={['ARCHIVE_COLLECTIONS_MANAGE']}>
+            <Lazy><ArchiveCollectionFormPage /></Lazy>
+          </PermissionGuard>
+        ),
+      },
+      {
+        path: 'archive/collections/:id/edit',
+        element: (
+          <PermissionGuard required={['ARCHIVE_COLLECTIONS_MANAGE']}>
+            <Lazy><ArchiveCollectionFormPage /></Lazy>
           </PermissionGuard>
         ),
       },

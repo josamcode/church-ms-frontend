@@ -109,9 +109,27 @@ const TITLE_ROUTES = [
     fallback: 'Landing Page Content',
   },
   {
+    pattern: '/dashboard/archive/collections/new',
+    key: 'archive.collectionForm.createTitle',
+    fallback: 'New Collection',
+    fallbackAr: 'مجموعة جديدة',
+  },
+  {
+    pattern: '/dashboard/archive/collections/:id/edit',
+    key: 'archive.collectionForm.editTitle',
+    fallback: 'Edit Collection',
+    fallbackAr: 'تعديل المجموعة',
+  },
+  {
     pattern: '/dashboard/archive',
     key: 'archive.title',
     fallback: 'Archive',
+  },
+  {
+    pattern: '/archive',
+    key: 'archive.title',
+    fallback: 'Archive',
+    fallbackAr: 'الأرشيف',
   },
   {
     pattern: '/dashboard/divine-liturgies/priests',
