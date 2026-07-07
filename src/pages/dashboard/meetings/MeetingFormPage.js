@@ -8,7 +8,6 @@ import {
   Image as ImageIcon,
   Info,
   Plus,
-  Save,
   Sparkles,
   Trash2,
   Upload,
@@ -24,10 +23,10 @@ import UserSearchSelect from '../../../components/UserSearchSelect';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
+import FormWizard from '../../../components/ui/FormWizard';
 import Input from '../../../components/ui/Input';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import PageHeader from '../../../components/ui/PageHeader';
-import Section from '../../../components/ui/Section';
 import Select from '../../../components/ui/Select';
 import Skeleton from '../../../components/ui/Skeleton';
 import TagInput from '../../../components/ui/TagInput';
@@ -72,16 +71,8 @@ function UserPill({ user, onRemove, disabled = false }) {
   );
 }
 
-function FormSection({ title, subtitle, action, icon, children }) {
-  return (
-    <Section icon={icon} title={title} description={subtitle} actions={action}>
-      {children}
-    </Section>
-  );
-}
-
 export default function MeetingFormPage() {
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
@@ -306,7 +297,7 @@ export default function MeetingFormPage() {
   };
 
   const handleSubmit = (event) => {
-    event.preventDefault();
+    event?.preventDefault?.();
 
     const nextErrors = validateForm();
     if (Object.keys(nextErrors).length > 0) {
@@ -324,7 +315,645 @@ export default function MeetingFormPage() {
     saveMutation.mutate(payload);
   };
 
+  const handleSave = () => handleSubmit();
+  const handleCancel = () => navigate('/dashboard/meetings/list');
+
   const readonlyBasics = isEdit && !canUpdateBasics;
+
+  const validationSummary = (
+    <div className="rounded-xl border border-border bg-surface-alt/30 p-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {summaryItems.map((item) => (
+          <div key={item.label} className="rounded-md border border-border bg-surface px-3 py-2">
+            <p className="text-[11px] text-muted">{item.label}</p>
+            <p className="text-sm font-semibold text-heading">{item.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {hasValidationErrors && (
+        <p className="mt-3 rounded-md border border-danger/30 bg-danger-light px-3 py-2 text-xs text-danger">
+          {t('meetings.messages.fixValidationErrors')}
+        </p>
+      )}
+    </div>
+  );
+
+  const steps = [
+    {
+      id: 'basicInfo',
+      label: t('meetings.sections.basicInfo'),
+      icon: Info,
+      content: (
+        <>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <div className="rounded-xl border border-border bg-surface-alt/40 p-4">
+              <div className="mb-2 flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-secondary" />
+                <h4 className="text-sm font-semibold text-heading">{t('meetings.fields.avatar')}</h4>
+              </div>
+              <p className="text-xs text-muted mb-4">{t('meetings.fields.avatarHint')}</p>
+
+              <div className="flex items-center gap-4 flex-wrap">
+                {form.avatar?.url ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={form.avatar.url}
+                      alt={form.name || t('meetings.fields.avatar')}
+                      className="h-24 w-24 rounded-full border border-border object-cover"
+                    />
+                    {!readonlyBasics && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveAvatar}
+                        className="absolute -top-1 -left-1 rounded-full bg-danger p-1 text-white"
+                        aria-label={t('meetings.actions.removeAvatar')}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-24 w-24 rounded-full border-2 border-dashed border-border bg-surface flex items-center justify-center text-xs text-muted text-center px-2">
+                    {t('meetings.empty.noAvatar')}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleAvatarChange}
+                    disabled={avatarUploading || readonlyBasics}
+                    className="hidden"
+                    id="meeting-avatar-upload"
+                  />
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    icon={Upload}
+                    loading={avatarUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={readonlyBasics}
+                  >
+                    {form.avatar?.url ? t('meetings.actions.changeAvatar') : t('meetings.actions.uploadAvatar')}
+                  </Button>
+
+                  {form.avatar?.url && !readonlyBasics && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-danger"
+                      onClick={handleRemoveAvatar}
+                    >
+                      {t('meetings.actions.removeAvatar')}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="xl:col-span-2 rounded-xl border border-border bg-surface p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select
+                  label={t('meetings.fields.sector')}
+                  required
+                  value={form.sectorId}
+                  onChange={(event) => {
+                    setForm((prev) => ({ ...prev, sectorId: event.target.value }));
+                    setErrors((prev) => ({ ...prev, sectorId: undefined }));
+                  }}
+                  options={sectorOptions}
+                  placeholder={t('meetings.fields.selectSector')}
+                  error={errors.sectorId}
+                  disabled={readonlyBasics}
+                />
+
+                <Input
+                  label={t('meetings.fields.name')}
+                  required
+                  value={form.name}
+                  placeholder={t('meetings.fields.meetingNamePlaceholder')}
+                  onChange={(event) => {
+                    setForm((prev) => ({ ...prev, name: event.target.value }));
+                    setErrors((prev) => ({ ...prev, name: undefined }));
+                  }}
+                  error={errors.name}
+                  disabled={readonlyBasics}
+                />
+
+                <Select
+                  label={t('meetings.fields.day')}
+                  required
+                  value={form.day}
+                  onChange={(event) => setForm((prev) => ({ ...prev, day: event.target.value }))}
+                  options={dayOptions}
+                  disabled={readonlyBasics}
+                />
+
+                <Input
+                  label={t('meetings.fields.time')}
+                  required
+                  type="time"
+                  value={form.time}
+                  onChange={(event) => {
+                    setForm((prev) => ({ ...prev, time: event.target.value }));
+                    setErrors((prev) => ({ ...prev, time: undefined }));
+                  }}
+                  error={errors.time}
+                  disabled={readonlyBasics}
+                />
+              </div>
+
+              <TextArea
+                label={t('meetings.fields.notes')}
+                value={form.notes}
+                onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
+                placeholder={t('meetings.fields.meetingNotesPlaceholder')}
+                disabled={readonlyBasics}
+              />
+            </div>
+          </div>
+
+          {readonlyBasics && (
+            <div className="mt-3 rounded-md border border-warning/30 bg-warning-light px-3 py-2 text-sm text-muted">
+              {t('meetings.messages.basicReadOnly')}
+            </div>
+          )}
+        </>
+      ),
+    },
+    {
+      id: 'leadership',
+      label: t('meetings.sections.leadership'),
+      icon: UserCog,
+      content: (
+        <>
+          <UserSearchSelect
+            label={t('meetings.fields.serviceSecretary')}
+            value={form.serviceSecretaryUser}
+            disabled={readonlyBasics}
+            onChange={(value) =>
+              setForm((prev) => ({
+                ...prev,
+                serviceSecretaryUser: value,
+                serviceSecretaryName: value?.fullName || prev.serviceSecretaryName,
+              }))
+            }
+            className="mb-2"
+          />
+          <Input
+            label={t('meetings.fields.nameFallback')}
+            value={form.serviceSecretaryName}
+            placeholder={t('meetings.fields.serviceSecretaryNamePlaceholder')}
+            onChange={(event) => setForm((prev) => ({ ...prev, serviceSecretaryName: event.target.value }))}
+            disabled={readonlyBasics}
+          />
+          <div className="rounded-lg border border-border p-3 mt-3">
+            <div className="mb-2 flex items-center justify-between">
+              <h4 className="text-sm font-semibold text-heading">{t('meetings.fields.assistants')}</h4>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                icon={Plus}
+                disabled={readonlyBasics}
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    assistantSecretaries: [...prev.assistantSecretaries, { user: null, name: '' }],
+                  }))
+                }
+              >
+                {t('meetings.actions.addAssistant')}
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              {form.assistantSecretaries.length === 0 && (
+                <p className="text-sm text-muted">{t('meetings.empty.noAssistantsYet')}</p>
+              )}
+
+              {form.assistantSecretaries.map((assistant, index) => (
+                <div key={index} className="rounded-md border border-border p-3">
+                  <UserSearchSelect
+                    label={t('meetings.fields.userLink')}
+                    value={assistant.user}
+                    disabled={readonlyBasics}
+                    onChange={(value) =>
+                      patchListItem('assistantSecretaries', index, {
+                        user: value,
+                        name: value?.fullName || assistant.name,
+                      })
+                    }
+                    className="mb-2"
+                  />
+                  <Input
+                    label={t('meetings.fields.nameFallback')}
+                    value={assistant.name}
+                    placeholder={t('meetings.fields.assistantNamePlaceholder')}
+                    onChange={(event) =>
+                      patchListItem('assistantSecretaries', index, { name: event.target.value })
+                    }
+                    disabled={readonlyBasics}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="text-danger"
+                    icon={Trash2}
+                    disabled={readonlyBasics}
+                    onClick={() => removeListItem('assistantSecretaries', index)}
+                  >
+                    {t('meetings.actions.remove')}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ),
+    },
+    {
+      id: 'groups',
+      label: t('meetings.fields.groups'),
+      icon: UsersRound,
+      content: (
+        <div className="rounded-lg border border-border bg-surface-alt/20 p-4">
+          <TagInput
+            label={t('meetings.fields.groups')}
+            values={form.groups}
+            onChange={handleMeetingGroupsChange}
+            placeholder={t('meetings.fields.groupsPlaceholder')}
+            disabled={readonlyBasics}
+          />
+
+          {(form.groups || []).length > 0 && (
+            <div className="space-y-3 mb-1">
+              {(form.groups || []).map((groupName) => (
+                <div key={`meeting_group_${groupName}`} className="rounded-md border border-border bg-surface p-3">
+                  <p className="text-sm font-semibold text-heading mb-2">{groupName}</p>
+                  <UserSearchSelect
+                    label={t('meetings.actions.addServedUser')}
+                    value={form?.pendingGroupServedUserByGroup?.[groupName] || null}
+                    disabled={readonlyBasics}
+                    onChange={(value) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        servedUsers:
+                          value?._id && !(prev.servedUsers || []).some((entry) => entry._id === value._id)
+                            ? [...(prev.servedUsers || []), value]
+                            : prev.servedUsers || [],
+                        groupServedUsersByGroup: {
+                          ...(prev.groupServedUsersByGroup || {}),
+                          [groupName]:
+                            value?._id &&
+                              !(prev?.groupServedUsersByGroup?.[groupName] || []).some(
+                                (entry) => entry._id === value._id
+                              )
+                              ? [...(prev?.groupServedUsersByGroup?.[groupName] || []), value]
+                              : prev?.groupServedUsersByGroup?.[groupName] || [],
+                        },
+                        pendingGroupServedUserByGroup: {
+                          ...(prev.pendingGroupServedUserByGroup || {}),
+                          [groupName]: null,
+                        },
+                      }));
+                    }}
+                    className="mb-2"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {(form?.groupServedUsersByGroup?.[groupName] || []).length === 0 && (
+                      <p className="text-sm text-muted">{t('meetings.empty.noServedUsersYet')}</p>
+                    )}
+                    {(form?.groupServedUsersByGroup?.[groupName] || []).map((user) => (
+                      <UserPill
+                        key={`${groupName}_${user._id}`}
+                        user={user}
+                        disabled={readonlyBasics}
+                        onRemove={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            groupServedUsersByGroup: {
+                              ...(prev.groupServedUsersByGroup || {}),
+                              [groupName]: (prev?.groupServedUsersByGroup?.[groupName] || []).filter(
+                                (entry) => entry._id !== user._id
+                              ),
+                            },
+                          }))
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'servedUsers',
+      label: t('meetings.fields.servedUsers'),
+      icon: Users,
+      content: (
+        <div className="rounded-lg border border-border bg-surface-alt/20 p-4">
+          <UserSearchSelect
+            label={t('meetings.actions.addServedUser')}
+            value={pendingServedUser}
+            disabled={readonlyBasics}
+            onChange={(value) => {
+              setPendingServedUser(null);
+              if (!value?._id || readonlyBasics) return;
+              setForm((prev) => {
+                if (prev.servedUsers.some((entry) => entry._id === value._id)) return prev;
+                return { ...prev, servedUsers: [...prev.servedUsers, value] };
+              });
+            }}
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {form.servedUsers.length === 0 && (
+              <p className="text-sm text-muted">{t('meetings.empty.noServedUsersYet')}</p>
+            )}
+            {form.servedUsers.map((user) => (
+              <UserPill
+                key={user._id}
+                user={user}
+                disabled={readonlyBasics}
+                onRemove={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    servedUsers: prev.servedUsers.filter((entry) => entry._id !== user._id),
+                  }))
+                }
+              />
+            ))}
+          </div>
+        </div>
+      ),
+    },
+    canManageServants && {
+      id: 'servants',
+      label: t('meetings.sections.servants'),
+      icon: UserCog,
+      content: (
+        <>
+          <div className="mb-4 flex items-center justify-end">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              icon={Plus}
+              onClick={() =>
+                setForm((prev) => ({
+                  ...prev,
+                  servants: [
+                    ...prev.servants,
+                    {
+                      name: '',
+                      user: null,
+                      responsibility: '',
+                      groupsManaged: [],
+                      servedUsers: [],
+                      notes: '',
+                    },
+                  ],
+                }))
+              }
+            >
+              {t('meetings.actions.addServant')}
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            {form.servants.length === 0 && (
+              <p className="text-sm text-muted">{t('meetings.empty.noServantsYet')}</p>
+            )}
+
+            {form.servants.map((servant, index) => (
+              <div key={index} className="rounded-lg border border-border bg-surface-alt/30 p-4">
+                <UserSearchSelect
+                  label={t('meetings.fields.userLink')}
+                  value={servant.user}
+                  onChange={(value) => {
+                    patchListItem('servants', index, {
+                      user: value,
+                      name: value?.fullName || servant.name,
+                    });
+                    setErrors((prev) => ({ ...prev, [`servant_${index}`]: undefined }));
+                  }}
+                  className="mb-2"
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input
+                    label={t('meetings.fields.nameFallback')}
+                    value={servant.name}
+                    placeholder={t('meetings.fields.servantNamePlaceholder')}
+                    onChange={(event) => {
+                      patchListItem('servants', index, { name: event.target.value });
+                      setErrors((prev) => ({ ...prev, [`servant_${index}`]: undefined }));
+                    }}
+                    error={errors[`servant_${index}`]}
+                  />
+                  <Input
+                    label={t('meetings.fields.responsibility')}
+                    value={servant.responsibility}
+                    placeholder={t('meetings.fields.servantResponsibilityPlaceholder')}
+                    onChange={(event) =>
+                      patchListItem('servants', index, { responsibility: event.target.value })
+                    }
+                  />
+                  <MultiSelectChips
+                    label={t('meetings.fields.groupsManaged')}
+                    values={servant.groupsManaged || []}
+                    options={meetingGroupOptions}
+                    onChange={(nextGroupsManaged) => patchListItem('servants', index, { groupsManaged: nextGroupsManaged })}
+                    placeholder="Select one or more meeting groups"
+                  />
+                </div>
+
+                <TextArea
+                  label={t('meetings.fields.notes')}
+                  value={servant.notes}
+                  placeholder={t('meetings.fields.servantNotesPlaceholder')}
+                  onChange={(event) => patchListItem('servants', index, { notes: event.target.value })}
+                />
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-danger"
+                  icon={Trash2}
+                  onClick={() => removeListItem('servants', index)}
+                >
+                  {t('meetings.actions.remove')}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </>
+      ),
+    },
+    canManageCommittees && {
+      id: 'committees',
+      label: t('meetings.sections.committees'),
+      icon: ClipboardList,
+      content: (
+        <>
+          <div className="mb-4 flex items-center justify-end">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              icon={Plus}
+              onClick={() =>
+                setForm((prev) => ({
+                  ...prev,
+                  committees: [
+                    ...prev.committees,
+                    { name: '', members: [], memberNamesCsv: '', memberUserIdsCsv: '', detailsText: '', notes: '' },
+                  ],
+                }))
+              }
+            >
+              {t('meetings.actions.addCommittee')}
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            {form.committees.length === 0 && <p className="text-sm text-muted">{t('meetings.empty.noCommitteesYet')}</p>}
+            {form.committees.map((committee, index) => (
+              <div key={index} className="rounded-lg border border-border bg-surface-alt/30 p-4">
+                <Input
+                  label={t('meetings.fields.name')}
+                  value={committee.name}
+                  placeholder={t('meetings.fields.committeeNamePlaceholder')}
+                  onChange={(event) => patchListItem('committees', index, { name: event.target.value })}
+                />
+                <div className="rounded-lg border border-border bg-surface p-3">
+                  <UserSearchSelect
+                    label={t('meetings.actions.addMember')}
+                    value={null}
+                    onChange={(value) => addCommitteeMember(index, value)}
+                  />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(committee.members || []).length === 0 && (
+                      <p className="text-sm text-muted">{t('meetings.empty.noServedUsersYet')}</p>
+                    )}
+                    {(committee.members || []).map((user) => (
+                      <UserPill
+                        key={`${index}_${user._id}`}
+                        user={user}
+                        onRemove={() => removeCommitteeMember(index, user._id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <TextArea
+                  label={t('meetings.fields.committeeDetails')}
+                  value={committee.detailsText}
+                  placeholder={t('meetings.fields.committeeDetailsPlaceholder')}
+                  onChange={(event) => patchListItem('committees', index, { detailsText: event.target.value })}
+                />
+                <TextArea
+                  label={t('meetings.fields.notes')}
+                  value={committee.notes}
+                  placeholder={t('meetings.fields.committeeNotesPlaceholder')}
+                  onChange={(event) => patchListItem('committees', index, { notes: event.target.value })}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-danger"
+                  icon={Trash2}
+                  onClick={() => removeListItem('committees', index)}
+                >
+                  {t('meetings.actions.remove')}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </>
+      ),
+    },
+    canManageActivities && {
+      id: 'activities',
+      label: t('meetings.sections.activities'),
+      icon: Sparkles,
+      content: (
+        <>
+          <div className="mb-4 flex items-center justify-end">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              icon={Plus}
+              onClick={() =>
+                setForm((prev) => ({
+                  ...prev,
+                  activities: [...prev.activities, { name: '', type: 'activity', scheduledAt: '', notes: '' }],
+                }))
+              }
+            >
+              {t('meetings.actions.addActivity')}
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            {form.activities.length === 0 && <p className="text-sm text-muted">{t('meetings.empty.noActivitiesYet')}</p>}
+            {form.activities.map((activity, index) => (
+              <div key={index} className="rounded-lg border border-border bg-surface-alt/30 p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input
+                    label={t('meetings.fields.name')}
+                    value={activity.name}
+                    placeholder={t('meetings.fields.activityNamePlaceholder')}
+                    onChange={(event) => patchListItem('activities', index, { name: event.target.value })}
+                  />
+                  <Select
+                    label={t('meetings.fields.activityType')}
+                    value={activity.type}
+                    onChange={(event) => patchListItem('activities', index, { type: event.target.value })}
+                    options={activityOptions}
+                  />
+                  <Input
+                    label={t('meetings.fields.scheduledAt')}
+                    type="datetime-local"
+                    value={activity.scheduledAt}
+                    onChange={(event) => patchListItem('activities', index, { scheduledAt: event.target.value })}
+                  />
+                </div>
+                <TextArea
+                  label={t('meetings.fields.notes')}
+                  value={activity.notes}
+                  placeholder={t('meetings.fields.activityNotesPlaceholder')}
+                  onChange={(event) => patchListItem('activities', index, { notes: event.target.value })}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-danger"
+                  icon={Trash2}
+                  onClick={() => removeListItem('activities', index)}
+                >
+                  {t('meetings.actions.remove')}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </>
+      ),
+    },
+  ].filter(Boolean);
 
   if (isEdit && meetingQuery.isLoading) {
     return (
@@ -422,635 +1051,18 @@ export default function MeetingFormPage() {
         </div>
       </Card>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-          <FormSection icon={Info} title={t('meetings.sections.basicInfo')}>
-
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-              <div className="rounded-xl border border-border bg-surface-alt/40 p-4">
-                <div className="mb-2 flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4 text-secondary" />
-                  <h4 className="text-sm font-semibold text-heading">{t('meetings.fields.avatar')}</h4>
-                </div>
-                <p className="text-xs text-muted mb-4">{t('meetings.fields.avatarHint')}</p>
-
-                <div className="flex items-center gap-4 flex-wrap">
-                  {form.avatar?.url ? (
-                    <div className="relative inline-block">
-                      <img
-                        src={form.avatar.url}
-                        alt={form.name || t('meetings.fields.avatar')}
-                        className="h-24 w-24 rounded-full border border-border object-cover"
-                      />
-                      {!readonlyBasics && (
-                        <button
-                          type="button"
-                          onClick={handleRemoveAvatar}
-                          className="absolute -top-1 -left-1 rounded-full bg-danger p-1 text-white"
-                          aria-label={t('meetings.actions.removeAvatar')}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="h-24 w-24 rounded-full border-2 border-dashed border-border bg-surface flex items-center justify-center text-xs text-muted text-center px-2">
-                      {t('meetings.empty.noAvatar')}
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/gif,image/webp"
-                      onChange={handleAvatarChange}
-                      disabled={avatarUploading || readonlyBasics}
-                      className="hidden"
-                      id="meeting-avatar-upload"
-                    />
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      icon={Upload}
-                      loading={avatarUploading}
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={readonlyBasics}
-                    >
-                      {form.avatar?.url ? t('meetings.actions.changeAvatar') : t('meetings.actions.uploadAvatar')}
-                    </Button>
-
-                    {form.avatar?.url && !readonlyBasics && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-danger"
-                        onClick={handleRemoveAvatar}
-                      >
-                        {t('meetings.actions.removeAvatar')}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="xl:col-span-2 rounded-xl border border-border bg-surface p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Select
-                    label={t('meetings.fields.sector')}
-                    required
-                    value={form.sectorId}
-                    onChange={(event) => {
-                      setForm((prev) => ({ ...prev, sectorId: event.target.value }));
-                      setErrors((prev) => ({ ...prev, sectorId: undefined }));
-                    }}
-                    options={sectorOptions}
-                    placeholder={t('meetings.fields.selectSector')}
-                    error={errors.sectorId}
-                    disabled={readonlyBasics}
-                  />
-
-                  <Input
-                    label={t('meetings.fields.name')}
-                    required
-                    value={form.name}
-                    placeholder={t('meetings.fields.meetingNamePlaceholder')}
-                    onChange={(event) => {
-                      setForm((prev) => ({ ...prev, name: event.target.value }));
-                      setErrors((prev) => ({ ...prev, name: undefined }));
-                    }}
-                    error={errors.name}
-                    disabled={readonlyBasics}
-                  />
-
-                  <Select
-                    label={t('meetings.fields.day')}
-                    required
-                    value={form.day}
-                    onChange={(event) => setForm((prev) => ({ ...prev, day: event.target.value }))}
-                    options={dayOptions}
-                    disabled={readonlyBasics}
-                  />
-
-                  <Input
-                    label={t('meetings.fields.time')}
-                    required
-                    type="time"
-                    value={form.time}
-                    onChange={(event) => {
-                      setForm((prev) => ({ ...prev, time: event.target.value }));
-                      setErrors((prev) => ({ ...prev, time: undefined }));
-                    }}
-                    error={errors.time}
-                    disabled={readonlyBasics}
-                  />
-                </div>
-
-                <TextArea
-                  label={t('meetings.fields.notes')}
-                  value={form.notes}
-                  onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
-                  placeholder={t('meetings.fields.meetingNotesPlaceholder')}
-                  disabled={readonlyBasics}
-                />
-              </div>
-            </div>
-
-            {readonlyBasics && (
-              <div className="mt-3 rounded-md border border-warning/30 bg-warning-light px-3 py-2 text-sm text-muted">
-                {t('meetings.messages.basicReadOnly')}
-              </div>
-            )}
-          </FormSection>
-
-          <FormSection icon={UserCog} title={t('meetings.sections.leadership')}>
-            <UserSearchSelect
-              label={t('meetings.fields.serviceSecretary')}
-              value={form.serviceSecretaryUser}
-              disabled={readonlyBasics}
-              onChange={(value) =>
-                setForm((prev) => ({
-                  ...prev,
-                  serviceSecretaryUser: value,
-                  serviceSecretaryName: value?.fullName || prev.serviceSecretaryName,
-                }))
-              }
-              className="mb-2"
-            />
-            <Input
-              label={t('meetings.fields.nameFallback')}
-              value={form.serviceSecretaryName}
-              placeholder={t('meetings.fields.serviceSecretaryNamePlaceholder')}
-              onChange={(event) => setForm((prev) => ({ ...prev, serviceSecretaryName: event.target.value }))}
-              disabled={readonlyBasics}
-            />
-            <div className="rounded-lg border border-border p-3 mt-3">
-              <div className="mb-2 flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-heading">{t('meetings.fields.assistants')}</h4>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  icon={Plus}
-                  disabled={readonlyBasics}
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      assistantSecretaries: [...prev.assistantSecretaries, { user: null, name: '' }],
-                    }))
-                  }
-                >
-                  {t('meetings.actions.addAssistant')}
-                </Button>
-              </div>
-
-              <div className="space-y-3">
-                {form.assistantSecretaries.length === 0 && (
-                  <p className="text-sm text-muted">{t('meetings.empty.noAssistantsYet')}</p>
-                )}
-
-                {form.assistantSecretaries.map((assistant, index) => (
-                  <div key={index} className="rounded-md border border-border p-3">
-                    <UserSearchSelect
-                      label={t('meetings.fields.userLink')}
-                      value={assistant.user}
-                      disabled={readonlyBasics}
-                      onChange={(value) =>
-                        patchListItem('assistantSecretaries', index, {
-                          user: value,
-                          name: value?.fullName || assistant.name,
-                        })
-                      }
-                      className="mb-2"
-                    />
-                    <Input
-                      label={t('meetings.fields.nameFallback')}
-                      value={assistant.name}
-                      placeholder={t('meetings.fields.assistantNamePlaceholder')}
-                      onChange={(event) =>
-                        patchListItem('assistantSecretaries', index, { name: event.target.value })
-                      }
-                      disabled={readonlyBasics}
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="text-danger"
-                      icon={Trash2}
-                      disabled={readonlyBasics}
-                      onClick={() => removeListItem('assistantSecretaries', index)}
-                    >
-                      {t('meetings.actions.remove')}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </FormSection>
-
-          <FormSection icon={UsersRound} title={t('meetings.fields.groups')}>
-            <div className="rounded-lg border border-border bg-surface-alt/20 p-4">
-              <TagInput
-                label={t('meetings.fields.groups')}
-                values={form.groups}
-                onChange={handleMeetingGroupsChange}
-                placeholder={t('meetings.fields.groupsPlaceholder')}
-                disabled={readonlyBasics}
-              />
-
-              {(form.groups || []).length > 0 && (
-                <div className="space-y-3 mb-1">
-                  {(form.groups || []).map((groupName) => (
-                    <div key={`meeting_group_${groupName}`} className="rounded-md border border-border bg-surface p-3">
-                      <p className="text-sm font-semibold text-heading mb-2">{groupName}</p>
-                      <UserSearchSelect
-                        label={t('meetings.actions.addServedUser')}
-                        value={form?.pendingGroupServedUserByGroup?.[groupName] || null}
-                        disabled={readonlyBasics}
-                        onChange={(value) => {
-                          setForm((prev) => ({
-                            ...prev,
-                            servedUsers:
-                              value?._id && !(prev.servedUsers || []).some((entry) => entry._id === value._id)
-                                ? [...(prev.servedUsers || []), value]
-                                : prev.servedUsers || [],
-                            groupServedUsersByGroup: {
-                              ...(prev.groupServedUsersByGroup || {}),
-                              [groupName]:
-                                value?._id &&
-                                  !(prev?.groupServedUsersByGroup?.[groupName] || []).some(
-                                    (entry) => entry._id === value._id
-                                  )
-                                  ? [...(prev?.groupServedUsersByGroup?.[groupName] || []), value]
-                                  : prev?.groupServedUsersByGroup?.[groupName] || [],
-                            },
-                            pendingGroupServedUserByGroup: {
-                              ...(prev.pendingGroupServedUserByGroup || {}),
-                              [groupName]: null,
-                            },
-                          }));
-                        }}
-                        className="mb-2"
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        {(form?.groupServedUsersByGroup?.[groupName] || []).length === 0 && (
-                          <p className="text-sm text-muted">{t('meetings.empty.noServedUsersYet')}</p>
-                        )}
-                        {(form?.groupServedUsersByGroup?.[groupName] || []).map((user) => (
-                          <UserPill
-                            key={`${groupName}_${user._id}`}
-                            user={user}
-                            disabled={readonlyBasics}
-                            onRemove={() =>
-                              setForm((prev) => ({
-                                ...prev,
-                                groupServedUsersByGroup: {
-                                  ...(prev.groupServedUsersByGroup || {}),
-                                  [groupName]: (prev?.groupServedUsersByGroup?.[groupName] || []).filter(
-                                    (entry) => entry._id !== user._id
-                                  ),
-                                },
-                              }))
-                            }
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </FormSection>
-
-          <FormSection icon={Users} title={t('meetings.fields.servedUsers')}>
-            <div className="rounded-lg border border-border bg-surface-alt/20 p-4">
-              <UserSearchSelect
-                label={t('meetings.actions.addServedUser')}
-                value={pendingServedUser}
-                disabled={readonlyBasics}
-                onChange={(value) => {
-                  setPendingServedUser(null);
-                  if (!value?._id || readonlyBasics) return;
-                  setForm((prev) => {
-                    if (prev.servedUsers.some((entry) => entry._id === value._id)) return prev;
-                    return { ...prev, servedUsers: [...prev.servedUsers, value] };
-                  });
-                }}
-              />
-              <div className="mt-2 flex flex-wrap gap-2">
-                {form.servedUsers.length === 0 && (
-                  <p className="text-sm text-muted">{t('meetings.empty.noServedUsersYet')}</p>
-                )}
-                {form.servedUsers.map((user) => (
-                  <UserPill
-                    key={user._id}
-                    user={user}
-                    disabled={readonlyBasics}
-                    onRemove={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        servedUsers: prev.servedUsers.filter((entry) => entry._id !== user._id),
-                      }))
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          </FormSection>
-
-          {canManageServants && (
-            <FormSection
-              icon={UserCog}
-              title={t('meetings.sections.servants')}
-              action={
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  icon={Plus}
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      servants: [
-                        ...prev.servants,
-                        {
-                          name: '',
-                          user: null,
-                          responsibility: '',
-                          groupsManaged: [],
-                          servedUsers: [],
-                          notes: '',
-                        },
-                      ],
-                    }))
-                  }
-                >
-                  {t('meetings.actions.addServant')}
-                </Button>
-              }
-            >
-
-              <div className="space-y-4">
-                {form.servants.length === 0 && (
-                  <p className="text-sm text-muted">{t('meetings.empty.noServantsYet')}</p>
-                )}
-
-                {form.servants.map((servant, index) => (
-                  <div key={index} className="rounded-lg border border-border bg-surface-alt/30 p-4">
-                    <UserSearchSelect
-                      label={t('meetings.fields.userLink')}
-                      value={servant.user}
-                      onChange={(value) => {
-                        patchListItem('servants', index, {
-                          user: value,
-                          name: value?.fullName || servant.name,
-                        });
-                        setErrors((prev) => ({ ...prev, [`servant_${index}`]: undefined }));
-                      }}
-                      className="mb-2"
-                    />
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Input
-                        label={t('meetings.fields.nameFallback')}
-                        value={servant.name}
-                        placeholder={t('meetings.fields.servantNamePlaceholder')}
-                        onChange={(event) => {
-                          patchListItem('servants', index, { name: event.target.value });
-                          setErrors((prev) => ({ ...prev, [`servant_${index}`]: undefined }));
-                        }}
-                        error={errors[`servant_${index}`]}
-                      />
-                      <Input
-                        label={t('meetings.fields.responsibility')}
-                        value={servant.responsibility}
-                        placeholder={t('meetings.fields.servantResponsibilityPlaceholder')}
-                        onChange={(event) =>
-                          patchListItem('servants', index, { responsibility: event.target.value })
-                        }
-                      />
-                      <MultiSelectChips
-                        label={t('meetings.fields.groupsManaged')}
-                        values={servant.groupsManaged || []}
-                        options={meetingGroupOptions}
-                        onChange={(nextGroupsManaged) => patchListItem('servants', index, { groupsManaged: nextGroupsManaged })}
-                        placeholder="Select one or more meeting groups"
-                      />
-                    </div>
-
-                    <TextArea
-                      label={t('meetings.fields.notes')}
-                      value={servant.notes}
-                      placeholder={t('meetings.fields.servantNotesPlaceholder')}
-                      onChange={(event) => patchListItem('servants', index, { notes: event.target.value })}
-                    />
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="text-danger"
-                      icon={Trash2}
-                      onClick={() => removeListItem('servants', index)}
-                    >
-                      {t('meetings.actions.remove')}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </FormSection>
-          )}
-
-          {canManageCommittees && (
-            <FormSection
-              icon={ClipboardList}
-              title={t('meetings.sections.committees')}
-              action={
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  icon={Plus}
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      committees: [
-                        ...prev.committees,
-                        { name: '', members: [], memberNamesCsv: '', memberUserIdsCsv: '', detailsText: '', notes: '' },
-                      ],
-                    }))
-                  }
-                >
-                  {t('meetings.actions.addCommittee')}
-                </Button>
-              }
-            >
-
-              <div className="space-y-4">
-                {form.committees.length === 0 && <p className="text-sm text-muted">{t('meetings.empty.noCommitteesYet')}</p>}
-                {form.committees.map((committee, index) => (
-                  <div key={index} className="rounded-lg border border-border bg-surface-alt/30 p-4">
-                    <Input
-                      label={t('meetings.fields.name')}
-                      value={committee.name}
-                      placeholder={t('meetings.fields.committeeNamePlaceholder')}
-                      onChange={(event) => patchListItem('committees', index, { name: event.target.value })}
-                    />
-                    <div className="rounded-lg border border-border bg-surface p-3">
-                      <UserSearchSelect
-                        label={t('meetings.actions.addMember')}
-                        value={null}
-                        onChange={(value) => addCommitteeMember(index, value)}
-                      />
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {(committee.members || []).length === 0 && (
-                          <p className="text-sm text-muted">{t('meetings.empty.noServedUsersYet')}</p>
-                        )}
-                        {(committee.members || []).map((user) => (
-                          <UserPill
-                            key={`${index}_${user._id}`}
-                            user={user}
-                            onRemove={() => removeCommitteeMember(index, user._id)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <TextArea
-                      label={t('meetings.fields.committeeDetails')}
-                      value={committee.detailsText}
-                      placeholder={t('meetings.fields.committeeDetailsPlaceholder')}
-                      onChange={(event) => patchListItem('committees', index, { detailsText: event.target.value })}
-                    />
-                    <TextArea
-                      label={t('meetings.fields.notes')}
-                      value={committee.notes}
-                      placeholder={t('meetings.fields.committeeNotesPlaceholder')}
-                      onChange={(event) => patchListItem('committees', index, { notes: event.target.value })}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="text-danger"
-                      icon={Trash2}
-                      onClick={() => removeListItem('committees', index)}
-                    >
-                      {t('meetings.actions.remove')}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </FormSection>
-          )}
-          {canManageActivities && (
-            <FormSection
-              icon={Sparkles}
-              title={t('meetings.sections.activities')}
-              action={
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  icon={Plus}
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      activities: [...prev.activities, { name: '', type: 'activity', scheduledAt: '', notes: '' }],
-                    }))
-                  }
-                >
-                  {t('meetings.actions.addActivity')}
-                </Button>
-              }
-            >
-
-              <div className="space-y-4">
-                {form.activities.length === 0 && <p className="text-sm text-muted">{t('meetings.empty.noActivitiesYet')}</p>}
-                {form.activities.map((activity, index) => (
-                  <div key={index} className="rounded-lg border border-border bg-surface-alt/30 p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Input
-                        label={t('meetings.fields.name')}
-                        value={activity.name}
-                        placeholder={t('meetings.fields.activityNamePlaceholder')}
-                        onChange={(event) => patchListItem('activities', index, { name: event.target.value })}
-                      />
-                      <Select
-                        label={t('meetings.fields.activityType')}
-                        value={activity.type}
-                        onChange={(event) => patchListItem('activities', index, { type: event.target.value })}
-                        options={activityOptions}
-                      />
-                      <Input
-                        label={t('meetings.fields.scheduledAt')}
-                        type="datetime-local"
-                        value={activity.scheduledAt}
-                        onChange={(event) => patchListItem('activities', index, { scheduledAt: event.target.value })}
-                      />
-                    </div>
-                    <TextArea
-                      label={t('meetings.fields.notes')}
-                      value={activity.notes}
-                      placeholder={t('meetings.fields.activityNotesPlaceholder')}
-                      onChange={(event) => patchListItem('activities', index, { notes: event.target.value })}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="text-danger"
-                      icon={Trash2}
-                      onClick={() => removeListItem('activities', index)}
-                    >
-                      {t('meetings.actions.remove')}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </FormSection>
-          )}
-
-          <div className="rounded-xl border border-border bg-surface-alt/30 p-4">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-              {summaryItems.map((item) => (
-                <div key={item.label} className="rounded-md border border-border bg-surface px-3 py-2">
-                  <p className="text-[11px] text-muted">{item.label}</p>
-                  <p className="text-sm font-semibold text-heading">{item.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {hasValidationErrors && (
-              <p className="mt-3 rounded-md border border-danger/30 bg-danger-light px-3 py-2 text-xs text-danger">
-                {t('meetings.messages.fixValidationErrors')}
-              </p>
-            )}
-          </div>
-
-          <div className="sticky bottom-0 z-10 -mx-1 flex flex-col-reverse gap-3 rounded-xl border border-border bg-surface/95 p-3 shadow-card backdrop-blur sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
-            <Button
-              type="button"
-              variant="ghost"
-              fullWidth
-              onClick={() => navigate('/dashboard/meetings/list')}
-              className="sm:w-auto"
-            >
-              {t('common.actions.cancel')}
-            </Button>
-            <Button
-              type="submit"
-              icon={Save}
-              loading={saveMutation.isPending}
-              fullWidth
-              className="sm:w-auto"
-            >
-              {t('common.actions.save')}
-            </Button>
-          </div>
-        </form>
+      <FormWizard
+        steps={steps}
+        onSave={handleSave}
+        onCancel={handleCancel}
+        saving={saveMutation.isPending}
+        saveLabel={t('common.actions.save')}
+        nextLabel={t('common.pagination.next')}
+        prevLabel={t('common.pagination.previous')}
+        cancelLabel={t('common.actions.cancel')}
+        isRTL={isRTL}
+        footerExtra={validationSummary}
+      />
     </div>
   );
 }

@@ -1,10 +1,14 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
   ArrowUp,
+  CalendarDays,
   ChevronRight,
   Church,
   Facebook,
+  Home,
+  Images,
   Instagram,
+  LayoutDashboard,
   LogIn,
   Menu,
   Twitter,
@@ -62,6 +66,21 @@ export default function PublicLayout() {
       { label: text('publicLayout.visit'), href: '#visit' },
     ],
     [text, getOptionalText]
+  );
+
+  // App-like bottom tab bar for mobile — shown on non-landing public pages
+  // (the landing renders its own mobile navigation).
+  const showMobileTabBar = location.pathname !== '/';
+  const mobileTabs = useMemo(
+    () => [
+      { label: text('publicLayout.home'), href: '/', icon: Home },
+      { label: getOptionalText('publicLayout.meetings', 'Meetings'), href: '/meetings', icon: CalendarDays },
+      { label: getOptionalText('publicLayout.archive', 'Archive'), href: '/archive', icon: Images },
+      isAuthenticated
+        ? { label: text('publicLayout.dashboard'), href: '/dashboard', icon: LayoutDashboard }
+        : { label: text('publicLayout.login'), href: '/auth/login', icon: LogIn },
+    ],
+    [text, getOptionalText, isAuthenticated]
   );
 
   const enabledSocialLinks = useMemo(
@@ -219,9 +238,44 @@ export default function PublicLayout() {
         </div>
       ) : null}
 
-      <main className="flex-1">
+      <main className={`flex-1 ${showMobileTabBar ? 'pb-20 lg:pb-0' : ''}`}>
         <Outlet />
       </main>
+
+      {showMobileTabBar ? (
+        <nav
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 backdrop-blur-md lg:hidden"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          aria-label={text('publicLayout.menu')}
+        >
+          <div
+            className="mx-auto grid max-w-lg"
+            style={{ gridTemplateColumns: `repeat(${mobileTabs.length}, minmax(0, 1fr))` }}
+          >
+            {mobileTabs.map((tab) => {
+              const active =
+                tab.href === '/'
+                  ? location.pathname === '/'
+                  : location.pathname === tab.href || location.pathname.startsWith(`${tab.href}/`);
+              return (
+                <Link
+                  key={tab.href}
+                  to={tab.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`relative flex flex-col items-center gap-1 px-1 py-2 text-[10px] font-semibold transition-colors ${active ? 'text-primary' : 'text-muted hover:text-heading'
+                    }`}
+                >
+                  {active ? (
+                    <span className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" aria-hidden />
+                  ) : null}
+                  <tab.icon className="h-[21px] w-[21px]" strokeWidth={active ? 2.4 : 1.9} />
+                  <span className="max-w-full truncate">{tab.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      ) : null}
 
       <footer className="relative bg-gradient-to-b from-surface to-page border-t border-border hidden md:flex">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
