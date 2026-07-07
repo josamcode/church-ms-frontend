@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Save, UserCircle2, Users } from 'lucide-react';
+import { Save, UserCircle2, Users, Phone, AlertTriangle, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { divineLiturgiesApi, usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
@@ -11,6 +11,8 @@ import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import PageHeader from '../../../components/ui/PageHeader';
+import Skeleton from '../../../components/ui/Skeleton';
+import StatCard from '../../../components/ui/StatCard';
 import { useI18n } from '../../../i18n/i18n';
 
 const PRIEST_OPTIONS_LIMIT = 50;
@@ -151,16 +153,12 @@ function PriestCard({ entry, t }) {
         </div>
 
         <div className="relative px-6 pb-6 pt-2">
-          {/* <div className="mb-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/8 border border-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
-              <Star className="h-2.5 w-2.5 fill-current" />
-              {t('divineLiturgies.fields.priests')}
-            </span>
-          </div> */}
-
           <h3 className="text-lg sm:text-xl font-extrabold text-heading leading-tight">{displayName}</h3>
           {user?.phonePrimary ? (
-            <p className="mt-2 text-sm leading-relaxed text-muted direction-ltr">{user.phonePrimary}</p>
+            <p className="mt-2 flex items-center gap-1.5 text-sm leading-relaxed text-muted">
+              <Phone className="h-3.5 w-3.5 shrink-0 text-secondary" />
+              <span className="direction-ltr">{user.phonePrimary}</span>
+            </p>
           ) : (
             <p className="mt-2 text-sm leading-relaxed text-muted">{t('common.placeholder.empty')}</p>
           )}
@@ -170,8 +168,20 @@ function PriestCard({ entry, t }) {
   );
 }
 
+function PriestCardSkeleton() {
+  return (
+    <div className="relative h-full overflow-hidden rounded-[1.75rem] bg-surface border border-primary/8">
+      <div className="h-56 bg-gradient-to-b from-primary/8 via-primary/4 to-surface" />
+      <div className="px-6 pb-6 pt-4 space-y-3">
+        <Skeleton className="h-5 w-2/3" />
+        <Skeleton className="h-4 w-1/3" />
+      </div>
+    </div>
+  );
+}
+
 export default function ChurchPriestsPage() {
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
 
@@ -250,8 +260,21 @@ export default function ChurchPriestsPage() {
 
       <PageHeader
         className="border-b border-border pb-6"
+        eyebrow={t('divineLiturgies.page')}
         title={t('dashboardLayout.menu.churchPriests')}
+        subtitle={canManagePriests ? t('divineLiturgies.hints.priestsManage') : undefined}
       />
+
+      {/* ══ KPI STRIP ═════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+        <StatCard
+          icon={Users}
+          label={t('divineLiturgies.sections.priests')}
+          value={churchPriests.length}
+          tone="gold"
+          isRTL={isRTL}
+        />
+      </div>
 
       <section className="space-y-6">
         {canManagePriests && (
@@ -289,7 +312,26 @@ export default function ChurchPriestsPage() {
           </Card>
         )}
 
-        {!churchPriests.length ? (
+        {overviewQuery.isError ? (
+          <Card tone="muted" padding="lg">
+            <EmptyState
+              icon={AlertTriangle}
+              title={t('divineLiturgies.hints.noPriests')}
+              description={normalizeApiError(overviewQuery.error).message}
+              action={(
+                <Button variant="outline" icon={RotateCcw} onClick={() => overviewQuery.refetch()}>
+                  {t('common.actions.loadMore')}
+                </Button>
+              )}
+            />
+          </Card>
+        ) : overviewQuery.isLoading ? (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <PriestCardSkeleton key={index} />
+            ))}
+          </div>
+        ) : !churchPriests.length ? (
           <Card padding="none">
             <EmptyState
               icon={Users}
@@ -297,7 +339,7 @@ export default function ChurchPriestsPage() {
             />
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {churchPriests.map((entry) => (
               <PriestCard key={entry.id} entry={entry} t={t} />
             ))}

@@ -1,16 +1,28 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Save } from 'lucide-react';
+import {
+  Plus,
+  Save,
+  Church,
+  Sunrise,
+  CalendarClock,
+  UserSquare2,
+  AlertTriangle,
+  RotateCcw,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { divineLiturgiesApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card, { CardHeader } from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import PageHeader from '../../../components/ui/PageHeader';
+import StatCard from '../../../components/ui/StatCard';
 import Table, { RowActions } from '../../../components/ui/Table';
 import { useI18n } from '../../../i18n/i18n';
 import { getDayLabel, getDayOptions } from '../meetings/meetingsForm.utils';
@@ -119,7 +131,7 @@ function formatTime12(value, language) {
 }
 
 export default function DivineLiturgiesPage() {
-  const { t, language } = useI18n();
+  const { t, language, isRTL } = useI18n();
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
 
@@ -337,12 +349,12 @@ export default function DivineLiturgiesPage() {
     {
       key: 'displayName',
       label: t('divineLiturgies.table.displayName'),
-      render: (row) => <span className="text-sm font-medium text-heading">{getRecurringDisplayName(row)}</span>,
+      render: (row) => <span className="text-sm font-semibold text-heading">{getRecurringDisplayName(row)}</span>,
     },
     {
       key: 'dayOfWeek',
       label: t('divineLiturgies.table.dayOfWeek'),
-      render: (row) => <span className="text-sm text-heading">{getDayLabel(row.dayOfWeek, t)}</span>,
+      render: (row) => <Badgeify>{getDayLabel(row.dayOfWeek, t)}</Badgeify>,
     },
     {
       key: 'startTime',
@@ -413,13 +425,13 @@ export default function DivineLiturgiesPage() {
       key: 'displayName',
       label: t('divineLiturgies.table.displayName'),
       render: (row) => (
-        <span className="text-sm font-medium text-heading">{getExceptionDisplayName(row)}</span>
+        <span className="text-sm font-semibold text-heading">{getExceptionDisplayName(row)}</span>
       ),
     },
     {
       key: 'date',
       label: t('divineLiturgies.table.date'),
-      render: (row) => <span className="text-sm text-heading">{row.date}</span>,
+      render: (row) => <Badgeify>{row.date}</Badgeify>,
     },
     {
       key: 'startTime',
@@ -514,206 +526,159 @@ export default function DivineLiturgiesPage() {
 
       <PageHeader
         className="border-b border-border pb-6"
+        eyebrow={t('shared.dashboard')}
         title={t('divineLiturgies.title')}
         subtitle={t('divineLiturgies.subtitle')}
         actions={(
           canView ? (
             <Link to="/dashboard/divine-liturgies/priests">
-              <Button variant="outline">{t('divineLiturgies.actions.openChurchPriests')}</Button>
+              <Button variant="outline" icon={UserSquare2}>{t('divineLiturgies.actions.openChurchPriests')}</Button>
             </Link>
           ) : null
         )}
       />
 
-      {/* {!canManage && (
-        <div className="rounded-2xl border border-border bg-surface-alt/60 px-4 py-3 text-sm text-muted">
-          {t('divineLiturgies.hints.readOnly')}
-        </div>
-      )} */}
+      {/* ══ KPI STRIP ═════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard
+          icon={Church}
+          label={t('divineLiturgies.sections.recurringDivine')}
+          value={recurringDivine.length}
+          tone="primary"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Sunrise}
+          label={t('divineLiturgies.sections.recurringVespers')}
+          value={recurringVespers.length}
+          tone="gold"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={CalendarClock}
+          label={t('divineLiturgies.sections.exceptions')}
+          value={exceptionalCases.length}
+          tone={exceptionalCases.length > 0 ? 'warning' : 'default'}
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={UserSquare2}
+          label={t('divineLiturgies.sections.priests')}
+          value={churchPriests.length}
+          tone="info"
+          isRTL={isRTL}
+        />
+      </div>
 
+      {/* ══ ERROR ═════════════════════════════════════════════════════════ */}
+      {overviewQuery.isError && (
+        <Card tone="muted" padding="lg">
+          <EmptyState
+            icon={AlertTriangle}
+            title={t('divineLiturgies.title')}
+            description={normalizeApiError(overviewQuery.error).message}
+            action={(
+              <Button variant="outline" icon={RotateCcw} onClick={() => overviewQuery.refetch()}>
+                {t('common.actions.loadMore')}
+              </Button>
+            )}
+          />
+        </Card>
+      )}
+
+      {/* ══ RECURRING DIVINE LITURGY ══════════════════════════════════════ */}
       <section className="space-y-4">
         <SectionLabel>{t('divineLiturgies.sections.recurringDivine')}</SectionLabel>
         {canManage && (
-          <form onSubmit={handleSubmitDivine} className="rounded-xl border border-border bg-surface p-6 shadow-card">
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
-              <Input
-                label={t('divineLiturgies.fields.name')}
-                value={divineForm.name}
-                onChange={(event) =>
-                  setDivineForm((prev) => ({ ...prev, name: event.target.value }))
-                }
-                placeholder={t('divineLiturgies.placeholders.divineName')}
-                containerClassName="!mb-0"
-              />
-              <SelectDay
-                label={t('divineLiturgies.fields.dayOfWeek')}
-                value={divineForm.dayOfWeek}
-                options={dayOptions}
-                onChange={(value) => setDivineForm((prev) => ({ ...prev, dayOfWeek: value }))}
-              />
-              <Input
-                label={t('divineLiturgies.fields.startTime')}
-                type="time"
-                value={divineForm.startTime}
-                onChange={(event) =>
-                  setDivineForm((prev) => ({ ...prev, startTime: event.target.value }))
-                }
-                containerClassName="!mb-0"
-              />
-              <Input
-                label={t('divineLiturgies.fields.endTime')}
-                type="time"
-                value={divineForm.endTime}
-                onChange={(event) =>
-                  setDivineForm((prev) => ({ ...prev, endTime: event.target.value }))
-                }
-                containerClassName="!mb-0"
-              />
-              <MultiSelectChips
-                label={t('divineLiturgies.fields.priests')}
-                options={churchPriestOptions}
-                values={divineForm.priestUserIds}
-                onChange={(values) =>
-                  setDivineForm((prev) => ({ ...prev, priestUserIds: values }))
-                }
-                placeholder={t('common.search.placeholder')}
-                containerClassName="!mb-0"
-              />
-            </div>
+          <Card padding="lg" className="space-y-4">
+            <CardHeader icon={Church} title={t('divineLiturgies.sections.recurringDivine')} />
+            <form onSubmit={handleSubmitDivine}>
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
+                <Input
+                  label={t('divineLiturgies.fields.name')}
+                  value={divineForm.name}
+                  onChange={(event) =>
+                    setDivineForm((prev) => ({ ...prev, name: event.target.value }))
+                  }
+                  placeholder={t('divineLiturgies.placeholders.divineName')}
+                  containerClassName="!mb-0"
+                />
+                <SelectDay
+                  label={t('divineLiturgies.fields.dayOfWeek')}
+                  value={divineForm.dayOfWeek}
+                  options={dayOptions}
+                  onChange={(value) => setDivineForm((prev) => ({ ...prev, dayOfWeek: value }))}
+                />
+                <Input
+                  label={t('divineLiturgies.fields.startTime')}
+                  type="time"
+                  value={divineForm.startTime}
+                  onChange={(event) =>
+                    setDivineForm((prev) => ({ ...prev, startTime: event.target.value }))
+                  }
+                  containerClassName="!mb-0"
+                />
+                <Input
+                  label={t('divineLiturgies.fields.endTime')}
+                  type="time"
+                  value={divineForm.endTime}
+                  onChange={(event) =>
+                    setDivineForm((prev) => ({ ...prev, endTime: event.target.value }))
+                  }
+                  containerClassName="!mb-0"
+                />
+                <MultiSelectChips
+                  label={t('divineLiturgies.fields.priests')}
+                  options={churchPriestOptions}
+                  values={divineForm.priestUserIds}
+                  onChange={(values) =>
+                    setDivineForm((prev) => ({ ...prev, priestUserIds: values }))
+                  }
+                  placeholder={t('common.search.placeholder')}
+                  containerClassName="!mb-0"
+                />
+              </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button
-                type="submit"
-                icon={divineEditId ? Save : Plus}
-                loading={recurringLoading}
-              >
-                {divineEditId
-                  ? t('divineLiturgies.actions.updateRecurring')
-                  : t('divineLiturgies.actions.createRecurring')}
-              </Button>
-              {divineEditId && (
+              <div className="mt-4 flex flex-wrap gap-2">
                 <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setDivineEditId(null);
-                    setDivineForm(emptyRecurringForm(DIVINE_SERVICE_TYPE));
-                  }}
+                  type="submit"
+                  icon={divineEditId ? Save : Plus}
+                  loading={recurringLoading}
                 >
-                  {t('divineLiturgies.actions.cancelEdit')}
+                  {divineEditId
+                    ? t('divineLiturgies.actions.updateRecurring')
+                    : t('divineLiturgies.actions.createRecurring')}
                 </Button>
-              )}
-            </div>
-          </form>
+                {divineEditId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setDivineEditId(null);
+                      setDivineForm(emptyRecurringForm(DIVINE_SERVICE_TYPE));
+                    }}
+                  >
+                    {t('divineLiturgies.actions.cancelEdit')}
+                  </Button>
+                )}
+              </div>
+            </form>
+          </Card>
         )}
 
-        <Table
-          columns={recurringColumns(
-            true,
-            (row) => {
-              setDivineEditId(row.id);
-              setDivineForm({
-                serviceType: DIVINE_SERVICE_TYPE,
-                dayOfWeek: row.dayOfWeek,
-                startTime: row.startTime || '',
-                endTime: row.endTime || '',
-                name: row.name || '',
-                priestUserIds: (row.priests || []).map((entry) => entry.id).filter(Boolean),
-              });
-            },
-            (id) => {
-              if (!window.confirm(t('divineLiturgies.confirmations.deleteRecurring'))) return;
-              deleteRecurringMutation.mutate(id);
-            }
-          )}
-          data={recurringDivine}
-          loading={overviewQuery.isLoading}
-          emptyTitle={t('divineLiturgies.empty.recurringDivine')}
-          emptyDescription={t('common.placeholder.empty')}
-        />
-      </section>
-
-      <section className="space-y-4">
-        {(recurringVespers.length > 0 || canManage) && (
-          <SectionLabel>{t('divineLiturgies.sections.recurringVespers')}</SectionLabel>
-        )}
-        {canManage && (
-          <form onSubmit={handleSubmitVespers} className="rounded-xl border border-border bg-surface p-6 shadow-card">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-              <Input
-                label={t('divineLiturgies.fields.name')}
-                value={vespersForm.name}
-                onChange={(event) =>
-                  setVespersForm((prev) => ({ ...prev, name: event.target.value }))
-                }
-                placeholder={t('divineLiturgies.placeholders.vespersName')}
-                containerClassName="!mb-0"
-              />
-              <SelectDay
-                label={t('divineLiturgies.fields.dayOfWeek')}
-                value={vespersForm.dayOfWeek}
-                options={dayOptions}
-                onChange={(value) => setVespersForm((prev) => ({ ...prev, dayOfWeek: value }))}
-              />
-              <Input
-                label={t('divineLiturgies.fields.startTime')}
-                type="time"
-                value={vespersForm.startTime}
-                onChange={(event) =>
-                  setVespersForm((prev) => ({ ...prev, startTime: event.target.value }))
-                }
-                containerClassName="!mb-0"
-              />
-              <Input
-                label={t('divineLiturgies.fields.endTime')}
-                type="time"
-                value={vespersForm.endTime}
-                onChange={(event) =>
-                  setVespersForm((prev) => ({ ...prev, endTime: event.target.value }))
-                }
-                containerClassName="!mb-0"
-              />
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button
-                type="submit"
-                icon={vespersEditId ? Save : Plus}
-                loading={recurringLoading}
-              >
-                {vespersEditId
-                  ? t('divineLiturgies.actions.updateRecurring')
-                  : t('divineLiturgies.actions.createRecurring')}
-              </Button>
-              {vespersEditId && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setVespersEditId(null);
-                    setVespersForm(emptyRecurringForm(VESPERS_SERVICE_TYPE));
-                  }}
-                >
-                  {t('divineLiturgies.actions.cancelEdit')}
-                </Button>
-              )}
-            </div>
-          </form>
-        )}
-
-        {recurringVespers.length > 0 && (
+        <Card padding={false} className="overflow-hidden">
           <Table
             columns={recurringColumns(
-              false,
+              true,
               (row) => {
-                setVespersEditId(row.id);
-                setVespersForm({
-                  serviceType: VESPERS_SERVICE_TYPE,
+                setDivineEditId(row.id);
+                setDivineForm({
+                  serviceType: DIVINE_SERVICE_TYPE,
                   dayOfWeek: row.dayOfWeek,
                   startTime: row.startTime || '',
                   endTime: row.endTime || '',
                   name: row.name || '',
-                  priestUserIds: [],
+                  priestUserIds: (row.priests || []).map((entry) => entry.id).filter(Boolean),
                 });
               },
               (id) => {
@@ -721,106 +686,225 @@ export default function DivineLiturgiesPage() {
                 deleteRecurringMutation.mutate(id);
               }
             )}
-            data={recurringVespers}
+            data={recurringDivine}
             loading={overviewQuery.isLoading}
-            emptyTitle={t('divineLiturgies.empty.recurringVespers')}
+            emptyTitle={t('divineLiturgies.empty.recurringDivine')}
             emptyDescription={t('common.placeholder.empty')}
+            emptyIcon={Church}
           />
+        </Card>
+      </section>
+
+      {/* ══ RECURRING VESPERS ═════════════════════════════════════════════ */}
+      <section className="space-y-4">
+        {(recurringVespers.length > 0 || canManage) && (
+          <SectionLabel>{t('divineLiturgies.sections.recurringVespers')}</SectionLabel>
+        )}
+        {canManage && (
+          <Card padding="lg" className="space-y-4">
+            <CardHeader icon={Sunrise} title={t('divineLiturgies.sections.recurringVespers')} />
+            <form onSubmit={handleSubmitVespers}>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                <Input
+                  label={t('divineLiturgies.fields.name')}
+                  value={vespersForm.name}
+                  onChange={(event) =>
+                    setVespersForm((prev) => ({ ...prev, name: event.target.value }))
+                  }
+                  placeholder={t('divineLiturgies.placeholders.vespersName')}
+                  containerClassName="!mb-0"
+                />
+                <SelectDay
+                  label={t('divineLiturgies.fields.dayOfWeek')}
+                  value={vespersForm.dayOfWeek}
+                  options={dayOptions}
+                  onChange={(value) => setVespersForm((prev) => ({ ...prev, dayOfWeek: value }))}
+                />
+                <Input
+                  label={t('divineLiturgies.fields.startTime')}
+                  type="time"
+                  value={vespersForm.startTime}
+                  onChange={(event) =>
+                    setVespersForm((prev) => ({ ...prev, startTime: event.target.value }))
+                  }
+                  containerClassName="!mb-0"
+                />
+                <Input
+                  label={t('divineLiturgies.fields.endTime')}
+                  type="time"
+                  value={vespersForm.endTime}
+                  onChange={(event) =>
+                    setVespersForm((prev) => ({ ...prev, endTime: event.target.value }))
+                  }
+                  containerClassName="!mb-0"
+                />
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button
+                  type="submit"
+                  icon={vespersEditId ? Save : Plus}
+                  loading={recurringLoading}
+                >
+                  {vespersEditId
+                    ? t('divineLiturgies.actions.updateRecurring')
+                    : t('divineLiturgies.actions.createRecurring')}
+                </Button>
+                {vespersEditId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setVespersEditId(null);
+                      setVespersForm(emptyRecurringForm(VESPERS_SERVICE_TYPE));
+                    }}
+                  >
+                    {t('divineLiturgies.actions.cancelEdit')}
+                  </Button>
+                )}
+              </div>
+            </form>
+          </Card>
+        )}
+
+        {recurringVespers.length > 0 && (
+          <Card padding={false} className="overflow-hidden">
+            <Table
+              columns={recurringColumns(
+                false,
+                (row) => {
+                  setVespersEditId(row.id);
+                  setVespersForm({
+                    serviceType: VESPERS_SERVICE_TYPE,
+                    dayOfWeek: row.dayOfWeek,
+                    startTime: row.startTime || '',
+                    endTime: row.endTime || '',
+                    name: row.name || '',
+                    priestUserIds: [],
+                  });
+                },
+                (id) => {
+                  if (!window.confirm(t('divineLiturgies.confirmations.deleteRecurring'))) return;
+                  deleteRecurringMutation.mutate(id);
+                }
+              )}
+              data={recurringVespers}
+              loading={overviewQuery.isLoading}
+              emptyTitle={t('divineLiturgies.empty.recurringVespers')}
+              emptyDescription={t('common.placeholder.empty')}
+              emptyIcon={Sunrise}
+            />
+          </Card>
         )}
       </section>
 
+      {/* ══ EXCEPTIONAL CASES ═════════════════════════════════════════════ */}
       <section className="space-y-4">
         {(exceptionalCases.length > 0 || canManage) && (
           <SectionLabel>{t('divineLiturgies.sections.exceptions')}</SectionLabel>
         )}
         {canManage && (
-          <form onSubmit={handleSubmitException} className="rounded-xl border border-border bg-surface p-6 shadow-card">
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
-              <Input
-                label={t('divineLiturgies.fields.name')}
-                value={exceptionForm.name}
-                onChange={(event) =>
-                  setExceptionForm((prev) => ({ ...prev, name: event.target.value }))
-                }
-                placeholder={t('divineLiturgies.placeholders.exceptionName')}
-                containerClassName="!mb-0"
-              />
-              <Input
-                label={t('divineLiturgies.fields.date')}
-                type="date"
-                value={exceptionForm.date}
-                onChange={(event) =>
-                  setExceptionForm((prev) => ({ ...prev, date: event.target.value }))
-                }
-                containerClassName="!mb-0"
-              />
-              <Input
-                label={t('divineLiturgies.fields.startTime')}
-                type="time"
-                value={exceptionForm.startTime}
-                onChange={(event) =>
-                  setExceptionForm((prev) => ({ ...prev, startTime: event.target.value }))
-                }
-                containerClassName="!mb-0"
-              />
-              <Input
-                label={t('divineLiturgies.fields.endTime')}
-                type="time"
-                value={exceptionForm.endTime}
-                onChange={(event) =>
-                  setExceptionForm((prev) => ({ ...prev, endTime: event.target.value }))
-                }
-                containerClassName="!mb-0"
-              />
-              <MultiSelectChips
-                label={t('divineLiturgies.fields.priests')}
-                options={churchPriestOptions}
-                values={exceptionForm.priestUserIds}
-                onChange={(values) =>
-                  setExceptionForm((prev) => ({ ...prev, priestUserIds: values }))
-                }
-                placeholder={t('common.search.placeholder')}
-                containerClassName="!mb-0"
-              />
-            </div>
+          <Card padding="lg" className="space-y-4">
+            <CardHeader icon={CalendarClock} title={t('divineLiturgies.sections.exceptions')} />
+            <form onSubmit={handleSubmitException}>
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
+                <Input
+                  label={t('divineLiturgies.fields.name')}
+                  value={exceptionForm.name}
+                  onChange={(event) =>
+                    setExceptionForm((prev) => ({ ...prev, name: event.target.value }))
+                  }
+                  placeholder={t('divineLiturgies.placeholders.exceptionName')}
+                  containerClassName="!mb-0"
+                />
+                <Input
+                  label={t('divineLiturgies.fields.date')}
+                  type="date"
+                  value={exceptionForm.date}
+                  onChange={(event) =>
+                    setExceptionForm((prev) => ({ ...prev, date: event.target.value }))
+                  }
+                  containerClassName="!mb-0"
+                />
+                <Input
+                  label={t('divineLiturgies.fields.startTime')}
+                  type="time"
+                  value={exceptionForm.startTime}
+                  onChange={(event) =>
+                    setExceptionForm((prev) => ({ ...prev, startTime: event.target.value }))
+                  }
+                  containerClassName="!mb-0"
+                />
+                <Input
+                  label={t('divineLiturgies.fields.endTime')}
+                  type="time"
+                  value={exceptionForm.endTime}
+                  onChange={(event) =>
+                    setExceptionForm((prev) => ({ ...prev, endTime: event.target.value }))
+                  }
+                  containerClassName="!mb-0"
+                />
+                <MultiSelectChips
+                  label={t('divineLiturgies.fields.priests')}
+                  options={churchPriestOptions}
+                  values={exceptionForm.priestUserIds}
+                  onChange={(values) =>
+                    setExceptionForm((prev) => ({ ...prev, priestUserIds: values }))
+                  }
+                  placeholder={t('common.search.placeholder')}
+                  containerClassName="!mb-0"
+                />
+              </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button
-                type="submit"
-                icon={exceptionEditId ? Save : Plus}
-                loading={exceptionLoading}
-              >
-                {exceptionEditId
-                  ? t('divineLiturgies.actions.updateException')
-                  : t('divineLiturgies.actions.createException')}
-              </Button>
-              {exceptionEditId && (
+              <div className="mt-4 flex flex-wrap gap-2">
                 <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setExceptionEditId(null);
-                    setExceptionForm(emptyExceptionForm());
-                  }}
+                  type="submit"
+                  icon={exceptionEditId ? Save : Plus}
+                  loading={exceptionLoading}
                 >
-                  {t('divineLiturgies.actions.cancelEdit')}
+                  {exceptionEditId
+                    ? t('divineLiturgies.actions.updateException')
+                    : t('divineLiturgies.actions.createException')}
                 </Button>
-              )}
-            </div>
-          </form>
+                {exceptionEditId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setExceptionEditId(null);
+                      setExceptionForm(emptyExceptionForm());
+                    }}
+                  >
+                    {t('divineLiturgies.actions.cancelEdit')}
+                  </Button>
+                )}
+              </div>
+            </form>
+          </Card>
         )}
 
         {exceptionalCases.length > 0 && (
-          <Table
-            columns={exceptionColumns}
-            data={exceptionalCases}
-            loading={overviewQuery.isLoading}
-            emptyTitle={t('divineLiturgies.empty.exceptions')}
-            emptyDescription={t('common.placeholder.empty')}
-          />
+          <Card padding={false} className="overflow-hidden">
+            <Table
+              columns={exceptionColumns}
+              data={exceptionalCases}
+              loading={overviewQuery.isLoading}
+              emptyTitle={t('divineLiturgies.empty.exceptions')}
+              emptyDescription={t('common.placeholder.empty')}
+              emptyIcon={CalendarClock}
+            />
+          </Card>
         )}
       </section>
     </div>
+  );
+}
+
+function Badgeify({ children }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-border/60 bg-surface-alt/70 px-2.5 py-0.5 text-xs font-medium text-base">
+      {children}
+    </span>
   );
 }
 

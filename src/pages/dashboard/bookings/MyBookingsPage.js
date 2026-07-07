@@ -1,16 +1,32 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarClock, Clock, NotebookPen } from 'lucide-react';
+import {
+  AlertTriangle,
+  CalendarClock,
+  CheckCircle2,
+  CircleDot,
+  Clock,
+  Layers,
+  NotebookPen,
+  RefreshCw,
+  ShieldCheck,
+  SlidersHorizontal,
+  XCircle,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { bookingsApi } from '../../../api/endpoints';
+import { normalizeApiError } from '../../../api/errors';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
+import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
+import { SkeletonCard } from '../../../components/ui/Skeleton';
+import StatCard from '../../../components/ui/StatCard';
 import { useI18n } from '../../../i18n/i18n';
 
 function statusVariant(status) {
@@ -18,9 +34,9 @@ function statusVariant(status) {
     case 'pending':
       return 'warning';
     case 'confirmed':
-      return 'primary';
-    case 'completed':
       return 'success';
+    case 'completed':
+      return 'primary';
     case 'cancelled':
       return 'danger';
     default:
@@ -52,8 +68,16 @@ function formatAdditionalValue(value) {
   return String(value);
 }
 
+// Left accent rail keyed to status — the timeline reads at a glance.
+const statusRail = {
+  pending: 'before:bg-warning',
+  confirmed: 'before:bg-success',
+  completed: 'before:bg-primary',
+  cancelled: 'before:bg-danger',
+};
+
 export default function MyBookingsPage() {
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const tf = (key, fallback) => {
     const value = t(key);
     return value === key ? fallback : value;
@@ -85,6 +109,20 @@ export default function MyBookingsPage() {
   const bookings = Array.isArray(myBookingsQuery.data?.data) ? myBookingsQuery.data.data : [];
   const meta = myBookingsQuery.data?.meta || null;
 
+  const statusCounts = bookings.reduce(
+    (acc, booking) => {
+      if (booking.status === 'pending') acc.pending += 1;
+      else if (booking.status === 'confirmed') acc.confirmed += 1;
+      else if (booking.status === 'completed') acc.completed += 1;
+      else if (booking.status === 'cancelled') acc.cancelled += 1;
+      return acc;
+    },
+    { pending: 0, confirmed: 0, completed: 0, cancelled: 0 }
+  );
+
+  const isInitialLoading = myBookingsQuery.isLoading;
+  const isError = myBookingsQuery.isError;
+
   return (
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs
@@ -95,6 +133,7 @@ export default function MyBookingsPage() {
       />
 
       <PageHeader
+        className="border-b border-border pb-6"
         eyebrow={tf('bookings.dashboard.myEyebrow', 'Booking tracking')}
         title={tf('bookings.dashboard.myTitle', 'My bookings')}
         subtitle={tf(
@@ -112,9 +151,49 @@ export default function MyBookingsPage() {
         )}
       />
 
-      <Card>
-        <CardHeader
+      {/* ══ KPI STRIP ════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <StatCard
+          icon={Layers}
+          tone="primary"
+          isRTL={isRTL}
+          label={tf('bookings.dashboard.myTitle', 'My bookings')}
+          value={bookings.length}
+        />
+        <StatCard
           icon={Clock}
+          tone="warning"
+          isRTL={isRTL}
+          label={statusLabel('pending', tf)}
+          value={statusCounts.pending}
+        />
+        <StatCard
+          icon={CheckCircle2}
+          tone="success"
+          isRTL={isRTL}
+          label={statusLabel('confirmed', tf)}
+          value={statusCounts.confirmed}
+        />
+        <StatCard
+          icon={CircleDot}
+          tone="primary"
+          isRTL={isRTL}
+          label={statusLabel('completed', tf)}
+          value={statusCounts.completed}
+        />
+        <StatCard
+          icon={XCircle}
+          tone="danger"
+          isRTL={isRTL}
+          label={statusLabel('cancelled', tf)}
+          value={statusCounts.cancelled}
+        />
+      </div>
+
+      {/* ══ FILTER ═══════════════════════════════════════════════════════ */}
+      <Card tone="muted">
+        <CardHeader
+          icon={SlidersHorizontal}
           title={tf('bookings.dashboard.statusFilter', 'Status')}
           subtitle={tf('bookings.dashboard.mySubtitle', 'See the status of the bookings you submitted and read any notes left by the manager.')}
         />
@@ -135,7 +214,31 @@ export default function MyBookingsPage() {
         </div>
       </Card>
 
-      {bookings.length === 0 ? (
+      {/* ══ BOOKINGS — loading / error / empty / list ════════════════════ */}
+      {isInitialLoading ? (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      ) : isError ? (
+        <Card className="border-danger/30">
+          <EmptyState
+            icon={AlertTriangle}
+            title={tf('bookings.dashboard.errorTitle', 'Something went wrong')}
+            description={normalizeApiError(myBookingsQuery.error).message}
+            action={(
+              <Button
+                type="button"
+                variant="outline"
+                icon={RefreshCw}
+                onClick={() => myBookingsQuery.refetch()}
+              >
+                {tf('bookings.dashboard.retry', 'Try again')}
+              </Button>
+            )}
+          />
+        </Card>
+      ) : bookings.length === 0 ? (
         <Card>
           <EmptyState
             icon={CalendarClock}
@@ -144,12 +247,26 @@ export default function MyBookingsPage() {
               'bookings.dashboard.myEmptyBody',
               'Once you submit a booking while signed in, it will appear here with its approval status.'
             )}
+            action={(
+              <Link
+                to="/bookings/new"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-primary-dark hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <NotebookPen className="h-4 w-4" />
+                {tf('bookings.public.submitAnother', 'Book a new appointment')}
+              </Link>
+            )}
           />
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {bookings.map((booking) => (
-            <Card key={booking.id} padding="lg" hover>
+            <Card
+              key={booking.id}
+              padding="lg"
+              hover
+              className={`relative overflow-hidden ps-6 before:absolute before:inset-y-0 before:start-0 before:w-1.5 ${statusRail[booking.status] || statusRail.pending}`}
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
                   <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -172,6 +289,20 @@ export default function MyBookingsPage() {
                 </Badge>
               </div>
 
+              {booking.adminNotes ? (
+                <div className="mt-4 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+                      {tf('bookings.dashboard.adminNotes', 'Admin notes')}
+                    </p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">
+                      {booking.adminNotes}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
               {booking.notes ? (
                 <div className="mt-4 rounded-xl border border-border bg-surface-alt/40 p-4">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
@@ -179,17 +310,6 @@ export default function MyBookingsPage() {
                   </p>
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">
                     {booking.notes}
-                  </p>
-                </div>
-              ) : null}
-
-              {booking.adminNotes ? (
-                <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-                    {tf('bookings.dashboard.adminNotes', 'Admin notes')}
-                  </p>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">
-                    {booking.adminNotes}
                   </p>
                 </div>
               ) : null}
@@ -234,25 +354,27 @@ export default function MyBookingsPage() {
         </div>
       )}
 
-      <Card>
-        <Pagination
-          meta={meta}
-          loading={myBookingsQuery.isFetching}
-          cursors={cursorStack}
-          onLoadMore={() => {
-            if (!meta?.nextCursor) return;
-            setCursorStack((current) => [...current, meta.nextCursor]);
-            setCursor(meta.nextCursor);
-          }}
-          onPrev={() => {
-            setCursorStack((current) => {
-              const next = current.slice(0, -1);
-              setCursor(next[next.length - 1] || null);
-              return next;
-            });
-          }}
-        />
-      </Card>
+      {(meta?.nextCursor || cursorStack.length > 1) && !isError ? (
+        <Card padding="sm">
+          <Pagination
+            meta={meta}
+            loading={myBookingsQuery.isFetching}
+            cursors={cursorStack}
+            onLoadMore={() => {
+              if (!meta?.nextCursor) return;
+              setCursorStack((current) => [...current, meta.nextCursor]);
+              setCursor(meta.nextCursor);
+            }}
+            onPrev={() => {
+              setCursorStack((current) => {
+                const next = current.slice(0, -1);
+                setCursor(next[next.length - 1] || null);
+                return next;
+              });
+            }}
+          />
+        </Card>
+      ) : null}
     </div>
   );
 }

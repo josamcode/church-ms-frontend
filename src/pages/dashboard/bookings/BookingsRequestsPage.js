@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
+  AlertTriangle,
   CalendarClock,
   CheckCircle2,
   CircleDot,
   Clock,
+  Layers,
+  Mail,
   Pencil,
   Phone,
+  RefreshCw,
   Settings2,
   ShieldCheck,
   SlidersHorizontal,
   Tag,
   User,
+  XCircle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -28,6 +33,7 @@ import Modal from '../../../components/ui/Modal';
 import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
+import { SkeletonCard } from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
@@ -37,9 +43,9 @@ function statusVariant(status) {
     case 'pending':
       return 'warning';
     case 'confirmed':
-      return 'primary';
-    case 'completed':
       return 'success';
+    case 'completed':
+      return 'primary';
     case 'cancelled':
       return 'danger';
     default:
@@ -71,9 +77,23 @@ function formatAdditionalValue(value) {
   return String(value);
 }
 
+// Left accent rail keyed to status — makes the queue scannable at a glance.
+const statusRail = {
+  pending: 'before:bg-warning',
+  confirmed: 'before:bg-success',
+  completed: 'before:bg-primary',
+  cancelled: 'before:bg-danger',
+};
+
 function BookingCard({ booking, canManage, onOpen, tf }) {
+  const railClass = statusRail[booking.status] || statusRail.pending;
+
   return (
-    <Card padding="lg" hover className="flex flex-col">
+    <Card
+      padding="lg"
+      hover
+      className={`relative flex flex-col overflow-hidden ps-6 before:absolute before:inset-y-0 before:start-0 before:w-1.5 ${railClass}`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -81,13 +101,18 @@ function BookingCard({ booking, canManage, onOpen, tf }) {
           </span>
           <div className="min-w-0">
             <p className="truncate text-lg font-bold text-heading">{booking.requester.name}</p>
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
-              <Phone className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="truncate">
-                {booking.requester.phone}
-                {booking.requester.email ? ` • ${booking.requester.email}` : ''}
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="direction-ltr truncate">{booking.requester.phone}</span>
               </span>
-            </p>
+              {booking.requester.email ? (
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="direction-ltr truncate">{booking.requester.email}</span>
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
         <Badge variant={statusVariant(booking.status)} dot>
@@ -143,7 +168,7 @@ function BookingCard({ booking, canManage, onOpen, tf }) {
 }
 
 export default function BookingsRequestsPage() {
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const { hasPermission } = useAuth();
 
   const tf = (key, fallback) => {
@@ -221,6 +246,8 @@ export default function BookingsRequestsPage() {
     },
     { pending: 0, confirmed: 0, completed: 0, cancelled: 0 }
   );
+  const totalOnPage = bookings.length;
+  const hasActiveFilters = Boolean(filters.q.trim() || filters.status || filters.bookingTypeId);
 
   const updateBookingMutation = useMutation({
     mutationFn: ({ id, payload }) => bookingsApi.admin.update(id, payload),
@@ -235,6 +262,9 @@ export default function BookingsRequestsPage() {
     },
   });
 
+  const isInitialLoading = bookingsQuery.isLoading;
+  const isError = bookingsQuery.isError;
+
   return (
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs
@@ -245,6 +275,7 @@ export default function BookingsRequestsPage() {
       />
 
       <PageHeader
+        className="border-b border-border pb-6"
         eyebrow={tf('bookings.dashboard.requestsEyebrow', 'Approval workflow')}
         title={tf('bookings.dashboard.requestsTitle', 'Booking requests')}
         subtitle={tf(
@@ -269,34 +300,49 @@ export default function BookingsRequestsPage() {
         )}
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* ══ KPI STRIP — pending is the hero metric ═══════════════════════ */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <StatCard
+          icon={Layers}
+          tone="primary"
+          isRTL={isRTL}
+          label={tf('bookings.dashboard.requestsTitle', 'Booking requests')}
+          value={totalOnPage}
+        />
         <StatCard
           icon={Clock}
           tone="warning"
+          isRTL={isRTL}
           label={statusLabel('pending', tf)}
           value={statusCounts.pending}
-        />
-        <StatCard
-          icon={CircleDot}
-          tone="primary"
-          label={statusLabel('confirmed', tf)}
-          value={statusCounts.confirmed}
+          hint={tf('bookings.dashboard.requestsEyebrow', 'Approval workflow')}
+          className={statusCounts.pending > 0 ? 'ring-1 ring-warning/25' : ''}
         />
         <StatCard
           icon={CheckCircle2}
           tone="success"
+          isRTL={isRTL}
+          label={statusLabel('confirmed', tf)}
+          value={statusCounts.confirmed}
+        />
+        <StatCard
+          icon={CircleDot}
+          tone="primary"
+          isRTL={isRTL}
           label={statusLabel('completed', tf)}
           value={statusCounts.completed}
         />
         <StatCard
-          icon={CalendarClock}
+          icon={XCircle}
           tone="danger"
+          isRTL={isRTL}
           label={statusLabel('cancelled', tf)}
           value={statusCounts.cancelled}
         />
       </div>
 
-      <Card>
+      {/* ══ FILTERS ══════════════════════════════════════════════════════ */}
+      <Card tone="muted">
         <CardHeader
           icon={SlidersHorizontal}
           title={tf('bookings.dashboard.bookingFilters', 'Filter bookings')}
@@ -345,7 +391,33 @@ export default function BookingsRequestsPage() {
         </div>
       </Card>
 
-      {bookings.length === 0 ? (
+      {/* ══ REQUEST QUEUE — loading / error / empty / list ═══════════════ */}
+      {isInitialLoading ? (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      ) : isError ? (
+        <Card className="border-danger/30">
+          <EmptyState
+            icon={AlertTriangle}
+            title={tf('bookings.dashboard.errorTitle', 'Something went wrong')}
+            description={normalizeApiError(bookingsQuery.error).message}
+            action={(
+              <Button
+                type="button"
+                variant="outline"
+                icon={RefreshCw}
+                onClick={() => bookingsQuery.refetch()}
+              >
+                {tf('bookings.dashboard.retry', 'Try again')}
+              </Button>
+            )}
+          />
+        </Card>
+      ) : bookings.length === 0 ? (
         <Card>
           <EmptyState
             icon={CalendarClock}
@@ -354,6 +426,17 @@ export default function BookingsRequestsPage() {
               'bookings.dashboard.noBookingsBody',
               'Try changing the current filters or wait for new public submissions.'
             )}
+            action={
+              hasActiveFilters ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setFilters({ q: '', status: '', bookingTypeId: '' })}
+                >
+                  {tf('bookings.dashboard.allStatuses', 'All statuses')}
+                </Button>
+              ) : null
+            }
           />
         </Card>
       ) : (
@@ -370,25 +453,27 @@ export default function BookingsRequestsPage() {
         </div>
       )}
 
-      <Card>
-        <Pagination
-          meta={bookingsMeta}
-          loading={bookingsQuery.isFetching}
-          cursors={cursorStack}
-          onLoadMore={() => {
-            if (!bookingsMeta?.nextCursor) return;
-            setCursorStack((current) => [...current, bookingsMeta.nextCursor]);
-            setCursor(bookingsMeta.nextCursor);
-          }}
-          onPrev={() => {
-            setCursorStack((current) => {
-              const next = current.slice(0, -1);
-              setCursor(next[next.length - 1] || null);
-              return next;
-            });
-          }}
-        />
-      </Card>
+      {(bookingsMeta?.nextCursor || cursorStack.length > 1) && !isError ? (
+        <Card padding="sm">
+          <Pagination
+            meta={bookingsMeta}
+            loading={bookingsQuery.isFetching}
+            cursors={cursorStack}
+            onLoadMore={() => {
+              if (!bookingsMeta?.nextCursor) return;
+              setCursorStack((current) => [...current, bookingsMeta.nextCursor]);
+              setCursor(bookingsMeta.nextCursor);
+            }}
+            onPrev={() => {
+              setCursorStack((current) => {
+                const next = current.slice(0, -1);
+                setCursor(next[next.length - 1] || null);
+                return next;
+              });
+            }}
+          />
+        </Card>
+      ) : null}
 
       <Modal
         isOpen={Boolean(selectedBooking)}
@@ -425,6 +510,18 @@ export default function BookingsRequestsPage() {
       >
         {selectedBooking ? (
           <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={statusVariant(selectedBooking.status)} dot>
+                {statusLabel(selectedBooking.status, tf)}
+              </Badge>
+              {selectedBooking.bookingType?.name ? (
+                <Badge variant="neutral">
+                  <Tag className="h-3.5 w-3.5" />
+                  {selectedBooking.bookingType.name}
+                </Badge>
+              ) : null}
+            </div>
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Card tone="muted" padding="sm">
                 <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
@@ -432,9 +529,9 @@ export default function BookingsRequestsPage() {
                   {tf('bookings.dashboard.contact', 'Requester')}
                 </p>
                 <p className="mt-2 text-sm font-semibold text-heading">{selectedBooking.requester.name}</p>
-                <p className="mt-1 text-sm text-muted">{selectedBooking.requester.phone}</p>
+                <p className="mt-1 text-sm text-muted direction-ltr">{selectedBooking.requester.phone}</p>
                 {selectedBooking.requester.email ? (
-                  <p className="mt-1 text-sm text-muted">{selectedBooking.requester.email}</p>
+                  <p className="mt-1 text-sm text-muted direction-ltr">{selectedBooking.requester.email}</p>
                 ) : null}
               </Card>
               <Card tone="muted" padding="sm">

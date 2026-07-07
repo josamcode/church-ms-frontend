@@ -1,7 +1,18 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BarChart3, CalendarPlus, Users, Layers3, ListChecks, AlertTriangle } from 'lucide-react';
+import {
+  BarChart3,
+  CalendarPlus,
+  Users,
+  Layers3,
+  ListChecks,
+  AlertTriangle,
+  ShieldCheck,
+  RotateCcw,
+  Filter,
+  CalendarClock,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { normalizeApiError } from '../../../api/errors';
 import { meetingsApi } from '../../../api/endpoints';
@@ -36,7 +47,7 @@ function SectionLabel({ children }) {
 }
 
 export default function MeetingsManagementPage() {
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const tf = (key, fallback) => {
     const value = t(key);
     return value === key ? fallback : value;
@@ -71,7 +82,8 @@ export default function MeetingsManagementPage() {
   const [filters, setFilters] = useState({ sectorId: '', day: '', search: '' });
 
   const setFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
-  const hasActiveFilters = Object.values(filters).some(Boolean);
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const hasActiveFilters = activeFilterCount > 0;
 
   /* ── queries ── */
   const sectorsQuery = useQuery({
@@ -132,6 +144,8 @@ export default function MeetingsManagementPage() {
     return r;
   }, [meetings]);
 
+  const coveredMeetings = Math.max(stats.totalMeetings - stats.meetingsWithoutServants, 0);
+
   /* ── columns ── */
   const meetingColumns = useMemo(() => [
     {
@@ -141,11 +155,19 @@ export default function MeetingsManagementPage() {
         <button
           type="button"
           onClick={() => navigate(`/dashboard/meetings/list/${row.id}`)}
-          className="group text-start"
+          className="group flex items-center gap-3 text-start"
         >
-          <p className="font-medium text-heading transition-colors group-hover:text-primary">
-            {row.name}
-          </p>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <CalendarClock className="h-[18px] w-[18px]" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate font-semibold text-heading transition-colors group-hover:text-primary">
+              {row.name}
+            </span>
+            <span className="mt-0.5 block text-xs text-muted">
+              {getDayLabel(row.day, t)} · {row.time}
+            </span>
+          </span>
         </button>
       ),
     },
@@ -153,29 +175,31 @@ export default function MeetingsManagementPage() {
       key: 'sector',
       label: t('meetings.columns.sector'),
       render: (row) => row.sector?.name
-        ? <Badge variant="default">{row.sector.name}</Badge>
+        ? <Badge variant="gold" dot>{row.sector.name}</Badge>
         : <span className="text-muted text-sm">{t('common.placeholder.empty')}</span>,
     },
     {
       key: 'schedule',
       label: t('meetings.columns.schedule'),
       render: (row) => (
-        <span className="text-sm text-heading">
+        <Badge variant="neutral" size="sm">
           {getDayLabel(row.day, t)} · {row.time}
-        </span>
+        </Badge>
       ),
     },
     {
       key: 'groupsCount',
       label: t('meetings.columns.groupsCount'),
-      render: (row) => <span className="text-sm text-heading">{(row.groups || []).length}</span>,
+      render: (row) => <span className="text-sm font-semibold text-heading">{(row.groups || []).length}</span>,
     },
     {
       key: 'servantsCount',
       label: t('meetings.columns.servantsCount'),
       render: (row) => {
         const count = (row.servants || []).length;
-        return <span className={`text-sm font-medium ${count === 0 ? 'text-warning' : 'text-heading'}`}>{count}</span>;
+        return count === 0
+          ? <Badge variant="warning" size="sm" dot>{count}</Badge>
+          : <Badge variant="success" size="sm">{count}</Badge>;
       },
     },
     {
@@ -223,7 +247,9 @@ export default function MeetingsManagementPage() {
     return (
       <div className="animate-fade-in space-y-6">
         <Breadcrumbs items={[{ label: t('shared.dashboard'), href: '/dashboard' }, { label: meetingsListTitle }]} />
-        <EmptyState title={t('meetings.empty.noMeetingsPermissionTitle')} description={t('meetings.empty.noMeetingsPermissionDescription')} />
+        <Card tone="muted" padding="lg">
+          <EmptyState icon={ShieldCheck} title={t('meetings.empty.noMeetingsPermissionTitle')} description={t('meetings.empty.noMeetingsPermissionDescription')} />
+        </Card>
       </div>
     );
   }
@@ -258,18 +284,45 @@ export default function MeetingsManagementPage() {
         )}
       />
 
-      {/* ══ KPI TILES ═════════════════════════════════════════════════════ */}
+      {/* ══ KPI STRIP ═════════════════════════════════════════════════════ */}
       {canViewMeetingsList && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-          {[
-            { label: t('meetings.dashboard.cards.totalMeetings'), value: stats.totalMeetings, icon: ListChecks, tone: 'default' },
-            { label: t('meetings.dashboard.cards.totalServants'), value: stats.totalServants, icon: Users, tone: 'primary' },
-            { label: t('meetings.columns.groupsCount'), value: stats.totalGroups, icon: Layers3, tone: 'default' },
-            { label: t('meetings.columns.committeesCount'), value: stats.totalCommittees, icon: Layers3, tone: 'default' },
-            { label: t('meetings.dashboard.cards.meetingsWithoutServants'), value: stats.meetingsWithoutServants, icon: AlertTriangle, tone: stats.meetingsWithoutServants > 0 ? 'warning' : 'success' },
-          ].map(({ label, value, icon: Icon, tone }) => (
-            <StatCard key={label} icon={Icon} label={label} value={value} tone={tone} />
-          ))}
+          <StatCard
+            icon={ListChecks}
+            label={t('meetings.dashboard.cards.totalMeetings')}
+            value={stats.totalMeetings}
+            tone="primary"
+            isRTL={isRTL}
+          />
+          <StatCard
+            icon={Users}
+            label={t('meetings.dashboard.cards.totalServants')}
+            value={stats.totalServants}
+            tone="gold"
+            isRTL={isRTL}
+          />
+          <StatCard
+            icon={Layers3}
+            label={t('meetings.columns.groupsCount')}
+            value={stats.totalGroups}
+            tone="info"
+            isRTL={isRTL}
+          />
+          <StatCard
+            icon={Layers3}
+            label={t('meetings.columns.committeesCount')}
+            value={stats.totalCommittees}
+            tone="default"
+            isRTL={isRTL}
+          />
+          <StatCard
+            icon={AlertTriangle}
+            label={t('meetings.dashboard.cards.meetingsWithoutServants')}
+            value={stats.meetingsWithoutServants}
+            tone={stats.meetingsWithoutServants > 0 ? 'warning' : 'success'}
+            hint={`${coveredMeetings} / ${stats.totalMeetings}`}
+            isRTL={isRTL}
+          />
         </div>
       )}
 
@@ -277,12 +330,21 @@ export default function MeetingsManagementPage() {
       {canViewMeetingsList && (
         <Card padding="sm" tone="muted" className="space-y-3">
           <div className="flex items-center justify-between">
-            <SectionLabel>{t('meetings.filters.sector')}</SectionLabel>
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Filter className="h-3.5 w-3.5" />
+              </span>
+              <span className="section-label">{t('meetings.filters.sector')}</span>
+              {hasActiveFilters && (
+                <Badge variant="primary" size="sm">{activeFilterCount}</Badge>
+              )}
+            </div>
             {hasActiveFilters && (
               <button
                 onClick={() => setFilters({ sectorId: '', day: '', search: '' })}
-                className="text-xs font-medium text-primary hover:underline"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
               >
+                <RotateCcw className="h-3.5 w-3.5" />
                 {t('usersListPage.filters.clear')}
               </button>
             )}
@@ -321,21 +383,40 @@ export default function MeetingsManagementPage() {
             <Badge variant="neutral" size="sm">{meetings.length}</Badge>
           </div>
 
-          <Card padding={false} className="overflow-hidden">
-            <Table
-              columns={meetingColumns}
-              data={meetings}
-              loading={meetingsQuery.isLoading}
-              emptyTitle={t('meetings.empty.meetingsTitle')}
-              emptyDescription={t('meetings.empty.meetingsDescription')}
-            />
-          </Card>
+          {meetingsQuery.isError ? (
+            <Card tone="muted" padding="lg">
+              <EmptyState
+                icon={AlertTriangle}
+                title={t('meetings.empty.meetingsTitle')}
+                description={normalizeApiError(meetingsQuery.error).message}
+                action={(
+                  <Button variant="outline" icon={RotateCcw} onClick={() => meetingsQuery.refetch()}>
+                    {t('common.actions.loadMore')}
+                  </Button>
+                )}
+              />
+            </Card>
+          ) : (
+            <Card padding={false} className="overflow-hidden">
+              <Table
+                columns={meetingColumns}
+                data={meetings}
+                loading={meetingsQuery.isLoading}
+                emptyTitle={t('meetings.empty.meetingsTitle')}
+                emptyDescription={t('meetings.empty.meetingsDescription')}
+                emptyIcon={CalendarClock}
+              />
+            </Card>
+          )}
         </section>
       ) : (
-        <EmptyState
-          title={t('meetings.empty.noMeetingsPermissionTitle')}
-          description={t('meetings.empty.noMeetingsPermissionDescription')}
-        />
+        <Card tone="muted" padding="lg">
+          <EmptyState
+            icon={ShieldCheck}
+            title={t('meetings.empty.noMeetingsPermissionTitle')}
+            description={t('meetings.empty.noMeetingsPermissionDescription')}
+          />
+        </Card>
       )}
 
     </div>

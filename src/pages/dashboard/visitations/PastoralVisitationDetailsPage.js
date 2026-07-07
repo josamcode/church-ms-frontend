@@ -10,6 +10,7 @@ import Button from '../../../components/ui/Button';
 import PageHeader from '../../../components/ui/PageHeader';
 import Section from '../../../components/ui/Section';
 import Skeleton from '../../../components/ui/Skeleton';
+import StatCard from '../../../components/ui/StatCard';
 import { formatDateTime } from '../../../utils/formatters';
 import { useI18n } from '../../../i18n/i18n';
 import useNavigateToUser from '../../../hooks/useNavigateToUser';
@@ -93,7 +94,8 @@ function MemberCard({ member, navigateToUser }) {
 
 export default function PastoralVisitationDetailsPage() {
   const { id } = useParams();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const isRTL = language === 'ar';
   const navigateToUser = useNavigateToUser();
 
   /* ── queries ── */
@@ -128,6 +130,8 @@ export default function PastoralVisitationDetailsPage() {
     { label: visitation?.houseName || t('visitations.details.page') },
   ], [t, visitation?.houseName]);
 
+  const durationLabel = `${visitation?.durationMinutes || 10} ${t('visitations.shared.minutes')}`;
+
   /* ── states ── */
   if (isLoading) {
     return (
@@ -140,6 +144,11 @@ export default function PastoralVisitationDetailsPage() {
             <Skeleton className="h-4 w-1/4" />
           </div>
         </Card>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-[104px] w-full rounded-xl" />
+          ))}
+        </div>
         <Card padding="lg" className="space-y-4">
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-4/5" />
@@ -186,7 +195,7 @@ export default function PastoralVisitationDetailsPage() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1 text-xs font-medium text-muted">
                 <Clock3 className="h-3 w-3" />
-                {visitation.durationMinutes || 10} {t('visitations.shared.minutes')}
+                {durationLabel}
               </span>
             </PageHeader>
           </div>
@@ -212,7 +221,7 @@ export default function PastoralVisitationDetailsPage() {
           />
           <Field
             label={t('visitations.details.durationMinutes')}
-            value={`${visitation.durationMinutes || 10} ${t('visitations.shared.minutes')}`}
+            value={durationLabel}
             icon={Clock3}
           />
           <Field
@@ -228,6 +237,38 @@ export default function PastoralVisitationDetailsPage() {
         </div>
       </Card>
 
+      {/* ══ KEY FACTS ═══════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard
+          icon={CalendarClock}
+          tone="primary"
+          label={t('visitations.details.visitedAt')}
+          value={formatDateTime(visitation.visitedAt)}
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Clock3}
+          tone="info"
+          label={t('visitations.details.durationMinutes')}
+          value={durationLabel}
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Users}
+          tone="gold"
+          label={t('visitations.details.houseMembersTitle')}
+          value={houseMembersLoading ? '…' : houseMembers.length}
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={UserCircle}
+          tone="success"
+          label={t('visitations.details.recordedBy')}
+          value={visitation.recordedBy?.fullName || EMPTY}
+          isRTL={isRTL}
+        />
+      </div>
+
       {/* ══ TIMELINE + NOTES ════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
         <Section title={t('visitations.details.recordedAt')} icon={CalendarClock}>
@@ -239,7 +280,7 @@ export default function PastoralVisitationDetailsPage() {
                 iconWrap: 'border-primary/20 bg-primary/10 text-primary',
                 label: t('visitations.details.visitedAt'),
                 value: formatDateTime(visitation.visitedAt),
-                meta: `${visitation.durationMinutes || 10} ${t('visitations.shared.minutes')}`,
+                meta: durationLabel,
               },
               {
                 key: 'recorded',
