@@ -1,8 +1,21 @@
 # Redesign Handoff — St. Michael Church Frontend
 
 **Branch:** `redesign/full-frontend-system` (off `main`)
-**Status:** COMPLETE — design-system foundation, app/mobile shell, AND bespoke per-module redesign passes across every module are done and committed. 71 source files changed (54 pages + 16 components/styles) across 5 commits.
+**Status:** COMPLETE — design-system foundation, app/mobile shell, per-module passes, AND a deep page-by-page reimagining of every page are done and committed (11 commits).
 **Build:** `npm run build` passes (exit 0) at every commit.
+
+## Deep page-by-page reimagining (commits 2163aae → df47455)
+A second, deeper pass reimagined each page for power/creativity/ease-of-use (not just component adoption):
+- **Shared:** new `ui/Sparkline`; `StatCard` gained `spark` (inline trend chart) + trend deltas — a unified rich-KPI primitive.
+- **Dashboard:** KPI cards with month-over-month trend chips + sparklines; a role-aware **"Needs attention"** priority band (overdue follow-ups, upcoming sessions, pending bookings, unread chats) linking to modules; chart period-total.
+- **Analytics (Confession, Visitation, Family/House, System):** rich dashboards — KPI bands with sparklines + MoM trends from real monthly/daily series, gold highlights strips, chart Cards, skeleton + error/retry states. Removed dead `LookupConsole` subsystem.
+- **Meetings command center:** hero summary, coverage KPIs, sector-health cards, needs-attention strip.
+- **List workspaces** (confessions/alerts/visitations/aid/households/notifications/archive/bookings/meetings/sectors/liturgies/priests/users): KPI summary strips, contained filter bars, responsive Table→cards, status Badges, status accent rails, strong empty/error states. Confession alerts is now an urgency-sorted action center; notification inbox is unread-first with an "inbox zero" state.
+- **Detail pages** (meeting/sector/member, aid, visitation, notification): summary header cards, StatCard key-facts, Section groups, and bespoke **timelines** (note-history, activity, aid-reminder lifecycle, notification lifecycle).
+- **Check-in flows** (meeting + liturgy attendance): present/absent StatCards, thumb-friendly toggle rows, sticky full-width mobile save.
+- **All create/edit forms** (users, meetings, sectors, bookings, confession, visitation, notification, aid): guided Section-grouped steppers, sticky action bars, full-width mobile CTAs, Skeleton edit-load states; fixed a user-form step-number mislabeling bug.
+
+Guarantees: presentation-only (no data/query/permission/logic changes), all text via existing i18n / local COPY (no new keys invented), each wave build-verified green and ESLint-clean, dark-mode-safe. Left with the (already solid) earlier pass: Account/Platform settings, Profile, Landing-content editor, UserDetails (reference-quality); public marketing landing intentionally untouched.
 
 > Update: the "Remaining work (bespoke per-module passes)" list below has now been **completed** in commits `d941084` and `3fde6c6` — every operational module plus Users/Family House, Settings, Profile, System Analytics, public booking, and the shared pages received a bespoke redesign pass. The only items intentionally NOT touched are the two large API-driven public **marketing** landing files (`public/LandingPage.js`, `public/LandingMobilePage.js`) — left as-is to avoid risk; they still inherit the warm tokens. See "Remaining/optional" at the bottom.
 
