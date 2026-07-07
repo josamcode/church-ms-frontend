@@ -369,10 +369,10 @@ export default function UserDetailsPage() {
                 <img
                   src={user.avatar.url}
                   alt=""
-                  className="h-20 w-20 rounded-2xl border-2 border-primary/20 object-cover shadow-lg"
+                  className="h-24 w-24 rounded-2xl object-cover shadow-lg ring-2 ring-secondary/30 ring-offset-2 ring-offset-surface"
                 />
               ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-primary/20 bg-primary/10 text-2xl font-bold text-primary shadow-inner">
+                <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 text-3xl font-bold text-primary shadow-inner ring-2 ring-secondary/30 ring-offset-2 ring-offset-surface">
                   {initial}
                 </div>
               )}
