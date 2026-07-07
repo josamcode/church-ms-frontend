@@ -173,16 +173,16 @@ const Select = forwardRef(
               });
             }}
             className={[
-              'flex w-full items-center justify-between rounded-sm border bg-surface font-medium outline-none py-5',
+              'flex w-full items-center justify-between rounded-lg border bg-surface font-medium outline-none',
               'transition-all duration-150 cursor-default',
               sizeStyles[size] ?? sizeStyles.md,
               disabled ? 'opacity-50 cursor-not-allowed' : '',
               !error
                 ? open
-                  ? 'border-primary ring-2 ring-primary/15'
+                  ? 'border-primary ring-2 ring-primary/25'
                   : 'border-border hover:border-primary/40'
                 : open
-                  ? 'border-danger ring-2 ring-danger/15'
+                  ? 'border-danger ring-2 ring-danger/25'
                   : 'border-danger',
               !selectedOption ? 'text-muted' : 'text-heading',
               className,

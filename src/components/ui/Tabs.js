@@ -129,8 +129,8 @@ export default function Tabs({
                       'transition-all duration-300 ease-out focus:outline-none',
                       'focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
                       isActive
-                        ? 'bg-primary text-white shadow-[0_10px_20px_rgba(0,0,0,0.14)]'
-                        : 'text-foreground/70 hover:bg-surface hover:text-foreground',
+                        ? 'bg-primary text-white shadow-md'
+                        : 'text-muted hover:bg-surface hover:text-heading',
                     ].join(' ')}
                   >
                     <span className="relative z-10 flex items-center gap-2">

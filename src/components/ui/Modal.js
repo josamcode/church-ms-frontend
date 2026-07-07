@@ -45,14 +45,14 @@ export default function Modal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50 animate-fade-in" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-[2px] animate-fade-in" onClick={onClose} />
       <div
-        className={`relative bg-surface rounded-lg shadow-modal w-full ${sizes[size]} animate-slide-up z-10 max-h-[90vh] flex flex-col`}
+        className={`relative bg-surface rounded-2xl border border-border shadow-modal w-full ${sizes[size]} animate-slide-up z-10 max-h-[90vh] flex flex-col`}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
-        <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h3 className="text-lg font-bold text-heading">{title}</h3>
           <button
             onClick={onClose}
@@ -62,9 +62,9 @@ export default function Modal({
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className={`p-4 overflow-y-auto flex-1 ${bodyClassName}`.trim()}>{children}</div>
+        <div className={`px-5 py-4 overflow-y-auto flex-1 ${bodyClassName}`.trim()}>{children}</div>
         {footer ? (
-          <div className={`p-4 border-t border-border flex gap-2 justify-end ${footerClassName}`.trim()}>
+          <div className={`px-5 py-4 border-t border-border flex gap-2 justify-end ${footerClassName}`.trim()}>
             {footer}
           </div>
         ) : null}
