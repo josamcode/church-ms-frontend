@@ -605,7 +605,7 @@ export default function UsersListPage() {
           </div>
         </div>
 
-        <div className="overflow-hidden tttable">
+        <div className="overflow-hidden">
           {viewMode === 'cards' ? (
             <UsersCardsGrid
               users={users}

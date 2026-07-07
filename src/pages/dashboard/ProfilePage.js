@@ -270,5 +270,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-/* ── QuickStat: compact pill for hero strip ─────────────────────────────── */

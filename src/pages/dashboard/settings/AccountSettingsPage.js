@@ -8,24 +8,12 @@ import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
 import Switch from '../../../components/ui/Switch';
 import Tabs from '../../../components/ui/Tabs';
 import { useI18n } from '../../../i18n/i18n';
-
-function SettingsCard({ children, className = '', ...props }) {
-  return (
-    <Card
-      padding={false}
-      className={['min-w-0 rounded-2xl p-4 sm:p-6', className].filter(Boolean).join(' ')}
-      {...props}
-    >
-      {children}
-    </Card>
-  );
-}
 
 export default function AccountSettingsPage() {
   const queryClient = useQueryClient();
@@ -169,39 +157,38 @@ export default function AccountSettingsPage() {
       ? {
           label: tf('accountSettings.tabs.avatar', 'Avatar'),
           content: (
-            <SettingsCard>
-              <CardHeader
-                title={tf('accountSettings.avatar.title', 'Profile Avatar')}
-                subtitle={tf(
-                  'accountSettings.avatar.subtitle',
-                  'Upload a profile image for your account.'
-                )}
-                action={(
-                  <>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/gif,image/webp"
-                      onChange={handleAvatarSelection}
-                      disabled={avatarMutation.isPending}
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      icon={Upload}
-                      loading={avatarMutation.isPending}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {user?.avatar?.url
-                        ? tf('accountSettings.avatar.changeButton', 'Change Avatar')
-                        : tf('accountSettings.avatar.uploadButton', 'Upload Avatar')}
-                    </Button>
-                  </>
-                )}
-              />
-
+            <Section
+              icon={UserIcon}
+              title={tf('accountSettings.avatar.title', 'Profile Avatar')}
+              description={tf(
+                'accountSettings.avatar.subtitle',
+                'Upload a profile image for your account.'
+              )}
+              actions={(
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleAvatarSelection}
+                    disabled={avatarMutation.isPending}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    icon={Upload}
+                    loading={avatarMutation.isPending}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {user?.avatar?.url
+                      ? tf('accountSettings.avatar.changeButton', 'Change Avatar')
+                      : tf('accountSettings.avatar.uploadButton', 'Upload Avatar')}
+                  </Button>
+                </>
+              )}
+            >
               <div className="rounded-2xl border border-border bg-surface-alt/40 p-3 sm:p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                   {user?.avatar?.url ? (
@@ -235,7 +222,7 @@ export default function AccountSettingsPage() {
                   </div>
                 </div>
               </div>
-            </SettingsCard>
+            </Section>
           ),
         }
       : null,
@@ -243,27 +230,14 @@ export default function AccountSettingsPage() {
       ? {
           label: tf('accountSettings.tabs.password', 'Password'),
           content: (
-            <SettingsCard>
-              <CardHeader
-                title={tf('accountSettings.password.title', 'Change Password')}
-                subtitle={tf(
-                  'accountSettings.password.subtitle',
-                  'Update your account password using your current password.'
-                )}
-                action={(
-                  <Button
-                    type="button"
-                    size="sm"
-                    icon={KeyRound}
-                    loading={passwordMutation.isPending}
-                    disabled={!canSubmitPassword || passwordMutation.isPending}
-                    onClick={handleChangePassword}
-                  >
-                    {tf('accountSettings.password.saveButton', 'Update Password')}
-                  </Button>
-                )}
-              />
-
+            <Section
+              icon={KeyRound}
+              title={tf('accountSettings.password.title', 'Change Password')}
+              description={tf(
+                'accountSettings.password.subtitle',
+                'Update your account password using your current password.'
+              )}
+            >
               <div className="rounded-2xl border border-border bg-surface-alt/40 p-3 sm:p-4">
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                   <Input
@@ -304,7 +278,21 @@ export default function AccountSettingsPage() {
                   />
                 </div>
               </div>
-            </SettingsCard>
+
+              <div className="mt-5 flex sm:justify-end">
+                <Button
+                  type="button"
+                  icon={KeyRound}
+                  fullWidth
+                  loading={passwordMutation.isPending}
+                  disabled={!canSubmitPassword || passwordMutation.isPending}
+                  onClick={handleChangePassword}
+                  className="sm:w-auto"
+                >
+                  {tf('accountSettings.password.saveButton', 'Update Password')}
+                </Button>
+              </div>
+            </Section>
           ),
         }
       : null,
@@ -312,33 +300,14 @@ export default function AccountSettingsPage() {
       ? {
           label: tf('accountSettings.tabs.confessions', 'Confessions'),
           content: (
-            <SettingsCard>
-              <CardHeader
-                title={tf('accountSettings.confessions.title', 'Confession Session Privacy')}
-                subtitle={tf(
-                  'accountSettings.confessions.subtitle',
-                  'Control whether other users can view confession sessions created by your account.'
-                )}
-                action={(
-                  <Button
-                    type="button"
-                    size="sm"
-                    icon={Save}
-                    loading={saveMutation.isPending}
-                    disabled={
-                      allowOthersToViewCreatedConfessionSessions === savedVisibility || !hasUserId
-                    }
-                    onClick={() =>
-                      saveMutation.mutate({
-                        allowOthersToViewCreatedConfessionSessions,
-                      })
-                    }
-                  >
-                    {t('common.actions.save')}
-                  </Button>
-                )}
-              />
-
+            <Section
+              icon={Shield}
+              title={tf('accountSettings.confessions.title', 'Confession Session Privacy')}
+              description={tf(
+                'accountSettings.confessions.subtitle',
+                'Control whether other users can view confession sessions created by your account.'
+              )}
+            >
               <div className="rounded-2xl border border-border bg-surface-alt/40 p-3 sm:p-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="space-y-2">
@@ -370,7 +339,27 @@ export default function AccountSettingsPage() {
                   />
                 </div>
               </div>
-            </SettingsCard>
+
+              <div className="mt-5 flex sm:justify-end">
+                <Button
+                  type="button"
+                  icon={Save}
+                  fullWidth
+                  loading={saveMutation.isPending}
+                  disabled={
+                    allowOthersToViewCreatedConfessionSessions === savedVisibility || !hasUserId
+                  }
+                  onClick={() =>
+                    saveMutation.mutate({
+                      allowOthersToViewCreatedConfessionSessions,
+                    })
+                  }
+                  className="sm:w-auto"
+                >
+                  {t('common.actions.save')}
+                </Button>
+              </div>
+            </Section>
           ),
         }
       : null,
@@ -378,31 +367,14 @@ export default function AccountSettingsPage() {
       ? {
           label: tf('accountSettings.tabs.chats', 'Chats'),
           content: (
-            <SettingsCard>
-              <CardHeader
-                title={tf('accountSettings.chats.title', 'Chat Visibility')}
-                subtitle={tf(
-                  'accountSettings.chats.subtitle',
-                  'Control whether users with advanced chat permissions can view chats created by your account.'
-                )}
-                action={(
-                  <Button
-                    type="button"
-                    size="sm"
-                    icon={Save}
-                    loading={saveMutation.isPending}
-                    disabled={allowOthersToViewCreatedChats === savedChatVisibility || !hasUserId}
-                    onClick={() =>
-                      saveMutation.mutate({
-                        allowOthersToViewCreatedChats,
-                      })
-                    }
-                  >
-                    {t('common.actions.save')}
-                  </Button>
-                )}
-              />
-
+            <Section
+              icon={Shield}
+              title={tf('accountSettings.chats.title', 'Chat Visibility')}
+              description={tf(
+                'accountSettings.chats.subtitle',
+                'Control whether users with advanced chat permissions can view chats created by your account.'
+              )}
+            >
               <div className="rounded-2xl border border-border bg-surface-alt/40 p-3 sm:p-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="space-y-2">
@@ -434,7 +406,25 @@ export default function AccountSettingsPage() {
                   />
                 </div>
               </div>
-            </SettingsCard>
+
+              <div className="mt-5 flex sm:justify-end">
+                <Button
+                  type="button"
+                  icon={Save}
+                  fullWidth
+                  loading={saveMutation.isPending}
+                  disabled={allowOthersToViewCreatedChats === savedChatVisibility || !hasUserId}
+                  onClick={() =>
+                    saveMutation.mutate({
+                      allowOthersToViewCreatedChats,
+                    })
+                  }
+                  className="sm:w-auto"
+                >
+                  {t('common.actions.save')}
+                </Button>
+              </div>
+            </Section>
           ),
         }
       : null,

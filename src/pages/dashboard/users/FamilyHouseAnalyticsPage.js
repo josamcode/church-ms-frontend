@@ -26,6 +26,7 @@ import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import SearchInput from '../../../components/ui/SearchInput';
 import Select from '../../../components/ui/Select';
+import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import {
   FAMILY_HOUSE_DETAILS_PATH,
@@ -199,7 +200,7 @@ export default function FamilyHouseAnalyticsPage() {
           percent: formatPercent(summary.familyCoveragePct, language),
         }),
         icon: Building2,
-        tone: 'secondary',
+        tone: 'gold',
       },
       {
         label: tr('familyHouseLookup.analytics.totalHouses'),
@@ -208,7 +209,7 @@ export default function FamilyHouseAnalyticsPage() {
           percent: formatPercent(summary.houseCoveragePct, language),
         }),
         icon: Home,
-        tone: 'accent',
+        tone: 'info',
       },
       {
         label: tr('familyHouseLookup.summary.lockedCount'),
@@ -362,13 +363,16 @@ export default function FamilyHouseAnalyticsPage() {
         </Card>
       ) : (
         <>
-          <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
             {kpiItems.map((item) => (
-              <KpiTile
+              <StatCard
                 key={item.label}
-                item={item}
-                language={language}
-                loading={analyticsQuery.isLoading}
+                icon={item.icon}
+                label={item.label}
+                value={analyticsQuery.isLoading ? '···' : (item.value ?? '---')}
+                hint={item.detail}
+                tone={item.tone}
+                isRTL={isRTL}
               />
             ))}
           </section>
@@ -522,41 +526,6 @@ export default function FamilyHouseAnalyticsPage() {
         </>
       )}
     </div>
-  );
-}
-
-function KpiTile({ item, language, loading }) {
-  const Icon = item.icon;
-  const toneClasses = {
-    primary: 'text-primary bg-primary/10 border-primary/15',
-    secondary: 'text-secondary bg-secondary/10 border-secondary/15',
-    accent: 'text-accent bg-accent/10 border-accent/15',
-    danger: 'text-danger bg-danger-light border-danger/15',
-  };
-
-  return (
-    <Card className="relative overflow-hidden p-0" padding={false}>
-      <div className="flex min-h-[142px] flex-col justify-between p-5">
-        <div className="flex items-start justify-between gap-4">
-          <p className="max-w-[11rem] text-[11px] font-semibold uppercase tracking-widest text-muted">
-            {item.label}
-          </p>
-          <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${toneClasses[item.tone] || toneClasses.primary}`}>
-            <Icon className="h-5 w-5" />
-          </span>
-        </div>
-        <div>
-          {loading ? (
-            <div className="h-10 w-24 animate-pulse rounded-md bg-surface-alt" />
-          ) : (
-            <p className="text-4xl font-semibold tracking-tight text-heading tabular-nums">
-              {item.value}
-            </p>
-          )}
-          <p className="mt-2 text-sm text-muted">{item.detail}</p>
-        </div>
-      </div>
-    </Card>
   );
 }
 

@@ -742,7 +742,7 @@ export default function BookingPublicPage() {
       <section className="page-container relative py-28">
         <div className="mx-auto max-w-5xl space-y-8">
           <div className="max-w-2xl space-y-4">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-primary">
               <CalendarClock className="h-3.5 w-3.5" />
               {tf('bookings.public.eyebrow', 'Book an appointment')}
             </span>
@@ -758,8 +758,9 @@ export default function BookingPublicPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-            <Card className="rounded-[28px] border-white/50 bg-surface/90 backdrop-blur">
+            <Card className="rounded-[28px] border-border bg-surface/90 shadow-lg backdrop-blur">
               <CardHeader
+                icon={NotebookPen}
                 title={tf('bookings.public.formTitle', 'Appointment request')}
                 subtitle={tf('bookings.public.formSubtitle', 'Only available slots are shown below.')}
               />
@@ -806,7 +807,7 @@ export default function BookingPublicPage() {
                   containerClassName="!mb-0"
                 /> */}
 
-                <div className={`grid grid-cols-1 gap-4 ${timeScopedMode ? 'md:grid-cols-2' : ''}`}>
+                <div className={`grid grid-cols-1 gap-4 border-t border-border/60 pt-4 ${timeScopedMode ? 'md:grid-cols-2' : ''}`}>
                   {usesDateSelect ? (
                     <Select
                       label={tf('bookings.public.date', 'Date')}
@@ -894,8 +895,9 @@ export default function BookingPublicPage() {
             </Card>
 
             <div className="space-y-6">
-              <Card className="rounded-[28px] border-white/50 bg-surface/90 backdrop-blur">
+              <Card className="rounded-[28px] border-border bg-surface/90 shadow-card backdrop-blur">
                 <CardHeader
+                  icon={CalendarClock}
                   title={selectedType?.name || tf('bookings.public.typePreview', 'Booking details')}
                   subtitle={
                     selectedType
@@ -923,14 +925,14 @@ export default function BookingPublicPage() {
                 <div className="mt-4 space-y-3">
                   {timeScopedMode && dateGroups.length > 0 ? (
                     dateGroups.slice(0, 4).map((group) => (
-                      <div key={group.date} className="rounded-2xl border border-border p-4">
-                        <div className="mb-3 flex items-center justify-between">
-                          <span className="text-sm font-semibold text-heading">{group.date}</span>
+                      <div key={group.date} className="rounded-2xl border border-border bg-surface-alt/30 p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold text-heading">{formatDateOptionLabel(group.date, locale)}</span>
                           <span className="text-xs text-muted">{group.slots.length} {tf('bookings.public.times', 'times')}</span>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {group.slots.slice(0, 6).map((slot) => (
-                            <span key={`${group.date}-${slot.time}`} className="rounded-full bg-primary/8 px-3 py-1 text-xs font-medium text-primary">
+                            <span key={`${group.date}-${slot.time}`} className="rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                               {slot.time}
                             </span>
                           ))}

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   Building2,
   HandCoins,
+  LockKeyhole,
   Pencil,
   Search,
   ShieldCheck,
@@ -22,6 +23,7 @@ import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
+import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import FamilyHouseProfileInsights from '../../../components/users/FamilyHouseProfileInsights';
 import HouseholdQuickEditModal from '../../../components/users/HouseholdQuickEditModal';
@@ -524,7 +526,7 @@ export default function FamilyHouseLookupPage() {
         }
       />
 
-      <Card className="space-y-4">
+      <Card tone="muted" className="space-y-4">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[200px_minmax(0,1fr)_auto]">
           <Select
             label={t('familyHouseLookup.filters.searchType')}
@@ -657,20 +659,23 @@ export default function FamilyHouseLookupPage() {
           />
         ) : (
           <>
-            {/* <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-              <SummaryItem
-                label={t('familyHouseLookup.summary.selectedName')}
-                value={submittedLookupName || EMPTY}
-              />
-              <SummaryItem
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatCard
+                icon={UsersIcon}
                 label={t('familyHouseLookup.summary.membersCount')}
                 value={members.length}
+                tone="primary"
+                isRTL={isRTL}
               />
-              <SummaryItem
+              <StatCard
+                icon={LockKeyhole}
                 label={t('familyHouseLookup.summary.lockedCount')}
                 value={selectedLockedMembers}
+                tone={selectedLockedMembers > 0 ? 'danger' : 'success'}
+                isRTL={isRTL}
               />
-              <SummaryItem
+              <StatCard
+                icon={Building2}
                 label={t('familyHouseLookup.summary.relatedOtherGroup', {
                   group: t(
                     isFamilyLookup
@@ -679,12 +684,17 @@ export default function FamilyHouseLookupPage() {
                   ),
                 })}
                 value={selectedRelatedRanks.length}
+                tone="gold"
+                isRTL={isRTL}
               />
-              <SummaryItem
+              <StatCard
+                icon={ShieldCheck}
                 label={t('familyHouseLookup.analytics.coverage')}
                 value={`${selectedCoveragePct.toFixed(1)}%`}
+                tone="info"
+                isRTL={isRTL}
               />
-            </div> */}
+            </div>
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
               <RankedBars

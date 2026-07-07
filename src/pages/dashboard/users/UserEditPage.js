@@ -1374,9 +1374,9 @@ export default function UserEditPage() {
                 {sectionNavCopy.next}
               </Button>
             </div>
-            <div className="flex gap-2">
-              <Button variant="ghost" type="button" onClick={() => navigate(-1)}>إلغاء</Button>
-              <Button type="submit" icon={Save} loading={mutation.isPending}>حفظ التعديلات</Button>
+            <div className="flex w-full gap-2 sm:w-auto">
+              <Button variant="ghost" type="button" onClick={() => navigate(-1)} className="flex-1 sm:flex-none">إلغاء</Button>
+              <Button type="submit" icon={Save} loading={mutation.isPending} className="flex-1 sm:flex-none">حفظ التعديلات</Button>
             </div>
 
           </div>

@@ -1,40 +1,38 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Eye, FileClock, Pencil, XCircle } from 'lucide-react';
+import { CheckCircle2, Eye, FileClock, ListFilter, Pencil, SlidersHorizontal, Users as UsersIcon, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
+import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card, { CardHeader } from '../../../components/ui/Card';
 import PageHeader from '../../../components/ui/PageHeader';
 import Pagination from '../../../components/ui/Pagination';
 import SearchInput from '../../../components/ui/SearchInput';
+import Section from '../../../components/ui/Section';
 import Select from '../../../components/ui/Select';
+import StatCard from '../../../components/ui/StatCard';
 import Table, { RowActions } from '../../../components/ui/Table';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDate, getAccountStatusLabel } from '../../../utils/formatters';
 
-function SectionLabel({ children }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{children}</span>
-      <div className="h-px flex-1 bg-border/60" />
-    </div>
-  );
-}
+const ACCOUNT_STATUS_VARIANT = {
+  approved: 'success',
+  rejected: 'danger',
+  pending: 'warning',
+};
 
 function StatusPill({ value }) {
-  const className =
-    value === 'approved'
-      ? 'bg-success-light text-success border-success/20'
-      : value === 'rejected'
-        ? 'bg-danger-light text-danger border-danger/20'
-        : 'bg-primary/10 text-primary border-primary/20';
-
-  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}>{getAccountStatusLabel(value)}</span>;
+  return (
+    <Badge variant={ACCOUNT_STATUS_VARIANT[value] || 'warning'} dot>
+      {getAccountStatusLabel(value)}
+    </Badge>
+  );
 }
 
 export default function UsersRequestsListPage() {
@@ -147,27 +145,34 @@ export default function UsersRequestsListPage() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-surface p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">المعروض الآن</p>
-          <p className="mt-4 text-4xl font-bold tracking-tight text-heading">{rows.length}</p>
-        </div>
-        <div className="rounded-2xl border border-primary/20 bg-primary/6 p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-primary/70">الفلاتر الحالية</p>
-          <p className="mt-4 text-lg font-semibold text-heading">{filters.accountStatus ? getAccountStatusLabel(filters.accountStatus) : 'كل الحالات'}</p>
-        </div>
-        <div className="rounded-2xl border border-border bg-surface p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">الطلبات المفتوحة</p>
-          <p className="mt-4 text-lg font-semibold text-heading">يمكنك فتح كل طلب من صفحة التعديل أو من تفاصيل المستخدم.</p>
-        </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatCard
+          icon={UsersIcon}
+          label="المعروض الآن"
+          value={rows.length}
+          tone="primary"
+        />
+        <StatCard
+          icon={ListFilter}
+          label="الفلاتر الحالية"
+          value={filters.accountStatus ? getAccountStatusLabel(filters.accountStatus) : 'كل الحالات'}
+          tone="gold"
+        />
+        <StatCard
+          icon={FileClock}
+          label="الطلبات المفتوحة"
+          value={rows.length}
+          hint="افتح كل طلب من صفحة التعديل أو من تفاصيل المستخدم."
+        />
       </div>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <SectionLabel>كيف تريد فلترة الطلبات؟</SectionLabel>
-          <button
-            type="button"
-            className="text-xs font-medium text-primary hover:underline"
+      <Section
+        title="كيف تريد فلترة الطلبات؟"
+        icon={SlidersHorizontal}
+        actions={
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               setFilters({ fullName: '', accountStatus: 'pending' });
               setCursor(null);
@@ -175,9 +180,9 @@ export default function UsersRequestsListPage() {
             }}
           >
             إعادة التعيين
-          </button>
-        </div>
-
+          </Button>
+        }
+      >
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <SearchInput
             value={filters.fullName}
@@ -204,15 +209,19 @@ export default function UsersRequestsListPage() {
             containerClassName="!mb-0"
           />
         </div>
-      </section>
+      </Section>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <SectionLabel>ما الطلبات التي تحتاج إلى مراجعة الآن؟</SectionLabel>
-          <span className="text-xs text-muted">يمكنك الاعتماد أو الرفض مباشرة من القائمة</span>
+      <Card padding={false} className="overflow-hidden">
+        <div className="px-5 pt-5 sm:px-6">
+          <CardHeader
+            icon={FileClock}
+            title="ما الطلبات التي تحتاج إلى مراجعة الآن؟"
+            subtitle="يمكنك الاعتماد أو الرفض مباشرة من القائمة"
+            className="mb-0"
+          />
         </div>
 
-        <div className="overflow-hidden tttable">
+        <div className="p-2 sm:p-3">
           <Table
             columns={columns}
             data={rows}
@@ -221,29 +230,29 @@ export default function UsersRequestsListPage() {
             emptyDescription="جرّب تغيير الفلاتر أو انتظر حتى تصل طلبات تسجيل جديدة."
             emptyIcon={FileClock}
           />
-
-          <div className="border-t border-border px-4 pb-4 pt-2">
-            <Pagination
-              meta={meta}
-              loading={requestsQuery.isLoading}
-              cursors={cursorStack}
-              onLoadMore={() => {
-                if (!meta?.nextCursor || meta.nextCursor === cursor) return;
-                setCursorStack((prev) => [...prev, meta.nextCursor]);
-                setCursor(meta.nextCursor);
-              }}
-              onPrev={() => {
-                setCursorStack((prev) => {
-                  if (prev.length <= 1) return prev;
-                  const next = prev.slice(0, -1);
-                  setCursor(next[next.length - 1] || null);
-                  return next;
-                });
-              }}
-            />
-          </div>
         </div>
-      </section>
+
+        <div className="border-t border-border px-4 pb-4 pt-3">
+          <Pagination
+            meta={meta}
+            loading={requestsQuery.isLoading}
+            cursors={cursorStack}
+            onLoadMore={() => {
+              if (!meta?.nextCursor || meta.nextCursor === cursor) return;
+              setCursorStack((prev) => [...prev, meta.nextCursor]);
+              setCursor(meta.nextCursor);
+            }}
+            onPrev={() => {
+              setCursorStack((prev) => {
+                if (prev.length <= 1) return prev;
+                const next = prev.slice(0, -1);
+                setCursor(next[next.length - 1] || null);
+                return next;
+              });
+            }}
+          />
+        </div>
+      </Card>
     </div>
   );
 }

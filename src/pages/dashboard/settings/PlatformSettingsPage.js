@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Save } from 'lucide-react';
+import { Save, UserPlus } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
@@ -7,11 +7,13 @@ import { meetingsApi, platformSettingsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import NotificationTemplateEditor from '../../../components/notifications/NotificationTemplateEditor';
+import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
 import Switch from '../../../components/ui/Switch';
 import Tabs from '../../../components/ui/Tabs';
 import { useI18n } from '../../../i18n/i18n';
@@ -413,10 +415,11 @@ export default function PlatformSettingsPage() {
 
     if (meetingReminderSettingsQuery.isLoading) {
       return (
-        <Card className="rounded-3xl border border-border/60 bg-surface shadow-card">
+        <Card className="rounded-2xl border border-border bg-surface shadow-card">
           <CardHeader
             title={tf('platformSettingsPage.meetingReminders.title', 'Meeting reminder settings')}
             subtitle={tf('platformSettingsPage.meetingReminders.loading', 'Loading meetings...')}
+            className="!mb-0"
           />
         </Card>
       );
@@ -424,13 +427,14 @@ export default function PlatformSettingsPage() {
 
     if (!meetings.length) {
       return (
-        <Card className="rounded-3xl border border-border/60 bg-surface shadow-card">
+        <Card className="rounded-2xl border border-border bg-surface shadow-card">
           <CardHeader
             title={tf('platformSettingsPage.meetingReminders.title', 'Meeting reminder settings')}
             subtitle={tf(
               'platformSettingsPage.meetingReminders.empty',
               'No meetings were found yet. Create meetings first, then their reminder settings will appear here.'
             )}
+            className="!mb-0"
           />
         </Card>
       );
@@ -438,13 +442,14 @@ export default function PlatformSettingsPage() {
 
     return (
       <div className="space-y-6">
-        <Card className="rounded-3xl border border-border/60 bg-surface shadow-card">
+        <Card className="rounded-2xl border border-border bg-surface shadow-card">
           <CardHeader
             title={tf('platformSettingsPage.meetingReminders.title', 'Meeting reminder settings')}
             subtitle={tf(
               'platformSettingsPage.meetingReminders.subtitle',
               'Each meeting has its own reminder lead time and localized notification text. Save each meeting separately.'
             )}
+            className="!mb-0"
           />
         </Card>
 
@@ -496,7 +501,7 @@ export default function PlatformSettingsPage() {
           ];
 
           return (
-            <Card key={meeting.id} className="rounded-3xl border border-border/60 bg-surface shadow-card">
+            <Card key={meeting.id} className="rounded-2xl border border-border bg-surface shadow-card">
               <CardHeader
                 title={meeting.name}
                 subtitle={meetingSubtitle}
@@ -519,7 +524,7 @@ export default function PlatformSettingsPage() {
               />
 
               <div className="space-y-6">
-                <Card className="rounded-3xl border border-border/60 bg-surface shadow-card">
+                <div className="rounded-2xl border border-border bg-surface-alt/30 p-4 sm:p-5">
                   <CardHeader
                     title={t('platformSettingsPage.notifications.reminderTiming.title')}
                     subtitle={t('platformSettingsPage.notifications.reminderTiming.subtitle')}
@@ -549,7 +554,7 @@ export default function PlatformSettingsPage() {
                       </p>
                     </div>
                   </div>
-                </Card>
+                </div>
 
                 <Tabs variant="inline" tabs={meetingLanguageTabs} />
               </div>
@@ -626,30 +631,25 @@ export default function PlatformSettingsPage() {
         )}
       />
 
-      <Card className="rounded-3xl border border-border/60 bg-surface shadow-card">
-        <CardHeader
-          title={tf('platformSettingsPage.registration.title', 'Public registration')}
-          subtitle={tf(
-            'platformSettingsPage.registration.subtitle',
-            'Choose whether guests can submit new account requests from the public registration page.'
-          )}
-        />
-
+      <Section
+        icon={UserPlus}
+        title={tf('platformSettingsPage.registration.title', 'Public registration')}
+        description={tf(
+          'platformSettingsPage.registration.subtitle',
+          'Choose whether guests can submit new account requests from the public registration page.'
+        )}
+      >
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-semibold text-heading">
                 {tf('platformSettingsPage.registration.statusLabel', 'Current status')}
               </span>
-              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                form.registrationEnabled
-                  ? 'bg-success-light text-success'
-                  : 'bg-danger-light text-danger'
-              }`}>
+              <Badge variant={form.registrationEnabled ? 'success' : 'danger'} dot>
                 {form.registrationEnabled
                   ? tf('platformSettingsPage.registration.enabled', 'Registration enabled')
                   : tf('platformSettingsPage.registration.disabled', 'Registration disabled')}
-              </span>
+              </Badge>
             </div>
             <p className="text-sm text-muted">
               {canManageRegistration
@@ -677,7 +677,7 @@ export default function PlatformSettingsPage() {
             />
           </div>
         </div>
-      </Card>
+      </Section>
 
       <Tabs tabs={editorTabs} framedPanel={false} bodyClassName="p-3 sm:p-4" />
     </div>

@@ -840,8 +840,8 @@ export default function UserRegisterPage() {
               <Button type="button" variant="ghost" onClick={() => previousStep && setActiveStep(previousStep.id)} disabled={!previousStep}>{copy.back}</Button>
               <Button type="button" variant="outline" onClick={goNext} disabled={!nextStep}>{copy.next}</Button>
             </div>
-            <div className="flex flex-col items-start gap-2 lg:items-end">
-              <Button type="submit" loading={submitting} disabled={!canSubmit}>{copy.submit}</Button>
+            <div className="flex w-full flex-col items-stretch gap-2 lg:w-auto lg:items-end">
+              <Button type="submit" loading={submitting} disabled={!canSubmit} className="w-full lg:w-auto">{copy.submit}</Button>
               <p className="text-xs text-muted">{copy.submitHint}</p>
             </div>
           </div>

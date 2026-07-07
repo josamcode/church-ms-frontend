@@ -39,6 +39,7 @@ import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import PageHeader from '../../../components/ui/PageHeader';
 import SearchInput from '../../../components/ui/SearchInput';
 import Select from '../../../components/ui/Select';
+import StatCard from '../../../components/ui/StatCard';
 import Table, { RowActions } from '../../../components/ui/Table';
 import Tabs from '../../../components/ui/Tabs';
 import TextArea from '../../../components/ui/TextArea';
@@ -109,29 +110,6 @@ function countFiltersForKeys(filters, keys = []) {
   return keys.reduce(
     (count, key) => count + (isFilterValueActive(key, filters?.[key]) ? 1 : 0),
     0
-  );
-}
-
-function MetricCard({ icon: Icon, label, value, hint, accent = 'default' }) {
-  const accentMap = {
-    default: 'bg-surface-alt text-muted',
-    primary: 'bg-primary/10 text-primary',
-    success: 'bg-success-light text-success',
-    warning: 'bg-warning-light text-warning',
-    danger: 'bg-danger-light text-danger',
-  };
-
-  return (
-    <div className="rounded-2xl border border-border bg-surface p-4 shadow-card">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{label}</p>
-        <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${accentMap[accent]}`}>
-          {Icon ? <Icon className="h-4 w-4" /> : null}
-        </span>
-      </div>
-      <p className="mt-4 text-3xl font-bold tracking-tight text-heading">{value ?? '---'}</p>
-      {hint ? <p className="mt-2 text-xs text-muted">{hint}</p> : null}
-    </div>
   );
 }
 
@@ -1407,46 +1385,52 @@ export default function UsersExplorerPage() {
       label: workspaceCopy.supportTabs.summary,
       content: (
         <div className="space-y-5">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <MetricCard
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatCard
               icon={UsersIcon}
               label={tx('metrics.filteredUsers')}
               value={analytics.filteredCount}
               hint={tx('metrics.filteredUsersHint', { count: analytics.totalCount })}
-              accent="primary"
+              tone="primary"
+              isRTL={language === 'ar'}
             />
-            <MetricCard
+            <StatCard
               icon={Filter}
               label={tx('metrics.coverage')}
               value={`${analytics.coveragePercentage}%`}
               hint={tx('metrics.coverageHint', { count: activeFilterCount })}
-              accent="warning"
+              tone="gold"
+              isRTL={language === 'ar'}
             />
-            <MetricCard
+            <StatCard
               icon={Shield}
               label={tx('metrics.loginEnabled')}
               value={analytics.loginEnabledCount}
               hint={tx('metrics.loginEnabledHint')}
-              accent="success"
+              tone="success"
+              isRTL={language === 'ar'}
             />
-            <MetricCard
+            <StatCard
               icon={Lock}
               label={tx('metrics.locked')}
               value={analytics.lockedCount}
               hint={tx('metrics.lockedHint')}
-              accent={analytics.lockedCount > 0 ? 'danger' : 'success'}
+              tone={analytics.lockedCount > 0 ? 'danger' : 'success'}
+              isRTL={language === 'ar'}
             />
-            <MetricCard
+            <StatCard
               icon={Sparkles}
               label={tx('metrics.averageAge')}
               value={analytics.averageAge ?? '---'}
               hint={tx('metrics.averageAgeHint')}
+              isRTL={language === 'ar'}
             />
-            <MetricCard
+            <StatCard
               icon={BarChart3}
               label={tx('metrics.averageIncome')}
               value={analytics.averageIncome != null ? tx('metrics.averageIncomeValue', { value: analytics.averageIncome }) : '---'}
               hint={tx('metrics.averageIncomeHint')}
+              isRTL={language === 'ar'}
             />
           </div>
           <div className="rounded-2xl border border-border bg-surface-alt/30 p-4">
@@ -1834,12 +1818,12 @@ export default function UsersExplorerPage() {
         </Card>
 
         <div className="self-start space-y-6 xl:sticky xl:top-6">
-          <Card className="space-y-5">
+          <Card tone="muted" className="space-y-5">
             <CardHeader title={workspaceCopy.workspaceTitle} subtitle={workspaceCopy.workspaceSubtitle} />
             <Tabs tabs={filterTabs} />
           </Card>
 
-          <Card className="space-y-5">
+          <Card tone="muted" className="space-y-5">
             <CardHeader title={workspaceCopy.supportTitle} subtitle={workspaceCopy.supportSubtitle} />
             <Tabs tabs={supportTabs} />
           </Card>

@@ -1,15 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ExternalLink, ImagePlus, Save, Trash2 } from 'lucide-react';
+import {
+  BarChart3,
+  ExternalLink,
+  FileText,
+  ImagePlus,
+  Image as ImageIcon,
+  MapPin,
+  Save,
+  Share2,
+  Trash2,
+  Users,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { landingContentApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
 import Select from '../../../components/ui/Select';
 import Switch from '../../../components/ui/Switch';
 import Tabs from '../../../components/ui/Tabs';
@@ -75,18 +86,6 @@ function TextFieldControl({ label, value, onChange, fieldPath }) {
       onChange={(event) => onChange(event.target.value)}
       containerClassName="!mb-0"
     />
-  );
-}
-
-function EditorCard({ children, className = '', ...props }) {
-  return (
-    <Card
-      padding={false}
-      className={['min-w-0 rounded-2xl p-4 sm:p-6', className].filter(Boolean).join(' ')}
-      {...props}
-    >
-      {children}
-    </Card>
   );
 }
 
@@ -287,11 +286,11 @@ export default function LandingContentPage() {
   };
 
   const renderPriestsEditor = (lang) => (
-    <EditorCard>
-      <CardHeader
-        title={t('landingContentPage.sections.priests.title')}
-        subtitle={t('landingContentPage.sections.priests.subtitle')}
-      />
+    <Section
+      icon={Users}
+      title={t('landingContentPage.sections.priests.title')}
+      description={t('landingContentPage.sections.priests.subtitle')}
+    >
       {!form.priests.length ? (
         <div className="space-y-3">
           <p className="text-sm text-muted">{t('landingContentPage.sections.priests.empty')}</p>
@@ -355,15 +354,14 @@ export default function LandingContentPage() {
           ))}
         </div>
       )}
-    </EditorCard>
+    </Section>
   );
 
   const buildLanguageSectionTabs = (lang) =>
     (textSections?.[lang] || []).map((section) => ({
       label: section.title,
       content: (
-        <EditorCard>
-          <CardHeader title={section.title} />
+        <Section icon={FileText} title={section.title}>
           <div className="grid gap-4">
             {section.fields.map((field) => (
               <TextFieldControl
@@ -375,7 +373,7 @@ export default function LandingContentPage() {
               />
             ))}
           </div>
-        </EditorCard>
+        </Section>
       ),
     }));
 
@@ -405,12 +403,11 @@ export default function LandingContentPage() {
     {
       label: t('landingContentPage.sections.hero.title'),
       content: (
-        <EditorCard>
-          <CardHeader
-            title={t('landingContentPage.sections.hero.title')}
-            subtitle={t('landingContentPage.sections.hero.subtitle')}
-          />
-
+        <Section
+          icon={ImageIcon}
+          title={t('landingContentPage.sections.hero.title')}
+          description={t('landingContentPage.sections.hero.subtitle')}
+        >
           <div className="grid gap-5 lg:grid-cols-[minmax(0,420px)_1fr]">
             <div className="overflow-hidden rounded-2xl border border-border bg-page">
               {form.heroImage?.url ? (
@@ -460,17 +457,17 @@ export default function LandingContentPage() {
               </Button>
             </div>
           </div>
-        </EditorCard>
+        </Section>
       ),
     },
     {
       label: t('landingContentPage.sections.stats.title'),
       content: (
-        <EditorCard>
-          <CardHeader
-            title={t('landingContentPage.sections.stats.title')}
-            subtitle={t('landingContentPage.sections.stats.subtitle')}
-          />
+        <Section
+          icon={BarChart3}
+          title={t('landingContentPage.sections.stats.title')}
+          description={t('landingContentPage.sections.stats.subtitle')}
+        >
           <div className="grid gap-4 lg:grid-cols-2">
             {Object.entries(form.stats || {}).map(([itemId, entry]) => (
               <div key={itemId} className="rounded-2xl border border-border p-3 sm:p-4">
@@ -498,17 +495,17 @@ export default function LandingContentPage() {
               </div>
             ))}
           </div>
-        </EditorCard>
+        </Section>
       ),
     },
     {
       label: t('landingContentPage.sections.location.title'),
       content: (
-        <EditorCard>
-          <CardHeader
-            title={t('landingContentPage.sections.location.title')}
-            subtitle={t('landingContentPage.sections.location.subtitle')}
-          />
+        <Section
+          icon={MapPin}
+          title={t('landingContentPage.sections.location.title')}
+          description={t('landingContentPage.sections.location.subtitle')}
+        >
           <div className="grid gap-4 md:grid-cols-2">
             <Input
               label={t('landingContentPage.fields.locationPlaceName')}
@@ -543,17 +540,17 @@ export default function LandingContentPage() {
               />
             </div> */}
           </div>
-        </EditorCard>
+        </Section>
       ),
     },
     {
       label: t('landingContentPage.sections.social.title'),
       content: (
-        <EditorCard>
-          <CardHeader
-            title={t('landingContentPage.sections.social.title')}
-            subtitle={t('landingContentPage.sections.social.subtitle')}
-          />
+        <Section
+          icon={Share2}
+          title={t('landingContentPage.sections.social.title')}
+          description={t('landingContentPage.sections.social.subtitle')}
+        >
           <div className="grid gap-4 lg:grid-cols-2">
             {(form.socialLinks || []).map((entry) => (
               <div key={entry.platform} className="rounded-2xl border border-border p-3 sm:p-4">
@@ -585,7 +582,7 @@ export default function LandingContentPage() {
               </div>
             ))}
           </div>
-        </EditorCard>
+        </Section>
       ),
     },
     {
