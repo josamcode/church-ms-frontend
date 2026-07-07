@@ -20,8 +20,8 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
-import Section from '../../../components/ui/Section';
 import Select from '../../../components/ui/Select';
+import SettingsLayout from '../../../components/ui/SettingsLayout';
 import Switch from '../../../components/ui/Switch';
 import Tabs from '../../../components/ui/Tabs';
 import TextArea from '../../../components/ui/TextArea';
@@ -286,11 +286,7 @@ export default function LandingContentPage() {
   };
 
   const renderPriestsEditor = (lang) => (
-    <Section
-      icon={Users}
-      title={t('landingContentPage.sections.priests.title')}
-      description={t('landingContentPage.sections.priests.subtitle')}
-    >
+    <>
       {!form.priests.length ? (
         <div className="space-y-3">
           <p className="text-sm text-muted">{t('landingContentPage.sections.priests.empty')}</p>
@@ -301,7 +297,7 @@ export default function LandingContentPage() {
       ) : (
         <div className="space-y-5">
           {form.priests.map((entry) => (
-            <div key={entry.priestUserId} className="rounded-2xl border border-border p-3 sm:p-4">
+            <div key={entry.priestUserId} className="rounded-xl bg-surface-alt/40 p-4 sm:p-5">
               <div className="mb-4 flex items-center gap-3">
                 {entry?.user?.avatar?.url ? (
                   <img
@@ -354,26 +350,24 @@ export default function LandingContentPage() {
           ))}
         </div>
       )}
-    </Section>
+    </>
   );
 
   const buildLanguageSectionTabs = (lang) =>
     (textSections?.[lang] || []).map((section) => ({
       label: section.title,
       content: (
-        <Section icon={FileText} title={section.title}>
-          <div className="grid gap-4">
-            {section.fields.map((field) => (
-              <TextFieldControl
-                key={field.path}
-                label={formatFieldLabel(field.path, section.id)}
-                fieldPath={field.path}
-                value={getByPath(form?.texts?.[lang], field.path) || ''}
-                onChange={(value) => updateTextValue(lang, field.path, value)}
-              />
-            ))}
-          </div>
-        </Section>
+        <div className="grid gap-4">
+          {section.fields.map((field) => (
+            <TextFieldControl
+              key={field.path}
+              label={formatFieldLabel(field.path, section.id)}
+              fieldPath={field.path}
+              value={getByPath(form?.texts?.[lang], field.path) || ''}
+              onChange={(value) => updateTextValue(lang, field.path, value)}
+            />
+          ))}
+        </div>
       ),
     }));
 
@@ -399,16 +393,29 @@ export default function LandingContentPage() {
     },
   ];
 
-  const editorTabs = [
+  const saveActionRow = (
+    <div className="mt-6 flex border-t border-border/70 pt-5 sm:justify-end">
+      <Button
+        fullWidth
+        className="sm:w-auto"
+        icon={Save}
+        loading={saveMutation.isPending}
+        onClick={() => saveMutation.mutate()}
+      >
+        {t('landingContentPage.actions.save')}
+      </Button>
+    </div>
+  );
+
+  const sections = [
     {
+      id: 'hero',
       label: t('landingContentPage.sections.hero.title'),
+      icon: ImageIcon,
+      title: t('landingContentPage.sections.hero.title'),
+      description: t('landingContentPage.sections.hero.subtitle'),
       content: (
-        <Section
-          icon={ImageIcon}
-          title={t('landingContentPage.sections.hero.title')}
-          description={t('landingContentPage.sections.hero.subtitle')}
-        >
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,420px)_1fr]">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,420px)_1fr]">
             <div className="overflow-hidden rounded-2xl border border-border bg-page">
               {form.heroImage?.url ? (
                 <img
@@ -457,20 +464,19 @@ export default function LandingContentPage() {
               </Button>
             </div>
           </div>
-        </Section>
       ),
     },
     {
+      id: 'stats',
       label: t('landingContentPage.sections.stats.title'),
+      icon: BarChart3,
+      title: t('landingContentPage.sections.stats.title'),
+      description: t('landingContentPage.sections.stats.subtitle'),
       content: (
-        <Section
-          icon={BarChart3}
-          title={t('landingContentPage.sections.stats.title')}
-          description={t('landingContentPage.sections.stats.subtitle')}
-        >
+        <div>
           <div className="grid gap-4 lg:grid-cols-2">
             {Object.entries(form.stats || {}).map(([itemId, entry]) => (
-              <div key={itemId} className="rounded-2xl border border-border p-3 sm:p-4">
+              <div key={itemId} className="rounded-xl bg-surface-alt/40 p-4 sm:p-5">
                 <p className="mb-4 text-sm font-semibold text-heading">{statLabelForItem(itemId)}</p>
                 <div className="grid gap-4">
                   <Select
@@ -495,17 +501,18 @@ export default function LandingContentPage() {
               </div>
             ))}
           </div>
-        </Section>
+          {saveActionRow}
+        </div>
       ),
     },
     {
+      id: 'location',
       label: t('landingContentPage.sections.location.title'),
+      icon: MapPin,
+      title: t('landingContentPage.sections.location.title'),
+      description: t('landingContentPage.sections.location.subtitle'),
       content: (
-        <Section
-          icon={MapPin}
-          title={t('landingContentPage.sections.location.title')}
-          description={t('landingContentPage.sections.location.subtitle')}
-        >
+        <div>
           <div className="grid gap-4 md:grid-cols-2">
             <Input
               label={t('landingContentPage.fields.locationPlaceName')}
@@ -540,20 +547,21 @@ export default function LandingContentPage() {
               />
             </div> */}
           </div>
-        </Section>
+          {saveActionRow}
+        </div>
       ),
     },
     {
+      id: 'social',
       label: t('landingContentPage.sections.social.title'),
+      icon: Share2,
+      title: t('landingContentPage.sections.social.title'),
+      description: t('landingContentPage.sections.social.subtitle'),
       content: (
-        <Section
-          icon={Share2}
-          title={t('landingContentPage.sections.social.title')}
-          description={t('landingContentPage.sections.social.subtitle')}
-        >
+        <div>
           <div className="grid gap-4 lg:grid-cols-2">
             {(form.socialLinks || []).map((entry) => (
-              <div key={entry.platform} className="rounded-2xl border border-border p-3 sm:p-4">
+              <div key={entry.platform} className="rounded-xl bg-surface-alt/40 p-4 sm:p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-heading">{humanizeKey(entry.platform)}</p>
@@ -582,16 +590,35 @@ export default function LandingContentPage() {
               </div>
             ))}
           </div>
-        </Section>
+          {saveActionRow}
+        </div>
       ),
     },
     {
+      id: 'priests',
       label: t('landingContentPage.sections.priests.title'),
-      content: <Tabs variant="inline" tabs={priestsLanguageTabs} />,
+      icon: Users,
+      title: t('landingContentPage.sections.priests.title'),
+      description: t('landingContentPage.sections.priests.subtitle'),
+      content: (
+        <div>
+          <Tabs variant="inline" tabs={priestsLanguageTabs} />
+          {saveActionRow}
+        </div>
+      ),
     },
     {
+      id: 'texts',
       label: t('landingContentPage.sections.texts.title'),
-      content: <Tabs variant="inline" tabs={textLanguageTabs} />,
+      icon: FileText,
+      title: t('landingContentPage.sections.texts.title'),
+      description: t('landingContentPage.sections.texts.subtitle'),
+      content: (
+        <div>
+          <Tabs variant="inline" tabs={textLanguageTabs} />
+          {saveActionRow}
+        </div>
+      ),
     },
   ];
 
@@ -640,7 +667,7 @@ export default function LandingContentPage() {
         )}
       />
 
-      <Tabs tabs={editorTabs} framedPanel={false} bodyClassName="p-3 sm:p-4" />
+      <SettingsLayout sections={sections} />
     </div>
   );
 }

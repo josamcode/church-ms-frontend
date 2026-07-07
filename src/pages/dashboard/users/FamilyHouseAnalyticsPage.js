@@ -12,6 +12,7 @@ import {
   MapPin,
   RefreshCw,
   ShieldCheck,
+  TrendingUp,
   UserCheck,
   Users as UsersIcon,
 } from 'lucide-react';
@@ -25,6 +26,7 @@ import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import Skeleton from '../../../components/ui/Skeleton';
+import Sparkline from '../../../components/ui/Sparkline';
 import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import {
@@ -32,13 +34,15 @@ import {
   buildLookupQuery,
 } from './familyHouseLookup.shared';
 
-const CHART_COLORS = [
-  'var(--color-primary)',
-  'var(--color-secondary)',
-  'var(--color-accent)',
-  'var(--color-success)',
-  'var(--color-warning)',
-  'var(--color-danger)',
+// Warm, on-system track palette for distribution bars (matches the tokens the
+// rest of the analytics pages cycle through).
+const BAR_TRACKS = [
+  'bg-primary',
+  'bg-secondary',
+  'bg-info',
+  'bg-success',
+  'bg-warning',
+  'bg-danger',
 ];
 
 const EMPTY_ANALYTICS = {
@@ -49,16 +53,14 @@ const EMPTY_ANALYTICS = {
   trends: {},
 };
 
-function getLocale(language) {
-  return language === 'ar' ? 'ar-EG' : 'en-US';
+// Keep numerals Western (0-9) with thousands grouping so this page matches the
+// digit style used across the rest of the system (dashboard, other analytics).
+function formatNumber(value) {
+  return new Intl.NumberFormat('en-US').format(Number(value || 0));
 }
 
-function formatNumber(value, language = 'en') {
-  return new Intl.NumberFormat(getLocale(language)).format(Number(value || 0));
-}
-
-function formatPercent(value, language = 'en') {
-  return `${formatNumber(Math.round(Number(value || 0)), language)}%`;
+function formatPercent(value) {
+  return `${formatNumber(Math.round(Number(value || 0)))}%`;
 }
 
 function getPercent(value, total) {
@@ -75,7 +77,7 @@ function toRows(items = [], maxItems = 6) {
 }
 
 export default function FamilyHouseAnalyticsPage() {
-  const { t, language, isRTL } = useI18n();
+  const { t, isRTL } = useI18n();
   const navigate = useNavigate();
 
   const tr = useCallback((key, values) => t(key, values), [t]);
@@ -134,12 +136,20 @@ export default function FamilyHouseAnalyticsPage() {
     return Math.round(((last - prev) / prev) * 100);
   }, [registrationSeries]);
 
+  // Latest-month value readout for the trend card (read-only derivation).
+  const latestRegistration = useMemo(
+    () => (registrationSeries.length ? registrationSeries[registrationSeries.length - 1] : 0),
+    [registrationSeries]
+  );
+
   const highlights = useMemo(() => {
     const topFamily = familyRanks[0] || null;
     const topHouse = houseRanks[0] || null;
     const topCity = (distributions.cities || [])[0] || null;
     return { topFamily, topHouse, topCity };
   }, [familyRanks, houseRanks, distributions.cities]);
+
+  const hasHighlights = Boolean(highlights.topFamily || highlights.topHouse || highlights.topCity);
 
   const coverageRows = useMemo(
     () => [
@@ -186,7 +196,7 @@ export default function FamilyHouseAnalyticsPage() {
         label: tr('familyHouseLookup.analytics.totalFamilies'),
         value: summary.totalFamilies,
         detail: tr('familyHouseAnalytics.metrics.coveredValue', {
-          percent: formatPercent(summary.familyCoveragePct, language),
+          percent: formatPercent(summary.familyCoveragePct),
         }),
         icon: Building2,
         tone: 'gold',
@@ -195,22 +205,40 @@ export default function FamilyHouseAnalyticsPage() {
         label: tr('familyHouseLookup.analytics.totalHouses'),
         value: summary.totalHouses,
         detail: tr('familyHouseAnalytics.metrics.coveredValue', {
-          percent: formatPercent(summary.houseCoveragePct, language),
+          percent: formatPercent(summary.houseCoveragePct),
         }),
         icon: Home,
         tone: 'info',
       },
       {
+        label: tr('familyHouseAnalytics.metrics.loginEnabled'),
+        value: summary.loginEnabledMembers,
+        detail: tr('familyHouseAnalytics.metrics.memberShare', {
+          percent: formatPercent(getPercent(summary.loginEnabledMembers, totalMembers)),
+        }),
+        icon: UserCheck,
+        tone: 'success',
+      },
+      {
         label: tr('familyHouseLookup.summary.lockedCount'),
         value: summary.lockedMembers,
         detail: tr('familyHouseAnalytics.metrics.memberShare', {
-          percent: formatPercent(getPercent(summary.lockedMembers, totalMembers), language),
+          percent: formatPercent(getPercent(summary.lockedMembers, totalMembers)),
         }),
         icon: LockKeyhole,
         tone: 'danger',
       },
+      {
+        label: tr('familyHouseAnalytics.metrics.familyCoverage'),
+        value: formatPercent(summary.familyCoveragePct),
+        detail: tr('familyHouseAnalytics.metrics.memberShare', {
+          percent: formatPercent(summary.houseCoveragePct),
+        }),
+        icon: ShieldCheck,
+        tone: 'default',
+      },
     ],
-    [summary, totalMembers, language, tr, registrationSeries, registrationTrend]
+    [summary, totalMembers, registrationSeries, registrationTrend, tr]
   );
 
   const familyRankColumns = useMemo(
@@ -239,12 +267,12 @@ export default function FamilyHouseAnalyticsPage() {
       {
         key: 'count',
         label: tr('familyHouseAnalytics.table.members'),
-        render: (row) => <Badge variant="primary">{formatNumber(row.count, language)}</Badge>,
+        render: (row) => <Badge variant="primary">{formatNumber(row.count)}</Badge>,
       },
       {
         key: 'houseCount',
         label: tr('familyHouseAnalytics.table.houses'),
-        render: (row) => <span className="text-sm font-medium text-heading">{formatNumber(row.houseCount, language)}</span>,
+        render: (row) => <span className="text-sm font-medium text-heading">{formatNumber(row.houseCount)}</span>,
       },
       {
         key: 'averageAge',
@@ -252,7 +280,7 @@ export default function FamilyHouseAnalyticsPage() {
         render: (row) => <span className="text-sm text-muted">{row.averageAge ?? '---'}</span>,
       },
     ],
-    [language, tr]
+    [tr]
   );
 
   const houseRankColumns = useMemo(
@@ -281,26 +309,26 @@ export default function FamilyHouseAnalyticsPage() {
       {
         key: 'count',
         label: tr('familyHouseAnalytics.table.members'),
-        render: (row) => <Badge variant="primary">{formatNumber(row.count, language)}</Badge>,
+        render: (row) => <Badge variant="primary">{formatNumber(row.count)}</Badge>,
       },
       {
         key: 'familyCount',
         label: tr('familyHouseAnalytics.table.families'),
-        render: (row) => <span className="text-sm font-medium text-heading">{formatNumber(row.familyCount, language)}</span>,
+        render: (row) => <span className="text-sm font-medium text-heading">{formatNumber(row.familyCount)}</span>,
       },
       {
         key: 'lockedCount',
         label: tr('familyHouseAnalytics.table.locked'),
-        render: (row) => <span className="text-sm text-muted">{formatNumber(row.lockedCount, language)}</span>,
+        render: (row) => <span className="text-sm text-muted">{formatNumber(row.lockedCount)}</span>,
       },
     ],
-    [language, tr]
+    [tr]
   );
 
   const errorMessage = analyticsQuery.error ? normalizeApiError(analyticsQuery.error).message : null;
 
   return (
-    <div className="animate-fade-in space-y-7 pb-10">
+    <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs
         items={[
           { label: tr('shared.dashboard'), href: '/dashboard' },
@@ -310,12 +338,13 @@ export default function FamilyHouseAnalyticsPage() {
       />
 
       <PageHeader
+        eyebrow={tr('familyHouseAnalytics.eyebrow')}
         title={tr('familyHouseLookup.analyticsPage.title')}
         subtitle={tr('familyHouseLookup.analyticsPage.subtitle')}
         className="border-b border-border pb-6"
         actions={(
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{tr('familyHouseAnalytics.badges.liveDataset')}</Badge>
+            <Badge variant="gold" dot>{tr('familyHouseAnalytics.badges.liveDataset')}</Badge>
             <Button
               variant="outline"
               icon={RefreshCw}
@@ -329,7 +358,7 @@ export default function FamilyHouseAnalyticsPage() {
       />
 
       {errorMessage ? (
-        <Card>
+        <Card padding="lg" className="border-danger/25">
           <EmptyState
             icon={UsersIcon}
             title={tr('familyHouseAnalytics.states.errorTitle')}
@@ -346,130 +375,138 @@ export default function FamilyHouseAnalyticsPage() {
             }
           />
         </Card>
+      ) : analyticsQuery.isLoading ? (
+        <AnalyticsSkeleton />
       ) : (
         <>
-          <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-            {analyticsQuery.isLoading
-              ? Array.from({ length: 4 }).map((_, index) => (
-                  <Skeleton key={index} className="h-[132px] rounded-xl" />
-                ))
-              : kpiItems.map((item) => (
-                  <StatCard
-                    key={item.label}
-                    icon={item.icon}
-                    label={item.label}
-                    value={item.value ?? '---'}
-                    hint={item.detail}
-                    tone={item.tone}
-                    spark={item.spark}
-                    trend={item.trend}
-                    trendLabel={
-                      typeof item.trend === 'number' ? `${Math.abs(item.trend)}%` : undefined
-                    }
-                    isRTL={isRTL}
-                  />
-                ))}
+          {/* ══ KPI BAND ══════════════════════════════════════════════════ */}
+          <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            {kpiItems.map((item) => (
+              <StatCard
+                key={item.label}
+                icon={item.icon}
+                label={item.label}
+                value={typeof item.value === 'string' ? item.value : formatNumber(item.value ?? 0)}
+                hint={item.detail}
+                tone={item.tone}
+                spark={item.spark}
+                trend={item.trend}
+                trendLabel={
+                  typeof item.trend === 'number' ? `${Math.abs(item.trend)}%` : undefined
+                }
+                isRTL={isRTL}
+              />
+            ))}
           </section>
 
-          {!analyticsQuery.isLoading &&
-          (highlights.topFamily || highlights.topHouse || highlights.topCity) ? (
-            <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {highlights.topFamily ? (
-                <HighlightTile
-                  icon={Crown}
-                  wrap="bg-secondary/12"
-                  tone="text-secondary"
-                  label={tr('familyHouseLookup.analytics.biggestFamilies')}
-                  value={highlights.topFamily.name}
-                  hint={tr('familyHouseAnalytics.metrics.memberShare', {
-                    percent: formatNumber(highlights.topFamily.count, language),
-                  })}
-                />
-              ) : null}
-              {highlights.topHouse ? (
-                <HighlightTile
-                  icon={Home}
-                  wrap="bg-primary/10"
-                  tone="text-primary"
-                  label={tr('familyHouseLookup.analytics.biggestHouses')}
-                  value={highlights.topHouse.name}
-                  hint={tr('familyHouseAnalytics.metrics.memberShare', {
-                    percent: formatNumber(highlights.topHouse.count, language),
-                  })}
-                />
-              ) : null}
-              {highlights.topCity ? (
-                <HighlightTile
-                  icon={MapPin}
-                  wrap="bg-info/12"
-                  tone="text-info"
-                  label={tr('familyHouseAnalytics.sections.topCities')}
-                  value={highlights.topCity.name}
-                  hint={tr('familyHouseAnalytics.metrics.memberShare', {
-                    percent: formatNumber(highlights.topCity.count, language),
-                  })}
-                />
-              ) : null}
-            </section>
+          {/* ══ HIGHLIGHTS STRIP ══════════════════════════════════════════ */}
+          {hasHighlights ? (
+            <Card padding="md" tone="gold" className="overflow-hidden">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:divide-x sm:divide-border/60 sm:rtl:divide-x-reverse">
+                {highlights.topFamily ? (
+                  <HighlightItem
+                    icon={Crown}
+                    wrap="bg-secondary/12 text-secondary"
+                    label={tr('familyHouseLookup.analytics.biggestFamilies')}
+                    value={highlights.topFamily.name}
+                    hint={tr('familyHouseAnalytics.metrics.memberShare', {
+                      percent: formatNumber(highlights.topFamily.count),
+                    })}
+                  />
+                ) : null}
+                {highlights.topHouse ? (
+                  <HighlightItem
+                    icon={Home}
+                    wrap="bg-primary/10 text-primary"
+                    label={tr('familyHouseLookup.analytics.biggestHouses')}
+                    value={highlights.topHouse.name}
+                    hint={tr('familyHouseAnalytics.metrics.memberShare', {
+                      percent: formatNumber(highlights.topHouse.count),
+                    })}
+                  />
+                ) : null}
+                {highlights.topCity ? (
+                  <HighlightItem
+                    icon={MapPin}
+                    wrap="bg-info/12 text-info"
+                    label={tr('familyHouseAnalytics.sections.topCities')}
+                    value={highlights.topCity.name}
+                    hint={tr('familyHouseAnalytics.metrics.memberShare', {
+                      percent: formatNumber(highlights.topCity.count),
+                    })}
+                  />
+                ) : null}
+              </div>
+            </Card>
           ) : null}
 
-          <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.75fr)]">
-            <Card className="space-y-5">
+          {/* ══ REGISTRATION TREND + DATA QUALITY ══════════════════════════ */}
+          <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(340px,0.85fr)]">
+            <Card padding="lg">
               <CardHeader
+                icon={TrendingUp}
                 title={tr('familyHouseAnalytics.sections.registrationTrend')}
                 subtitle={tr('familyHouseAnalytics.sections.registrationTrendHint')}
                 action={<Badge variant="primary">{tr('familyHouseAnalytics.badges.twelveMonths')}</Badge>}
               />
-              <TrendChart
+              <RegistrationTrendCard
                 items={monthlyRegistrations}
-                loading={analyticsQuery.isLoading}
+                series={registrationSeries}
+                latest={latestRegistration}
+                trend={registrationTrend}
+                totalLabel={tr('familyHouseLookup.analytics.totalMembers')}
                 emptyLabel={tr('familyHouseAnalytics.states.noTrend')}
-                language={language}
               />
             </Card>
 
-            <Card className="space-y-5">
+            <Card padding="lg">
               <CardHeader
+                icon={ShieldCheck}
                 title={tr('familyHouseAnalytics.sections.assignmentQuality')}
                 subtitle={tr('familyHouseAnalytics.sections.assignmentQualityHint')}
-                action={<ShieldCheck className="h-4 w-4 text-primary" />}
               />
-              <CoveragePanel
-                rows={coverageRows}
-                total={totalMembers}
-                language={language}
-                loading={analyticsQuery.isLoading}
-              />
+              <CoveragePanel rows={coverageRows} total={totalMembers} />
             </Card>
           </section>
 
-          <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <Card className="space-y-4">
+          {/* ══ RANK TABLES ════════════════════════════════════════════════ */}
+          <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <Card padding="lg">
               <CardHeader
+                icon={Crown}
                 title={tr('familyHouseLookup.analytics.biggestFamilies')}
                 subtitle={tr('familyHouseAnalytics.sections.familyRankHint')}
-                action={<Button variant="ghost" size="sm" icon={ArrowUpRight} onClick={() => navigate('/dashboard/users/family-house/details')}>{tr('familyHouseAnalytics.actions.explore')}</Button>}
+                action={(
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={ArrowUpRight}
+                    onClick={() => navigate('/dashboard/users/family-house/details')}
+                  >
+                    {tr('familyHouseAnalytics.actions.explore')}
+                  </Button>
+                )}
               />
               <Table
                 columns={familyRankColumns}
                 data={familyRanks}
-                loading={analyticsQuery.isLoading}
+                loading={false}
                 emptyTitle={tr('familyHouseLookup.analytics.noFamilies')}
                 emptyDescription={tr('familyHouseAnalytics.states.noRankData')}
                 skeletonRows={6}
               />
             </Card>
 
-            <Card className="space-y-4">
+            <Card padding="lg">
               <CardHeader
+                icon={Home}
                 title={tr('familyHouseLookup.analytics.biggestHouses')}
                 subtitle={tr('familyHouseAnalytics.sections.houseRankHint')}
-                action={<Home className="h-4 w-4 text-primary" />}
               />
               <Table
                 columns={houseRankColumns}
                 data={houseRanks}
-                loading={analyticsQuery.isLoading}
+                loading={false}
                 emptyTitle={tr('familyHouseLookup.analytics.noHouses')}
                 emptyDescription={tr('familyHouseAnalytics.states.noRankData')}
                 skeletonRows={6}
@@ -477,48 +514,42 @@ export default function FamilyHouseAnalyticsPage() {
             </Card>
           </section>
 
-          <section className="grid w-full grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card className="h-full min-w-0 space-y-5">
+          {/* ══ DEMOGRAPHICS + ACCOUNT MIX ═════════════════════════════════ */}
+          <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card padding="lg">
               <CardHeader
+                icon={UsersIcon}
                 title={tr('familyHouseAnalytics.sections.demographics')}
                 subtitle={tr('familyHouseAnalytics.sections.demographicsHint')}
-                action={<UsersIcon className="h-4 w-4 text-primary" />}
               />
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
-                <DonutBreakdown
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <BarBreakdown
                   title={tr('familyHouseAnalytics.charts.genderMix')}
-                  total={totalMembers}
                   items={(distributions.genders || []).map((item) => ({
                     ...item,
                     name: getLabel(item.name, labelMaps.gender),
                   }))}
-                  language={language}
-                  loading={analyticsQuery.isLoading}
                 />
                 <BarBreakdown
                   title={tr('familyHouseAnalytics.charts.ageGroups')}
                   items={distributions.ageGroups || []}
-                  language={language}
-                  loading={analyticsQuery.isLoading}
                 />
               </div>
             </Card>
 
-            <Card className="h-full min-w-0 space-y-5">
+            <Card padding="lg">
               <CardHeader
+                icon={UserCheck}
                 title={tr('familyHouseAnalytics.sections.accountMix')}
                 subtitle={tr('familyHouseAnalytics.sections.accountMixHint')}
-                action={<UserCheck className="h-4 w-4 text-primary" />}
               />
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <BarBreakdown
                   title={tr('familyHouseAnalytics.charts.accountStatus')}
                   items={(distributions.accountStatuses || []).map((item) => ({
                     ...item,
                     name: getLabel(item.name, labelMaps.accountStatus),
                   }))}
-                  language={language}
-                  loading={analyticsQuery.isLoading}
                 />
                 <BarBreakdown
                   title={tr('familyHouseAnalytics.charts.roles')}
@@ -526,37 +557,30 @@ export default function FamilyHouseAnalyticsPage() {
                     ...item,
                     name: getLabel(item.name, labelMaps.role),
                   }))}
-                  language={language}
-                  loading={analyticsQuery.isLoading}
                 />
               </div>
             </Card>
           </section>
 
-          <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          {/* ══ CITIES / PRESENCE / EMPLOYMENT ═════════════════════════════ */}
+          <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <InsightPanel
               icon={Building2}
               title={tr('familyHouseAnalytics.sections.topCities')}
               subtitle={tr('familyHouseAnalytics.sections.topCitiesHint')}
               items={distributions.cities || []}
-              language={language}
-              loading={analyticsQuery.isLoading}
             />
             <InsightPanel
               icon={Activity}
               title={tr('familyHouseAnalytics.sections.presence')}
               subtitle={tr('familyHouseAnalytics.sections.presenceHint')}
               items={distributions.presenceStatuses || []}
-              language={language}
-              loading={analyticsQuery.isLoading}
             />
             <InsightPanel
               icon={BarChart3}
               title={tr('familyHouseAnalytics.sections.employment')}
               subtitle={tr('familyHouseAnalytics.sections.employmentHint')}
               items={distributions.employmentStatuses || []}
-              language={language}
-              loading={analyticsQuery.isLoading}
             />
           </section>
         </>
@@ -565,104 +589,153 @@ export default function FamilyHouseAnalyticsPage() {
   );
 }
 
-function TrendChart({ items, loading, emptyLabel, language }) {
-  const width = 900;
-  const height = 320;
-  const padding = { top: 28, right: 26, bottom: 44, left: 46 };
+/* ── Registration velocity: clean area/line trend ──────────────────────────── */
+
+function RegistrationTrendCard({ items, series, latest, trend, totalLabel, emptyLabel }) {
   const rows = Array.isArray(items) ? items : [];
-  const maxValue = Math.max(...rows.map((item) => item.count || 0), 1);
-  const chartWidth = width - padding.left - padding.right;
-  const chartHeight = height - padding.top - padding.bottom;
+
+  if (!rows.length) {
+    return <EmptyState compact icon={TrendingUp} title={emptyLabel} />;
+  }
+
+  const TrendIcon = trend > 0 ? TrendingUp : trend < 0 ? ArrowUpRight : null;
+  const trendColor = trend > 0 ? 'text-success' : trend < 0 ? 'text-danger' : 'text-muted';
+
+  // Chart geometry — a compact, responsive area+line (Sparkline aesthetic scaled
+  // up with readable month labels). Uses a normalised viewBox so it stretches.
+  const width = 640;
+  const height = 200;
+  const padX = 8;
+  const padTop = 16;
+  const padBottom = 28;
+  const values = rows.map((item) => Number(item.count || 0));
+  const max = Math.max(...values, 1);
+  const innerW = width - padX * 2;
+  const innerH = height - padTop - padBottom;
+
   const points = rows.map((item, index) => {
     const x = rows.length <= 1
-      ? padding.left + chartWidth / 2
-      : padding.left + (index / (rows.length - 1)) * chartWidth;
-    const y = padding.top + chartHeight - ((item.count || 0) / maxValue) * chartHeight;
-    return { ...item, x, y };
+      ? padX + innerW / 2
+      : padX + (index / (rows.length - 1)) * innerW;
+    const y = padTop + innerH - (Number(item.count || 0) / max) * innerH;
+    return { x, y, label: String(item.label || ''), count: Number(item.count || 0) };
   });
-  const linePath = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
-  const areaPath = points.length
-    ? `${linePath} L ${points[points.length - 1].x} ${height - padding.bottom} L ${points[0].x} ${height - padding.bottom} Z`
+
+  const line = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const baseY = padTop + innerH;
+  const area = points.length
+    ? `${line} L ${points[points.length - 1].x.toFixed(1)} ${baseY} L ${points[0].x.toFixed(1)} ${baseY} Z`
     : '';
 
-  if (loading) return <ChartSkeleton />;
-  if (!rows.length) return <p className="rounded-lg bg-surface-alt/50 p-4 text-sm text-muted">{emptyLabel}</p>;
-
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-surface-alt/20">
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-[320px] w-full">
-        <defs>
-          <linearGradient id="familyTrendArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.24" />
-            <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        {[0, 0.25, 0.5, 0.75, 1].map((step) => {
-          const y = padding.top + chartHeight * step;
-          const value = Math.round(maxValue * (1 - step));
-          return (
-            <g key={step}>
-              <line x1={padding.left} x2={width - padding.right} y1={y} y2={y} stroke="var(--color-border)" strokeDasharray="4 8" />
-              <text x={padding.left - 12} y={y + 5} textAnchor="end" className="fill-muted text-[18px]">
-                {formatNumber(value, language)}
-              </text>
-            </g>
-          );
-        })}
-        {points.map((point, index) => {
-          const barHeight = height - padding.bottom - point.y;
-          const barWidth = Math.max(chartWidth / Math.max(rows.length, 1) - 18, 12);
-          return (
-            <rect
-              key={`${point.label}-bar`}
-              x={point.x - barWidth / 2}
-              y={point.y}
-              width={barWidth}
-              height={barHeight}
-              rx="4"
-              fill={index % 2 ? 'rgba(var(--color-secondary-rgb), 0.24)' : 'rgba(var(--color-primary-rgb), 0.18)'}
+    <div className="space-y-5">
+      {/* value readout */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{totalLabel}</p>
+          <p className="mt-1 text-3xl font-bold leading-none tracking-tight text-heading tabular-nums">
+            {formatNumber(latest)}
+          </p>
+        </div>
+        {typeof trend === 'number' && TrendIcon ? (
+          <span className={`inline-flex items-center gap-1 text-sm font-semibold ${trendColor}`}>
+            <TrendIcon className="h-4 w-4" />
+            {Math.abs(trend)}%
+          </span>
+        ) : null}
+      </div>
+
+      {/* area/line chart */}
+      <div className="rounded-xl border border-border bg-surface-alt/30 p-3">
+        <svg viewBox={`0 0 ${width} ${height}`} className="h-44 w-full" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="familyTrendArea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[0.25, 0.5, 0.75].map((step) => {
+            const y = padTop + innerH * step;
+            return (
+              <line
+                key={step}
+                x1={padX}
+                x2={width - padX}
+                y1={y}
+                y2={y}
+                stroke="var(--color-border)"
+                strokeDasharray="3 7"
+                vectorEffect="non-scaling-stroke"
+              />
+            );
+          })}
+          <path d={area} fill="url(#familyTrendArea)" />
+          <path
+            d={line}
+            fill="none"
+            stroke="var(--color-primary)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+          {points.map((p) => (
+            <circle
+              key={`${p.label}-dot`}
+              cx={p.x}
+              cy={p.y}
+              r="3.5"
+              fill="var(--color-surface)"
+              stroke="var(--color-primary)"
+              strokeWidth="2"
+              vectorEffect="non-scaling-stroke"
             />
-          );
-        })}
-        <path d={areaPath} fill="url(#familyTrendArea)" />
-        <path d={linePath} fill="none" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        {points.map((point) => (
-          <g key={point.label}>
-            <circle cx={point.x} cy={point.y} r="6" fill="var(--color-surface)" stroke="var(--color-primary)" strokeWidth="3" />
-            <text x={point.x} y={height - 14} textAnchor="middle" className="fill-muted text-[18px]">
-              {String(point.label).slice(5)}
-            </text>
-            <text x={point.x} y={Math.max(point.y - 14, 18)} textAnchor="middle" className="fill-heading text-[20px] font-semibold">
-              {formatNumber(point.count, language)}
-            </text>
-          </g>
-        ))}
-      </svg>
+          ))}
+        </svg>
+        {/* month labels + inline sparkline echo for continuity with KPI band */}
+        <div className="mt-2 flex items-center justify-between gap-1">
+          {points.map((p) => (
+            <span
+              key={`${p.label}-lbl`}
+              className="flex-1 truncate text-center text-[10px] font-medium text-muted"
+              title={`${p.label}: ${formatNumber(p.count)}`}
+            >
+              {p.label.length > 5 ? p.label.slice(5) : p.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {series.length > 1 ? (
+        <div className="-mb-1">
+          <Sparkline data={series} color="var(--color-primary)" />
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function CoveragePanel({ rows, total, language, loading }) {
-  if (loading) return <SkeletonStack count={4} />;
+/* ── Data quality coverage bars ────────────────────────────────────────────── */
 
+function CoveragePanel({ rows, total }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {rows.map((row) => (
-        <div key={row.name} className="space-y-2">
-          <div className="flex items-center justify-between gap-4">
+        <div key={row.name}>
+          <div className="mb-1.5 flex items-center justify-between gap-4">
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-heading">{row.name}</p>
               <p className="text-xs text-muted">
-                {formatNumber(row.count, language)} / {formatNumber(total, language)}
+                {formatNumber(row.count)} / {formatNumber(total)}
               </p>
             </div>
-            <span className="text-xl font-semibold text-heading tabular-nums">
-              {formatPercent(row.percent, language)}
+            <span className="text-lg font-bold tabular-nums text-heading">
+              {formatPercent(row.percent)}
             </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-surface-alt">
             <div
-              className="h-full rounded-full transition-all duration-700"
+              className="h-full rounded-full transition-all duration-500"
               style={{ width: `${Math.min(Math.max(row.percent, 2), 100)}%`, backgroundColor: row.color }}
             />
           </div>
@@ -672,88 +745,55 @@ function CoveragePanel({ rows, total, language, loading }) {
   );
 }
 
-function DonutBreakdown({ title, items, total, language, loading }) {
-  const rows = toRows(items, 5).filter((item) => item.count > 0);
-  let cursor = 0;
-  const gradient = rows.length
-    ? rows.map((item, index) => {
-      const start = cursor;
-      const end = cursor + getPercent(item.count, total);
-      cursor = end;
-      return `${CHART_COLORS[index % CHART_COLORS.length]} ${start}% ${end}%`;
-    }).join(', ')
-    : 'var(--color-border) 0% 100%';
+/* ── Distribution bars (gender / age / status / roles / cities …) ──────────── */
 
-  if (loading) return <ChartSkeleton compact />;
-
-  return (
-    <div>
-      <p className="text-sm font-semibold text-heading">{title}</p>
-      <div className="mt-4 flex items-center gap-5">
-        <div
-          className="grid h-32 w-32 shrink-0 place-items-center rounded-full border border-border"
-          style={{ background: `conic-gradient(${gradient})` }}
-        >
-          <div className="grid h-20 w-20 place-items-center rounded-full border border-border bg-surface text-sm font-semibold text-heading shadow-sm">
-            {formatNumber(total, language)}
-          </div>
-        </div>
-        <div className="min-w-0 flex-1 space-y-2">
-          {rows.map((item, index) => (
-            <div key={item.name} className="flex items-center justify-between gap-3 text-sm">
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }} />
-                <span className="truncate text-muted">{item.name}</span>
-              </span>
-              <span className="font-semibold text-heading">{formatNumber(item.count, language)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function BarBreakdown({ title, items = [], language, loading, maxItems = 6 }) {
+function BarBreakdown({ title, items = [], maxItems = 8 }) {
   const rows = toRows(items, maxItems);
   const maxValue = Math.max(...rows.map((item) => item.count || 0), 1);
 
-  if (loading) return <SkeletonStack count={maxItems} />;
-
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {title ? <p className="text-sm font-semibold text-heading">{title}</p> : null}
       {!rows.length ? (
-        <p className="rounded-md bg-surface-alt px-3 py-2 text-sm text-muted">---</p>
-      ) : rows.map((item, index) => {
-        const width = Math.max((item.count / maxValue) * 100, 4);
-        return (
-          <div key={`${item.name}-${index}`} className="space-y-1.5">
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="truncate text-muted">{item.name}</span>
-              <span className="font-semibold text-heading">{formatNumber(item.count, language)}</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-surface-alt">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${width}%`, backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
-              />
-            </div>
-          </div>
-        );
-      })}
+        <EmptyState compact icon={BarChart3} title="---" className="!py-8" />
+      ) : (
+        <div className="space-y-4">
+          {rows.map((item, index) => {
+            const pct = Math.max((item.count / maxValue) * 100, 2);
+            const color = BAR_TRACKS[index % BAR_TRACKS.length];
+            return (
+              <div key={`${item.name}-${index}`}>
+                <div className="mb-1.5 flex items-center justify-between gap-3">
+                  <span className="truncate text-xs font-medium text-heading">{item.name}</span>
+                  <span className="text-xs font-bold tabular-nums text-primary">
+                    {formatNumber(item.count)}
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-surface-alt">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${color}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-function HighlightTile({ icon: Icon, wrap, tone, label, value, hint }) {
+/* ── Highlights strip item ─────────────────────────────────────────────────── */
+
+function HighlightItem({ icon: Icon, wrap, label, value, hint }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-card">
-      <span className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${wrap} ${tone}`}>
-        <Icon className="h-5 w-5" />
+    <div className="flex items-start gap-3 sm:px-4 sm:first:ps-0">
+      <span className={`mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${wrap}`}>
+        <Icon className="h-[18px] w-[18px]" />
       </span>
       <div className="min-w-0">
-        <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
+        <p className="truncate text-[11px] font-semibold uppercase tracking-widest text-muted">{label}</p>
         <p className="truncate text-sm font-bold text-heading">{value}</p>
         <p className="truncate text-xs text-muted">{hint}</p>
       </div>
@@ -761,29 +801,53 @@ function HighlightTile({ icon: Icon, wrap, tone, label, value, hint }) {
   );
 }
 
-function InsightPanel({ icon: Icon, title, subtitle, items, language, loading }) {
+/* ── Insight panel (city / presence / employment) ──────────────────────────── */
+
+function InsightPanel({ icon: Icon, title, subtitle, items }) {
   return (
-    <Card className="space-y-5">
-      <CardHeader
-        title={title}
-        subtitle={subtitle}
-        action={Icon ? <Icon className="h-4 w-4 text-primary" /> : null}
-      />
-      <BarBreakdown items={items} language={language} loading={loading} maxItems={8} />
+    <Card padding="lg">
+      <CardHeader icon={Icon} title={title} subtitle={subtitle} />
+      <BarBreakdown items={items} maxItems={8} />
     </Card>
   );
 }
 
-function ChartSkeleton({ compact = false }) {
-  return <div className={`${compact ? 'h-40' : 'h-[320px]'} animate-pulse rounded-lg bg-surface-alt`} />;
-}
+/* ── Loading skeleton (matches system analytics layout) ────────────────────── */
 
-function SkeletonStack({ count = 4 }) {
+function AnalyticsSkeleton() {
   return (
-    <div className="space-y-3">
-      {Array.from({ length: count }).map((_, index) => (
-        <div key={index} className="h-9 animate-pulse rounded-md bg-surface-alt" />
-      ))}
+    <div className="space-y-8">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Card key={i} padding="md" className="space-y-3">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-8 w-1/2" />
+            <Skeleton className="h-6 w-full" />
+          </Card>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(340px,0.85fr)]">
+        <Card padding="lg" className="space-y-4">
+          <Skeleton className="h-5 w-1/3" />
+          <Skeleton className="h-44 w-full rounded-xl" />
+        </Card>
+        <Card padding="lg" className="space-y-4">
+          <Skeleton className="h-5 w-1/3" />
+          {Array.from({ length: 4 }).map((_, j) => (
+            <Skeleton key={j} className="h-6 w-full" />
+          ))}
+        </Card>
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <Card key={i} padding="lg" className="space-y-4">
+            <Skeleton className="h-5 w-1/3" />
+            {Array.from({ length: 5 }).map((_, j) => (
+              <Skeleton key={j} className="h-6 w-full" />
+            ))}
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

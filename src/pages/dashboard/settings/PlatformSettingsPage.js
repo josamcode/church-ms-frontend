@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Save, UserPlus } from 'lucide-react';
+import { AlarmClock, Bell, Save, UserPlus } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
@@ -10,10 +10,9 @@ import NotificationTemplateEditor from '../../../components/notifications/Notifi
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
-import Section from '../../../components/ui/Section';
+import SettingsLayout, { SettingRow } from '../../../components/ui/SettingsLayout';
 import Switch from '../../../components/ui/Switch';
 import Tabs from '../../../components/ui/Tabs';
 import { useI18n } from '../../../i18n/i18n';
@@ -415,44 +414,25 @@ export default function PlatformSettingsPage() {
 
     if (meetingReminderSettingsQuery.isLoading) {
       return (
-        <Card className="rounded-2xl border border-border bg-surface shadow-card">
-          <CardHeader
-            title={tf('platformSettingsPage.meetingReminders.title', 'Meeting reminder settings')}
-            subtitle={tf('platformSettingsPage.meetingReminders.loading', 'Loading meetings...')}
-            className="!mb-0"
-          />
-        </Card>
+        <p className="text-sm text-muted">
+          {tf('platformSettingsPage.meetingReminders.loading', 'Loading meetings...')}
+        </p>
       );
     }
 
     if (!meetings.length) {
       return (
-        <Card className="rounded-2xl border border-border bg-surface shadow-card">
-          <CardHeader
-            title={tf('platformSettingsPage.meetingReminders.title', 'Meeting reminder settings')}
-            subtitle={tf(
-              'platformSettingsPage.meetingReminders.empty',
-              'No meetings were found yet. Create meetings first, then their reminder settings will appear here.'
-            )}
-            className="!mb-0"
-          />
-        </Card>
+        <p className="text-sm text-muted">
+          {tf(
+            'platformSettingsPage.meetingReminders.empty',
+            'No meetings were found yet. Create meetings first, then their reminder settings will appear here.'
+          )}
+        </p>
       );
     }
 
     return (
-      <div className="space-y-6">
-        <Card className="rounded-2xl border border-border bg-surface shadow-card">
-          <CardHeader
-            title={tf('platformSettingsPage.meetingReminders.title', 'Meeting reminder settings')}
-            subtitle={tf(
-              'platformSettingsPage.meetingReminders.subtitle',
-              'Each meeting has its own reminder lead time and localized notification text. Save each meeting separately.'
-            )}
-            className="!mb-0"
-          />
-        </Card>
-
+      <div className="space-y-5">
         {meetings.map((meeting) => {
           const currentReminder = meetingReminderForms[meeting.id] || buildMeetingReminderSettingsForm(meeting.reminderSettings);
           const isSavingCurrentMeeting =
@@ -501,36 +481,40 @@ export default function PlatformSettingsPage() {
           ];
 
           return (
-            <Card key={meeting.id} className="rounded-2xl border border-border bg-surface shadow-card">
-              <CardHeader
-                title={meeting.name}
-                subtitle={meetingSubtitle}
-                action={(
-                  <Button
-                    type="button"
-                    size="sm"
-                    loading={isSavingCurrentMeeting}
-                    onClick={() => saveMeetingReminderMutation.mutate({
-                      meetingId: meeting.id,
-                      payload: {
-                        leadMinutes: Number(currentReminder?.leadMinutes || 0),
-                        template: currentReminder?.template || buildMeetingReminderSettingsForm().template,
-                      },
-                    })}
-                  >
-                    {t('common.actions.save')}
-                  </Button>
-                )}
-              />
+            <div key={meeting.id} className="rounded-xl bg-surface-alt/40 p-4 sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-heading">{meeting.name}</p>
+                  {meetingSubtitle ? (
+                    <p className="mt-0.5 text-sm text-muted">{meetingSubtitle}</p>
+                  ) : null}
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  loading={isSavingCurrentMeeting}
+                  onClick={() => saveMeetingReminderMutation.mutate({
+                    meetingId: meeting.id,
+                    payload: {
+                      leadMinutes: Number(currentReminder?.leadMinutes || 0),
+                      template: currentReminder?.template || buildMeetingReminderSettingsForm().template,
+                    },
+                  })}
+                >
+                  {t('common.actions.save')}
+                </Button>
+              </div>
 
-              <div className="space-y-6">
-                <div className="rounded-2xl border border-border bg-surface-alt/30 p-4 sm:p-5">
-                  <CardHeader
-                    title={t('platformSettingsPage.notifications.reminderTiming.title')}
-                    subtitle={t('platformSettingsPage.notifications.reminderTiming.subtitle')}
-                  />
+              <div className="mt-5 space-y-5 border-t border-border/70 pt-5">
+                <div>
+                  <p className="text-sm font-semibold text-heading">
+                    {t('platformSettingsPage.notifications.reminderTiming.title')}
+                  </p>
+                  <p className="mt-0.5 text-sm text-muted">
+                    {t('platformSettingsPage.notifications.reminderTiming.subtitle')}
+                  </p>
 
-                  <div className="grid gap-4 md:grid-cols-[minmax(0,280px)_1fr]">
+                  <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,280px)_1fr]">
                     <Input
                       type="number"
                       min="0"
@@ -543,7 +527,7 @@ export default function PlatformSettingsPage() {
                       containerClassName="!mb-0"
                     />
 
-                    <div className="rounded-2xl border border-border/60 bg-surface-alt/40 p-4">
+                    <div className="rounded-xl bg-surface px-4 py-3">
                       <p className="text-sm font-semibold text-heading">
                         {t('platformSettingsPage.notifications.reminderTiming.previewLabel')}
                       </p>
@@ -558,7 +542,7 @@ export default function PlatformSettingsPage() {
 
                 <Tabs variant="inline" tabs={meetingLanguageTabs} />
               </div>
-            </Card>
+            </div>
           );
         })}
       </div>
@@ -575,18 +559,111 @@ export default function PlatformSettingsPage() {
     updateMeetingReminderLeadMinutes,
   ]);
 
-  const editorTabs = useMemo(
+  const sections = useMemo(
     () => [
       {
-        label: t('platformSettingsPage.tabs.notifications'),
-        content: <Tabs variant="inline" tabs={languageTabs} />,
+        id: 'registration',
+        label: tf('platformSettingsPage.registration.title', 'Public registration'),
+        icon: UserPlus,
+        title: tf('platformSettingsPage.registration.title', 'Public registration'),
+        description: tf(
+          'platformSettingsPage.registration.subtitle',
+          'Choose whether guests can submit new account requests from the public registration page.'
+        ),
+        content: (
+          <div>
+            <SettingRow
+              title={tf('platformSettingsPage.registration.statusLabel', 'Current status')}
+              description={
+                canManageRegistration
+                  ? tf(
+                    'platformSettingsPage.registration.superAdminHint',
+                    'New users will either be allowed to submit pending requests or be asked to sign in or browse only.'
+                  )
+                  : tf(
+                    'platformSettingsPage.registration.readOnlyHint',
+                    'Only the Super Admin can change this setting.'
+                  )
+              }
+            >
+              <div className="flex flex-col items-start gap-3 sm:items-end">
+                <Badge variant={form.registrationEnabled ? 'success' : 'danger'} dot>
+                  {form.registrationEnabled
+                    ? tf('platformSettingsPage.registration.enabled', 'Registration enabled')
+                    : tf('platformSettingsPage.registration.disabled', 'Registration disabled')}
+                </Badge>
+                <Switch
+                  checked={Boolean(form.registrationEnabled)}
+                  onChange={(checked) => setForm((current) => ({ ...current, registrationEnabled: checked }))}
+                  disabled={!canManageRegistration}
+                  label={
+                    form.registrationEnabled
+                      ? tf('platformSettingsPage.registration.toggleOn', 'Allow new registration requests')
+                      : tf('platformSettingsPage.registration.toggleOff', 'Stop new registration requests')
+                  }
+                />
+              </div>
+            </SettingRow>
+
+            <div className="mt-6 flex border-t border-border/70 pt-5 sm:justify-end">
+              <Button
+                fullWidth
+                className="sm:w-auto"
+                icon={Save}
+                loading={saveMutation.isPending}
+                onClick={() => saveMutation.mutate()}
+              >
+                {t('platformSettingsPage.actions.save')}
+              </Button>
+            </div>
+          </div>
+        ),
       },
       {
+        id: 'notifications',
+        label: t('platformSettingsPage.tabs.notifications'),
+        icon: Bell,
+        title: t('platformSettingsPage.tabs.notifications'),
+        description: t('platformSettingsPage.subtitle'),
+        content: (
+          <div>
+            <Tabs variant="inline" tabs={languageTabs} />
+
+            <div className="mt-6 flex border-t border-border/70 pt-5 sm:justify-end">
+              <Button
+                fullWidth
+                className="sm:w-auto"
+                icon={Save}
+                loading={saveMutation.isPending}
+                onClick={() => saveMutation.mutate()}
+              >
+                {t('platformSettingsPage.actions.save')}
+              </Button>
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: 'meetingReminders',
         label: tf('platformSettingsPage.tabs.meetingReminders', 'Meeting reminders'),
+        icon: AlarmClock,
+        title: tf('platformSettingsPage.meetingReminders.title', 'Meeting reminder settings'),
+        description: tf(
+          'platformSettingsPage.meetingReminders.subtitle',
+          'Each meeting has its own reminder lead time and localized notification text. Save each meeting separately.'
+        ),
         content: meetingReminderTabContent,
       },
     ],
-    [languageTabs, meetingReminderTabContent, t, tf]
+    [
+      canManageRegistration,
+      form.registrationEnabled,
+      languageTabs,
+      meetingReminderTabContent,
+      saveMutation,
+      t,
+      tf,
+    ]
   );
 
   if (manageQuery.isLoading && !hydratedOnce) {
@@ -631,55 +708,7 @@ export default function PlatformSettingsPage() {
         )}
       />
 
-      <Section
-        icon={UserPlus}
-        title={tf('platformSettingsPage.registration.title', 'Public registration')}
-        description={tf(
-          'platformSettingsPage.registration.subtitle',
-          'Choose whether guests can submit new account requests from the public registration page.'
-        )}
-      >
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold text-heading">
-                {tf('platformSettingsPage.registration.statusLabel', 'Current status')}
-              </span>
-              <Badge variant={form.registrationEnabled ? 'success' : 'danger'} dot>
-                {form.registrationEnabled
-                  ? tf('platformSettingsPage.registration.enabled', 'Registration enabled')
-                  : tf('platformSettingsPage.registration.disabled', 'Registration disabled')}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted">
-              {canManageRegistration
-                ? tf(
-                  'platformSettingsPage.registration.superAdminHint',
-                  'New users will either be allowed to submit pending requests or be asked to sign in or browse only.'
-                )
-                : tf(
-                  'platformSettingsPage.registration.readOnlyHint',
-                  'Only the Super Admin can change this setting.'
-                )}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-border/60 bg-surface-alt/40 px-4 py-3">
-            <Switch
-              checked={Boolean(form.registrationEnabled)}
-              onChange={(checked) => setForm((current) => ({ ...current, registrationEnabled: checked }))}
-              disabled={!canManageRegistration}
-              label={
-                form.registrationEnabled
-                  ? tf('platformSettingsPage.registration.toggleOn', 'Allow new registration requests')
-                  : tf('platformSettingsPage.registration.toggleOff', 'Stop new registration requests')
-              }
-            />
-          </div>
-        </div>
-      </Section>
-
-      <Tabs tabs={editorTabs} framedPanel={false} bodyClassName="p-3 sm:p-4" />
+      <SettingsLayout sections={sections} />
     </div>
   );
 }
