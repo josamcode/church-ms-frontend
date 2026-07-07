@@ -14,9 +14,15 @@ module.exports = {
           DEFAULT: cssVarColor('--color-primary-rgb'),
           light: cssVarColor('--color-primary-light-rgb'),
           dark: cssVarColor('--color-primary-dark-rgb'),
+          soft: cssVarColor('--color-primary-soft-rgb'),
         },
         secondary: {
           DEFAULT: cssVarColor('--color-secondary-rgb'),
+          soft: cssVarColor('--color-gold-soft-rgb'),
+        },
+        gold: {
+          DEFAULT: cssVarColor('--color-secondary-rgb'),
+          soft: cssVarColor('--color-gold-soft-rgb'),
         },
         accent: {
           DEFAULT: cssVarColor('--color-accent-rgb'),
@@ -56,14 +62,27 @@ module.exports = {
       },
       borderRadius: {
         sm: '0.375rem',
-        md: '0.5rem',
-        lg: '0.75rem',
-        xl: '1rem',
+        md: '0.625rem',
+        lg: '0.875rem',
+        xl: '1.125rem',
+        '2xl': '1.5rem',
       },
       boxShadow: {
-        card: '0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.04)',
-        dropdown: '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)',
-        modal: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        xs: 'var(--shadow-xs)',
+        sm: 'var(--shadow-sm)',
+        md: 'var(--shadow-md)',
+        lg: 'var(--shadow-lg)',
+        card: 'var(--shadow-sm)',
+        dropdown: 'var(--shadow-md)',
+        modal: 'var(--shadow-lg)',
+      },
+      keyframes: {
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
+      },
+      animation: {
+        shimmer: 'shimmer 1.6s infinite',
       },
     },
   },

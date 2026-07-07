@@ -1,0 +1,1173 @@
+{
+  "generatedAt": "2026-07-07T11:46:30.017Z",
+  "framework": "Create React App + React Router",
+  "routerSource": "src/app/router.js",
+  "counts": {
+    "total": 66,
+    "static": 50,
+    "dynamic": 16,
+    "protected": 61,
+    "public": 3,
+    "guest": 2
+  },
+  "routes": [
+    {
+      "path": "/",
+      "routePath": "",
+      "kind": "public",
+      "protected": false,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 104
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/auth/login",
+      "routePath": "auth/login",
+      "kind": "guest",
+      "protected": false,
+      "guestOnly": true,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 117
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/auth/register",
+      "routePath": "auth/register",
+      "kind": "guest",
+      "protected": false,
+      "guestOnly": true,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 118
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/bookings",
+      "routePath": "bookings",
+      "kind": "public",
+      "protected": false,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 108
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/bookings/new",
+      "routePath": "bookings/new",
+      "kind": "public",
+      "protected": false,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 109
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard",
+      "routePath": "dashboard",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 123
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/archive",
+      "routePath": "archive",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "ARCHIVE_VIEW",
+        "ARCHIVE_UPLOAD",
+        "ARCHIVE_COLLECTIONS_MANAGE",
+        "ARCHIVE_STORIES_MANAGE",
+        "ARCHIVE_HONOREES_MANAGE",
+        "ARCHIVE_PUBLISH"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 399
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/bookings",
+      "routePath": "bookings",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "BOOKINGS_VIEW_OWN",
+        "BOOKINGS_VIEW",
+        "BOOKINGS_MANAGE",
+        "BOOKINGS_TYPES_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 473
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/bookings/mine",
+      "routePath": "bookings/mine",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "BOOKINGS_VIEW_OWN",
+        "BOOKINGS_VIEW",
+        "BOOKINGS_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 519
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/bookings/requests",
+      "routePath": "bookings/requests",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "BOOKINGS_VIEW",
+        "BOOKINGS_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 484
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/bookings/types",
+      "routePath": "bookings/types",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "BOOKINGS_TYPES_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 495
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/bookings/types/:id/edit",
+      "routePath": "bookings/types/:id/edit",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "BOOKINGS_TYPES_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 511
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/bookings/types/new",
+      "routePath": "bookings/types/new",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "BOOKINGS_TYPES_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 503
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/chats",
+      "routePath": "chats",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "CHATS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 152
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/confessions",
+      "routePath": "confessions",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "CONFESSIONS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 296
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/confessions/alerts",
+      "routePath": "confessions/alerts",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "CONFESSIONS_ALERTS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 312
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/confessions/analytics",
+      "routePath": "confessions/analytics",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "CONFESSIONS_ANALYTICS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 320
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/confessions/new",
+      "routePath": "confessions/new",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "CONFESSIONS_CREATE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 304
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/divine-liturgies",
+      "routePath": "divine-liturgies",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "DIVINE_LITURGIES_VIEW",
+        "DIVINE_LITURGIES_MANAGE",
+        "DIVINE_LITURGIES_ATTENDANCE_MANAGE",
+        "DIVINE_LITURGIES_ATTENDANCE_MANAGE_ASSIGNED_USERS"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 360
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/divine-liturgies/attendance/:entryType/:id",
+      "routePath": "divine-liturgies/attendance/:entryType/:id",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "DIVINE_LITURGIES_ATTENDANCE_MANAGE",
+        "DIVINE_LITURGIES_ATTENDANCE_MANAGE_ASSIGNED_USERS",
+        "DIVINE_LITURGIES_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 384
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/divine-liturgies/priests",
+      "routePath": "divine-liturgies/priests",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "DIVINE_LITURGIES_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 376
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/households/classifications",
+      "routePath": "households/classifications",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "HOUSEHOLD_CLASSIFICATIONS_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 272
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/households/results",
+      "routePath": "households/results",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "HOUSEHOLD_CLASSIFICATIONS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 264
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/lords-brethren",
+      "routePath": "lords-brethren",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "HOUSEHOLD_CLASSIFICATIONS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 216
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/lords-brethren/aid",
+      "routePath": "lords-brethren/aid",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "HOUSEHOLD_CLASSIFICATIONS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 224
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/lords-brethren/aid-history",
+      "routePath": "lords-brethren/aid-history",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "HOUSEHOLD_CLASSIFICATIONS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 232
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/lords-brethren/aid-history/details",
+      "routePath": "lords-brethren/aid-history/details",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "HOUSEHOLD_CLASSIFICATIONS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 240
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/lords-brethren/aid-history/notifications",
+      "routePath": "lords-brethren/aid-history/notifications",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "HOUSEHOLD_CLASSIFICATIONS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 248
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/lords-brethren/aid-history/notifications/:id",
+      "routePath": "lords-brethren/aid-history/notifications/:id",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "HOUSEHOLD_CLASSIFICATIONS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 256
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/meetings",
+      "routePath": "meetings",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 530
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/meetings/:id/edit",
+      "routePath": "meetings/:id/edit",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "MEETINGS_UPDATE",
+        "MEETINGS_SERVANTS_MANAGE",
+        "MEETINGS_COMMITTEES_MANAGE",
+        "MEETINGS_ACTIVITIES_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 685
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/meetings/list",
+      "routePath": "meetings/list",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "MEETINGS_VIEW",
+        "MEETINGS_VIEW_OWN",
+        "MEETINGS_CREATE",
+        "MEETINGS_UPDATE",
+        "MEETINGS_DELETE",
+        "MEETINGS_SERVANTS_MANAGE",
+        "MEETINGS_COMMITTEES_MANAGE",
+        "MEETINGS_ACTIVITIES_MANAGE",
+        "MEETINGS_DOCUMENTATION_MANAGE",
+        "MEETINGS_SETTINGS_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 545
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/meetings/list/:id",
+      "routePath": "meetings/list/:id",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "MEETINGS_VIEW",
+        "MEETINGS_VIEW_OWN",
+        "MEETINGS_UPDATE",
+        "MEETINGS_SERVANTS_MANAGE",
+        "MEETINGS_COMMITTEES_MANAGE",
+        "MEETINGS_ACTIVITIES_MANAGE",
+        "MEETINGS_DOCUMENTATION_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 567
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/meetings/list/:id/attendance",
+      "routePath": "meetings/list/:id/attendance",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "MEETINGS_ATTENDANCE_MANAGE",
+        "MEETINGS_UPDATE",
+        "MEETINGS_SERVANTS_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 605
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/meetings/list/:id/documentation",
+      "routePath": "meetings/list/:id/documentation",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "MEETINGS_DOCUMENTATION_MANAGE",
+        "MEETINGS_UPDATE",
+        "MEETINGS_SERVANTS_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 620
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/meetings/list/:id/settings",
+      "routePath": "meetings/list/:id/settings",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "MEETINGS_VIEW",
+        "MEETINGS_VIEW_OWN",
+        "MEETINGS_UPDATE",
+        "MEETINGS_SERVANTS_MANAGE",
+        "MEETINGS_DOCUMENTATION_MANAGE",
+        "MEETINGS_SETTINGS_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 635
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/meetings/list/:meetingId/members/:memberId",
+      "routePath": "meetings/list/:meetingId/members/:memberId",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "MEETINGS_VIEW",
+        "MEETINGS_VIEW_OWN",
+        "MEETINGS_MEMBERS_VIEW",
+        "MEETINGS_UPDATE",
+        "MEETINGS_SERVANTS_MANAGE",
+        "MEETINGS_COMMITTEES_MANAGE",
+        "MEETINGS_ACTIVITIES_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 586
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/meetings/new",
+      "routePath": "meetings/new",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "MEETINGS_CREATE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 677
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/meetings/sectors",
+      "routePath": "meetings/sectors",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "SECTORS_VIEW",
+        "SECTORS_CREATE",
+        "SECTORS_UPDATE",
+        "SECTORS_DELETE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 534
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/meetings/sectors/:id",
+      "routePath": "meetings/sectors/:id",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "SECTORS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 669
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/meetings/sectors/:id/edit",
+      "routePath": "meetings/sectors/:id/edit",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "SECTORS_UPDATE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 661
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/meetings/sectors/new",
+      "routePath": "meetings/sectors/new",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "SECTORS_CREATE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 653
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/notifications",
+      "routePath": "notifications",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "NOTIFICATIONS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 433
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/notifications/:id",
+      "routePath": "notifications/:id",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "NOTIFICATIONS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 465
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/notifications/:id/edit",
+      "routePath": "notifications/:id/edit",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "NOTIFICATIONS_UPDATE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 457
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/notifications/inbox",
+      "routePath": "notifications/inbox",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "NOTIFICATIONS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 441
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/notifications/new",
+      "routePath": "notifications/new",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "NOTIFICATIONS_CREATE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 449
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/profile",
+      "routePath": "profile",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "AUTH_VIEW_SELF"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 128
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/public-site/landing",
+      "routePath": "public-site/landing",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "LANDING_CONTENT_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 417
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/settings/account",
+      "routePath": "settings/account",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "AUTH_VIEW_SELF"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 136
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/settings/platform",
+      "routePath": "settings/platform",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "NOTIFICATIONS_TEMPLATES_MANAGE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 144
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/system-analytics",
+      "routePath": "system-analytics",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "SYSTEM_ANALYTICS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 425
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/under-development",
+      "routePath": "under-development",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 701
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/users",
+      "routePath": "users",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "USERS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 160
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/users/:id",
+      "routePath": "users/:id",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "USERS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 280
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/users/:id/edit",
+      "routePath": "users/:id/edit",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "USERS_UPDATE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 288
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/users/explorer",
+      "routePath": "users/explorer",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "USERS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 168
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/users/family-house",
+      "routePath": "users/family-house",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "USERS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 192
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/users/family-house/analytics",
+      "routePath": "users/family-house/analytics",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "USERS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 208
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/users/family-house/details",
+      "routePath": "users/family-house/details",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "USERS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 200
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/users/new",
+      "routePath": "users/new",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "USERS_CREATE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 184
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/users/requests",
+      "routePath": "users/requests",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "USERS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 176
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/visitations",
+      "routePath": "visitations",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "PASTORAL_VISITATIONS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 328
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/visitations/:id",
+      "routePath": "visitations/:id",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": true,
+      "wildcard": false,
+      "permissions": [
+        "PASTORAL_VISITATIONS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 352
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/visitations/analytics",
+      "routePath": "visitations/analytics",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "PASTORAL_VISITATIONS_ANALYTICS_VIEW"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 344
+      },
+      "hasElement": true
+    },
+    {
+      "path": "/dashboard/visitations/new",
+      "routePath": "visitations/new",
+      "kind": "protected",
+      "protected": true,
+      "guestOnly": false,
+      "dynamic": false,
+      "wildcard": false,
+      "permissions": [
+        "PASTORAL_VISITATIONS_CREATE"
+      ],
+      "source": {
+        "file": "src/app/router.js",
+        "line": 336
+      },
+      "hasElement": true
+    }
+  ]
+}

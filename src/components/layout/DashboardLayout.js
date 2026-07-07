@@ -31,6 +31,7 @@ import { useAuth } from '../../auth/auth.hooks';
 import { bookingsApi, chatApi, userNotificationsApi } from '../../api/endpoints';
 import AppRouteEffects from '../../app/AppRouteEffects';
 import NotificationBell from '../notifications/NotificationBell';
+import MobileBottomNav from './MobileBottomNav';
 import {
   getUnreadBadgeLabel,
   NOTIFICATION_UNREAD_COUNT_QUERY_KEY,
@@ -669,6 +670,45 @@ export default function DashboardLayout() {
     [visibleNavItems, activeHref]
   );
 
+  // ── Mobile bottom-nav primary destinations (permission-filtered) ──────────
+  const mobileNavItems = useMemo(() => {
+    const isActive = (href) =>
+      href === '/dashboard'
+        ? location.pathname === '/dashboard'
+        : location.pathname === href || location.pathname.startsWith(`${href}/`);
+
+    const candidates = [
+      { href: '/dashboard', icon: LayoutDashboard, label: t('dashboardLayout.menu.dashboard'), permission: null },
+      { href: '/dashboard/users', icon: Users, label: t('dashboardLayout.menu.users'), permission: 'USERS_VIEW' },
+      {
+        href: '/dashboard/notifications',
+        icon: BellRing,
+        label: tf('dashboardLayout.menu.notifications', 'Notifications'),
+        permission: 'NOTIFICATIONS_VIEW',
+        badge: unreadNotificationsBadge,
+      },
+      {
+        href: '/dashboard/chats',
+        icon: MessageSquare,
+        label: tf('dashboardLayout.menu.chats', 'Chats'),
+        permission: 'CHATS_VIEW',
+        badge: unreadChatsBadge,
+      },
+      { href: '/dashboard/meetings', icon: CalendarDays, label: t('dashboardLayout.menu.meetingsAndSectors'), permission: null },
+      { href: '/dashboard/confessions', icon: CalendarCheck2, label: t('dashboardLayout.menu.confessionSessions'), permission: 'CONFESSIONS_VIEW' },
+    ];
+
+    return candidates
+      .filter((item) => !item.permission || hasPermission(item.permission))
+      .slice(0, 4)
+      .map((item) => ({ ...item, active: isActive(item.href) }));
+  }, [location.pathname, t, tf, hasPermission, unreadNotificationsBadge, unreadChatsBadge]);
+
+  const isMoreActive = useMemo(
+    () => !mobileNavItems.some((item) => item.active),
+    [mobileNavItems]
+  );
+
   // ── Theme / auth ──────────────────────────────────────────────────────────
 
   const toggleDark = useCallback(() => {
@@ -993,11 +1033,19 @@ export default function DashboardLayout() {
           </header>
 
           {/* Page content */}
-          <main className="mx-auto w-full min-w-0 max-w-[1240px] flex-1 px-4 py-6 lg:px-8 lg:py-8">
+          <main className="mx-auto w-full min-w-0 max-w-[1240px] flex-1 px-4 pt-6 pb-24 lg:px-8 lg:py-8">
             <Outlet />
           </main>
         </div>
       </div>
+
+      {/* ── Mobile bottom navigation (app shell) ─────────────────────────── */}
+      <MobileBottomNav
+        items={mobileNavItems}
+        onMore={() => setSidebarOpen(true)}
+        moreActive={isMoreActive}
+        moreLabel={tf('dashboardLayout.mobileNav.more', 'More')}
+      />
     </div>
   );
 }

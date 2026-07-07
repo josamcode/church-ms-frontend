@@ -1,5 +1,9 @@
 export default function Skeleton({ className = '', variant = 'rect' }) {
-  const base = 'animate-pulse bg-surface-alt rounded';
+  const base =
+    'relative overflow-hidden bg-surface-alt rounded before:absolute before:inset-0 ' +
+    'before:-translate-x-full before:bg-gradient-to-r before:from-transparent ' +
+    'before:via-white/40 dark:before:via-white/[0.06] before:to-transparent ' +
+    'motion-safe:before:animate-shimmer';
   const variants = {
     rect: '',
     circle: '!rounded-full',
@@ -12,7 +16,7 @@ export function SkeletonRow({ cols = 4 }) {
   return (
     <tr>
       {Array.from({ length: cols }).map((_, i) => (
-        <td key={i} className="p-3">
+        <td key={i} className="p-3.5">
           <Skeleton className="h-4 w-full" />
         </td>
       ))}

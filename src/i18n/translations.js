@@ -366,6 +366,9 @@
       },
       expandSidebar: 'Expand sidebar',
       collapseSidebar: 'Collapse sidebar',
+      mobileNav: {
+        more: 'More',
+      },
     },
     platformSettingsPage: {
       title: 'Platform Settings',
@@ -3350,6 +3353,9 @@
 
       expandSidebar: 'توسيع الشريط الجانبي',
       collapseSidebar: 'طي الشريط الجانبي',
+      mobileNav: {
+        more: 'المزيد',
+      },
     },
     platformSettingsPage: {
       title: 'إعدادات المنصة',
@@ -3969,10 +3975,46 @@
         deletedSuccess: 'تم حذف المستخدم بنجاح.',
       },
     },
+    usersForm: {
+      create: {
+        title: 'إضافة مستخدم',
+        subtitle: 'أضف ملفًّا جديدًا للمستخدم وحدِّد الدور والصلاحيات.',
+      },
+      edit: {
+        title: 'تعديل بيانات المستخدم',
+      },
+    },
     usersExplorerPage: {
       page: 'مستكشف الأفراد',
       title: 'مستكشف الأفراد',
       subtitle: 'فلاتر متقدمة، وفرز، وتحليلات، وإعدادات محفوظة قابلة لإعادة الاستخدام لكل دليل الأفراد المتاح لك.',
+      overview: {
+        title: 'استكشاف مركّز',
+        subtitle: 'ابدأ بعدد قليل من الحقول المهمة، ثم افتح مساحة العمل الجانبية لتصفية أعمق دون ازدحام الصفحة.',
+        pending: 'جارٍ تحديث النتائج',
+        activeFilters: 'عوامل التصفية المفعّلة',
+        noActiveFilters: 'لم يتم تطبيق أي تصفية بعد.',
+        moreFilters: '+{count} أخرى',
+      },
+      workspace: {
+        title: 'مساحة التصفية',
+        subtitle: 'اعرض مجموعة تصفية متقدّمة واحدة في كل مرة ليظل الدليل واضحًا.',
+        tabs: {
+          search: 'بحث',
+          household: 'البيت',
+          profile: 'الملف',
+          system: 'النظام',
+        },
+      },
+      support: {
+        title: 'لوحات الاستكشاف',
+        subtitle: 'أبقِ الملخّصات والإعدادات الجاهزة والرؤى قريبة دون ازدحام الجدول.',
+        tabs: {
+          summary: 'ملخّص',
+          presets: 'إعدادات جاهزة',
+          insights: 'رؤى',
+        },
+      },
       states: {
         loading: 'جارٍ تحميل قاعدة بيانات الأفراد بالكامل...',
         loadErrorTitle: 'تعذر تحميل الأفراد',
@@ -5597,6 +5639,9 @@
         sectionBasicsSubtitle: 'البيانات الرئيسية وإعدادات الظهور.',
         type: 'النوع',
         typePlaceholder: 'اختر نوع الإشعار',
+        typeSmartHint: 'اختر نوعًا موجودًا أو اكتب نوعًا جديدًا لإنشائه تلقائيًا.',
+        typeSelectHint: 'اختر نوع إشعار موجودًا.',
+        typeNoMatches: 'لا يوجد نوع مطابق. تابع الكتابة لإنشاء نوع جديد إن كان مسموحًا.',
         name: 'الاسم',
         summary: 'ملخص',
         eventDate: 'تاريخ الحدث',
@@ -5621,6 +5666,7 @@
       },
       validation: {
         typeRequired: 'نوع الإشعار مطلوب.',
+        typeMustExist: 'يرجى اختيار نوع إشعار موجود. لا تملك صلاحية إنشاء أنواع جديدة.',
         nameRequired: 'اسم الإشعار مطلوب.',
         atLeastOneDetail: 'يجب إضافة تفصيل واحد على الأقل.',
         textDetailContentRequired: 'محتوى النص مطلوب.',
@@ -5631,6 +5677,7 @@
         created: 'تم إنشاء الإشعار بنجاح.',
         updated: 'تم تحديث الإشعار بنجاح.',
         typeCreated: 'تم إنشاء نوع الإشعار بنجاح.',
+        typeCreateFailed: 'تعذّر إنشاء نوع الإشعار.',
         imageUploaded: 'تم رفع الصورة بنجاح.',
         imageUploadFailed: 'فشل رفع الصورة.',
       },

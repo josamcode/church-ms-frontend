@@ -191,14 +191,14 @@ export default function Table({
             ))}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-card">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-surface-alt border-b border-border">
+              <tr className="bg-surface-alt/60 border-b border-border">
                 {columns.map((col) => (
                   <th
                     key={col.key}
-                    className={`p-3 font-semibold text-heading whitespace-nowrap ${isRTL ? 'text-right' : 'text-left'
+                    className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted whitespace-nowrap ${isRTL ? 'text-right' : 'text-left'
                       } ${col.className || ''}`}
                   >
                     {col.sortable ? (
@@ -230,12 +230,12 @@ export default function Table({
                 : data.map((row, i) => (
                   <tr
                     key={row._id || row.id || i}
-                    className="border-b border-border last:border-b-0 hover:bg-surface-alt/50 transition-colors"
+                    className="border-b border-border/70 last:border-b-0 transition-colors hover:bg-primary/[0.03]"
                   >
                     {columns.map((col) => (
                       <td
                         key={col.key}
-                        className={`p-3 whitespace-nowrap ${col.cellClassName || ''}`}
+                        className={`px-4 py-3.5 align-middle whitespace-nowrap text-heading/90 ${col.cellClassName || ''}`}
                         {...getInteractiveCellProps(col, row)}
                       >
                         {getCellContent(col, row, i, emptyValue)}
