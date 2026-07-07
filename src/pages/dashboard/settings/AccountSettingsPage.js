@@ -10,9 +10,8 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
-import Section from '../../../components/ui/Section';
+import SettingsLayout, { SettingRow } from '../../../components/ui/SettingsLayout';
 import Switch from '../../../components/ui/Switch';
-import Tabs from '../../../components/ui/Tabs';
 import { useI18n } from '../../../i18n/i18n';
 
 export default function AccountSettingsPage() {
@@ -152,134 +151,109 @@ export default function AccountSettingsPage() {
   };
 
   const initial = String(user?.fullName || '').trim().charAt(0).toUpperCase();
-  const settingTabs = [
+
+  const actionBarClass = 'mt-6 flex border-t border-border/70 pt-5 sm:justify-end';
+
+  const settingsSections = [
     canUploadOwnAvatar
       ? {
+          id: 'avatar',
           label: tf('accountSettings.tabs.avatar', 'Avatar'),
+          icon: UserIcon,
+          title: tf('accountSettings.avatar.title', 'Profile Avatar'),
+          description: tf('accountSettings.avatar.subtitle', 'Upload a profile image for your account.'),
           content: (
-            <Section
-              icon={UserIcon}
-              title={tf('accountSettings.avatar.title', 'Profile Avatar')}
-              description={tf(
-                'accountSettings.avatar.subtitle',
-                'Upload a profile image for your account.'
-              )}
-              actions={(
-                <>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    onChange={handleAvatarSelection}
-                    disabled={avatarMutation.isPending}
-                    className="hidden"
+            <div>
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                {user?.avatar?.url ? (
+                  <img
+                    src={user.avatar.url}
+                    alt={user?.fullName || ''}
+                    className="h-24 w-24 rounded-2xl border border-border object-cover shadow-sm"
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    icon={Upload}
-                    loading={avatarMutation.isPending}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {user?.avatar?.url
-                      ? tf('accountSettings.avatar.changeButton', 'Change Avatar')
-                      : tf('accountSettings.avatar.uploadButton', 'Upload Avatar')}
-                  </Button>
-                </>
-              )}
-            >
-              <div className="rounded-2xl border border-border bg-surface-alt/40 p-3 sm:p-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                  {user?.avatar?.url ? (
-                    <img
-                      src={user.avatar.url}
-                      alt={user?.fullName || ''}
-                      className="h-20 w-20 rounded-2xl border border-border object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-border bg-surface text-xl font-semibold text-primary">
-                      {initial ? initial : <UserIcon className="h-8 w-8" />}
-                    </div>
-                  )}
-
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-heading">
-                      {tf('accountSettings.avatar.currentLabel', 'Current avatar')}
-                    </p>
-                    <p className="text-sm text-muted">
-                      {tf(
-                        'accountSettings.avatar.help',
-                        'Use a clear square image for the best result across the dashboard.'
-                      )}
-                    </p>
-                    <p className="text-xs text-muted">
-                      {tf(
-                        'accountSettings.avatar.requirements',
-                        'Accepted formats: JPEG, PNG, GIF, WEBP. Maximum size: 5 MB.'
-                      )}
-                    </p>
+                ) : (
+                  <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-dashed border-border bg-surface-alt/60 text-2xl font-bold text-primary">
+                    {initial ? initial : <UserIcon className="h-9 w-9" />}
                   </div>
+                )}
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-semibold text-heading">
+                    {tf('accountSettings.avatar.currentLabel', 'Current avatar')}
+                  </p>
+                  <p className="text-sm leading-relaxed text-muted">
+                    {tf('accountSettings.avatar.help', 'Use a clear square image for the best result across the dashboard.')}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {tf('accountSettings.avatar.requirements', 'Accepted formats: JPEG, PNG, GIF, WEBP. Maximum size: 5 MB.')}
+                  </p>
                 </div>
               </div>
-            </Section>
+              <div className={actionBarClass}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleAvatarSelection}
+                  disabled={avatarMutation.isPending}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  icon={Upload}
+                  fullWidth
+                  loading={avatarMutation.isPending}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="sm:w-auto"
+                >
+                  {user?.avatar?.url
+                    ? tf('accountSettings.avatar.changeButton', 'Change Avatar')
+                    : tf('accountSettings.avatar.uploadButton', 'Upload Avatar')}
+                </Button>
+              </div>
+            </div>
           ),
         }
       : null,
     canChangePassword
       ? {
+          id: 'password',
           label: tf('accountSettings.tabs.password', 'Password'),
+          icon: KeyRound,
+          title: tf('accountSettings.password.title', 'Change Password'),
+          description: tf('accountSettings.password.subtitle', 'Update your account password using your current password.'),
           content: (
-            <Section
-              icon={KeyRound}
-              title={tf('accountSettings.password.title', 'Change Password')}
-              description={tf(
-                'accountSettings.password.subtitle',
-                'Update your account password using your current password.'
-              )}
-            >
-              <div className="rounded-2xl border border-border bg-surface-alt/40 p-3 sm:p-4">
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                  <Input
-                    type="password"
-                    label={tf('accountSettings.password.currentLabel', 'Current password')}
-                    value={passwordForm.currentPassword}
-                    onChange={handlePasswordFieldChange('currentPassword')}
-                    containerClassName="!mb-0"
-                  />
-                  <Input
-                    type="password"
-                    label={tf('accountSettings.password.newLabel', 'New password')}
-                    value={passwordForm.newPassword}
-                    onChange={handlePasswordFieldChange('newPassword')}
-                    containerClassName="!mb-0"
-                    hint={tf(
-                      'accountSettings.password.rules',
-                      'Use at least 8 characters with uppercase, lowercase, number, and special character.'
-                    )}
-                  />
-                  <Input
-                    type="password"
-                    label={tf(
-                      'accountSettings.password.confirmLabel',
-                      'Confirm new password'
-                    )}
-                    value={passwordForm.confirmPassword}
-                    onChange={handlePasswordFieldChange('confirmPassword')}
-                    containerClassName="!mb-0"
-                    error={
-                      passwordMismatch
-                        ? tf(
-                            'accountSettings.password.confirmMismatch',
-                            'New password and confirmation do not match.'
-                          )
-                        : undefined
-                    }
-                  />
-                </div>
+            <div>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <Input
+                  type="password"
+                  label={tf('accountSettings.password.currentLabel', 'Current password')}
+                  value={passwordForm.currentPassword}
+                  onChange={handlePasswordFieldChange('currentPassword')}
+                  containerClassName="!mb-0"
+                />
+                <Input
+                  type="password"
+                  label={tf('accountSettings.password.newLabel', 'New password')}
+                  value={passwordForm.newPassword}
+                  onChange={handlePasswordFieldChange('newPassword')}
+                  containerClassName="!mb-0"
+                  hint={tf('accountSettings.password.rules', 'Use at least 8 characters with uppercase, lowercase, number, and special character.')}
+                />
+                <Input
+                  type="password"
+                  label={tf('accountSettings.password.confirmLabel', 'Confirm new password')}
+                  value={passwordForm.confirmPassword}
+                  onChange={handlePasswordFieldChange('confirmPassword')}
+                  containerClassName="!mb-0"
+                  error={
+                    passwordMismatch
+                      ? tf('accountSettings.password.confirmMismatch', 'New password and confirmation do not match.')
+                      : undefined
+                  }
+                />
               </div>
-
-              <div className="mt-5 flex sm:justify-end">
+              <div className={actionBarClass}>
                 <Button
                   type="button"
                   icon={KeyRound}
@@ -292,139 +266,81 @@ export default function AccountSettingsPage() {
                   {tf('accountSettings.password.saveButton', 'Update Password')}
                 </Button>
               </div>
-            </Section>
+            </div>
           ),
         }
       : null,
     canCreateConfessionSessions
       ? {
+          id: 'confessions',
           label: tf('accountSettings.tabs.confessions', 'Confessions'),
+          icon: Shield,
+          title: tf('accountSettings.confessions.title', 'Confession Session Privacy'),
+          description: tf('accountSettings.confessions.subtitle', 'Control whether other users can view confession sessions created by your account.'),
           content: (
-            <Section
-              icon={Shield}
-              title={tf('accountSettings.confessions.title', 'Confession Session Privacy')}
-              description={tf(
-                'accountSettings.confessions.subtitle',
-                'Control whether other users can view confession sessions created by your account.'
-              )}
-            >
-              <div className="rounded-2xl border border-border bg-surface-alt/40 p-3 sm:p-4">
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-heading">
-                      <Shield className="h-4 w-4 text-primary" />
-                      <span>
-                        {tf(
-                          'accountSettings.confessions.visibilityLabel',
-                          'Allow others to view confession sessions I created'
-                        )}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted">
-                      {tf(
-                        'accountSettings.confessions.visibilityHelp',
-                        'When disabled, other users will not see sessions recorded by your account. You will still see your own created sessions.'
-                      )}
-                    </p>
-                  </div>
-
-                  <Switch
-                    checked={allowOthersToViewCreatedConfessionSessions}
-                    onChange={setAllowOthersToViewCreatedConfessionSessions}
-                    label={
-                      allowOthersToViewCreatedConfessionSessions
-                        ? t('common.status.active')
-                        : t('common.status.inactive')
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="mt-5 flex sm:justify-end">
+            <div>
+              <SettingRow
+                icon={Shield}
+                title={tf('accountSettings.confessions.visibilityLabel', 'Allow others to view confession sessions I created')}
+                description={tf('accountSettings.confessions.visibilityHelp', 'When disabled, other users will not see sessions recorded by your account. You will still see your own created sessions.')}
+              >
+                <Switch
+                  checked={allowOthersToViewCreatedConfessionSessions}
+                  onChange={setAllowOthersToViewCreatedConfessionSessions}
+                  label={allowOthersToViewCreatedConfessionSessions ? t('common.status.active') : t('common.status.inactive')}
+                />
+              </SettingRow>
+              <div className={actionBarClass}>
                 <Button
                   type="button"
                   icon={Save}
                   fullWidth
                   loading={saveMutation.isPending}
-                  disabled={
-                    allowOthersToViewCreatedConfessionSessions === savedVisibility || !hasUserId
-                  }
-                  onClick={() =>
-                    saveMutation.mutate({
-                      allowOthersToViewCreatedConfessionSessions,
-                    })
-                  }
+                  disabled={allowOthersToViewCreatedConfessionSessions === savedVisibility || !hasUserId}
+                  onClick={() => saveMutation.mutate({ allowOthersToViewCreatedConfessionSessions })}
                   className="sm:w-auto"
                 >
                   {t('common.actions.save')}
                 </Button>
               </div>
-            </Section>
+            </div>
           ),
         }
       : null,
     canUseChats
       ? {
+          id: 'chats',
           label: tf('accountSettings.tabs.chats', 'Chats'),
+          icon: Shield,
+          title: tf('accountSettings.chats.title', 'Chat Visibility'),
+          description: tf('accountSettings.chats.subtitle', 'Control whether users with advanced chat permissions can view chats created by your account.'),
           content: (
-            <Section
-              icon={Shield}
-              title={tf('accountSettings.chats.title', 'Chat Visibility')}
-              description={tf(
-                'accountSettings.chats.subtitle',
-                'Control whether users with advanced chat permissions can view chats created by your account.'
-              )}
-            >
-              <div className="rounded-2xl border border-border bg-surface-alt/40 p-3 sm:p-4">
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-heading">
-                      <Shield className="h-4 w-4 text-primary" />
-                      <span>
-                        {tf(
-                          'accountSettings.chats.visibilityLabel',
-                          'Allow users with chat oversight permission to view chats I created'
-                        )}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted">
-                      {tf(
-                        'accountSettings.chats.visibilityHelp',
-                        'When disabled, other users cannot inspect conversations created by your account unless they are direct participants. You still keep full access to your own chats.'
-                      )}
-                    </p>
-                  </div>
-
-                  <Switch
-                    checked={allowOthersToViewCreatedChats}
-                    onChange={setAllowOthersToViewCreatedChats}
-                    label={
-                      allowOthersToViewCreatedChats
-                        ? t('common.status.active')
-                        : t('common.status.inactive')
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="mt-5 flex sm:justify-end">
+            <div>
+              <SettingRow
+                icon={Shield}
+                title={tf('accountSettings.chats.visibilityLabel', 'Allow users with chat oversight permission to view chats I created')}
+                description={tf('accountSettings.chats.visibilityHelp', 'When disabled, other users cannot inspect conversations created by your account unless they are direct participants. You still keep full access to your own chats.')}
+              >
+                <Switch
+                  checked={allowOthersToViewCreatedChats}
+                  onChange={setAllowOthersToViewCreatedChats}
+                  label={allowOthersToViewCreatedChats ? t('common.status.active') : t('common.status.inactive')}
+                />
+              </SettingRow>
+              <div className={actionBarClass}>
                 <Button
                   type="button"
                   icon={Save}
                   fullWidth
                   loading={saveMutation.isPending}
                   disabled={allowOthersToViewCreatedChats === savedChatVisibility || !hasUserId}
-                  onClick={() =>
-                    saveMutation.mutate({
-                      allowOthersToViewCreatedChats,
-                    })
-                  }
+                  onClick={() => saveMutation.mutate({ allowOthersToViewCreatedChats })}
                   className="sm:w-auto"
                 >
                   {t('common.actions.save')}
                 </Button>
               </div>
-            </Section>
+            </div>
           ),
         }
       : null,
@@ -463,7 +379,7 @@ export default function AccountSettingsPage() {
         )}
       />
 
-      {settingTabs.length ? <Tabs tabs={settingTabs} framedPanel={false} bodyClassName="p-3 sm:p-4" /> : null}
+      {settingsSections.length ? <SettingsLayout sections={settingsSections} /> : null}
     </div>
   );
 }
