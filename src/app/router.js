@@ -19,6 +19,9 @@ const Lazy = ({ children }) => <Suspense fallback={<PageLoader />}>{children}</S
 const LandingPage = lazy(() => import('../pages/public/LandingPage'));
 const BookingPublicPage = lazy(() => import('../pages/public/BookingPublicPage'));
 const ArchivePublicPage = lazy(() => import('../pages/public/ArchivePublicPage'));
+const MeetingsPublicPage = lazy(() => import('../pages/public/MeetingsPublicPage'));
+const MeetingPublicPage = lazy(() => import('../pages/public/MeetingPublicPage'));
+const SectorPublicPage = lazy(() => import('../pages/public/SectorPublicPage'));
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
 const UserRegisterPage = lazy(() => import('../pages/dashboard/users/UserRegisterPage'));
 const DashboardHome = lazy(() => import('../pages/dashboard/DashboardHome'));
@@ -110,6 +113,9 @@ const router = createBrowserRouter([
       { path: 'bookings', element: <Lazy><BookingPublicPage /></Lazy> },
       { path: 'bookings/new', element: <Lazy><BookingPublicPage /></Lazy> },
       { path: 'archive', element: <Lazy><ArchivePublicPage /></Lazy> },
+      { path: 'meetings', element: <Lazy><MeetingsPublicPage /></Lazy> },
+      { path: 'meetings/:id', element: <Lazy><MeetingPublicPage /></Lazy> },
+      { path: 'sectors/:id', element: <Lazy><SectorPublicPage /></Lazy> },
     ],
   },
 

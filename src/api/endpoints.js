@@ -230,6 +230,12 @@ export const bookingsApi = {
 };
 
 export const meetingsApi = {
+  public: {
+    getMeetings: () => apiClient.get('/meetings/public'),
+    getMeeting: (id) => apiClient.get(`/meetings/public/${id}`),
+    getSectors: () => apiClient.get('/meetings/sectors/public'),
+    getSector: (id) => apiClient.get(`/meetings/sectors/public/${id}`),
+  },
   sectors: {
     list: (params) => apiClient.get('/meetings/sectors', { params }),
     create: (data) => apiClient.post('/meetings/sectors', data),

@@ -58,6 +58,7 @@ export default function PublicLayout() {
       { label: text('publicLayout.priests'), href: '#priests' },
       { label: text('publicLayout.verses'), href: '#verses' },
       { label: getOptionalText('publicLayout.archive', 'Archive'), href: '/archive' },
+      { label: getOptionalText('publicLayout.meetings', 'Meetings'), href: '/meetings' },
       { label: text('publicLayout.visit'), href: '#visit' },
     ],
     [text, getOptionalText]

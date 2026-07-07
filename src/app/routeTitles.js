@@ -344,6 +344,24 @@ const TITLE_ROUTES = [
     fallback: 'Dashboard',
   },
   {
+    pattern: '/meetings/:id',
+    key: 'meetings.public.detailTitle',
+    fallback: 'Meeting Details',
+    fallbackAr: 'تفاصيل الاجتماع',
+  },
+  {
+    pattern: '/meetings',
+    key: 'meetings.public.title',
+    fallback: 'Meetings',
+    fallbackAr: 'الاجتماعات',
+  },
+  {
+    pattern: '/sectors/:id',
+    key: 'meetings.public.sectorDetailTitle',
+    fallback: 'Sector Details',
+    fallbackAr: 'تفاصيل القطاع',
+  },
+  {
     pattern: '/bookings/new',
     key: 'bookings.public.title',
     fallback: 'Book an Appointment',
