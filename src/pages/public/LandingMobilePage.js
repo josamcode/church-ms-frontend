@@ -4,7 +4,7 @@ import {
   BookOpen, Clock3, Mail, MapPin, Phone, Quote, ShieldCheck, Sparkles, UserCircle2,
   Cross, Star, Globe, Navigation, ExternalLink, ChevronRight, ChevronLeft,
   Home, Share2, X, LogIn, Languages, MoreHorizontal, CalendarDays, Sun, Sunrise,
-  CalendarClock, Info,
+  CalendarClock, Info, Images, Users,
 } from 'lucide-react';
 import {
   SOCIAL_META, useInView, AnimatedCounter, GuestEntryOverlay,
@@ -110,6 +110,20 @@ function MobileMoreSheet({ open, onClose, isRTL, toggleLanguage, t, onAbout }) {
       accent: 'bg-amber-500/10 text-amber-600',
     },
     {
+      icon: Images,
+      label: t('publicLayout.archive'),
+      desc: t('landing.archive.label'),
+      to: '/archive',
+      accent: 'bg-indigo-500/10 text-indigo-600',
+    },
+    {
+      icon: Users,
+      label: t('publicLayout.meetings'),
+      desc: t('landing.meetings.label'),
+      to: '/meetings',
+      accent: 'bg-emerald-500/10 text-emerald-600',
+    },
+    {
       icon: LogIn,
       label: isRTL ? 'تسجيل الدخول' : 'Login',
       desc: isRTL ? 'الوصول إلى بوابة الكنيسة' : 'Access the church portal',
@@ -132,11 +146,17 @@ function MobileMoreSheet({ open, onClose, isRTL, toggleLanguage, t, onAbout }) {
     },
     {
       ...items[1],
+    },
+    {
+      ...items[2],
+    },
+    {
+      ...items[3],
       label: t('landing.mobile.moreSheet.loginLabel'),
       desc: t('landing.mobile.moreSheet.loginDescription'),
     },
     {
-      ...items[2],
+      ...items[4],
       label: t('landing.mobile.moreSheet.languageLabel'),
       desc: t('landing.mobile.moreSheet.languageDescription'),
     },
@@ -305,6 +325,38 @@ function MobileHomeScreen({
             </a>
           );
         })}
+      </div>
+
+      {/* ── Archive + Meetings entry tiles ── */}
+      <div className="px-3 mt-3 grid grid-cols-2 gap-2">
+        <Link
+          to="/archive"
+          className={`relative overflow-hidden rounded-2xl border border-border bg-surface p-4 flex items-center gap-3 active:scale-[0.98] transition-transform ${isRTL ? 'flex-row-reverse text-right' : ''}`}
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-md">
+            <Images className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-extrabold text-heading leading-tight">{t('publicLayout.archive')}</p>
+            <p className="text-[11px] text-muted mt-0.5 leading-relaxed line-clamp-1">{t('landing.archive.label')}</p>
+          </div>
+          <ChevronRight className={`h-4 w-4 text-muted flex-shrink-0 ${isRTL ? 'rotate-180' : ''}`} />
+        </Link>
+        <Link
+          to="/meetings"
+          className={`relative overflow-hidden rounded-2xl border border-border bg-surface p-4 flex items-center gap-3 active:scale-[0.98] transition-transform ${isRTL ? 'flex-row-reverse text-right' : ''}`}
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-md">
+            <Users className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-extrabold text-heading leading-tight">{t('publicLayout.meetings')}</p>
+            <p className="text-[11px] text-muted mt-0.5 leading-relaxed line-clamp-1">{t('landing.meetings.label')}</p>
+          </div>
+          <ChevronRight className={`h-4 w-4 text-muted flex-shrink-0 ${isRTL ? 'rotate-180' : ''}`} />
+        </Link>
       </div>
 
       {/* ── Stats — clean 2×2 cards, no internal dividers ── */}
