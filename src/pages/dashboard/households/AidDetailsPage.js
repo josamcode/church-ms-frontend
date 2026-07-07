@@ -20,7 +20,7 @@ import { localizeAidOccurrence } from '../../../utils/aidOccurrenceLocalization'
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
+import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 
@@ -190,23 +190,55 @@ export default function AidDetailsPage() {
         eyebrow={t('dashboardLayout.menu.theLordsBrethren')}
         title={copy.title}
         subtitle={copy.subtitle}
+        actions={
+          canEdit ? (
+            <Button variant="outline" icon={Edit2} onClick={handleOpenEdit}>
+              {copy.editAction}
+            </Button>
+          ) : null
+        }
       />
+
+      <Card tone="gold" padding="sm">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{copy.fields.date}</p>
+            <div className="mt-1.5 flex items-center gap-2 font-semibold text-heading">
+              <CalendarDays className="h-4 w-4 text-secondary" />
+              <span className="truncate">{formatDateLabel(queryDate, language)}</span>
+            </div>
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{copy.fields.category}</p>
+            <div className="mt-1.5">
+              <Badge variant="success">{queryCategory || '-'}</Badge>
+            </div>
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{copy.fields.occurrence}</p>
+            <div className="mt-1.5 flex items-center gap-2 font-semibold text-heading">
+              <RotateCw className="h-4 w-4 text-secondary" />
+              <span className="truncate">{localizeAidOccurrence(queryOccurrence || '-', language)}</span>
+            </div>
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{copy.beneficiariesSection}</p>
+            <div className="mt-1.5 flex items-center gap-2 font-semibold text-heading">
+              <Users className="h-4 w-4 text-secondary" />
+              <span>{beneficiaries.length}</span>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-1">
-          <Card className="space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <p className="text-sm font-semibold text-heading">{copy.detailsSection}</p>
-              </div>
-              {canEdit ? (
-                <Button variant="ghost" size="sm" onClick={handleOpenEdit} className="h-8 group">
-                  <Edit2 className="mr-1.5 h-4 w-4 text-muted transition-colors group-hover:text-primary" />
-                  {copy.editAction}
-                </Button>
-              ) : null}
-            </div>
+          <Card className="space-y-4" padding="lg">
+            <CardHeader
+              icon={Sparkles}
+              title={copy.detailsSection}
+              className="mb-0 border-b border-border pb-4"
+            />
 
             <div className="space-y-4">
               <div>
@@ -300,14 +332,13 @@ export default function AidDetailsPage() {
         </div>
 
         <div className="lg:col-span-2">
-          <Card className="space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" />
-                <p className="text-sm font-semibold text-heading">{copy.beneficiariesSection}</p>
-                <Badge variant="secondary">{beneficiaries.length}</Badge>
-              </div>
-            </div>
+          <Card className="space-y-4" padding="lg">
+            <CardHeader
+              icon={Users}
+              title={copy.beneficiariesSection}
+              className="mb-0 border-b border-border pb-4"
+              action={<Badge variant="secondary">{beneficiaries.length}</Badge>}
+            />
 
             {isLoading ? (
               <div className="flex justify-center p-8">

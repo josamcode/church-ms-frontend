@@ -5,8 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 import { userNotificationsApi } from '../../../api/endpoints';
+import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
 import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
 import NotificationListItem from '../../../components/notifications/NotificationListItem';
@@ -256,14 +259,17 @@ export default function NotificationInboxPage() {
         )}
       />
 
-      <section className="grid">
-        <div className="rounded-3xl border border-border bg-surface p-5 shadow-card">
-          <div className="mb-4 flex items-center justify-between gap-3">
+      <Card padding="sm" className="p-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Bell className="h-[18px] w-[18px]" />
+            </span>
             <div>
               <p className="text-sm font-semibold text-heading">
                 {tf('notificationCenter.listTitle', 'Inbox')}
               </p>
-              <p className="mt-1 text-sm text-muted">
+              <p className="mt-0.5 text-sm text-muted">
                 {unreadBadge
                   ? tf('notificationCenter.unreadSummary', `${unreadBadge} unread`, {
                     count: unreadBadge,
@@ -272,50 +278,49 @@ export default function NotificationInboxPage() {
               </p>
             </div>
           </div>
-
-          <div className="space-y-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {notificationsQuery.isLoading ? (
-              <div className="flex items-center justify-center rounded-2xl border border-dashed border-border bg-surface-alt/30 p-8 text-sm text-muted">
-                <Loader2 className="me-2 h-4 w-4 animate-spin" />
-                {tf('notificationCenter.loading', 'Loading notifications...')}
-              </div>
-            ) : notifications.length > 0 ? (
-              notifications.map((notification) => (
-                <NotificationListItem
-                  key={notification.id}
-                  notification={notification}
-                  tf={tf}
-                  loading={openingNotificationId === notification.id}
-                  onOpen={() => openNotificationDestination(notification)}
-                />
-              ))
-            ) : (
-              <div className="rounded-2xl border border-dashed border-border bg-surface-alt/30 p-10 text-center">
-                <Bell className="mx-auto h-8 w-8 text-muted" />
-                <h3 className="mt-4 text-lg font-semibold text-heading">
-                  {tf('notificationCenter.emptyTitle', 'No notifications yet')}
-                </h3>
-                <p className="mt-2 text-sm text-muted">
-                  {tf(
-                    'notificationCenter.emptyDescription',
-                    'New chat messages, system events, and admin alerts will appear here.'
-                  )}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-border bg-surface px-4 pb-4 pt-3">
-            <Pagination
-              meta={meta}
-              onLoadMore={handleNext}
-              onPrev={handlePrev}
-              cursors={cursorStack}
-              loading={notificationsQuery.isLoading}
-            />
-          </div>
+          {unreadCount > 0 ? (
+            <Badge variant="primary" dot>{unreadBadge}</Badge>
+          ) : null}
         </div>
-      </section>
+
+        {notificationsQuery.isLoading ? (
+          <div className="flex items-center justify-center rounded-2xl border border-dashed border-border bg-surface-alt/30 p-8 text-sm text-muted">
+            <Loader2 className="me-2 h-4 w-4 animate-spin" />
+            {tf('notificationCenter.loading', 'Loading notifications...')}
+          </div>
+        ) : notifications.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {notifications.map((notification) => (
+              <NotificationListItem
+                key={notification.id}
+                notification={notification}
+                tf={tf}
+                loading={openingNotificationId === notification.id}
+                onOpen={() => openNotificationDestination(notification)}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={Bell}
+            title={tf('notificationCenter.emptyTitle', 'No notifications yet')}
+            description={tf(
+              'notificationCenter.emptyDescription',
+              'New chat messages, system events, and admin alerts will appear here.'
+            )}
+          />
+        )}
+
+        <div className="mt-4 rounded-2xl border border-border bg-surface px-4 pb-4 pt-3">
+          <Pagination
+            meta={meta}
+            onLoadMore={handleNext}
+            onPrev={handlePrev}
+            cursors={cursorStack}
+            loading={notificationsQuery.isLoading}
+          />
+        </div>
+      </Card>
     </div>
   );
 }

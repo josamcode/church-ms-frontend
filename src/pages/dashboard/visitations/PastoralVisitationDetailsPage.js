@@ -4,9 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { CalendarClock, Clock3, FileText, Home, UserCircle, Users } from 'lucide-react';
 import { usersApi, visitationsApi } from '../../../api/endpoints';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
+import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Button from '../../../components/ui/Button';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
+import Skeleton from '../../../components/ui/Skeleton';
 import { formatDateTime } from '../../../utils/formatters';
 import { useI18n } from '../../../i18n/i18n';
 import useNavigateToUser from '../../../hooks/useNavigateToUser';
@@ -14,20 +17,6 @@ import useNavigateToUser from '../../../hooks/useNavigateToUser';
 const EMPTY = '---';
 
 /* ── primitives ──────────────────────────────────────────────────────────── */
-
-function SectionLabel({ children, count }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-        {children}
-      </span>
-      <div className="h-px flex-1 bg-border/60" />
-      {count != null && (
-        <span className="text-[11px] font-semibold tabular-nums text-muted">{count}</span>
-      )}
-    </div>
-  );
-}
 
 /** Thin field: overline label + value */
 function Field({ label, value, icon: Icon }) {
@@ -39,6 +28,41 @@ function Field({ label, value, icon: Icon }) {
       </div>
       <p className="mt-1 text-sm font-medium text-heading">{value || EMPTY}</p>
     </div>
+  );
+}
+
+/** Vertical event timeline (visit → record) */
+function Timeline({ events }) {
+  return (
+    <ol className="relative space-y-6">
+      {events.map((event, index) => {
+        const Icon = event.icon;
+        const isLast = index === events.length - 1;
+        return (
+          <li key={event.key} className="relative flex gap-4">
+            {/* connector line */}
+            {!isLast && (
+              <span
+                className="absolute top-9 h-[calc(100%+0.5rem)] w-px bg-border ltr:left-[17px] rtl:right-[17px]"
+                aria-hidden
+              />
+            )}
+            <span
+              className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${event.iconWrap}`}
+            >
+              <Icon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 pt-1">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                {event.label}
+              </p>
+              <p className="mt-0.5 text-sm font-semibold text-heading">{event.value}</p>
+              {event.meta && <p className="mt-0.5 text-xs text-muted">{event.meta}</p>}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -109,7 +133,18 @@ export default function PastoralVisitationDetailsPage() {
     return (
       <div className="animate-fade-in space-y-6">
         <Breadcrumbs items={breadcrumbItems} />
-        <p className="text-sm text-muted">{t('visitations.details.loading')}</p>
+        <Card padding="lg" className="flex items-center gap-4">
+          <Skeleton variant="circle" className="h-14 w-14" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="h-4 w-1/4" />
+          </div>
+        </Card>
+        <Card padding="lg" className="space-y-4">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-4 w-2/3" />
+        </Card>
       </div>
     );
   }
@@ -131,34 +166,45 @@ export default function PastoralVisitationDetailsPage() {
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs items={breadcrumbItems} />
 
-      {/* ══ HEADER ══════════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-6">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
-            <Home className="h-6 w-6 text-primary" />
+      {/* ══ SUMMARY HEADER CARD ═════════════════════════════════════════ */}
+      <Card padding="lg" tone="primary">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+              <Home className="h-6 w-6 text-primary" />
+            </div>
+            <PageHeader
+              contentOnly
+              eyebrow={t('visitations.list.page')}
+              title={visitation.houseName || EMPTY}
+              titleClassName="mt-1 text-3xl font-bold tracking-tight text-heading"
+              childrenClassName="mt-2 flex flex-wrap items-center gap-2"
+            >
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 px-3 py-1 text-xs font-semibold text-primary">
+                <CalendarClock className="h-3 w-3" />
+                {formatDateTime(visitation.visitedAt)}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1 text-xs font-medium text-muted">
+                <Clock3 className="h-3 w-3" />
+                {visitation.durationMinutes || 10} {t('visitations.shared.minutes')}
+              </span>
+            </PageHeader>
           </div>
-          <PageHeader
-            contentOnly
-            eyebrow={t('visitations.list.page')}
-            title={visitation.houseName || EMPTY}
-            titleClassName="mt-1 text-3xl font-bold tracking-tight text-heading"
-            childrenClassName="mt-2 flex flex-wrap items-center gap-2"
-          >
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 px-3 py-1 text-xs font-semibold text-primary">
-              <CalendarClock className="h-3 w-3" />
-              {formatDateTime(visitation.visitedAt)}
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1 text-xs font-medium text-muted">
-              <Clock3 className="h-3 w-3" />
-              {visitation.durationMinutes || 10} {t('visitations.shared.minutes')}
-            </span>
-          </PageHeader>
+          {visitation.recordedBy?.id && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              icon={UserCircle}
+              onClick={() => navigateToUser(visitation.recordedBy.id)}
+            >
+              {t('visitations.details.viewRecorder')}
+            </Button>
+          )}
         </div>
-      </div>
 
-      {/* ══ METADATA ════════════════════════════════════════════════════ */}
-      <div className="rounded-2xl border border-border bg-surface px-6 py-5">
-        <div className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-4">
+        {/* key facts */}
+        <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-5 border-t border-border/60 pt-5 sm:grid-cols-4">
           <Field
             label={t('visitations.details.visitedAt')}
             value={formatDateTime(visitation.visitedAt)}
@@ -170,9 +216,9 @@ export default function PastoralVisitationDetailsPage() {
             icon={Clock3}
           />
           <Field
-            label={t('visitations.details.recordedAt')}
-            value={formatDateTime(visitation.recordedAt || visitation.createdAt)}
-            icon={CalendarClock}
+            label={t('visitations.details.recordedBy')}
+            value={visitation.recordedBy?.fullName || EMPTY}
+            icon={UserCircle}
           />
           <Field
             label={t('visitations.details.houseName')}
@@ -180,59 +226,63 @@ export default function PastoralVisitationDetailsPage() {
             icon={Home}
           />
         </div>
+      </Card>
 
-        {/* recorder — spans full width, has a navigate button */}
-        <div className="mt-5 border-t border-border/60 pt-5">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-1.5">
-                <UserCircle className="h-3 w-3 text-muted" />
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-                  {t('visitations.details.recordedBy')}
-                </p>
-              </div>
-              <p className="mt-1 font-semibold text-heading">
-                {visitation.recordedBy?.fullName || EMPTY}
-              </p>
-            </div>
-            {visitation.recordedBy?.id && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                icon={UserCircle}
-                onClick={() => navigateToUser(visitation.recordedBy.id)}
-              >
-                {t('visitations.details.viewRecorder')}
-              </Button>
-            )}
-          </div>
-        </div>
+      {/* ══ TIMELINE + NOTES ════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
+        <Section title={t('visitations.details.recordedAt')} icon={CalendarClock}>
+          <Timeline
+            events={[
+              {
+                key: 'visited',
+                icon: CalendarClock,
+                iconWrap: 'border-primary/20 bg-primary/10 text-primary',
+                label: t('visitations.details.visitedAt'),
+                value: formatDateTime(visitation.visitedAt),
+                meta: `${visitation.durationMinutes || 10} ${t('visitations.shared.minutes')}`,
+              },
+              {
+                key: 'recorded',
+                icon: UserCircle,
+                iconWrap: 'border-border bg-surface-alt text-muted',
+                label: t('visitations.details.recordedBy'),
+                value: visitation.recordedBy?.fullName || EMPTY,
+                meta: formatDateTime(visitation.recordedAt || visitation.createdAt),
+              },
+            ]}
+          />
+        </Section>
+
+        <Section title={t('visitations.details.notes')} icon={FileText}>
+          {visitation.notes ? (
+            <p className="whitespace-pre-line text-sm leading-relaxed text-heading">
+              {visitation.notes}
+            </p>
+          ) : (
+            <p className="text-sm text-muted">{EMPTY}</p>
+          )}
+        </Section>
       </div>
 
-      {/* notes */}
-      {visitation.notes && (
-        <div className="rounded-2xl border border-border bg-surface px-5 py-4">
-          <div className="flex items-center gap-1.5">
-            <FileText className="h-3 w-3 text-muted" />
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-              {t('visitations.details.notes')}
-            </p>
-          </div>
-          <p className="mt-2 text-sm text-heading">{visitation.notes}</p>
-        </div>
-      )}
-
       {/* ══ HOUSE MEMBERS ═══════════════════════════════════════════════ */}
-      <section className="space-y-4">
-        <SectionLabel count={houseMembers.length}>
-          {t('visitations.details.houseMembersTitle')}
-        </SectionLabel>
-
+      <Section
+        title={t('visitations.details.houseMembersTitle')}
+        icon={Users}
+        actions={
+          <span className="text-[11px] font-semibold tabular-nums text-muted">
+            {houseMembers.length}
+          </span>
+        }
+      >
         {houseMembersLoading ? (
-          <p className="text-sm text-muted">{t('visitations.details.houseMembersLoading')}</p>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Skeleton key={index} className="h-[58px] w-full rounded-2xl" />
+            ))}
+          </div>
         ) : houseMembers.length === 0 ? (
           <EmptyState
+            compact
             icon={Users}
             title={t('visitations.details.houseMembersEmpty')}
           />
@@ -247,7 +297,7 @@ export default function PastoralVisitationDetailsPage() {
             ))}
           </div>
         )}
-      </section>
+      </Section>
 
     </div>
   );

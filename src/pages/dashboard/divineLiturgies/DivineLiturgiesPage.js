@@ -534,7 +534,7 @@ export default function DivineLiturgiesPage() {
       <section className="space-y-4">
         <SectionLabel>{t('divineLiturgies.sections.recurringDivine')}</SectionLabel>
         {canManage && (
-          <form onSubmit={handleSubmitDivine} className="rounded-2xl border border-border bg-surface p-5">
+          <form onSubmit={handleSubmitDivine} className="rounded-xl border border-border bg-surface p-6 shadow-card">
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
               <Input
                 label={t('divineLiturgies.fields.name')}
@@ -638,7 +638,7 @@ export default function DivineLiturgiesPage() {
           <SectionLabel>{t('divineLiturgies.sections.recurringVespers')}</SectionLabel>
         )}
         {canManage && (
-          <form onSubmit={handleSubmitVespers} className="rounded-2xl border border-border bg-surface p-5">
+          <form onSubmit={handleSubmitVespers} className="rounded-xl border border-border bg-surface p-6 shadow-card">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
               <Input
                 label={t('divineLiturgies.fields.name')}
@@ -734,7 +734,7 @@ export default function DivineLiturgiesPage() {
           <SectionLabel>{t('divineLiturgies.sections.exceptions')}</SectionLabel>
         )}
         {canManage && (
-          <form onSubmit={handleSubmitException} className="rounded-2xl border border-border bg-surface p-5">
+          <form onSubmit={handleSubmitException} className="rounded-xl border border-border bg-surface p-6 shadow-card">
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
               <Input
                 label={t('divineLiturgies.fields.name')}

@@ -7,8 +7,10 @@ import { meetingsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
 import TextArea from '../../../components/ui/TextArea';
 import Badge from '../../../components/ui/Badge';
 import { useI18n } from '../../../i18n/i18n';
@@ -97,7 +99,7 @@ export default function MeetingMemberDetailsPage() {
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs items={breadcrumbs} />
 
-      <div className="rounded-2xl border border-border bg-surface p-6">
+      <Card>
         <PageHeader
           contentOnly
           title={member.fullName || EMPTY}
@@ -112,11 +114,11 @@ export default function MeetingMemberDetailsPage() {
             <Badge variant="default">{member.meeting?.name || tf('meetings.memberDetails.meetingFallback', 'Meeting')}</Badge>
           </Link>
         </div>
-      </div>
+      </Card>
 
       {(member.groups || []).length > 0 && (
-        <div className="rounded-2xl border border-border bg-surface p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+        <Card padding="sm">
+          <p className="section-label">
             {tf('meetings.memberDetails.groupsTitle', 'Groups')}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -129,25 +131,19 @@ export default function MeetingMemberDetailsPage() {
               </span>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
-      <div className="rounded-2xl border border-border bg-surface p-5">
-        <div className="flex items-center gap-2">
-          <MessageSquareText className="h-4 w-4 text-muted" />
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            {tf('meetings.memberDetails.noteTitle', 'Note')}
-          </p>
-        </div>
-
-        <div className="mt-3">
-          <TextArea
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            placeholder={tf('meetings.memberDetails.notePlaceholder', 'Write a note...')}
-            disabled={!canEditNote}
-          />
-        </div>
+      <Section
+        icon={MessageSquareText}
+        title={tf('meetings.memberDetails.noteTitle', 'Note')}
+      >
+        <TextArea
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          placeholder={tf('meetings.memberDetails.notePlaceholder', 'Write a note...')}
+          disabled={!canEditNote}
+        />
 
         {canEditNote && (
           <div className="mt-3 flex justify-end">
@@ -188,7 +184,7 @@ export default function MeetingMemberDetailsPage() {
             </div>
           )}
         </div>
-      </div>
+      </Section>
     </div>
   );
 }

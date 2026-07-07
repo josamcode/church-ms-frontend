@@ -27,6 +27,7 @@ import {
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import Modal from '../../../components/ui/Modal';
 import PageHeader from '../../../components/ui/PageHeader';
@@ -1114,7 +1115,9 @@ export default function ChatsPage() {
           return (
             <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-[80%] rounded-3xl px-4 py-3 shadow-sm ${isOwn ? 'bg-primary text-white' : 'border border-border bg-surface text-base'
+                className={`max-w-[80%] px-4 py-3 shadow-card ${isOwn
+                  ? 'rounded-3xl rounded-br-md bg-primary text-white'
+                  : 'rounded-3xl rounded-bl-md border border-border bg-surface text-base'
                   }`}
               >
                 {!isOwn ? (
@@ -1291,11 +1294,11 @@ export default function ChatsPage() {
               </div>
             </div>
           ) : (
-            <div className="flex h-full items-center justify-center p-8 text-center text-sm text-muted">
-              <div className="space-y-3">
-                <MessageSquare className="mx-auto h-10 w-10 text-primary/70" />
-                <p>{tf('chatPage.states.selectThread', 'Select a chat from the list to open it.')}</p>
-              </div>
+            <div className="flex h-full items-center justify-center p-8">
+              <EmptyState
+                icon={MessageSquare}
+                title={tf('chatPage.states.selectThread', 'Select a chat from the list to open it.')}
+              />
             </div>
           )}
         </Card>

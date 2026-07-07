@@ -9,7 +9,7 @@ import { useI18n } from '../../../i18n/i18n';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
+import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import SearchInput from '../../../components/ui/SearchInput';
@@ -182,39 +182,48 @@ function CategorySummaryCard({ category, copy }) {
 
   return (
     <div
-      className="rounded-2xl border p-5 shadow-card"
-      style={{
-        borderColor: `${color}33`,
-        background: `linear-gradient(135deg, ${color}14 0%, rgba(255, 255, 255, 0.96) 100%)`,
-      }}
+      className="relative overflow-hidden rounded-2xl border bg-surface p-5 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-md"
+      style={{ borderColor: `${color}33` }}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            {copy.classificationFilter}
-          </p>
-          <h3
-            className="mt-2 truncate text-lg font-bold tracking-tight"
-            style={{ color }}
-            title={category.name}
-          >
-            {category.name}
-          </h3>
+      <span
+        className="pointer-events-none absolute inset-0 -z-0"
+        style={{ background: `linear-gradient(135deg, ${color}14 0%, transparent 60%)` }}
+        aria-hidden
+      />
+      <span
+        className="pointer-events-none absolute inset-x-0 top-0 h-1"
+        style={{ backgroundColor: color }}
+        aria-hidden
+      />
+      <div className="relative">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+              {copy.classificationFilter}
+            </p>
+            <h3
+              className="mt-2 truncate text-lg font-bold tracking-tight"
+              style={{ color }}
+              title={category.name}
+            >
+              {category.name}
+            </h3>
+          </div>
+          <span
+            className="mt-1 inline-flex h-3 w-3 shrink-0 rounded-full ring-2 ring-surface"
+            style={{ backgroundColor: color }}
+          />
         </div>
-        <span
-          className="mt-1 inline-flex h-3 w-3 shrink-0 rounded-full"
-          style={{ backgroundColor: color }}
-        />
-      </div>
 
-      <div className="mt-6 flex items-end justify-between gap-4">
-        <div>
-          <p className="text-3xl font-bold tracking-tight text-heading">{category.count}</p>
-          <p className="mt-1 text-sm text-muted">{copy.householdsCount}</p>
+        <div className="mt-6 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-3xl font-bold tracking-tight text-heading">{category.count}</p>
+            <p className="mt-1 text-sm text-muted">{copy.householdsCount}</p>
+          </div>
+          <Badge variant="default">
+            {category.criteriaCount} {copy.criteriaCount}
+          </Badge>
         </div>
-        <Badge variant="default">
-          {category.criteriaCount} {copy.criteriaCount}
-        </Badge>
       </div>
     </div>
   );
@@ -427,14 +436,14 @@ export default function HouseholdClassificationResultsPage() {
         </div>
       </Card>
 
-      <Card className="space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-heading">{copy.categoryCardsTitle}</p>
-            <p className="mt-1 text-sm text-muted">{copy.categoryCardsSubtitle}</p>
-          </div>
-          <Badge variant="default">{categorySummaryCards.length}</Badge>
-        </div>
+      <Card className="space-y-4" padding="lg">
+        <CardHeader
+          icon={Building2}
+          title={copy.categoryCardsTitle}
+          subtitle={copy.categoryCardsSubtitle}
+          className="mb-0"
+          action={<Badge variant="secondary">{categorySummaryCards.length}</Badge>}
+        />
 
         {categorySummaryRows.length === 0 ? (
           <EmptyState
@@ -463,7 +472,7 @@ export default function HouseholdClassificationResultsPage() {
       </Card>
 
       {errorMessage ? (
-        <Card>
+        <Card tone="muted">
           <EmptyState
             icon={Building2}
             title={copy.noDataTitle}
@@ -471,13 +480,15 @@ export default function HouseholdClassificationResultsPage() {
           />
         </Card>
       ) : (
-        <Card className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-heading">{copy.title}</p>
-            <span className="text-xs text-muted">
-              {copy.tableResults.replace('{count}', String(meta.totalCount || households.length))}
-            </span>
-          </div>
+        <Card className="space-y-4" padding="lg">
+          <CardHeader
+            title={copy.title}
+            subtitle={copy.tableResults.replace(
+              '{count}',
+              String(meta.totalCount || households.length)
+            )}
+            className="mb-0"
+          />
           <Table
             columns={columns}
             data={households}
@@ -487,19 +498,21 @@ export default function HouseholdClassificationResultsPage() {
             emptyIcon={Building2}
           />
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 border-t border-border/70 pt-4">
             <Button
-              variant="ghost"
+              variant="outline"
+              size="sm"
               onClick={() => setPage((current) => Math.max(current - 1, 1))}
               disabled={!meta.hasPrevPage}
             >
               {copy.previous}
             </Button>
-            <span className="text-xs text-muted">
+            <span className="text-xs font-medium text-muted">
               {meta.page || 1} / {meta.totalPages || 1}
             </span>
             <Button
-              variant="ghost"
+              variant="outline"
+              size="sm"
               onClick={() => setPage((current) => current + 1)}
               disabled={!meta.hasNextPage}
             >

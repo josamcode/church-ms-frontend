@@ -9,7 +9,7 @@ import { useI18n } from '../../../i18n/i18n';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
+import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import SearchInput from '../../../components/ui/SearchInput';
@@ -225,7 +225,7 @@ export default function LordsBrethrenPage() {
       />
 
       {errorMessage ? (
-        <Card>
+        <Card tone="muted">
           <EmptyState
             icon={Building2}
             title={copy.noDataTitle}
@@ -233,20 +233,16 @@ export default function LordsBrethrenPage() {
           />
         </Card>
       ) : (
-        <Card className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            {/* <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Users className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-heading">{copy.title}</p>
-                <span className="text-xs text-muted">
-                  {copy.tableResults.replace('{count}', String(meta.totalCount || households.length))}
-                </span>
-              </div>
-            </div> */}
-            <div className="flex flex-1 items-center gap-3 desktop:flex-none">
+        <Card className="space-y-4" padding="lg">
+          <CardHeader
+            icon={Users}
+            title={copy.title}
+            subtitle={copy.tableResults.replace(
+              '{count}',
+              String(meta.totalCount || households.length)
+            )}
+            className="mb-0"
+            action={
               <SearchInput
                 value={search}
                 onChange={(next) => {
@@ -254,10 +250,10 @@ export default function LordsBrethrenPage() {
                   setPage(1);
                 }}
                 placeholder={copy.searchPlaceholder}
-                className="w-full max-w-[400px]"
+                className="w-full sm:w-[320px]"
               />
-            </div>
-          </div>
+            }
+          />
           <Table
             columns={columns}
             data={households}
@@ -267,19 +263,21 @@ export default function LordsBrethrenPage() {
             emptyIcon={Users}
           />
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 border-t border-border/70 pt-4">
             <Button
-              variant="ghost"
+              variant="outline"
+              size="sm"
               onClick={() => setPage((current) => Math.max(current - 1, 1))}
               disabled={!meta.hasPrevPage}
             >
               {copy.previous}
             </Button>
-            <span className="text-xs text-muted">
+            <span className="text-xs font-medium text-muted">
               {meta.page || 1} / {meta.totalPages || 1}
             </span>
             <Button
-              variant="ghost"
+              variant="outline"
+              size="sm"
               onClick={() => setPage((current) => current + 1)}
               disabled={!meta.hasNextPage}
             >

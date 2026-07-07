@@ -186,15 +186,12 @@ export default function MeetingsPage() {
         ]}
       />
 
-      <Card>
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <PageHeader
-            contentOnly
-            title={t('meetings.pageTitle')}
-            subtitle={t('meetings.pageSubtitle')}
-            titleClassName="mt-0 text-xl font-bold text-heading"
-            subtitleClassName="mt-0 text-sm text-muted"
-          />
+      <PageHeader
+        className="border-b border-border pb-6"
+        eyebrow={t('shared.dashboard')}
+        title={t('meetings.pageTitle')}
+        subtitle={t('meetings.pageSubtitle')}
+        actions={(
           <div className="flex gap-2 flex-wrap">
             {canCreateSectors && (
               <Button icon={Layers3} variant="outline" onClick={() => navigate('/dashboard/meetings/sectors/new')}>
@@ -207,8 +204,8 @@ export default function MeetingsPage() {
               </Button>
             )}
           </div>
-        </div>
-      </Card>
+        )}
+      />
 
       {canViewSectors && (
         <Card>
@@ -232,7 +229,7 @@ export default function MeetingsPage() {
             title={t('meetings.sections.meetings')}
             subtitle={t('meetings.sections.meetingsSubtitle')}
           />
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 rounded-lg border border-border bg-surface-alt/40 p-3 md:grid-cols-3">
             <Select
               label={t('meetings.filters.sector')}
               value={filters.sectorId}

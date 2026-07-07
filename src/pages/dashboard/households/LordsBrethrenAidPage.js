@@ -352,7 +352,7 @@ export default function LordsBrethrenAidPage() {
         
         {/* LEFT COLUMN: Filters & Table */}
         <div className="space-y-6">
-          <Card className="space-y-5">
+          <Card className="space-y-5" padding="lg">
             <div className="flex items-center gap-2 border-b border-border pb-3">
               <Filter className="h-4 w-4 text-primary" />
               <p className="text-sm font-semibold text-heading">{copy.filtersTitle}</p>
@@ -437,7 +437,7 @@ export default function LordsBrethrenAidPage() {
             </div>
           </Card>
 
-          <Card className="space-y-4">
+          <Card className="space-y-4" padding="lg">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-primary" />
@@ -508,9 +508,9 @@ export default function LordsBrethrenAidPage() {
 
         {/* RIGHT COLUMN: Aid Configuration */}
         <div>
-          <Card className="sticky top-20 space-y-5">
-            <div className="flex items-center gap-2 border-b border-border pb-3">
-              <HandCoins className="h-4 w-4 text-primary" />
+          <Card className="sticky top-20 space-y-5" tone="gold" padding="lg">
+            <div className="flex items-center gap-2 border-b border-secondary/20 pb-3">
+              <HandCoins className="h-4 w-4 text-secondary" />
               <p className="text-sm font-semibold text-heading">{copy.aidSection}</p>
             </div>
 

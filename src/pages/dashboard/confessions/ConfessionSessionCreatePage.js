@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { confessionsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
+import Card from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import TextArea from '../../../components/ui/TextArea';
 import Button from '../../../components/ui/Button';
@@ -425,7 +426,7 @@ export default function ConfessionSessionCreatePage() {
             </div>
 
             {canAssign ? (
-              <div className="rounded-2xl border border-border bg-surface p-5">
+              <Card>
                 <UserSearchSelect
                   label={t('confessions.sessions.attendee')}
                   value={selectedAttendee}
@@ -441,15 +442,15 @@ export default function ConfessionSessionCreatePage() {
                     {errors.attendee}
                   </p>
                 )}
-              </div>
+              </Card>
             ) : (
               /* self-attendee read-only card */
-              <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              <Card tone="primary" padding="sm" className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                   {String(user?.fullName || '?').charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                  <p className="section-label">
                     {t('confessions.sessions.attendeeFallback')}
                   </p>
                   <p className="mt-0.5 font-semibold text-heading">{user?.fullName}</p>
@@ -457,7 +458,7 @@ export default function ConfessionSessionCreatePage() {
                     <p className="text-xs text-muted direction-ltr">{user.phonePrimary}</p>
                   )}
                 </div>
-              </div>
+              </Card>
             )}
           </section>
 
@@ -468,7 +469,7 @@ export default function ConfessionSessionCreatePage() {
               <SectionLabel>{t('confessions.sessions.sessionType')}</SectionLabel>
             </div>
 
-            <div className="rounded-2xl border border-border bg-surface p-5">
+            <Card>
               <SessionTypeCombobox
                 label={t('confessions.sessions.sessionType')}
                 required
@@ -485,7 +486,7 @@ export default function ConfessionSessionCreatePage() {
                       : t('confessions.sessions.selectType')
                 }
               />
-            </div>
+            </Card>
           </section>
 
           {/* ── STEP 3 · Schedule ─────────────────────────────────────── */}
@@ -495,7 +496,7 @@ export default function ConfessionSessionCreatePage() {
               <SectionLabel>{t('confessions.sessions.sessionDate')}</SectionLabel>
             </div>
 
-            <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+            <Card className="space-y-4">
               <Input
                 label={t('confessions.sessions.sessionDate')}
                 type="datetime-local"
@@ -517,7 +518,7 @@ export default function ConfessionSessionCreatePage() {
                 error={errors.nextSessionAt}
                 containerClassName="!mb-0"
               />
-            </div>
+            </Card>
           </section>
 
           {/* ── STEP 4 · Notes ────────────────────────────────────────── */}
@@ -527,7 +528,7 @@ export default function ConfessionSessionCreatePage() {
               <SectionLabel>{t('confessions.sessions.notes')}</SectionLabel>
             </div>
 
-            <div className="rounded-2xl border border-border bg-surface p-5">
+            <Card>
               <TextArea
                 label={t('confessions.sessions.notes')}
                 value={form.notes}
@@ -535,15 +536,16 @@ export default function ConfessionSessionCreatePage() {
                 placeholder={t('confessions.sessions.notesPlaceholder')}
                 containerClassName="!mb-0"
               />
-            </div>
+            </Card>
           </section>
 
           {/* ── SUBMIT ────────────────────────────────────────────────── */}
           <Button
             type="submit"
             icon={CalendarPlus}
+            size="lg"
+            fullWidth
             loading={createSessionMutation.isPending || createTypeMutation.isPending}
-            className="w-full"
           >
             {t('confessions.sessions.createAction')}
           </Button>

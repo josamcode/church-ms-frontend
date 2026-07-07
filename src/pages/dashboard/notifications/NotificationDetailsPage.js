@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, CalendarDays, Edit } from 'lucide-react';
+import { ArrowRight, CalendarDays, Edit, FileText, Link2, Image as ImageIcon, ListTree } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { notificationsApi } from '../../../api/endpoints';
@@ -9,6 +9,8 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import Card, { CardHeader } from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
+import Skeleton from '../../../components/ui/Skeleton';
 import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
@@ -80,14 +82,29 @@ export default function NotificationDetailsPage() {
   );
 
   if (isLoading) {
-    return <div className="py-10 text-sm text-muted">{t('common.loading')}</div>;
+    return (
+      <div className="animate-fade-in space-y-8 pb-10">
+        <Skeleton className="h-[280px] w-full rounded-3xl" />
+        <Card>
+          <Skeleton className="h-5 w-1/3" />
+          <div className="mt-4 space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   if (!notification) {
     return (
-      <div className="rounded-2xl border border-border bg-surface p-10 text-center">
-        <h3 className="text-lg font-semibold text-heading">{t('notifications.details.notFoundTitle')}</h3>
-      </div>
+      <Card>
+        <EmptyState
+          icon={FileText}
+          title={t('notifications.details.notFoundTitle')}
+        />
+      </Card>
     );
   }
 
@@ -135,28 +152,42 @@ export default function NotificationDetailsPage() {
 
       <Card>
         <CardHeader
+          icon={ListTree}
           title={t('notifications.details.section')}
           subtitle={t('notifications.details.subtitle')}
+          action={detailBlocks.length > 0 ? (
+            <Badge variant="primary">{detailBlocks.length}</Badge>
+          ) : null}
         />
 
         {detailBlocks.length === 0 ? (
-          <p className="text-sm text-muted">{t('notifications.details.empty')}</p>
+          <EmptyState
+            compact
+            icon={ListTree}
+            title={t('notifications.details.empty')}
+          />
         ) : (
           <div className="space-y-4">
-            {detailBlocks.map((detail, index) => (
-              <div key={detail.id || `${detail.kind}-${index}`} className="space-y-3 rounded-xl border border-border bg-surface-alt/40 p-4">
-                <div className="flex items-center gap-2">
-                  <Badge variant="default">
-                    {detail.kind === 'text'
-                      ? t('notifications.detailKinds.text')
-                      : detail.kind === 'link'
-                        ? t('notifications.detailKinds.link')
-                        : t('notifications.detailKinds.image')}
-                  </Badge>
+            {detailBlocks.map((detail, index) => {
+              const KindIcon = detail.kind === 'link' ? Link2 : detail.kind === 'image' ? ImageIcon : FileText;
+              const kindLabel = detail.kind === 'text'
+                ? t('notifications.detailKinds.text')
+                : detail.kind === 'link'
+                  ? t('notifications.detailKinds.link')
+                  : t('notifications.detailKinds.image');
+
+              return (
+                <div key={detail.id || `${detail.kind}-${index}`} className="space-y-3 rounded-xl border border-border bg-surface-alt/40 p-4">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default" className="gap-1.5">
+                      <KindIcon className="h-3 w-3" />
+                      {kindLabel}
+                    </Badge>
+                  </div>
+                  <DetailBlock detail={detail} t={t} />
                 </div>
-                <DetailBlock detail={detail} t={t} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Card>

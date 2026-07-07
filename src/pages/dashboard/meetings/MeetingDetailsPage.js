@@ -16,6 +16,8 @@ import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
+import Skeleton from '../../../components/ui/Skeleton';
+import StatCard from '../../../components/ui/StatCard';
 import Tabs from '../../../components/ui/Tabs';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
@@ -109,9 +111,7 @@ function buildMeetingReminderForm(reminderSettings = {}) {
 function SectionLabel({ children, count }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-        {children}
-      </span>
+      <span className="section-label">{children}</span>
       <div className="h-px flex-1 bg-border/60" />
       {count != null && (
         <span className="text-[11px] font-semibold tabular-nums text-muted">{count}</span>
@@ -399,7 +399,19 @@ export default function MeetingDetailsPage() {
     return (
       <div className="animate-fade-in space-y-6">
         <Breadcrumbs items={breadcrumbs} />
-        <p className="text-sm text-muted">{t('common.loading')}</p>
+        <div className="flex items-center gap-4 border-b border-border pb-6">
+          <Skeleton variant="rect" className="h-16 w-16 rounded-2xl" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-7 w-56" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-28 rounded-2xl" />
       </div>
     );
   }
@@ -498,18 +510,9 @@ export default function MeetingDetailsPage() {
       </div>
 
       {/* ══ KPI TILES ═════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {kpiTiles.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted leading-tight">{label}</p>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-surface-alt text-muted">
-                <Icon className="h-3 w-3" />
-              </span>
-            </div>
-            <p className="mt-3 text-3xl font-bold tracking-tight text-heading">{value ?? 0}</p>
-            <div className="mt-3 h-0.5 w-6 rounded-full bg-border" />
-          </div>
+          <StatCard key={label} icon={Icon} label={label} value={value ?? 0} />
         ))}
       </div>
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  AlertTriangle,
   Award,
   ChevronLeft,
   ChevronRight,
@@ -25,6 +26,8 @@ import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
+import StatCard from '../../../components/ui/StatCard';
+import Skeleton from '../../../components/ui/Skeleton';
 import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
 
@@ -863,18 +866,21 @@ export default function ArchiveManagementPage() {
         value: archiveData.counts.collections,
         published: archiveData.counts.publishedCollections,
         icon: FolderOpen,
+        tone: 'primary',
       },
       {
         label: ta('stats.stories'),
         value: archiveData.counts.stories,
         published: archiveData.counts.publishedStories,
         icon: FileText,
+        tone: 'gold',
       },
       {
         label: ta('stats.honorees'),
         value: archiveData.counts.honorees,
         published: archiveData.counts.publishedHonorees,
         icon: Award,
+        tone: 'success',
       },
     ],
     [archiveData.counts, ta]
@@ -1268,6 +1274,16 @@ export default function ArchiveManagementPage() {
           title={ta('title')}
           subtitle={ta('loadingSubtitle')}
         />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-24 rounded-xl" />
+          ))}
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-72 rounded-2xl" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -1284,9 +1300,19 @@ export default function ArchiveManagementPage() {
         <PageHeader
           title={ta('title')}
           subtitle={ta('loadErrorSubtitle')}
+          actions={(
+            <Button variant="outline" onClick={() => archiveQuery.refetch()}>
+              {ta('actions.refresh')}
+            </Button>
+          )}
         />
-        <Card>
-          <p className="text-sm text-danger">{normalizeApiError(archiveQuery.error).message}</p>
+        <Card className="!bg-danger-light/40 !border-danger/20">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-danger/10 text-danger">
+              <AlertTriangle className="h-[18px] w-[18px]" />
+            </span>
+            <p className="text-sm text-danger">{normalizeApiError(archiveQuery.error).message}</p>
+          </div>
         </Card>
       </div>
     );
@@ -1322,25 +1348,17 @@ export default function ArchiveManagementPage() {
       ) : (
         <>
           {shouldShowAdminStats ? (
-            <div className="grid gap-4 md:grid-cols-3">
-              {archiveStatCards.map(({ label, value, published, icon: Icon }) => (
-                <Card
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {archiveStatCards.map(({ label, value, published, icon: Icon, tone }) => (
+                <StatCard
                   key={label}
-                  className="overflow-hidden border-border/70 bg-gradient-to-br from-surface to-surface-alt/80"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm text-muted">{label}</p>
-                      <p className="mt-3 text-3xl font-bold text-heading">{value}</p>
-                      <p className="mt-2 text-xs text-muted">
-                        {ta('stats.published', { count: published })}
-                      </p>
-                    </div>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <Icon className="h-6 w-6" />
-                    </div>
-                  </div>
-                </Card>
+                  icon={Icon}
+                  label={label}
+                  value={value}
+                  hint={ta('stats.published', { count: published })}
+                  tone={tone}
+                  isRTL={language === 'ar'}
+                />
               ))}
             </div>
           ) : null}

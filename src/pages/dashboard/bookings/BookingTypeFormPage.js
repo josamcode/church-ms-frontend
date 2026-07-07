@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Plus, Save } from 'lucide-react';
+import { ArrowRight, CalendarRange, ListPlus, Plus, Save, Settings2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -12,6 +12,7 @@ import Card, { CardHeader } from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
+import { SkeletonCard } from '../../../components/ui/Skeleton';
 import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
 import {
@@ -196,9 +197,10 @@ export default function BookingTypeFormPage() {
           title={pageTitle}
           subtitle={pageSubtitle}
         />
-        <Card className="rounded-3xl">
-          <p className="text-sm text-muted">{t('common.loading')}</p>
-        </Card>
+        <div className="space-y-4">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
       </div>
     );
   }
@@ -253,7 +255,7 @@ export default function BookingTypeFormPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
-          <CardHeader title={pageTitle} subtitle={pageSubtitle} />
+          <CardHeader icon={Settings2} title={pageTitle} subtitle={pageSubtitle} />
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
@@ -362,8 +364,9 @@ export default function BookingTypeFormPage() {
           </div>
         </Card>
         {modeUsesAvailabilityRules(typeForm.availabilityMode) ? (
-          <Card className="rounded-3xl border-dashed bg-surface-alt/25">
+          <Card className="border-dashed bg-surface-alt/25">
             <CardHeader
+              icon={CalendarRange}
               title={tf('bookings.dashboard.availabilityRules', 'Availability rules')}
               subtitle={tf(
                 'bookings.dashboard.availabilityRulesSubtitle',
@@ -595,8 +598,9 @@ export default function BookingTypeFormPage() {
             ) : null}
           </Card>
         ) : null}
-        <Card className="rounded-3xl border-dashed bg-surface-alt/25">
+        <Card className="border-dashed bg-surface-alt/25">
           <CardHeader
+            icon={ListPlus}
             title={tf('bookings.dashboard.dynamicFields', 'Dynamic fields')}
             subtitle={tf(
               'bookings.dashboard.dynamicFieldsSubtitle',
@@ -835,15 +839,23 @@ export default function BookingTypeFormPage() {
             ))}
           </div>
         </Card>
-        <div className="flex flex-wrap justify-end gap-3">
+        <div className="sticky bottom-0 -mx-1 flex flex-col-reverse gap-3 rounded-xl border border-border bg-surface/95 p-3 shadow-card backdrop-blur sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
           <Button
             type="button"
             variant="ghost"
+            fullWidth
             onClick={() => navigate('/dashboard/bookings/types')}
+            className="sm:w-auto"
           >
             {t('common.actions.cancel')}
           </Button>
-          <Button type="submit" icon={Save} loading={saveTypeMutation.isPending}>
+          <Button
+            type="submit"
+            icon={Save}
+            fullWidth
+            loading={saveTypeMutation.isPending}
+            className="sm:w-auto"
+          >
             {isEdit
               ? tf('bookings.dashboard.saveType', 'Save changes')
               : tf('bookings.dashboard.createTypeAction', 'Create type')}

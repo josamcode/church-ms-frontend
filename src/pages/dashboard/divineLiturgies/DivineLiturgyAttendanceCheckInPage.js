@@ -311,7 +311,7 @@ export default function DivineLiturgyAttendanceCheckInPage() {
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs items={breadcrumbs} />
 
-      <div className="rounded-2xl border border-border bg-surface p-6">
+      <Card padding="lg" tone="primary">
         <PageHeader
           contentOnly
           eyebrow={service.displayName || t('divineLiturgies.page')}
@@ -331,7 +331,7 @@ export default function DivineLiturgyAttendanceCheckInPage() {
             {selectedUserIds.length} {tf('divineLiturgies.attendance.selectedCount', 'checked in')}
           </span>
         </div>
-      </div>
+      </Card>
 
       <Card className="rounded-2xl">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,260px)_minmax(0,240px)_1fr_auto] lg:items-start">
@@ -384,9 +384,9 @@ export default function DivineLiturgyAttendanceCheckInPage() {
       </Card>
 
       {attendanceQuery.isLoading ? (
-        <div className="rounded-2xl border border-border bg-surface p-6">
+        <Card padding="lg">
           <p className="text-sm text-muted">{t('common.loading')}</p>
-        </div>
+        </Card>
       ) : (
         <>
           {statusFilter !== 'selected' && (

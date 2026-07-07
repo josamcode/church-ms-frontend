@@ -14,7 +14,7 @@ import { mapFieldErrors, normalizeApiError } from '../../../api/errors';
 import { useI18n } from '../../../i18n/i18n';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
+import Card, { CardHeader } from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import PageHeader from '../../../components/ui/PageHeader';
@@ -352,11 +352,13 @@ export default function HouseholdClassificationCategoriesPage() {
       />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-        <Card className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Settings2 className="h-4 w-4 text-muted" />
-            <p className="text-sm font-semibold text-heading">{copy.categoriesTitle}</p>
-          </div>
+        <Card className="space-y-4 xl:sticky xl:top-20 xl:self-start" padding="lg">
+          <CardHeader
+            icon={Settings2}
+            title={copy.categoriesTitle}
+            className="mb-0"
+            action={<Badge variant="secondary">{categories.length}</Badge>}
+          />
           {categories.length === 0 ? (
             <EmptyCategoryState copy={copy} onCreate={startNewCategory} />
           ) : (
@@ -373,10 +375,15 @@ export default function HouseholdClassificationCategoriesPage() {
           )}
         </Card>
 
-        <Card className="space-y-6">
-          <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
-            <p className="text-sm font-semibold text-heading">{copy.editorTitle}</p>
-            <p className="mt-1 text-xs text-muted">{copy.criteriaHint}</p>
+        <Card className="space-y-6" padding="lg">
+          <div className="flex items-start gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
+            <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <SlidersHorizontal className="h-[18px] w-[18px]" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-heading">{copy.editorTitle}</p>
+              <p className="mt-1 text-xs text-muted">{copy.criteriaHint}</p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -439,11 +446,16 @@ export default function HouseholdClassificationCategoriesPage() {
                 const isBooleanMetric = metricUsesBooleanOperator(criterion.metric);
 
                 return (
-                  <div key={criterion.id} className="rounded-2xl border border-border p-4">
+                  <div key={criterion.id} className="rounded-2xl border border-border bg-surface-alt/30 p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-heading">
-                        {copy.criteriaTitle} #{index + 1}
-                      </p>
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                          {index + 1}
+                        </span>
+                        <p className="text-sm font-semibold text-heading">
+                          {copy.criteriaTitle} #{index + 1}
+                        </p>
+                      </div>
                       <button
                         type="button"
                         onClick={() => removeCriterion(criterion.id)}

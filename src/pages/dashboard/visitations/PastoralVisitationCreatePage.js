@@ -7,6 +7,7 @@ import { usersApi, visitationsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
 import TextArea from '../../../components/ui/TextArea';
@@ -226,7 +227,7 @@ export default function PastoralVisitationCreatePage() {
               <SectionLabel>{t('visitations.create.houseName')}</SectionLabel>
             </div>
 
-            <div className="rounded-2xl border border-border bg-surface p-5">
+            <Card>
               <HouseNameCombobox
                 label={t('visitations.create.houseName')}
                 value={form.houseName}
@@ -235,7 +236,7 @@ export default function PastoralVisitationCreatePage() {
                 error={errors.houseName}
                 placeholder={t('visitations.create.houseNamePlaceholder')}
               />
-            </div>
+            </Card>
           </section>
 
           {/* ── STEP 2 · Schedule ─────────────────────────────────────── */}
@@ -245,7 +246,7 @@ export default function PastoralVisitationCreatePage() {
               <SectionLabel>{t('visitations.create.visitedAt')}</SectionLabel>
             </div>
 
-            <div className="rounded-2xl border border-border bg-surface p-5">
+            <Card>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Input
                   label={t('visitations.create.visitedAt')}
@@ -269,7 +270,7 @@ export default function PastoralVisitationCreatePage() {
                   containerClassName="!mb-0"
                 />
               </div>
-            </div>
+            </Card>
           </section>
 
           {/* ── STEP 3 · Notes ────────────────────────────────────────── */}
@@ -279,7 +280,7 @@ export default function PastoralVisitationCreatePage() {
               <SectionLabel>{t('visitations.create.notes')}</SectionLabel>
             </div>
 
-            <div className="rounded-2xl border border-border bg-surface p-5">
+            <Card>
               <TextArea
                 label={t('visitations.create.notes')}
                 value={form.notes}
@@ -287,11 +288,11 @@ export default function PastoralVisitationCreatePage() {
                 placeholder={t('visitations.create.notesPlaceholder')}
                 containerClassName="!mb-0"
               />
-            </div>
+            </Card>
           </section>
 
           {/* ── ACTIONS ───────────────────────────────────────────────── */}
-          <div className="flex gap-2">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="ghost"
@@ -303,6 +304,8 @@ export default function PastoralVisitationCreatePage() {
               type="submit"
               icon={Save}
               loading={createMutation.isPending}
+              className="sm:w-auto"
+              fullWidth
             >
               {t('visitations.create.createAction')}
             </Button>

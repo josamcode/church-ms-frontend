@@ -81,7 +81,7 @@ export default function LoginPage() {
       </div>
 
       {locked && (
-        <div className="bg-danger-light border border-danger/20 rounded-lg p-4 mb-4 text-sm text-danger">
+        <div className="bg-danger-light border border-danger/20 rounded-xl p-4 mb-4 text-sm text-danger">
           <p className="font-semibold mb-1">{t('auth.lockedTitle')}</p>
           <p>{locked}</p>
           <p className="mt-2 text-xs">{t('auth.lockedHint')}</p>
@@ -89,8 +89,8 @@ export default function LoginPage() {
       )}
 
       {accountNotice && (
-        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-4 text-sm text-primary">
-          <p className="font-semibold mb-1">حالة الحساب</p>
+        <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-4 text-sm text-primary">
+          <p className="font-semibold mb-1">{t('auth.accountNoticeTitle')}</p>
           <p>{accountNotice}</p>
         </div>
       )}

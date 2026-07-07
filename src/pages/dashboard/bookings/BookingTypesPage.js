@@ -1,5 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import { Pencil, Plus } from 'lucide-react';
+import {
+  CalendarCog,
+  CheckCircle2,
+  Clock,
+  Layers,
+  ListChecks,
+  Pencil,
+  Plus,
+  Users,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { bookingsApi } from '../../../api/endpoints';
@@ -7,7 +16,10 @@ import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
+import { SkeletonCard } from '../../../components/ui/Skeleton';
+import StatCard from '../../../components/ui/StatCard';
 import { useI18n } from '../../../i18n/i18n';
 import { availabilityLabel } from './bookingTypeForm.utils';
 
@@ -30,6 +42,8 @@ export default function BookingTypesPage() {
   });
 
   const bookingTypes = Array.isArray(typesQuery.data?.data) ? typesQuery.data.data : [];
+  const activeCount = bookingTypes.filter((type) => type.isActive).length;
+  const inactiveCount = bookingTypes.length - activeCount;
 
   return (
     <div className="animate-fade-in space-y-8 pb-10">
@@ -59,78 +73,109 @@ export default function BookingTypesPage() {
       />
 
       {typesQuery.isLoading ? (
-        <Card className="rounded-3xl">
-          <p className="text-sm text-muted">{t('common.loading')}</p>
-        </Card>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
       ) : bookingTypes.length === 0 ? (
-        <Card className="rounded-3xl text-center">
-          <p className="text-lg font-semibold text-heading">
-            {tf('bookings.dashboard.noTypesTitle', 'No booking types yet')}
-          </p>
-          <p className="mt-2 text-sm text-muted">
-            {tf(
+        <Card>
+          <EmptyState
+            icon={CalendarCog}
+            title={tf('bookings.dashboard.noTypesTitle', 'No booking types yet')}
+            description={tf(
               'bookings.dashboard.noTypesBody',
               'Create the first booking type to configure availability rules and public fields.'
             )}
-          </p>
-          <div className="mt-5">
-            <Button
-              type="button"
-              icon={Plus}
-              onClick={() => navigate('/dashboard/bookings/types/new')}
-            >
-              {tf('bookings.dashboard.createNewType', 'Create new type')}
-            </Button>
-          </div>
+            action={(
+              <Button
+                type="button"
+                icon={Plus}
+                onClick={() => navigate('/dashboard/bookings/types/new')}
+              >
+                {tf('bookings.dashboard.createNewType', 'Create new type')}
+              </Button>
+            )}
+          />
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          {bookingTypes.map((type) => (
-            <Card key={type.id} className="rounded-3xl">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-lg font-bold text-heading">{type.name}</p>
-                  <p className="mt-1 text-sm text-muted">
-                    {availabilityLabel(type.availabilityMode, tf)}
-                  </p>
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatCard
+              icon={Layers}
+              tone="primary"
+              label={tf('bookings.dashboard.typesTitle', 'Booking types')}
+              value={bookingTypes.length}
+            />
+            <StatCard
+              icon={CheckCircle2}
+              tone="success"
+              label={tf('bookings.dashboard.active', 'active')}
+              value={activeCount}
+            />
+            <StatCard
+              icon={Clock}
+              tone="default"
+              label={tf('bookings.dashboard.inactive', 'inactive')}
+              value={inactiveCount}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {bookingTypes.map((type) => (
+              <Card key={type.id} padding="lg" hover className="flex flex-col">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <CalendarCog className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-bold text-heading">{type.name}</p>
+                      <p className="mt-1 text-sm text-muted">
+                        {availabilityLabel(type.availabilityMode, tf)}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant={type.isActive ? 'success' : 'neutral'} dot>
+                    {type.isActive
+                      ? tf('bookings.dashboard.active', 'active')
+                      : tf('bookings.dashboard.inactive', 'inactive')}
+                  </Badge>
                 </div>
-                <Badge variant={type.isActive ? 'success' : 'default'}>
-                  {type.isActive
-                    ? tf('bookings.dashboard.active', 'active')
-                    : tf('bookings.dashboard.inactive', 'inactive')}
-                </Badge>
-              </div>
 
-              {type.description ? (
-                <p className="mt-3 text-sm leading-6 text-muted">{type.description}</p>
-              ) : null}
+                {type.description ? (
+                  <p className="mt-3 text-sm leading-6 text-muted">{type.description}</p>
+                ) : null}
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
-                <span className="rounded-full bg-surface-alt px-3 py-1">
-                  {type.durationMinutes} min
-                </span>
-                <span className="rounded-full bg-surface-alt px-3 py-1">
-                  cap {type.capacity}
-                </span>
-                <span className="rounded-full bg-surface-alt px-3 py-1">
-                  {(type.dynamicFields || []).length} fields
-                </span>
-              </div>
+                <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-muted">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt/60 px-3 py-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    {type.durationMinutes} min
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt/60 px-3 py-1">
+                    <Users className="h-3.5 w-3.5" />
+                    cap {type.capacity}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt/60 px-3 py-1">
+                    <ListChecks className="h-3.5 w-3.5" />
+                    {(type.dynamicFields || []).length} fields
+                  </span>
+                </div>
 
-              <div className="mt-5">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  icon={Pencil}
-                  onClick={() => navigate(`/dashboard/bookings/types/${type.id}/edit`)}
-                >
-                  {tf('bookings.dashboard.editType', 'Edit type')}
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+                <div className="mt-5 border-t border-border/60 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    icon={Pencil}
+                    onClick={() => navigate(`/dashboard/bookings/types/${type.id}/edit`)}
+                  >
+                    {tf('bookings.dashboard.editType', 'Edit type')}
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

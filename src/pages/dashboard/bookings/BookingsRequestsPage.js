@@ -3,9 +3,15 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   CalendarClock,
   CheckCircle2,
+  CircleDot,
+  Clock,
   Pencil,
+  Phone,
   Settings2,
   ShieldCheck,
+  SlidersHorizontal,
+  Tag,
+  User,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -16,11 +22,13 @@ import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import Modal from '../../../components/ui/Modal';
 import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
+import StatCard from '../../../components/ui/StatCard';
 import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
 
@@ -65,27 +73,39 @@ function formatAdditionalValue(value) {
 
 function BookingCard({ booking, canManage, onOpen, tf }) {
   return (
-    <article className="rounded-3xl border border-border bg-surface p-5 shadow-card">
+    <Card padding="lg" hover className="flex flex-col">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-lg font-bold text-heading">{booking.requester.name}</p>
-          <p className="mt-1 text-sm text-muted">
-            {booking.requester.phone}
-            {booking.requester.email ? ` • ${booking.requester.email}` : ''}
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <User className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-lg font-bold text-heading">{booking.requester.name}</p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
+              <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate">
+                {booking.requester.phone}
+                {booking.requester.email ? ` • ${booking.requester.email}` : ''}
+              </span>
+            </p>
+          </div>
         </div>
-        <Badge variant={statusVariant(booking.status)}>{statusLabel(booking.status, tf)}</Badge>
+        <Badge variant={statusVariant(booking.status)} dot>
+          {statusLabel(booking.status, tf)}
+        </Badge>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-surface-alt/35 p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+        <div className="rounded-xl border border-border bg-surface-alt/40 p-3">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+            <Tag className="h-3.5 w-3.5" />
             {tf('bookings.dashboard.bookingType', 'Booking type')}
           </p>
           <p className="mt-2 font-semibold text-heading">{booking.bookingType?.name || '-'}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-surface-alt/35 p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+        <div className="rounded-xl border border-border bg-surface-alt/40 p-3">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+            <Clock className="h-3.5 w-3.5" />
             {tf('bookings.dashboard.slot', 'Slot')}
           </p>
           <p className="mt-2 font-semibold text-heading">
@@ -100,8 +120,9 @@ function BookingCard({ booking, canManage, onOpen, tf }) {
         <p className="mt-4 line-clamp-3 text-sm leading-6 text-muted">{booking.notes}</p>
       ) : null}
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <span className="text-xs text-muted">
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted">
+          <CircleDot className="h-3.5 w-3.5" />
           {(booking.additionalFields || []).length}{' '}
           {tf('bookings.dashboard.additionalFieldsCount', 'dynamic fields')}
         </span>
@@ -117,7 +138,7 @@ function BookingCard({ booking, canManage, onOpen, tf }) {
             : tf('bookings.dashboard.viewBooking', 'View booking')}
         </Button>
       </div>
-    </article>
+    </Card>
   );
 }
 
@@ -190,6 +211,17 @@ export default function BookingsRequestsPage() {
   const bookings = Array.isArray(bookingsQuery.data?.data) ? bookingsQuery.data.data : [];
   const bookingsMeta = bookingsQuery.data?.meta || null;
 
+  const statusCounts = bookings.reduce(
+    (acc, booking) => {
+      if (booking.status === 'pending') acc.pending += 1;
+      else if (booking.status === 'confirmed') acc.confirmed += 1;
+      else if (booking.status === 'completed') acc.completed += 1;
+      else if (booking.status === 'cancelled') acc.cancelled += 1;
+      return acc;
+    },
+    { pending: 0, confirmed: 0, completed: 0, cancelled: 0 }
+  );
+
   const updateBookingMutation = useMutation({
     mutationFn: ({ id, payload }) => bookingsApi.admin.update(id, payload),
     onSuccess: (response) => {
@@ -222,23 +254,51 @@ export default function BookingsRequestsPage() {
         actions={(
           <div className="flex flex-wrap gap-2">
             {canManageBookings ? (
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-xs font-semibold text-primary">
+              <Badge variant="primary" size="md" className="gap-1.5 px-3 py-1">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 {tf('bookings.dashboard.managePermission', 'Booking management enabled')}
-              </span>
+              </Badge>
             ) : null}
             {canManageTypes ? (
-              <span className="inline-flex items-center gap-2 rounded-full border border-success/20 bg-success-light px-3 py-1 text-xs font-semibold text-success">
+              <Badge variant="success" size="md" className="gap-1.5 px-3 py-1">
                 <Settings2 className="h-3.5 w-3.5" />
                 {tf('bookings.dashboard.typePermission', 'Type configuration enabled')}
-              </span>
+              </Badge>
             ) : null}
           </div>
         )}
       />
 
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard
+          icon={Clock}
+          tone="warning"
+          label={statusLabel('pending', tf)}
+          value={statusCounts.pending}
+        />
+        <StatCard
+          icon={CircleDot}
+          tone="primary"
+          label={statusLabel('confirmed', tf)}
+          value={statusCounts.confirmed}
+        />
+        <StatCard
+          icon={CheckCircle2}
+          tone="success"
+          label={statusLabel('completed', tf)}
+          value={statusCounts.completed}
+        />
+        <StatCard
+          icon={CalendarClock}
+          tone="danger"
+          label={statusLabel('cancelled', tf)}
+          value={statusCounts.cancelled}
+        />
+      </div>
+
       <Card>
         <CardHeader
+          icon={SlidersHorizontal}
           title={tf('bookings.dashboard.bookingFilters', 'Filter bookings')}
           subtitle={tf(
             'bookings.dashboard.bookingFiltersSubtitle',
@@ -286,17 +346,15 @@ export default function BookingsRequestsPage() {
       </Card>
 
       {bookings.length === 0 ? (
-        <Card className="text-center">
-          <CalendarClock className="mx-auto h-10 w-10 text-muted" />
-          <p className="mt-4 text-lg font-semibold text-heading">
-            {tf('bookings.dashboard.noBookingsTitle', 'No bookings found')}
-          </p>
-          <p className="mt-2 text-sm text-muted">
-            {tf(
+        <Card>
+          <EmptyState
+            icon={CalendarClock}
+            title={tf('bookings.dashboard.noBookingsTitle', 'No bookings found')}
+            description={tf(
               'bookings.dashboard.noBookingsBody',
               'Try changing the current filters or wait for new public submissions.'
             )}
-          </p>
+          />
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -312,7 +370,7 @@ export default function BookingsRequestsPage() {
         </div>
       )}
 
-      <Card className="rounded-3xl">
+      <Card>
         <Pagination
           meta={bookingsMeta}
           loading={bookingsQuery.isFetching}
@@ -368,8 +426,9 @@ export default function BookingsRequestsPage() {
         {selectedBooking ? (
           <div className="space-y-5">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Card className="rounded-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              <Card tone="muted" padding="sm">
+                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+                  <User className="h-3.5 w-3.5" />
                   {tf('bookings.dashboard.contact', 'Requester')}
                 </p>
                 <p className="mt-2 text-sm font-semibold text-heading">{selectedBooking.requester.name}</p>
@@ -378,8 +437,9 @@ export default function BookingsRequestsPage() {
                   <p className="mt-1 text-sm text-muted">{selectedBooking.requester.email}</p>
                 ) : null}
               </Card>
-              <Card className="rounded-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              <Card tone="muted" padding="sm">
+                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+                  <Clock className="h-3.5 w-3.5" />
                   {tf('bookings.dashboard.slot', 'Slot')}
                 </p>
                 <p className="mt-2 text-sm font-semibold text-heading">
@@ -392,8 +452,8 @@ export default function BookingsRequestsPage() {
             </div>
 
             {selectedBooking.notes ? (
-              <Card className="rounded-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              <Card tone="muted" padding="sm">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
                   {tf('bookings.dashboard.notes', 'Public notes')}
                 </p>
                 <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">
@@ -403,15 +463,15 @@ export default function BookingsRequestsPage() {
             ) : null}
 
             {(selectedBooking.additionalFields || []).length ? (
-              <Card className="rounded-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              <Card tone="muted" padding="sm">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
                   {tf('bookings.dashboard.additionalFields', 'Additional fields')}
                 </p>
                 <div className="mt-3 space-y-3">
                   {selectedBooking.additionalFields.map((field) => (
                     <div
                       key={field.key}
-                      className="rounded-2xl border border-border bg-surface-alt/35 p-3"
+                      className="rounded-xl border border-border bg-surface p-3"
                     >
                       <p className="text-sm font-semibold text-heading">{field.label}</p>
                       {field.type === 'image' &&

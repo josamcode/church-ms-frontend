@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Save, UserCircle2 } from 'lucide-react';
+import { Save, UserCircle2, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { divineLiturgiesApi, usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card, { CardHeader } from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
@@ -251,55 +253,56 @@ export default function ChurchPriestsPage() {
         title={t('dashboardLayout.menu.churchPriests')}
       />
 
-      <section className="space-y-4">
-        <div className="rounded-2xl space-y-4">
-          {/* <div className="text-sm text-muted">
-            {canManagePriests
-              ? t('divineLiturgies.hints.priestsManage')
-              : t('divineLiturgies.hints.priestsReadOnly')}
-          </div> */}
-
-          {canManagePriests && (
-            <>
-              <MultiSelectChips
-                label={t('divineLiturgies.fields.priests')}
-                options={userOptions}
-                values={selectedPriestIds}
-                onChange={(values) => {
-                  setPriestsDirty(true);
-                  setSelectedPriestIds(values);
-                }}
-                onSearchChange={handlePriestSearchChange}
-                loading={priestOptionsQuery.isFetching && !priestOptionsQuery.isFetchingNextPage}
-                hasMore={Boolean(priestOptionsQuery.hasNextPage)}
-                onLoadMore={handleLoadMorePriestOptions}
-                isLoadingMore={priestOptionsQuery.isFetchingNextPage}
-                placeholder={t('common.search.placeholder')}
-                containerClassName="!mb-0"
-              />
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  icon={Save}
-                  loading={priestsMutation.isPending}
-                  onClick={() => priestsMutation.mutate(selectedPriestIds)}
-                >
-                  {t('divineLiturgies.actions.savePriests')}
-                </Button>
-              </div>
-            </>
-          )}
-
-          {!churchPriests.length ? (
-            <p className="text-sm text-muted">{t('divineLiturgies.hints.noPriests')}</p>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {churchPriests.map((entry) => (
-                <PriestCard key={entry.id} entry={entry} t={t} />
-              ))}
+      <section className="space-y-6">
+        {canManagePriests && (
+          <Card padding="lg" className="space-y-4">
+            <CardHeader
+              icon={Users}
+              title={t('divineLiturgies.fields.priests')}
+            />
+            <MultiSelectChips
+              label={t('divineLiturgies.fields.priests')}
+              options={userOptions}
+              values={selectedPriestIds}
+              onChange={(values) => {
+                setPriestsDirty(true);
+                setSelectedPriestIds(values);
+              }}
+              onSearchChange={handlePriestSearchChange}
+              loading={priestOptionsQuery.isFetching && !priestOptionsQuery.isFetchingNextPage}
+              hasMore={Boolean(priestOptionsQuery.hasNextPage)}
+              onLoadMore={handleLoadMorePriestOptions}
+              isLoadingMore={priestOptionsQuery.isFetchingNextPage}
+              placeholder={t('common.search.placeholder')}
+              containerClassName="!mb-0"
+            />
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                icon={Save}
+                loading={priestsMutation.isPending}
+                onClick={() => priestsMutation.mutate(selectedPriestIds)}
+              >
+                {t('divineLiturgies.actions.savePriests')}
+              </Button>
             </div>
-          )}
-        </div>
+          </Card>
+        )}
+
+        {!churchPriests.length ? (
+          <Card padding="none">
+            <EmptyState
+              icon={Users}
+              title={t('divineLiturgies.hints.noPriests')}
+            />
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {churchPriests.map((entry) => (
+              <PriestCard key={entry.id} entry={entry} t={t} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

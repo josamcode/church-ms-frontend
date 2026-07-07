@@ -9,8 +9,10 @@ import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
+import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
+import StatCard from '../../../components/ui/StatCard';
 import Table, { RowActions } from '../../../components/ui/Table';
 import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
@@ -21,7 +23,7 @@ const SECTOR_PERMISSIONS = ['SECTORS_VIEW', 'SECTORS_CREATE', 'SECTORS_UPDATE', 
 function SectionLabel({ children }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{children}</span>
+      <span className="section-label">{children}</span>
       <div className="h-px flex-1 bg-border/60" />
     </div>
   );
@@ -239,40 +241,16 @@ export default function SectorsManagementPage() {
 
       {/* ══ KPI TILES ═════════════════════════════════════════════════════ */}
       {canViewSectors && (
-        <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-${kpiTiles.length}`}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
           {kpiTiles.map(({ label, value, icon: Icon, variant }) => (
-            <div key={label} className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{label}</p>
-                <span className={`flex h-8 w-8 items-center justify-center rounded-xl
-                  ${variant === 'primary' ? 'bg-primary/10 text-primary' :
-                    variant === 'warning' ? 'bg-warning-light text-warning' :
-                      variant === 'success' ? 'bg-success-light text-success' :
-                        'bg-surface-alt text-muted'}`}>
-                  <Icon className="h-4 w-4" />
-                </span>
-              </div>
-              <p className={`mt-4 text-4xl font-bold tracking-tight
-                ${variant === 'warning' ? 'text-warning' :
-                  variant === 'success' ? 'text-success' :
-                    variant === 'primary' ? 'text-heading' :
-                      'text-heading'}`}>
-                {value}
-              </p>
-              <div className={`mt-4 h-0.5 w-10 rounded-full
-                ${variant === 'primary' ? 'bg-primary' :
-                  variant === 'warning' ? 'bg-warning' :
-                    variant === 'success' ? 'bg-success' :
-                      'bg-border'}`}
-              />
-            </div>
+            <StatCard key={label} icon={Icon} label={label} value={value} tone={variant} />
           ))}
         </div>
       )}
 
       {/* ══ SEARCH ════════════════════════════════════════════════════════ */}
       {canViewSectors && (
-        <section className="space-y-3">
+        <Card padding="sm" tone="muted" className="space-y-3">
           <SectionLabel>{t('meetings.filters.search')}</SectionLabel>
           <div>
             <Input
@@ -283,7 +261,7 @@ export default function SectorsManagementPage() {
               className="w-full"
             />
           </div>
-        </section>
+        </Card>
       )}
 
       {/* ══ TABLE ═════════════════════════════════════════════════════════ */}
@@ -291,10 +269,10 @@ export default function SectorsManagementPage() {
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <SectionLabel>{t('meetings.sections.sectors')}</SectionLabel>
-            <span className="text-xs text-muted">{sectors.length}</span>
+            <Badge variant="neutral" size="sm">{sectors.length}</Badge>
           </div>
 
-          <div className="overflow-hidden tttable">
+          <Card padding={false} className="overflow-hidden">
             <Table
               columns={sectorColumns}
               data={sectors}
@@ -302,7 +280,7 @@ export default function SectorsManagementPage() {
               emptyTitle={t('meetings.empty.sectorsTitle')}
               emptyDescription={t('meetings.empty.sectorsDescription')}
             />
-          </div>
+          </Card>
         </section>
       ) : (
         <EmptyState

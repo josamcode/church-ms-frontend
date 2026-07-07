@@ -3,7 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { BarChart3, Clock, Home, LayoutGrid } from 'lucide-react';
 import { visitationsApi } from '../../../api/endpoints';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
+import Card, { CardHeader } from '../../../components/ui/Card';
 import Select from '../../../components/ui/Select';
+import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import Badge from '../../../components/ui/Badge';
 import PageHeader from '../../../components/ui/PageHeader';
@@ -56,7 +58,7 @@ function formatMonthlyTrendLabel(item, language) {
 /* ── page ────────────────────────────────────────────────────────────────── */
 
 export default function PastoralVisitationAnalyticsPage() {
-  const { t, language } = useI18n();
+  const { t, language, isRTL } = useI18n();
   const [months, setMonths] = useState('1');
 
   const { data: analyticsRes, isLoading } = useQuery({
@@ -78,15 +80,15 @@ export default function PastoralVisitationAnalyticsPage() {
 
   /* ── KPI config ── */
   const kpiTiles = [
-    { label: t('visitations.analytics.cards.totalVisitations'), value: summary.totalVisitations ?? 0, icon: LayoutGrid, variant: 'default' },
-    { label: t('visitations.analytics.cards.visitationsInPeriod'), value: summary.visitationsInPeriod ?? 0, icon: BarChart3, variant: 'primary' },
-    { label: t('visitations.analytics.cards.uniqueHouses'), value: summary.uniqueHouses ?? 0, icon: Home, variant: 'default' },
+    { label: t('visitations.analytics.cards.totalVisitations'), value: summary.totalVisitations ?? 0, icon: LayoutGrid, tone: 'default' },
+    { label: t('visitations.analytics.cards.visitationsInPeriod'), value: summary.visitationsInPeriod ?? 0, icon: BarChart3, tone: 'primary' },
+    { label: t('visitations.analytics.cards.uniqueHouses'), value: summary.uniqueHouses ?? 0, icon: Home, tone: 'gold' },
     {
       label: t('visitations.analytics.cards.avgDurationMinutes'),
       value: summary.avgDurationMinutes ?? 0,
-      suffix: t('visitations.shared.minutes'),
+      hint: t('visitations.shared.minutes'),
       icon: Clock,
-      variant: 'default',
+      tone: 'info',
     },
   ];
 
@@ -159,29 +161,17 @@ export default function PastoralVisitationAnalyticsPage() {
       />
 
       {/* ══ KPI TILES ═══════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        {kpiTiles.map(({ label, value, suffix, icon: Icon, variant }) => (
-          <div key={label} className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted leading-tight">
-                {label}
-              </p>
-              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl
-                ${variant === 'primary' ? 'bg-primary/10 text-primary' : 'bg-surface-alt text-muted'}`}>
-                <Icon className="h-4 w-4" />
-              </span>
-            </div>
-            <div className="mt-4">
-              <p className={`text-4xl font-bold tracking-tight
-                ${variant === 'primary' ? 'text-heading' : 'text-heading'}`}>
-                {value}
-              </p>
-              {suffix && <p className="mt-0.5 text-xs text-muted">{suffix}</p>}
-            </div>
-            <div className={`mt-4 h-0.5 w-10 rounded-full
-              ${variant === 'primary' ? 'bg-primary' : 'bg-border'}`}
-            />
-          </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {kpiTiles.map(({ label, value, hint, icon: Icon, tone }) => (
+          <StatCard
+            key={label}
+            icon={Icon}
+            label={label}
+            value={value}
+            hint={hint}
+            tone={tone}
+            isRTL={isRTL}
+          />
         ))}
       </div>
 
@@ -189,85 +179,75 @@ export default function PastoralVisitationAnalyticsPage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
 
         {/* monthly trend */}
-        <section className="space-y-4">
-          <SectionLabel icon={BarChart3}>
-            {t('visitations.analytics.monthlyTitle')}
-          </SectionLabel>
-
-          <div className="rounded-2xl border border-border bg-surface p-5">
-            {isLoading ? (
-              <p className="text-sm text-muted">{t('visitations.analytics.loading')}</p>
-            ) : monthlyTrend.length === 0 ? (
-              <p className="text-sm text-muted">{t('visitations.analytics.noData')}</p>
-            ) : (
-              <div className="space-y-4">
-                {monthlyTrend.map((item) => {
-                  const pct = Math.max((item.count / maxTrendCount) * 100, 2);
-                  return (
-                    <div key={`${item.year}-${item.month}`}>
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <span className="text-xs font-medium text-heading">
-                          {formatMonthlyTrendLabel(item, language)}
-                        </span>
-                        <span className="text-xs font-bold tabular-nums text-primary">{item.count}</span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-surface-alt">
-                        <div
-                          className="h-full rounded-full bg-primary transition-all duration-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
+        <Card padding="lg">
+          <CardHeader icon={BarChart3} title={t('visitations.analytics.monthlyTitle')} />
+          {isLoading ? (
+            <p className="text-sm text-muted">{t('visitations.analytics.loading')}</p>
+          ) : monthlyTrend.length === 0 ? (
+            <p className="text-sm text-muted">{t('visitations.analytics.noData')}</p>
+          ) : (
+            <div className="space-y-4">
+              {monthlyTrend.map((item) => {
+                const pct = Math.max((item.count / maxTrendCount) * 100, 2);
+                return (
+                  <div key={`${item.year}-${item.month}`}>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="text-xs font-medium text-heading">
+                        {formatMonthlyTrendLabel(item, language)}
+                      </span>
+                      <span className="text-xs font-bold tabular-nums text-primary">{item.count}</span>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </section>
+                    <div className="h-2 overflow-hidden rounded-full bg-surface-alt">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
 
         {/* top houses */}
-        <section className="space-y-4">
-          <SectionLabel icon={Home}>
-            {t('visitations.analytics.topHousesTitle')}
-          </SectionLabel>
-
-          <div className="rounded-2xl border border-border bg-surface p-5">
-            {isLoading ? (
-              <p className="text-sm text-muted">{t('visitations.analytics.loading')}</p>
-            ) : topHouses.length === 0 ? (
-              <p className="text-sm text-muted">{t('visitations.analytics.noHousesData')}</p>
-            ) : (
-              <div className="space-y-5">
-                {topHouses.map((item) => {
-                  const pct = Math.max((item.count / maxHouseCount) * 100, 2);
-                  return (
-                    <div key={item.houseName}>
-                      <div className="mb-1.5 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-heading">
-                            {item.houseName}
-                          </p>
-                          <p className="text-xs text-muted">
-                            {t('visitations.analytics.avgPerHouse')}{' '}
-                            <strong className="text-heading">{item.avgDurationMinutes}</strong>{' '}
-                            {t('visitations.shared.minutes')}
-                          </p>
-                        </div>
-                        <Badge variant="primary">{item.count}</Badge>
+        <Card padding="lg">
+          <CardHeader icon={Home} title={t('visitations.analytics.topHousesTitle')} />
+          {isLoading ? (
+            <p className="text-sm text-muted">{t('visitations.analytics.loading')}</p>
+          ) : topHouses.length === 0 ? (
+            <p className="text-sm text-muted">{t('visitations.analytics.noHousesData')}</p>
+          ) : (
+            <div className="space-y-5">
+              {topHouses.map((item) => {
+                const pct = Math.max((item.count / maxHouseCount) * 100, 2);
+                return (
+                  <div key={item.houseName}>
+                    <div className="mb-1.5 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-heading">
+                          {item.houseName}
+                        </p>
+                        <p className="text-xs text-muted">
+                          {t('visitations.analytics.avgPerHouse')}{' '}
+                          <strong className="text-heading">{item.avgDurationMinutes}</strong>{' '}
+                          {t('visitations.shared.minutes')}
+                        </p>
                       </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-surface-alt">
-                        <div
-                          className="h-full rounded-full bg-primary transition-all duration-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
+                      <Badge variant="primary">{item.count}</Badge>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </section>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-surface-alt">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
       </div>
 
       {/* ══ TOP RECORDERS TABLE ═════════════════════════════════════════ */}

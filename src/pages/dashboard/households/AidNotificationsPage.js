@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { notificationsApi } from '../../../api/endpoints';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Badge from '../../../components/ui/Badge';
@@ -243,10 +245,10 @@ export default function AidNotificationsPage() {
       />
 
       <PageHeader
+        className="border-b border-border pb-6"
+        eyebrow={t('dashboardLayout.menu.theLordsBrethren')}
         title={copy.title}
         subtitle={copy.subtitle}
-        titleClassName="mt-2 lg:text-4xl"
-        subtitleClassName="mt-2 text-sm text-muted"
       />
 
       <section className="space-y-3">
@@ -302,13 +304,13 @@ export default function AidNotificationsPage() {
             ))}
           </div>
         ) : notifications.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-surface p-10 text-center">
-            <BellRing className="mx-auto h-8 w-8 text-muted" />
-            <h3 className="mt-4 text-lg font-semibold text-heading">{copy.emptyTitle}</h3>
-            <p className="mt-2 text-sm text-muted">
-              {copy.emptyDescription}
-            </p>
-          </div>
+          <Card tone="muted">
+            <EmptyState
+              icon={BellRing}
+              title={copy.emptyTitle}
+              description={copy.emptyDescription}
+            />
+          </Card>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {notifications.map((notification) => (

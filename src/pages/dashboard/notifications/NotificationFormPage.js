@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, ImagePlus, PlusCircle, Save, Trash2, Tag } from 'lucide-react';
+import { ArrowRight, FileText, Image as ImageIcon, ImagePlus, ListTree, PlusCircle, Save, Trash2, Tag } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -557,6 +557,7 @@ export default function NotificationFormPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader
+            icon={FileText}
             title={t('notifications.form.sectionBasics')}
             subtitle={t('notifications.form.sectionBasicsSubtitle')}
           />
@@ -609,11 +610,16 @@ export default function NotificationFormPage() {
             className="min-h-[90px]"
           />
 
-          <div className="rounded-xl border border-border p-4">
+          <div className="rounded-xl border border-border bg-surface-alt/30 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-heading">{t('notifications.form.coverImage')}</p>
-                <p className="text-xs text-muted">{t('notifications.form.coverImageHint')}</p>
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <ImageIcon className="h-[18px] w-[18px]" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-heading">{t('notifications.form.coverImage')}</p>
+                  <p className="text-xs text-muted">{t('notifications.form.coverImageHint')}</p>
+                </div>
               </div>
               <input
                 ref={coverInputRef}
@@ -643,6 +649,7 @@ export default function NotificationFormPage() {
 
         <Card>
           <CardHeader
+            icon={ListTree}
             title={t('notifications.form.details')}
             subtitle={t('notifications.form.detailsSubtitle')}
             action={(
@@ -653,6 +660,12 @@ export default function NotificationFormPage() {
           />
 
           {formErrors.details ? <p className="mb-3 text-xs text-danger">{formErrors.details}</p> : null}
+
+          {form.details.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-surface-alt/30 px-4 py-8 text-center text-sm text-muted">
+              {t('notifications.details.empty')}
+            </div>
+          ) : null}
 
           <div className="space-y-4">
             {form.details.map((detail, index) => (
@@ -770,11 +783,23 @@ export default function NotificationFormPage() {
           </div>
         </Card>
 
-        <div className="flex gap-2">
-          <Button type="button" variant="ghost" onClick={() => navigate('/dashboard/notifications')}>
+        <div className="flex flex-col-reverse gap-2 rounded-xl border border-border bg-surface p-4 shadow-card sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            fullWidth
+            className="sm:w-auto"
+            onClick={() => navigate('/dashboard/notifications')}
+          >
             {t('common.actions.cancel')}
           </Button>
-          <Button type="submit" icon={Save} loading={isSaving || coverUploading}>
+          <Button
+            type="submit"
+            icon={Save}
+            fullWidth
+            className="sm:w-auto"
+            loading={isSaving || coverUploading}
+          >
             {t('common.actions.save')}
           </Button>
         </div>

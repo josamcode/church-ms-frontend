@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, CalendarDays, Eye, Pencil, Plus } from 'lucide-react';
+import { ArrowRight, Bell, CalendarDays, Eye, Pencil, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { notificationsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Badge from '../../../components/ui/Badge';
+import Skeleton from '../../../components/ui/Skeleton';
 import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
@@ -19,7 +22,7 @@ import { localizeNotificationTypeName } from '../../../utils/notificationTypeLoc
 function SectionLabel({ children }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{children}</span>
+      <span className="section-label">{children}</span>
       <div className="h-px flex-1 bg-border/60" />
     </div>
   );
@@ -29,14 +32,22 @@ function NewsCard({ notification, onOpen, onEdit, canEdit, t }) {
   const detailsCount = Array.isArray(notification?.details) ? notification.details.length : 0;
 
   return (
-    <article className="overflow-hidden tttable shadow-card transition-all hover:border-primary/30 hover:shadow-lg">
-      {notification.coverImageUrl ? (
-        <img src={notification.coverImageUrl} alt="" className="h-44 w-full object-cover" />
-      ) : (
-        <div className="h-44 w-full bg-gradient-to-br from-primary/15 via-accent/10 to-surface-alt" />
-      )}
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
+      <div className="relative h-44 w-full overflow-hidden">
+        {notification.coverImageUrl ? (
+          <img
+            src={notification.coverImageUrl}
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/15 via-accent/10 to-surface-alt text-primary/40">
+            <Bell className="h-10 w-10" />
+          </div>
+        )}
+      </div>
 
-      <div className="space-y-4 p-5">
+      <div className="flex flex-1 flex-col space-y-4 p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="primary">{localizeNotificationTypeName(notification.type?.name, t)}</Badge>
           <Badge variant={notification.isActive ? 'success' : 'default'}>
@@ -55,7 +66,7 @@ function NewsCard({ notification, onOpen, onEdit, canEdit, t }) {
           ) : null}
         </div>
 
-        <div className="flex items-center justify-between gap-3 text-xs text-muted">
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-border/60 pt-3 text-xs text-muted">
           <span>
             {t('notifications.columns.detailsCount')}: {detailsCount}
           </span>
@@ -246,7 +257,7 @@ export default function NotificationsPage() {
         )}
       />
 
-      <section className="space-y-3">
+      <Card padding="sm" className="space-y-3">
         <div className="flex items-center justify-between">
           <SectionLabel>{t('notifications.filters.title')}</SectionLabel>
           {hasActiveFilters ? (
@@ -284,7 +295,7 @@ export default function NotificationsPage() {
             ]}
           />
         </div>
-      </section>
+      </Card>
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
@@ -295,14 +306,30 @@ export default function NotificationsPage() {
         {isLoading ? (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-64 animate-pulse rounded-2xl border border-border bg-surface-alt" />
+              <div key={index} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
+                <Skeleton className="h-44 w-full rounded-none" />
+                <div className="space-y-3 p-5">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-6 w-2/3" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/5" />
+                </div>
+              </div>
             ))}
           </div>
         ) : notifications.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-surface p-10 text-center">
-            <h3 className="text-lg font-semibold text-heading">{t('notifications.empty.title')}</h3>
-            <p className="mt-2 text-sm text-muted">{t('notifications.empty.description')}</p>
-          </div>
+          <Card>
+            <EmptyState
+              icon={Bell}
+              title={t('notifications.empty.title')}
+              description={t('notifications.empty.description')}
+              action={canCreate ? (
+                <Button type="button" icon={Plus} onClick={() => navigate('/dashboard/notifications/new')}>
+                  {t('notifications.actions.create')}
+                </Button>
+              ) : null}
+            />
+          </Card>
         ) : (
           <>
             {featuredNotification ? (

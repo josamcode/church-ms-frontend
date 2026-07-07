@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, HandCoins, History, Search, Plus, Filter, BellRing } from 'lucide-react';
+import { CalendarDays, HandCoins, History, Search, Plus, Filter, BellRing, Users } from 'lucide-react';
 import { aidsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
 import { useI18n } from '../../../i18n/i18n';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
-import Card from '../../../components/ui/Card';
+import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import Pagination from '../../../components/ui/Pagination';
@@ -138,9 +138,9 @@ export default function DisbursedAidsPage() {
         }
       />
 
-      <Card className="space-y-4">
+      <Card className="space-y-4" tone="muted">
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted" />
+          <Filter className="h-4 w-4 text-primary" />
           <p className="text-sm font-semibold text-heading">{copy.filtersTitle}</p>
         </div>
         <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-[1.4fr_1fr]">
@@ -164,57 +164,71 @@ export default function DisbursedAidsPage() {
         </div>
       </Card>
 
-      <Table
-        columns={[
-          {
-            key: 'date',
-            label: copy.columns.date,
-            render: (row) => (
-              <div className="flex items-center gap-2 font-medium text-heading">
-                <CalendarDays className="h-4 w-4 text-muted" />
-                {row.date ? new Date(row.date).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
-              </div>
-            ),
-            onClick: handleRowClick,
-          },
-          {
-            key: 'category',
-            label: copy.columns.category,
-            render: (row) => <Badge variant="outline">{row.category}</Badge>,
-            onClick: handleRowClick,
-          },
-          {
-            key: 'occurrence',
-            label: copy.columns.occurrence,
-            cellClassName: 'text-muted',
-            onClick: handleRowClick,
-          },
-          {
-            key: 'description',
-            label: copy.columns.description,
-            onClick: handleRowClick,
-          },
-          {
-            key: 'beneficiariesCount',
-            label: copy.columns.beneficiaries,
-            cellClassName: 'font-semibold text-primary',
-            onClick: handleRowClick,
-          },
-        ]}
-        data={items}
-        loading={isLoading}
-        emptyTitle={copy.emptyTitle}
-        emptyDescription={copy.emptyDesc}
-        emptyIcon={HandCoins}
-      />
-
-      {meta.totalPages > 1 && (
-        <Pagination
-          page={page}
-          totalPages={meta.totalPages}
-          onPageChange={setPage}
+      <Card className="space-y-4" padding="lg">
+        <CardHeader
+          icon={History}
+          title={copy.title}
+          className="mb-0"
         />
-      )}
+        <Table
+          columns={[
+            {
+              key: 'date',
+              label: copy.columns.date,
+              render: (row) => (
+                <div className="flex items-center gap-2 font-semibold text-heading">
+                  <CalendarDays className="h-4 w-4 text-muted" />
+                  {row.date ? new Date(row.date).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                </div>
+              ),
+              onClick: handleRowClick,
+            },
+            {
+              key: 'category',
+              label: copy.columns.category,
+              render: (row) => <Badge variant="secondary">{row.category}</Badge>,
+              onClick: handleRowClick,
+            },
+            {
+              key: 'occurrence',
+              label: copy.columns.occurrence,
+              cellClassName: 'text-muted',
+              onClick: handleRowClick,
+            },
+            {
+              key: 'description',
+              label: copy.columns.description,
+              onClick: handleRowClick,
+            },
+            {
+              key: 'beneficiariesCount',
+              label: copy.columns.beneficiaries,
+              render: (row) => (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-sm font-semibold text-primary">
+                  <Users className="h-3.5 w-3.5" />
+                  {row.beneficiariesCount ?? 0}
+                </span>
+              ),
+              onClick: handleRowClick,
+            },
+          ]}
+          data={items}
+          loading={isLoading}
+          emptyTitle={copy.emptyTitle}
+          emptyDescription={copy.emptyDesc}
+          emptyIcon={HandCoins}
+        />
+
+        {meta.totalPages > 1 && (
+          <div className="border-t border-border/70 pt-4">
+            <Pagination
+              page={page}
+              totalPages={meta.totalPages}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

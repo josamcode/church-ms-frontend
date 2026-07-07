@@ -6,6 +6,7 @@ import { visitationsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
@@ -199,28 +200,30 @@ export default function PastoralVisitationListPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <Input
-            value={filters.houseName}
-            onChange={(e) => setFilter('houseName', e.target.value)}
-            placeholder={t('visitations.list.houseNameFilterPlaceholder')}
-            containerClassName="!mb-0"
-          />
-          <Input
-            type="date"
-            dir="ltr"
-            value={filters.dateFrom}
-            onChange={(e) => setFilter('dateFrom', e.target.value)}
-            containerClassName="!mb-0"
-          />
-          <Input
-            type="date"
-            dir="ltr"
-            value={filters.dateTo}
-            onChange={(e) => setFilter('dateTo', e.target.value)}
-            containerClassName="!mb-0"
-          />
-        </div>
+        <Card tone="muted" padding="sm">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <Input
+              value={filters.houseName}
+              onChange={(e) => setFilter('houseName', e.target.value)}
+              placeholder={t('visitations.list.houseNameFilterPlaceholder')}
+              containerClassName="!mb-0"
+            />
+            <Input
+              type="date"
+              dir="ltr"
+              value={filters.dateFrom}
+              onChange={(e) => setFilter('dateFrom', e.target.value)}
+              containerClassName="!mb-0"
+            />
+            <Input
+              type="date"
+              dir="ltr"
+              value={filters.dateTo}
+              onChange={(e) => setFilter('dateTo', e.target.value)}
+              containerClassName="!mb-0"
+            />
+          </div>
+        </Card>
       </section>
 
       {/* ══ TABLE ═══════════════════════════════════════════════════════ */}

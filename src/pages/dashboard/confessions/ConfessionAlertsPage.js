@@ -5,9 +5,11 @@ import { confessionsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
+import Card from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
 import SearchInput from '../../../components/ui/SearchInput';
+import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import Badge from '../../../components/ui/Badge';
 import PageHeader from '../../../components/ui/PageHeader';
@@ -34,7 +36,7 @@ function SectionLabel({ children }) {
 
 export default function ConfessionAlertsPage() {
   const { hasPermission } = useAuth();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const queryClient = useQueryClient();
   const navigateToUser = useNavigateToUser();
 
@@ -198,49 +200,31 @@ export default function ConfessionAlertsPage() {
       />
 
       {/* ══ KPI + SETTINGS ROW ══════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
 
         {/* threshold tile */}
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-              {t('confessions.alerts.currentThreshold')}
-            </p>
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-alt text-muted">
-              <CalendarClock className="h-4 w-4" />
-            </span>
-          </div>
-          <p className="mt-4 text-4xl font-bold tracking-tight text-heading">
-            {thresholdDays || '—'}
-          </p>
-          <p className="mt-1 text-xs text-muted">{t('confessions.alerts.daysWord')}</p>
-          <div className="mt-4 h-0.5 w-10 rounded-full bg-border" />
-        </div>
+        <StatCard
+          icon={CalendarClock}
+          label={t('confessions.alerts.currentThreshold')}
+          value={thresholdDays || '—'}
+          hint={t('confessions.alerts.daysWord')}
+          tone="gold"
+          isRTL={isRTL}
+        />
 
         {/* alerted users tile */}
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-              {t('confessions.alerts.alertedUsers')}
-            </p>
-            <span className={`flex h-8 w-8 items-center justify-center rounded-xl
-              ${alertsCount > 0 ? 'bg-danger-light text-danger' : 'bg-surface-alt text-muted'}`}>
-              <Users className="h-4 w-4" />
-            </span>
-          </div>
-          <p className={`mt-4 text-4xl font-bold tracking-tight
-            ${alertsCount > 0 ? 'text-danger' : 'text-heading'}`}>
-            {alertsCount}
-          </p>
-          <p className="mt-1 text-xs text-muted">{t('confessions.alerts.alertedUsers')}</p>
-          <div className={`mt-4 h-0.5 w-10 rounded-full ${alertsCount > 0 ? 'bg-danger' : 'bg-border'}`} />
-        </div>
+        <StatCard
+          icon={Users}
+          label={t('confessions.alerts.alertedUsers')}
+          value={alertsCount}
+          hint={t('confessions.alerts.alertedUsers')}
+          tone={alertsCount > 0 ? 'danger' : 'success'}
+          isRTL={isRTL}
+        />
 
         {/* threshold settings tile */}
-        <div className="flex flex-col rounded-2xl border border-border bg-surface p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            {t('confessions.alerts.settingsTitle')}
-          </p>
+        <Card padding="sm" className="flex flex-col">
+          <p className="section-label">{t('confessions.alerts.settingsTitle')}</p>
           <p className="mt-1 text-xs text-muted">{t('confessions.alerts.settingsSubtitle')}</p>
 
           {!canManageThreshold ? (
@@ -266,7 +250,7 @@ export default function ConfessionAlertsPage() {
               </Button>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* ══ ALERTS TABLE ════════════════════════════════════════════════ */}

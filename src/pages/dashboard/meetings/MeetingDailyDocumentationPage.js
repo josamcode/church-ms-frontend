@@ -5,6 +5,7 @@ import {
   FileImage,
   FileText,
   Film,
+  Loader,
   Paperclip,
   Save,
   Upload,
@@ -412,7 +413,7 @@ export default function MeetingDailyDocumentationPage() {
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs items={breadcrumbs} />
 
-      <div className="rounded-2xl border border-border bg-surface p-6">
+      <Card>
         <PageHeader
           contentOnly
           eyebrow={meeting?.name || t('meetings.meetingsPageTitle')}
@@ -432,7 +433,7 @@ export default function MeetingDailyDocumentationPage() {
             {attachments.length} {tf('meetings.documentation.attachmentsCount', 'attachments')}
           </span>
         </div>
-      </div>
+      </Card>
 
       <Card className="rounded-2xl">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_1fr] lg:items-start">
@@ -471,9 +472,10 @@ export default function MeetingDailyDocumentationPage() {
       </Card>
 
       {documentationQuery.isLoading ? (
-        <div className="rounded-2xl border border-border bg-surface p-6">
+        <Card className="flex items-center gap-3">
+          <Loader className="h-4 w-4 animate-spin text-primary" />
           <p className="text-sm text-muted">{t('common.loading')}</p>
-        </div>
+        </Card>
       ) : (
         <>
           <Card className="rounded-2xl">

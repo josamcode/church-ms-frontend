@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarDays, CheckSquare, ClipboardCheck, Save, Square, Users } from 'lucide-react';
+import { CalendarDays, CheckSquare, ClipboardCheck, Loader, Save, Square, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
 import { meetingsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
@@ -273,7 +274,7 @@ export default function MeetingAttendanceCheckInPage() {
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs items={breadcrumbs} />
 
-      <div className="rounded-2xl border border-border bg-surface p-6">
+      <Card>
         <PageHeader
           contentOnly
           eyebrow={meeting?.name || t('meetings.meetingsPageTitle')}
@@ -293,9 +294,9 @@ export default function MeetingAttendanceCheckInPage() {
             {selectedCount} / {totalVisibleMembers} {tf('meetings.attendance.attendeesSelected', 'selected')}
           </span>
         </div>
-      </div>
+      </Card>
 
-      <div className="rounded-2xl border border-border bg-surface p-5">
+      <Card padding="sm">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_1fr] lg:items-start">
           <Select
             label={tf('meetings.attendance.dateLabel', 'Meeting Date')}
@@ -349,12 +350,13 @@ export default function MeetingAttendanceCheckInPage() {
             {attendanceQuery.data.viewerUpdatedBy?.fullName || EMPTY}
           </p>
         )}
-      </div>
+      </Card>
 
       {attendanceQuery.isLoading ? (
-        <div className="rounded-2xl border border-border bg-surface p-6">
+        <Card className="flex items-center gap-3">
+          <Loader className="h-4 w-4 animate-spin text-primary" />
           <p className="text-sm text-muted">{t('common.loading')}</p>
-        </div>
+        </Card>
       ) : (
         <div className="space-y-4">
           {attendanceGroups.map((group) => (

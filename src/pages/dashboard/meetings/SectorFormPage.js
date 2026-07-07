@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Plus, Save, Trash2, Upload, X } from 'lucide-react';
+import { Loader, Plus, Save, Trash2, Upload, X } from 'lucide-react';
 import { mapFieldErrors, normalizeApiError } from '../../../api/errors';
 import { meetingsApi } from '../../../api/endpoints';
 import UserSearchSelect from '../../../components/UserSearchSelect';
@@ -135,7 +135,21 @@ export default function SectorFormPage() {
   };
 
   if (isEdit && sectorQuery.isLoading) {
-    return <Card><p className="text-sm text-muted">{t('common.loading')}</p></Card>;
+    return (
+      <div className="animate-fade-in space-y-6">
+        <Breadcrumbs
+          items={[
+            { label: t('shared.dashboard'), href: '/dashboard' },
+            { label: t('meetings.sectorsPageTitle'), href: '/dashboard/meetings/sectors' },
+            { label: t('meetings.actions.editSectorPage') },
+          ]}
+        />
+        <Card className="flex items-center gap-3">
+          <Loader className="h-4 w-4 animate-spin text-primary" />
+          <p className="text-sm text-muted">{t('common.loading')}</p>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -323,11 +337,11 @@ export default function SectorFormPage() {
             </div>
           </div>
 
-          <div className="flex gap-2 pt-1">
+          <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
             <Button type="button" variant="ghost" onClick={() => navigate('/dashboard/meetings/sectors')}>
               {t('common.actions.cancel')}
             </Button>
-            <Button type="submit" icon={Save} loading={saveMutation.isPending}>
+            <Button type="submit" icon={Save} loading={saveMutation.isPending} className="sm:w-auto w-full">
               {t('common.actions.save')}
             </Button>
           </div>

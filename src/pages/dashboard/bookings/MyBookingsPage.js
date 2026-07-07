@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarClock, NotebookPen } from 'lucide-react';
+import { CalendarClock, Clock, NotebookPen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { bookingsApi } from '../../../api/endpoints';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
-import Card from '../../../components/ui/Card';
+import Card, { CardHeader } from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
 import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
@@ -103,7 +104,7 @@ export default function MyBookingsPage() {
         actions={(
           <Link
             to="/bookings/new"
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-dark"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-primary-dark hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             <NotebookPen className="h-4 w-4" />
             {tf('bookings.public.submitAnother', 'Book a new appointment')}
@@ -111,7 +112,12 @@ export default function MyBookingsPage() {
         )}
       />
 
-      <Card className="rounded-3xl">
+      <Card>
+        <CardHeader
+          icon={Clock}
+          title={tf('bookings.dashboard.statusFilter', 'Status')}
+          subtitle={tf('bookings.dashboard.mySubtitle', 'See the status of the bookings you submitted and read any notes left by the manager.')}
+        />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Select
             label={tf('bookings.dashboard.statusFilter', 'Status')}
@@ -130,44 +136,45 @@ export default function MyBookingsPage() {
       </Card>
 
       {bookings.length === 0 ? (
-        <Card className="rounded-3xl text-center">
-          <CalendarClock className="mx-auto h-10 w-10 text-muted" />
-          <p className="mt-4 text-lg font-semibold text-heading">
-            {tf('bookings.dashboard.myEmptyTitle', 'No bookings yet')}
-          </p>
-          <p className="mt-2 text-sm text-muted">
-            {tf(
+        <Card>
+          <EmptyState
+            icon={CalendarClock}
+            title={tf('bookings.dashboard.myEmptyTitle', 'No bookings yet')}
+            description={tf(
               'bookings.dashboard.myEmptyBody',
               'Once you submit a booking while signed in, it will appear here with its approval status.'
             )}
-          </p>
+          />
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {bookings.map((booking) => (
-            <article
-              key={booking.id}
-              className="rounded-3xl border border-border bg-surface p-5 shadow-card"
-            >
+            <Card key={booking.id} padding="lg" hover>
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-lg font-bold text-heading">
-                    {booking.bookingType?.name || tf('bookings.dashboard.bookingType', 'Booking type')}
-                  </p>
-                  <p className="mt-1 text-sm text-muted">
-                    {booking.scheduledTime
-                      ? `${booking.scheduledDate} • ${booking.scheduledTime}`
-                      : booking.scheduledDate}
-                  </p>
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <CalendarClock className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-lg font-bold text-heading">
+                      {booking.bookingType?.name || tf('bookings.dashboard.bookingType', 'Booking type')}
+                    </p>
+                    <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
+                      <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                      {booking.scheduledTime
+                        ? `${booking.scheduledDate} • ${booking.scheduledTime}`
+                        : booking.scheduledDate}
+                    </p>
+                  </div>
                 </div>
-                <Badge variant={statusVariant(booking.status)}>
+                <Badge variant={statusVariant(booking.status)} dot>
                   {statusLabel(booking.status, tf)}
                 </Badge>
               </div>
 
               {booking.notes ? (
-                <div className="mt-4 rounded-2xl border border-border bg-surface-alt/35 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                <div className="mt-4 rounded-xl border border-border bg-surface-alt/40 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
                     {tf('bookings.dashboard.notes', 'Public notes')}
                   </p>
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">
@@ -177,8 +184,8 @@ export default function MyBookingsPage() {
               ) : null}
 
               {booking.adminNotes ? (
-                <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
                     {tf('bookings.dashboard.adminNotes', 'Admin notes')}
                   </p>
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">
@@ -195,7 +202,7 @@ export default function MyBookingsPage() {
                   {booking.additionalFields.map((field) => (
                     <div
                       key={field.key}
-                      className="rounded-2xl border border-border bg-surface-alt/35 p-3"
+                      className="rounded-xl border border-border bg-surface-alt/40 p-3"
                     >
                       <p className="text-sm font-semibold text-heading">{field.label}</p>
                       {field.type === 'image' &&
@@ -222,12 +229,12 @@ export default function MyBookingsPage() {
                   ))}
                 </div>
               ) : null}
-            </article>
+            </Card>
           ))}
         </div>
       )}
 
-      <Card className="rounded-3xl">
+      <Card>
         <Pagination
           meta={meta}
           loading={myBookingsQuery.isFetching}

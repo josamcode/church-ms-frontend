@@ -11,7 +11,9 @@ import {
 } from 'lucide-react';
 import { systemAnalyticsApi } from '../../../api/endpoints';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
+import Card, { CardHeader } from '../../../components/ui/Card';
 import Select from '../../../components/ui/Select';
+import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import Badge from '../../../components/ui/Badge';
 import PageHeader from '../../../components/ui/PageHeader';
@@ -92,7 +94,7 @@ function getSessionDisplayName(session, t) {
 }
 
 export default function SystemAnalyticsPage() {
-  const { language, t } = useI18n();
+  const { language, t, isRTL } = useI18n();
   const [days, setDays] = useState('7');
   const [surface, setSurface] = useState('all');
   const [selectedSessionId, setSelectedSessionId] = useState('');
@@ -139,37 +141,37 @@ export default function SystemAnalyticsPage() {
       label: t('systemAnalyticsPage.cards.sessions'),
       value: summary.totalSessions ?? 0,
       icon: Activity,
-      variant: 'default',
+      tone: 'primary',
     },
     {
       label: t('systemAnalyticsPage.cards.uniqueVisitors'),
       value: summary.uniqueVisitors ?? 0,
       icon: Globe2,
-      variant: 'primary',
+      tone: 'info',
     },
     {
       label: t('systemAnalyticsPage.cards.authenticatedSessions'),
       value: summary.authenticatedSessions ?? 0,
       icon: Shield,
-      variant: 'default',
+      tone: 'success',
     },
     {
       label: t('systemAnalyticsPage.cards.avgTimeSpent'),
       value: formatDuration(summary.avgActiveSeconds ?? 0, t),
       icon: Clock3,
-      variant: 'default',
+      tone: 'gold',
     },
     {
       label: t('systemAnalyticsPage.cards.totalTimeSpent'),
       value: formatDuration(summary.totalActiveSeconds ?? 0, t),
       icon: BarChart3,
-      variant: 'default',
+      tone: 'default',
     },
     {
       label: t('systemAnalyticsPage.cards.avgPageViews'),
       value: summary.avgPageViewsPerSession ?? 0,
       icon: Users,
-      variant: 'default',
+      tone: 'default',
     },
   ];
 
@@ -306,41 +308,27 @@ export default function SystemAnalyticsPage() {
         )}
       />
 
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-6">
-        {kpiTiles.map(({ label, value, icon: Icon, variant }) => (
-          <div
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        {kpiTiles.map(({ label, value, icon: Icon, tone }) => (
+          <StatCard
             key={label}
-            className="flex min-h-[148px] flex-col justify-between rounded-2xl border border-border bg-surface p-5"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-                {label}
-              </p>
-              <span
-                className={`flex h-8 w-8 items-center justify-center rounded-xl ${variant === 'primary'
-                    ? 'bg-primary/10 text-primary'
-                    : 'bg-surface-alt text-muted'
-                  }`}
-              >
-                <Icon className="h-4 w-4" />
-              </span>
-            </div>
-            <div className="mt-4">
-              <p className="text-3xl font-bold tracking-tight text-heading">{value}</p>
-            </div>
-            <div
-              className={`mt-4 h-0.5 w-10 rounded-full ${variant === 'primary' ? 'bg-primary' : 'bg-border'
-                }`}
-            />
-          </div>
+            icon={Icon}
+            label={label}
+            value={value}
+            tone={tone}
+            isRTL={isRTL}
+          />
         ))}
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <section className="space-y-4 xl:col-span-2">
-          <SectionLabel icon={BarChart3}>{t('systemAnalyticsPage.sections.sessionTrend')}</SectionLabel>
+        <Card className="xl:col-span-2" padding="lg">
+          <CardHeader
+            icon={BarChart3}
+            title={t('systemAnalyticsPage.sections.sessionTrend')}
+          />
 
-          <div className="rounded-2xl border border-border bg-surface p-5">
+          <div>
             {isLoading ? (
               <p className="text-sm text-muted">{t('systemAnalyticsPage.states.loadingAnalytics')}</p>
             ) : dailyTrend.length === 0 ? (
@@ -383,12 +371,15 @@ export default function SystemAnalyticsPage() {
               </div>
             )}
           </div>
-        </section>
+        </Card>
 
-        <section className="space-y-4">
-          <SectionLabel icon={Shield}>{t('systemAnalyticsPage.sections.surfaceBreakdown')}</SectionLabel>
+        <Card padding="lg">
+          <CardHeader
+            icon={Shield}
+            title={t('systemAnalyticsPage.sections.surfaceBreakdown')}
+          />
 
-          <div className="rounded-2xl border border-border bg-surface p-5">
+          <div>
             {isLoading ? (
               <p className="text-sm text-muted">{t('systemAnalyticsPage.states.loadingBreakdown')}</p>
             ) : (
@@ -424,14 +415,17 @@ export default function SystemAnalyticsPage() {
               </div>
             )}
           </div>
-        </section>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <section className="space-y-4">
-          <SectionLabel icon={Globe2}>{t('systemAnalyticsPage.sections.topPages')}</SectionLabel>
+        <Card padding="lg">
+          <CardHeader
+            icon={Globe2}
+            title={t('systemAnalyticsPage.sections.topPages')}
+          />
 
-          <div className="rounded-2xl border border-border bg-surface p-5">
+          <div>
             {isLoading ? (
               <p className="text-sm text-muted">{t('systemAnalyticsPage.states.loadingTopPages')}</p>
             ) : topPages.length === 0 ? (
@@ -479,12 +473,15 @@ export default function SystemAnalyticsPage() {
               </div>
             )}
           </div>
-        </section>
+        </Card>
 
-        <section className="space-y-4">
-          <SectionLabel icon={Clock3}>{t('systemAnalyticsPage.sections.storedSessions')}</SectionLabel>
+        <Card padding="lg">
+          <CardHeader
+            icon={Clock3}
+            title={t('systemAnalyticsPage.sections.storedSessions')}
+          />
 
-          <div className="rounded-2xl border border-border bg-surface p-5">
+          <div>
             {isLoading ? (
               <p className="text-sm text-muted">{t('systemAnalyticsPage.states.loadingSessions')}</p>
             ) : recentSessions.length === 0 ? (
@@ -524,7 +521,7 @@ export default function SystemAnalyticsPage() {
               </div>
             )}
           </div>
-        </section>
+        </Card>
       </div>
 
       <section className="space-y-3">
@@ -534,7 +531,7 @@ export default function SystemAnalyticsPage() {
         </div>
 
         {selectedSession ? (
-          <div className="rounded-2xl border border-border bg-surface p-4">
+          <Card tone="primary" padding="sm">
             <div className="flex flex-col gap-2 border-b border-border/70 pb-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-heading">
@@ -589,7 +586,7 @@ export default function SystemAnalyticsPage() {
                 ))}
               </div>
             )}
-          </div>
+          </Card>
         ) : null}
 
         <div className="overflow-hidden tttable">

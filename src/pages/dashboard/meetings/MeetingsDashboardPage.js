@@ -20,6 +20,8 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
+import StatCard from '../../../components/ui/StatCard';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
 import { DAY_VALUES, getDayLabel } from './meetingsForm.utils';
@@ -36,48 +38,10 @@ const MEETING_ACTION_PERMISSIONS = [
   'MEETINGS_SETTINGS_MANAGE',
 ];
 
-function KpiCard({ label, value, variant = 'default', icon: Icon }) {
-  const accentMap = {
-    default: 'bg-surface-alt text-muted',
-    primary: 'bg-primary/10 text-primary',
-    warning: 'bg-warning-light text-warning',
-    danger: 'bg-danger-light text-danger',
-    success: 'bg-success-light text-success',
-  };
-
-  return (
-    <div className="group relative flex flex-col justify-between rounded-2xl border border-border bg-surface p-5 transition-shadow hover:shadow-sm">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-widest text-muted">{label}</span>
-        {Icon ? (
-          <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${accentMap[variant]}`}>
-            <Icon className="h-4 w-4" />
-          </span>
-        ) : null}
-      </div>
-
-      <p className="mt-4 text-4xl font-bold tracking-tight text-heading">{value}</p>
-
-      <div
-        className={`mt-4 h-0.5 w-10 rounded-full transition-all group-hover:w-16 ${variant === 'primary'
-          ? 'bg-primary'
-          : variant === 'warning'
-            ? 'bg-warning'
-            : variant === 'danger'
-              ? 'bg-danger'
-              : variant === 'success'
-                ? 'bg-success'
-                : 'bg-border'
-          }`}
-      />
-    </div>
-  );
-}
-
 function SectionLabel({ children }) {
   return (
     <div className="flex items-center gap-3 pt-2">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{children}</span>
+      <span className="section-label">{children}</span>
       <div className="h-px flex-1 bg-border/60" />
     </div>
   );
@@ -411,13 +375,13 @@ export default function MeetingsDashboardPage() {
       {kpiCards.length > 0 ? (
         <section className="space-y-4">
           <SectionLabel>Overview</SectionLabel>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {kpiCards.map((item) => (
-              <KpiCard
+              <StatCard
                 key={item.key}
                 label={item.label}
                 value={item.value}
-                variant={item.variant}
+                tone={item.variant}
                 icon={item.icon}
               />
             ))}
@@ -428,12 +392,11 @@ export default function MeetingsDashboardPage() {
       <section className="space-y-4">
         <SectionLabel>{t('meetings.dashboard.sections.meetingSchedule')}</SectionLabel>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <div className="rounded-2xl border border-border bg-surface p-6">
-            <div className="mb-5">
-              <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.sections.meetingSchedule')}</p>
-              <p className="mt-0.5 text-xs text-muted">{t('meetings.dashboard.sections.meetingScheduleSubtitle')}</p>
-            </div>
-
+          <Section
+            icon={CalendarDays}
+            title={t('meetings.dashboard.sections.meetingSchedule')}
+            description={t('meetings.dashboard.sections.meetingScheduleSubtitle')}
+          >
             {meetingsQuery.isLoading ? (
               <p className="text-sm text-muted">{t('common.loading')}</p>
             ) : meetingsSchedule.length === 0 ? (
@@ -464,14 +427,13 @@ export default function MeetingsDashboardPage() {
                 ))}
               </div>
             )}
-          </div>
+          </Section>
 
-          <div className="rounded-2xl border border-border bg-surface p-6">
-            <div className="mb-5">
-              <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.sections.weeklyLoad')}</p>
-              <p className="mt-0.5 text-xs text-muted">{t('meetings.dashboard.sections.weeklyLoadSubtitle')}</p>
-            </div>
-
+          <Section
+            icon={TrendingUp}
+            title={t('meetings.dashboard.sections.weeklyLoad')}
+            description={t('meetings.dashboard.sections.weeklyLoadSubtitle')}
+          >
             {meetingsQuery.isLoading ? (
               <p className="text-sm text-muted">{t('common.loading')}</p>
             ) : weeklyLoad.every((entry) => entry.count === 0) ? (
@@ -498,19 +460,18 @@ export default function MeetingsDashboardPage() {
                 })}
               </div>
             )}
-          </div>
+          </Section>
         </div>
       </section>
 
       {sectorHealth.length > 0 ? (
         <section className="space-y-4">
           <SectionLabel>{t('meetings.dashboard.sections.sectorHealth')}</SectionLabel>
-          <div className="rounded-2xl border border-border bg-surface p-6">
-            <div className="mb-5">
-              <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.sections.sectorHealth')}</p>
-              <p className="mt-0.5 text-xs text-muted">{t('meetings.dashboard.sections.sectorHealthSubtitle')}</p>
-            </div>
-
+          <Section
+            icon={Activity}
+            title={t('meetings.dashboard.sections.sectorHealth')}
+            description={t('meetings.dashboard.sections.sectorHealthSubtitle')}
+          >
             {sectorsQuery.isLoading || meetingsQuery.isLoading ? (
               <p className="text-sm text-muted">{t('common.loading')}</p>
             ) : (
@@ -534,7 +495,7 @@ export default function MeetingsDashboardPage() {
                 ))}
               </div>
             )}
-          </div>
+          </Section>
         </section>
       ) : null}
 

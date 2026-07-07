@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Plus, Save, Trash2, Upload, X } from 'lucide-react';
+import { Loader, Plus, Save, Trash2, Upload, X } from 'lucide-react';
 import { mapFieldErrors, normalizeApiError } from '../../../api/errors';
 import { meetingsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
@@ -321,9 +321,19 @@ export default function MeetingFormPage() {
 
   if (isEdit && meetingQuery.isLoading) {
     return (
-      <Card>
-        <p className="text-sm text-muted">{t('common.loading')}</p>
-      </Card>
+      <div className="animate-fade-in space-y-6">
+        <Breadcrumbs
+          items={[
+            { label: t('shared.dashboard'), href: '/dashboard' },
+            { label: t('meetings.meetingsPageTitle'), href: '/dashboard/meetings/list' },
+            { label: t('meetings.actions.editMeetingPage') },
+          ]}
+        />
+        <Card className="flex items-center gap-3">
+          <Loader className="h-4 w-4 animate-spin text-primary" />
+          <p className="text-sm text-muted">{t('common.loading')}</p>
+        </Card>
+      </div>
     );
   }
 
