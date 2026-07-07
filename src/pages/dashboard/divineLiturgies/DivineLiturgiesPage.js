@@ -22,6 +22,7 @@ import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import PageHeader from '../../../components/ui/PageHeader';
+import SideTabs from '../../../components/ui/SideTabs';
 import StatCard from '../../../components/ui/StatCard';
 import Table, { RowActions } from '../../../components/ui/Table';
 import { useI18n } from '../../../i18n/i18n';
@@ -29,15 +30,6 @@ import { getDayLabel, getDayOptions } from '../meetings/meetingsForm.utils';
 
 const DIVINE_SERVICE_TYPE = 'DIVINE_LITURGY';
 const VESPERS_SERVICE_TYPE = 'VESPERS';
-
-function SectionLabel({ children }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{children}</span>
-      <div className="h-px flex-1 bg-border/60" />
-    </div>
-  );
-}
 
 function toTodayDateInput() {
   const now = new Date();
@@ -144,12 +136,15 @@ export default function DivineLiturgiesPage() {
 
   const [divineEditId, setDivineEditId] = useState(null);
   const [divineForm, setDivineForm] = useState(() => emptyRecurringForm(DIVINE_SERVICE_TYPE));
+  const [showDivineForm, setShowDivineForm] = useState(false);
 
   const [vespersEditId, setVespersEditId] = useState(null);
   const [vespersForm, setVespersForm] = useState(() => emptyRecurringForm(VESPERS_SERVICE_TYPE));
+  const [showVespersForm, setShowVespersForm] = useState(false);
 
   const [exceptionEditId, setExceptionEditId] = useState(null);
   const [exceptionForm, setExceptionForm] = useState(() => emptyExceptionForm());
+  const [showExceptionForm, setShowExceptionForm] = useState(false);
 
   const overviewQuery = useQuery({
     queryKey: ['divine-liturgies', 'overview'],
@@ -284,6 +279,7 @@ export default function DivineLiturgiesPage() {
     await recurringMutation.mutateAsync({ id: divineEditId, payload });
     setDivineEditId(null);
     setDivineForm(emptyRecurringForm(DIVINE_SERVICE_TYPE));
+    setShowDivineForm(false);
   };
 
   const handleSubmitVespers = async (event) => {
@@ -294,6 +290,7 @@ export default function DivineLiturgiesPage() {
     await recurringMutation.mutateAsync({ id: vespersEditId, payload });
     setVespersEditId(null);
     setVespersForm(emptyRecurringForm(VESPERS_SERVICE_TYPE));
+    setShowVespersForm(false);
   };
 
   const handleSubmitException = async (event) => {
@@ -304,6 +301,7 @@ export default function DivineLiturgiesPage() {
     await exceptionMutation.mutateAsync({ id: exceptionEditId, payload });
     setExceptionEditId(null);
     setExceptionForm(emptyExceptionForm());
+    setShowExceptionForm(false);
   };
 
   const getRecurringDisplayName = (row) => {
@@ -493,6 +491,7 @@ export default function DivineLiturgiesPage() {
                       name: row.name || '',
                       priestUserIds: (row.priests || []).map((entry) => entry.id).filter(Boolean),
                     });
+                    setShowExceptionForm(true);
                   },
                 },
                 { divider: true },
@@ -586,10 +585,48 @@ export default function DivineLiturgiesPage() {
         </Card>
       )}
 
-      {/* ══ RECURRING DIVINE LITURGY ══════════════════════════════════════ */}
+      {/* ══ AREAS — TABBED so only one shows at a time ════════════════════ */}
+      <SideTabs
+        ariaLabel={t('divineLiturgies.title')}
+        tabs={[
+          {
+            id: 'divine',
+            label: t('divineLiturgies.sections.recurringDivine'),
+            icon: Church,
+            content: (
       <section className="space-y-4">
-        <SectionLabel>{t('divineLiturgies.sections.recurringDivine')}</SectionLabel>
         {canManage && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-alt text-primary">
+                <Church className="h-4 w-4" />
+              </span>
+              <h2 className="text-base font-semibold text-heading">
+                {t('divineLiturgies.sections.recurringDivine')}
+              </h2>
+            </div>
+            <Button
+              type="button"
+              icon={showDivineForm || divineEditId ? Save : Plus}
+              variant={showDivineForm || divineEditId ? 'outline' : 'primary'}
+              onClick={() => {
+                if (showDivineForm || divineEditId) {
+                  setDivineEditId(null);
+                  setDivineForm(emptyRecurringForm(DIVINE_SERVICE_TYPE));
+                  setShowDivineForm(false);
+                } else {
+                  setShowDivineForm(true);
+                }
+              }}
+            >
+              {showDivineForm || divineEditId
+                ? t('divineLiturgies.actions.cancelEdit')
+                : t('divineLiturgies.actions.createRecurring')}
+            </Button>
+          </div>
+        )}
+        {canManage && (
+          <div className={showDivineForm || divineEditId ? '' : 'hidden'}>
           <Card padding="lg" className="space-y-4">
             <CardHeader icon={Church} title={t('divineLiturgies.sections.recurringDivine')} />
             <form onSubmit={handleSubmitDivine}>
@@ -664,6 +701,7 @@ export default function DivineLiturgiesPage() {
               </div>
             </form>
           </Card>
+          </div>
         )}
 
         <Card padding={false} className="overflow-hidden">
@@ -680,6 +718,7 @@ export default function DivineLiturgiesPage() {
                   name: row.name || '',
                   priestUserIds: (row.priests || []).map((entry) => entry.id).filter(Boolean),
                 });
+                setShowDivineForm(true);
               },
               (id) => {
                 if (!window.confirm(t('divineLiturgies.confirmations.deleteRecurring'))) return;
@@ -694,13 +733,47 @@ export default function DivineLiturgiesPage() {
           />
         </Card>
       </section>
-
-      {/* ══ RECURRING VESPERS ═════════════════════════════════════════════ */}
+            ),
+          },
+          {
+            id: 'vespers',
+            label: t('divineLiturgies.sections.recurringVespers'),
+            icon: Sunrise,
+            content: (
+      /* ══ RECURRING VESPERS ═══════════════════════════════════════════ */
       <section className="space-y-4">
-        {(recurringVespers.length > 0 || canManage) && (
-          <SectionLabel>{t('divineLiturgies.sections.recurringVespers')}</SectionLabel>
+        {canManage && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-alt text-primary">
+                <Sunrise className="h-4 w-4" />
+              </span>
+              <h2 className="text-base font-semibold text-heading">
+                {t('divineLiturgies.sections.recurringVespers')}
+              </h2>
+            </div>
+            <Button
+              type="button"
+              icon={showVespersForm || vespersEditId ? Save : Plus}
+              variant={showVespersForm || vespersEditId ? 'outline' : 'primary'}
+              onClick={() => {
+                if (showVespersForm || vespersEditId) {
+                  setVespersEditId(null);
+                  setVespersForm(emptyRecurringForm(VESPERS_SERVICE_TYPE));
+                  setShowVespersForm(false);
+                } else {
+                  setShowVespersForm(true);
+                }
+              }}
+            >
+              {showVespersForm || vespersEditId
+                ? t('divineLiturgies.actions.cancelEdit')
+                : t('divineLiturgies.actions.createRecurring')}
+            </Button>
+          </div>
         )}
         {canManage && (
+          <div className={showVespersForm || vespersEditId ? '' : 'hidden'}>
           <Card padding="lg" className="space-y-4">
             <CardHeader icon={Sunrise} title={t('divineLiturgies.sections.recurringVespers')} />
             <form onSubmit={handleSubmitVespers}>
@@ -765,6 +838,7 @@ export default function DivineLiturgiesPage() {
               </div>
             </form>
           </Card>
+          </div>
         )}
 
         {recurringVespers.length > 0 && (
@@ -782,6 +856,7 @@ export default function DivineLiturgiesPage() {
                     name: row.name || '',
                     priestUserIds: [],
                   });
+                  setShowVespersForm(true);
                 },
                 (id) => {
                   if (!window.confirm(t('divineLiturgies.confirmations.deleteRecurring'))) return;
@@ -797,13 +872,47 @@ export default function DivineLiturgiesPage() {
           </Card>
         )}
       </section>
-
-      {/* ══ EXCEPTIONAL CASES ═════════════════════════════════════════════ */}
+            ),
+          },
+          {
+            id: 'exceptions',
+            label: t('divineLiturgies.sections.exceptions'),
+            icon: CalendarClock,
+            content: (
+      /* ══ EXCEPTIONAL CASES ═══════════════════════════════════════════ */
       <section className="space-y-4">
-        {(exceptionalCases.length > 0 || canManage) && (
-          <SectionLabel>{t('divineLiturgies.sections.exceptions')}</SectionLabel>
+        {canManage && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-alt text-primary">
+                <CalendarClock className="h-4 w-4" />
+              </span>
+              <h2 className="text-base font-semibold text-heading">
+                {t('divineLiturgies.sections.exceptions')}
+              </h2>
+            </div>
+            <Button
+              type="button"
+              icon={showExceptionForm || exceptionEditId ? Save : Plus}
+              variant={showExceptionForm || exceptionEditId ? 'outline' : 'primary'}
+              onClick={() => {
+                if (showExceptionForm || exceptionEditId) {
+                  setExceptionEditId(null);
+                  setExceptionForm(emptyExceptionForm());
+                  setShowExceptionForm(false);
+                } else {
+                  setShowExceptionForm(true);
+                }
+              }}
+            >
+              {showExceptionForm || exceptionEditId
+                ? t('divineLiturgies.actions.cancelEdit')
+                : t('divineLiturgies.actions.createException')}
+            </Button>
+          </div>
         )}
         {canManage && (
+          <div className={showExceptionForm || exceptionEditId ? '' : 'hidden'}>
           <Card padding="lg" className="space-y-4">
             <CardHeader icon={CalendarClock} title={t('divineLiturgies.sections.exceptions')} />
             <form onSubmit={handleSubmitException}>
@@ -881,6 +990,7 @@ export default function DivineLiturgiesPage() {
               </div>
             </form>
           </Card>
+          </div>
         )}
 
         {exceptionalCases.length > 0 && (
@@ -896,6 +1006,10 @@ export default function DivineLiturgiesPage() {
           </Card>
         )}
       </section>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }
