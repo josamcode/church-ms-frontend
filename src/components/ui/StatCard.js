@@ -1,33 +1,41 @@
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import Sparkline from './Sparkline';
 
 const tones = {
   default: {
     iconWrap: 'bg-surface-alt text-muted',
     accent: 'from-border/0 to-border/0',
+    spark: 'var(--color-primary)',
   },
   primary: {
     iconWrap: 'bg-primary/10 text-primary',
     accent: 'from-primary/60 to-primary/0',
+    spark: 'var(--color-primary)',
   },
   gold: {
     iconWrap: 'bg-secondary/12 text-secondary',
     accent: 'from-secondary/60 to-secondary/0',
+    spark: 'var(--color-secondary)',
   },
   success: {
     iconWrap: 'bg-success/12 text-success',
     accent: 'from-success/60 to-success/0',
+    spark: 'var(--color-success)',
   },
   warning: {
     iconWrap: 'bg-warning/12 text-warning',
     accent: 'from-warning/60 to-warning/0',
+    spark: 'var(--color-warning)',
   },
   danger: {
     iconWrap: 'bg-danger/12 text-danger',
     accent: 'from-danger/60 to-danger/0',
+    spark: 'var(--color-danger)',
   },
   info: {
     iconWrap: 'bg-info/12 text-info',
     accent: 'from-info/60 to-info/0',
+    spark: 'var(--color-info)',
   },
 };
 
@@ -42,6 +50,7 @@ export default function StatCard({
   tone = 'default',
   trend,
   trendLabel,
+  spark,
   onClick,
   className = '',
   isRTL = false,
@@ -90,6 +99,11 @@ export default function StatCard({
             </span>
           )}
           {hint && <span className="truncate text-muted">{hint}</span>}
+        </div>
+      )}
+      {Array.isArray(spark) && spark.length > 1 && (
+        <div className="mt-3 -mb-1">
+          <Sparkline data={spark} color={t.spark} />
         </div>
       )}
     </Wrapper>
