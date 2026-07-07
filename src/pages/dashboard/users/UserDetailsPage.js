@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Building2, Calendar, Clock3, Edit, ExternalLink, GraduationCap, Lock, Mail, MapPin,
+  Building2, Calendar, CalendarCheck2, CalendarDays, Church, Clock3, Edit, ExternalLink,
+  GraduationCap, Home, LayoutGrid, Lock, Mail, MapPin,
   MessageCircle, Phone, Plus, Shield, Tag, Unlock, User,
   UserCircle, Users as UsersIcon,
 } from 'lucide-react';
@@ -27,7 +28,7 @@ import Input from '../../../components/ui/Input';
 import Modal from '../../../components/ui/Modal';
 import PageHeader from '../../../components/ui/PageHeader';
 import Skeleton from '../../../components/ui/Skeleton';
-import Tabs from '../../../components/ui/Tabs';
+import SideTabs from '../../../components/ui/SideTabs';
 import TextArea from '../../../components/ui/TextArea';
 import UserSearchSelect from '../../../components/UserSearchSelect';
 import {
@@ -235,11 +236,15 @@ export default function UserDetailsPage() {
 
   const tabs = [
     {
+      id: 'profile',
       label: t('userDetails.tabs.profile'),
+      icon: UserCircle,
       content: <ProfileTab user={user} />,
     },
     {
+      id: 'family',
       label: t('userDetails.tabs.family'),
+      icon: UsersIcon,
       content: (
         <FamilyTab
           user={user}
@@ -250,7 +255,9 @@ export default function UserDetailsPage() {
       ),
     },
     {
+      id: 'overview',
       label: tf('userDetails.system.sidebar.overview', 'Overview'),
+      icon: LayoutGrid,
       content: (
         <SystemTab
           user={user}
@@ -263,7 +270,9 @@ export default function UserDetailsPage() {
       ),
     },
     {
+      id: 'confessions',
       label: tf('userDetails.system.sidebar.confessions', 'Confessions'),
+      icon: CalendarCheck2,
       content: (
         <SystemTab
           user={user}
@@ -276,7 +285,9 @@ export default function UserDetailsPage() {
       ),
     },
     {
+      id: 'meetings',
       label: tf('userDetails.system.sidebar.meetings', 'Meetings'),
+      icon: CalendarDays,
       content: (
         <SystemTab
           user={user}
@@ -289,7 +300,9 @@ export default function UserDetailsPage() {
       ),
     },
     {
+      id: 'divineLiturgies',
       label: tf('userDetails.system.sidebar.divineLiturgies', 'Divine Liturgy & Vespers'),
+      icon: Church,
       content: (
         <SystemTab
           user={user}
@@ -302,7 +315,9 @@ export default function UserDetailsPage() {
       ),
     },
     {
+      id: 'visitations',
       label: tf('userDetails.system.sidebar.visitations', 'Visitations'),
+      icon: Home,
       content: (
         <SystemTab
           user={user}
@@ -315,7 +330,9 @@ export default function UserDetailsPage() {
       ),
     },
     {
+      id: 'permissions',
       label: tf('userDetails.system.sidebar.permissions', 'Permissions'),
+      icon: Shield,
       content: (
         <SystemTab
           user={user}
@@ -444,9 +461,9 @@ export default function UserDetailsPage() {
         </div>
       </div>
 
-      {/* ══ TABS ════════════════════════════════════════════════════════ */}
+      {/* ══ SECTIONS ════════════════════════════════════════════════════ */}
       <div className="min-w-0">
-        <Tabs tabs={tabs} />
+        <SideTabs tabs={tabs} ariaLabel={t('shared.users')} />
       </div>
     </div>
   );
