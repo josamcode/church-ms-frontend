@@ -1,7 +1,16 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Building2, Eye, ShieldCheck, Users } from 'lucide-react';
+import {
+  AlertTriangle,
+  Coins,
+  Eye,
+  Filter,
+  HeartHandshake,
+  RefreshCw,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import { householdClassificationsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
@@ -13,6 +22,7 @@ import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import SearchInput from '../../../components/ui/SearchInput';
+import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import {
   formatCurrencyEGP,
@@ -31,6 +41,14 @@ const COPY = {
       'View households currently classified as The Lords Brethren according to the active rules.',
     householdsCount: 'households',
     tableResults: '{count} household results',
+    statHouseholds: 'Households supported',
+    statMembers: 'Members on this page',
+    statIncome: 'Total income (this page)',
+    statHouseholdsHint: 'Matching the active criteria',
+    statMembersHint: 'Across listed households',
+    statIncomeHint: 'Combined declared income',
+    filtersTitle: 'Filters',
+    retry: 'Try again',
     columns: {
       householdName: 'Household',
       members: 'Members',
@@ -54,6 +72,14 @@ const COPY = {
       'عرض الأسر المصنفة حاليًا كإخوة الرب وفقًا للقواعد النشطة المحددة.',
     householdsCount: 'أسر',
     tableResults: '{count} نتيجة',
+    statHouseholds: 'الأسر المشمولة',
+    statMembers: 'الأفراد في هذه الصفحة',
+    statIncome: 'إجمالي الدخل (هذه الصفحة)',
+    statHouseholdsHint: 'المطابقة للشروط النشطة',
+    statMembersHint: 'ضمن الأسر المعروضة',
+    statIncomeHint: 'إجمالي الدخل المُعلن',
+    filtersTitle: 'الفلاتر',
+    retry: 'إعادة المحاولة',
     columns: {
       householdName: 'الأسرة',
       members: 'عدد الأفراد',
@@ -94,7 +120,7 @@ function HouseholdStatusBadge({ classification, language }) {
 
 export default function LordsBrethrenPage() {
   const { hasPermission } = useAuth();
-  const { language, t } = useI18n();
+  const { language, t, isRTL } = useI18n();
   const copy = COPY[language === 'ar' ? 'ar' : 'en'];
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -131,26 +157,60 @@ export default function LordsBrethrenPage() {
   );
   const meta = householdsQuery.data?.meta || {};
 
+  // Read-only derived summary counts for the KPI strip (presentation only).
+  const localeCode = language === 'ar' ? 'ar-EG' : 'en-US';
+  const formatCount = (n) => new Intl.NumberFormat(localeCode).format(Number(n) || 0);
+  const householdsTotal = meta.totalCount ?? households.length;
+  const membersOnPage = households.reduce(
+    (sum, row) => sum + (Number(row.memberCount) || 0),
+    0
+  );
+  const incomeOnPage = households.reduce(
+    (sum, row) => sum + (Number(row.totalMemberIncome) || 0),
+    0
+  );
+
   const columns = useMemo(
     () => [
       {
         key: 'householdName',
         label: copy.columns.householdName,
         render: (row) => (
-          <div>
-            <p className="font-semibold text-heading">{row.householdName}</p>
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-secondary/12 text-secondary">
+              <HeartHandshake className="h-[18px] w-[18px]" />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-heading">{row.householdName}</p>
+              {row.source ? (
+                <p className="truncate text-xs text-muted">
+                  {getHouseholdSourceLabel(row.source, language)}
+                </p>
+              ) : null}
+            </div>
           </div>
         ),
       },
       {
         key: 'memberCount',
         label: copy.columns.members,
-        render: (row) => row.memberCount,
+        render: (row) => (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-sm font-semibold text-primary">
+            <Users className="h-3.5 w-3.5" />
+            {new Intl.NumberFormat(language === 'ar' ? 'ar-EG' : 'en-US').format(
+              Number(row.memberCount) || 0
+            )}
+          </span>
+        ),
       },
       {
         key: 'totalMemberIncome',
         label: copy.columns.income,
-        render: (row) => formatCurrencyEGP(row.totalMemberIncome, language),
+        render: (row) => (
+          <span className="font-bold tracking-tight text-secondary">
+            {formatCurrencyEGP(row.totalMemberIncome, language)}
+          </span>
+        ),
       },
       {
         key: 'primaryClassification',
@@ -224,12 +284,67 @@ export default function LordsBrethrenPage() {
         }
       />
 
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <StatCard
+          icon={HeartHandshake}
+          label={copy.statHouseholds}
+          value={householdsQuery.isLoading ? '—' : formatCount(householdsTotal)}
+          hint={copy.statHouseholdsHint}
+          tone="primary"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Users}
+          label={copy.statMembers}
+          value={householdsQuery.isLoading ? '—' : formatCount(membersOnPage)}
+          hint={copy.statMembersHint}
+          tone="info"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Coins}
+          label={copy.statIncome}
+          value={
+            householdsQuery.isLoading ? '—' : formatCurrencyEGP(incomeOnPage, language)
+          }
+          hint={copy.statIncomeHint}
+          tone="gold"
+          isRTL={isRTL}
+        />
+      </div>
+
+      <Card className="space-y-4" tone="muted">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-primary" />
+          <p className="text-sm font-semibold text-heading">{copy.filtersTitle}</p>
+        </div>
+        <SearchInput
+          value={search}
+          onChange={(next) => {
+            setSearch(next);
+            setPage(1);
+          }}
+          placeholder={copy.searchPlaceholder}
+          className="w-full"
+        />
+      </Card>
+
       {errorMessage ? (
         <Card tone="muted">
           <EmptyState
-            icon={Building2}
+            icon={AlertTriangle}
             title={copy.noDataTitle}
             description={errorMessage}
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                icon={RefreshCw}
+                onClick={() => householdsQuery.refetch()}
+              >
+                {copy.retry}
+              </Button>
+            }
           />
         </Card>
       ) : (
@@ -243,15 +358,11 @@ export default function LordsBrethrenPage() {
             )}
             className="mb-0"
             action={
-              <SearchInput
-                value={search}
-                onChange={(next) => {
-                  setSearch(next);
-                  setPage(1);
-                }}
-                placeholder={copy.searchPlaceholder}
-                className="w-full sm:w-[320px]"
-              />
+              !householdsQuery.isLoading && households.length ? (
+                <Badge variant="secondary">
+                  {formatCount(meta.totalCount || households.length)}
+                </Badge>
+              ) : null
             }
           />
           <Table

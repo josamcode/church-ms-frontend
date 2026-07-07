@@ -12,15 +12,21 @@ import {
   TrendingUp,
   Shield,
   Activity,
+  AlertTriangle,
+  CalendarClock,
+  Sparkles,
+  UserCheck,
 } from 'lucide-react';
 import { meetingsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import Section from '../../../components/ui/Section';
+import Skeleton from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
@@ -214,6 +220,49 @@ export default function MeetingsDashboardPage() {
     [dayOrder, meetings]
   );
 
+  // ---- Read-only presentational derivations (no data-logic change) ----
+  const weeklySeries = useMemo(() => weeklyLoad.map((entry) => entry.count), [weeklyLoad]);
+
+  const busiestDay = useMemo(
+    () =>
+      weeklyLoad.reduce(
+        (best, entry) => (entry.count > best.count ? entry : best),
+        weeklyLoad[0] || { label: '', count: 0 }
+      ),
+    [weeklyLoad]
+  );
+
+  const servantCoverage =
+    summary.totalMeetings > 0
+      ? Math.round(((summary.totalMeetings - summary.meetingsWithoutServants) / summary.totalMeetings) * 100)
+      : 0;
+  const officialsCoverage =
+    summary.totalSectors > 0
+      ? Math.round(((summary.totalSectors - summary.sectorsWithoutOfficials) / summary.totalSectors) * 100)
+      : 0;
+
+  const totalGaps =
+    summary.sectorsWithoutOfficials +
+    summary.meetingsWithoutServants +
+    summary.meetingsWithoutActivities +
+    summary.meetingsWithoutCommittees;
+
+  const isBusy =
+    sectorsQuery.isLoading || meetingsQuery.isLoading || responsibilitiesQuery.isLoading;
+  const hasError =
+    (canViewSectors && sectorsQuery.isError) ||
+    meetingsQuery.isError ||
+    (canViewResponsibilities && responsibilitiesQuery.isError);
+
+  const heroLine = useMemo(() => {
+    if (isBusy) return t('common.loading');
+    if (summary.totalMeetings === 0) return t('meetings.dashboardSubtitle');
+    if (busiestDay && busiestDay.count > 0) {
+      return `${summary.totalMeetings} ${t('meetings.dashboard.labels.meetings')} - ${busiestDay.label}`;
+    }
+    return t('meetings.dashboardSubtitle');
+  }, [busiestDay, isBusy, summary.totalMeetings, t]);
+
   const kpiCards = [
     canViewSectors
       ? {
@@ -222,6 +271,8 @@ export default function MeetingsDashboardPage() {
         value: summary.totalSectors,
         variant: 'default',
         icon: Layers3,
+        hint: `${officialsCoverage}% - ${t('meetings.dashboard.labels.officials')}`,
+        onClick: canViewSectors ? () => navigate('/dashboard/meetings/sectors') : undefined,
       }
       : null,
     canViewMeetings
@@ -229,8 +280,11 @@ export default function MeetingsDashboardPage() {
         key: 'meetings',
         label: t('meetings.dashboard.cards.totalMeetings'),
         value: summary.totalMeetings,
-        variant: 'default',
+        variant: 'primary',
         icon: CalendarPlus,
+        spark: weeklySeries,
+        hint: busiestDay?.count > 0 ? busiestDay.label : undefined,
+        onClick: canViewMeetings ? () => navigate('/dashboard/meetings/list') : undefined,
       }
       : null,
     canViewMeetings
@@ -238,8 +292,11 @@ export default function MeetingsDashboardPage() {
         key: 'servants',
         label: t('meetings.dashboard.cards.totalServants'),
         value: summary.totalServants,
-        variant: 'primary',
+        variant: 'gold',
         icon: Users,
+        trend: servantCoverage >= 100 ? 1 : servantCoverage > 0 ? servantCoverage - 100 : 0,
+        trendLabel: `${servantCoverage}%`,
+        hint: `${t('meetings.dashboard.labels.servants')}`,
       }
       : null,
     canViewMeetings
@@ -247,7 +304,7 @@ export default function MeetingsDashboardPage() {
         key: 'servedUsers',
         label: t('meetings.dashboard.cards.servedUsers'),
         value: summary.uniqueServedUsers,
-        variant: 'primary',
+        variant: 'info',
         icon: TrendingUp,
       }
       : null,
@@ -258,6 +315,10 @@ export default function MeetingsDashboardPage() {
         value: summary.sectorsWithoutOfficials,
         variant: summary.sectorsWithoutOfficials > 0 ? 'warning' : 'success',
         icon: Shield,
+        onClick:
+          canTakeActions && canViewSectors
+            ? () => navigate('/dashboard/meetings/sectors')
+            : undefined,
       }
       : null,
     canViewMeetings
@@ -267,6 +328,10 @@ export default function MeetingsDashboardPage() {
         value: summary.meetingsWithoutServants,
         variant: summary.meetingsWithoutServants > 0 ? 'danger' : 'success',
         icon: Activity,
+        onClick:
+          canTakeActions && canViewMeetings
+            ? () => navigate('/dashboard/meetings/list')
+            : undefined,
       }
       : null,
   ].filter(Boolean);
@@ -322,6 +387,8 @@ export default function MeetingsDashboardPage() {
       : null,
   ].filter(Boolean);
 
+  const openActionItems = actionItems.filter((item) => item.count > 0);
+
   return (
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs
@@ -333,6 +400,7 @@ export default function MeetingsDashboardPage() {
 
       <PageHeader
         className="border-b border-border pb-6"
+        eyebrow={t('shared.dashboard')}
         title={t('meetings.dashboardTitle')}
         subtitle={t('meetings.dashboardSubtitle')}
         titleClassName="mt-1 text-3xl font-bold tracking-tight text-heading"
@@ -365,6 +433,33 @@ export default function MeetingsDashboardPage() {
         }
       />
 
+      {/* Hero summary line — a one-glance read of the state of meetings */}
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-gradient-to-br from-primary/[0.06] via-surface to-secondary/[0.05] px-5 py-4 shadow-card">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <CalendarClock className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-base font-bold text-heading">{heroLine}</p>
+          <p className="mt-0.5 truncate text-xs text-muted">{t('meetings.dashboard.sections.meetingScheduleSubtitle')}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {canViewSectors ? (
+            <Badge variant="gold" dot>
+              {summary.totalSectors} {t('meetings.dashboard.labels.meetings')}
+            </Badge>
+          ) : null}
+          {totalGaps > 0 ? (
+            <Badge variant="warning" dot>
+              {totalGaps}
+            </Badge>
+          ) : (
+            <Badge variant="success" dot>
+              {servantCoverage}%
+            </Badge>
+          )}
+        </div>
+      </div>
+
       {!canTakeActions ? (
         <div className="rounded-2xl border border-border bg-surface-alt/40 px-4 py-3">
           <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.status.readOnlyTitle')}</p>
@@ -372,7 +467,48 @@ export default function MeetingsDashboardPage() {
         </div>
       ) : null}
 
-      {kpiCards.length > 0 ? (
+      {hasError ? (
+        <Card tone="default" className="border-danger/30">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-danger/10 text-danger">
+                <AlertTriangle className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-heading">{t('meetings.dashboard.status.noData')}</p>
+                <p className="mt-0.5 text-xs text-muted">{t('meetings.dashboardSubtitle')}</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={Activity}
+              onClick={() => {
+                meetingsQuery.refetch();
+                if (canViewSectors) sectorsQuery.refetch();
+                if (canViewResponsibilities) responsibilitiesQuery.refetch();
+              }}
+            >
+              {t('common.actions.loadMore')}
+            </Button>
+          </div>
+        </Card>
+      ) : null}
+
+      {isBusy && kpiCards.length > 0 ? (
+        <section className="space-y-4">
+          <SectionLabel>Overview</SectionLabel>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {kpiCards.map((item) => (
+              <Card key={item.key} className="space-y-3" padding="md">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-7 w-1/2" />
+                <Skeleton className="h-3 w-full" />
+              </Card>
+            ))}
+          </div>
+        </section>
+      ) : kpiCards.length > 0 ? (
         <section className="space-y-4">
           <SectionLabel>Overview</SectionLabel>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -383,9 +519,52 @@ export default function MeetingsDashboardPage() {
                 value={item.value}
                 tone={item.variant}
                 icon={item.icon}
+                hint={item.hint}
+                trend={item.trend}
+                trendLabel={item.trendLabel}
+                spark={item.spark}
+                onClick={item.onClick}
+                isRTL={isRTL}
               />
             ))}
           </div>
+        </section>
+      ) : null}
+
+      {/* Needs-attention command strip */}
+      {openActionItems.length > 0 ? (
+        <section className="space-y-4">
+          <SectionLabel>{t('meetings.dashboard.sections.actionCenter')}</SectionLabel>
+          <Card padding="none" className="overflow-hidden">
+            <CardHeader
+              className="px-5 pt-5"
+              icon={AlertTriangle}
+              title={t('meetings.dashboard.sections.actionCenter')}
+              subtitle={t('meetings.dashboard.sections.actionCenterSubtitle')}
+              action={<Badge variant="warning" dot>{totalGaps}</Badge>}
+            />
+            <div className="grid grid-cols-1 gap-px bg-border/60 sm:grid-cols-2">
+              {openActionItems.map((item) => (
+                <Link
+                  key={item.key}
+                  to={item.href}
+                  className="group flex items-center justify-between gap-3 bg-surface px-5 py-4 transition-colors hover:bg-surface-alt/60"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-heading">{item.title}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted">{item.description}</p>
+                  </div>
+                  <div className="ms-3 flex shrink-0 items-center gap-2">
+                    <Badge variant={item.variant}>{item.count}</Badge>
+                    <ArrowUpRight
+                      className={`h-3.5 w-3.5 text-muted transition-transform ${isRTL ? 'group-hover:-translate-x-0.5' : 'group-hover:translate-x-0.5'
+                        }`}
+                    />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </Card>
         </section>
       ) : null}
 
@@ -396,35 +575,63 @@ export default function MeetingsDashboardPage() {
             icon={CalendarDays}
             title={t('meetings.dashboard.sections.meetingSchedule')}
             description={t('meetings.dashboard.sections.meetingScheduleSubtitle')}
+            actions={
+              !meetingsQuery.isLoading && meetingsSchedule.length > 0 ? (
+                <Badge variant="primary" dot>
+                  {meetingsSchedule.length}
+                </Badge>
+              ) : null
+            }
           >
             {meetingsQuery.isLoading ? (
-              <p className="text-sm text-muted">{t('common.loading')}</p>
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-3 w-1/3" />
+                    </div>
+                    <Skeleton variant="circle" className="h-9 w-9" />
+                  </div>
+                ))}
+              </div>
             ) : meetingsSchedule.length === 0 ? (
               <EmptyState
+                icon={CalendarDays}
                 title={t('meetings.empty.noDashboardDataTitle')}
                 description={t('meetings.empty.noDashboardDataDescription')}
               />
             ) : (
               <div className="divide-y divide-border/60">
-                {meetingsSchedule.slice(0, 8).map((meeting) => (
-                  <div key={meeting.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-heading">{meeting.name}</p>
-                      <p className="mt-0.5 text-xs text-muted">
-                        {getDayLabel(meeting.day, t)}
-                        {meeting.time ? ` - ${meeting.time}` : ''}
-                      </p>
+                {meetingsSchedule.slice(0, 8).map((meeting) => {
+                  const noServants = (meeting.servants || []).length === 0;
+                  return (
+                    <div key={meeting.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          <CalendarDays className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-heading">{meeting.name}</p>
+                          <p className="mt-0.5 text-xs text-muted">
+                            {getDayLabel(meeting.day, t)}
+                            {meeting.time ? ` - ${meeting.time}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="ms-3 flex shrink-0 items-center gap-2">
+                        {noServants ? (
+                          <Badge variant="danger" dot>
+                            {t('meetings.dashboard.labels.servants')}
+                          </Badge>
+                        ) : null}
+                        {meeting.sector?.name ? (
+                          <Badge variant="default">{meeting.sector.name}</Badge>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="ms-3 flex shrink-0 items-center gap-2">
-                      {meeting.sector?.name ? (
-                        <Badge variant="default">{meeting.sector.name}</Badge>
-                      ) : null}
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <CalendarDays className="h-4 w-4" />
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Section>
@@ -433,11 +640,27 @@ export default function MeetingsDashboardPage() {
             icon={TrendingUp}
             title={t('meetings.dashboard.sections.weeklyLoad')}
             description={t('meetings.dashboard.sections.weeklyLoadSubtitle')}
+            actions={
+              !meetingsQuery.isLoading && busiestDay?.count > 0 ? (
+                <Badge variant="gold" dot>
+                  {busiestDay.label}
+                </Badge>
+              ) : null
+            }
           >
             {meetingsQuery.isLoading ? (
-              <p className="text-sm text-muted">{t('common.loading')}</p>
+              <div className="space-y-3.5">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-1.5 flex-1" />
+                    <Skeleton className="h-3 w-5" />
+                  </div>
+                ))}
+              </div>
             ) : weeklyLoad.every((entry) => entry.count === 0) ? (
               <EmptyState
+                icon={BarChart3}
                 title={t('meetings.empty.noDashboardDataTitle')}
                 description={t('meetings.empty.noDashboardDataDescription')}
               />
@@ -445,16 +668,20 @@ export default function MeetingsDashboardPage() {
               <div className="space-y-3.5">
                 {weeklyLoad.map((entry) => {
                   const pct = Math.max((entry.count / maxDailyLoad) * 100, entry.count ? 6 : 0);
+                  const isPeak = entry.count === maxDailyLoad && entry.count > 0;
                   return (
                     <div key={entry.day} className="flex items-center gap-3">
                       <span className="w-20 shrink-0 text-right text-xs font-medium text-muted">{entry.label}</span>
                       <div className="relative h-1.5 flex-1 rounded-full bg-surface-alt">
                         <div
-                          className="absolute inset-y-0 start-0 rounded-full bg-primary transition-all duration-500"
+                          className={`absolute inset-y-0 start-0 rounded-full transition-all duration-500 ${isPeak ? 'bg-secondary' : 'bg-primary'
+                            }`}
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="w-5 shrink-0 text-xs font-semibold text-heading">{entry.count}</span>
+                      <span className={`w-5 shrink-0 text-xs font-semibold ${isPeak ? 'text-secondary' : 'text-heading'}`}>
+                        {entry.count}
+                      </span>
                     </div>
                   );
                 })}
@@ -471,28 +698,81 @@ export default function MeetingsDashboardPage() {
             icon={Activity}
             title={t('meetings.dashboard.sections.sectorHealth')}
             description={t('meetings.dashboard.sections.sectorHealthSubtitle')}
+            actions={
+              !sectorsQuery.isLoading && !meetingsQuery.isLoading ? (
+                <Badge variant="primary" dot>
+                  {sectorHealth.length}
+                </Badge>
+              ) : null
+            }
           >
             {sectorsQuery.isLoading || meetingsQuery.isLoading ? (
-              <p className="text-sm text-muted">{t('common.loading')}</p>
-            ) : (
-              <div className="divide-y divide-border/60">
-                {sectorHealth.slice(0, 8).map((sector) => (
-                  <div key={sector.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-heading">{sector.name}</p>
-                      <p className="mt-0.5 text-xs text-muted">
-                        {sector.officialsCount} {t('meetings.dashboard.labels.officials')}
-                        {' - '}
-                        {sector.servantsCount} {t('meetings.dashboard.labels.servants')}
-                        {' - '}
-                        {sector.activitiesCount} {t('meetings.dashboard.labels.activities')}
-                      </p>
-                    </div>
-                    <Badge variant={sector.meetingsCount > 0 ? 'primary' : 'default'}>
-                      {sector.meetingsCount} {t('meetings.dashboard.labels.meetings')}
-                    </Badge>
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="space-y-1.5">
+                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-1.5 w-full" />
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div className="divide-y divide-border/60">
+                {sectorHealth.slice(0, 8).map((sector) => {
+                  const maxSectorMeetings = Math.max(
+                    ...sectorHealth.map((entry) => entry.meetingsCount),
+                    1
+                  );
+                  const loadPct = Math.max(
+                    (sector.meetingsCount / maxSectorMeetings) * 100,
+                    sector.meetingsCount ? 6 : 0
+                  );
+                  const noOfficials = sector.officialsCount === 0;
+                  const noServants = sector.meetingsCount > 0 && sector.servantsCount === 0;
+                  return (
+                    <div key={sector.id} className="py-3 first:pt-0 last:pb-0">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <p className="truncate text-sm font-medium text-heading">{sector.name}</p>
+                          {noOfficials ? (
+                            <Badge variant="warning" size="sm" dot>
+                              {t('meetings.dashboard.labels.officials')}
+                            </Badge>
+                          ) : null}
+                          {noServants ? (
+                            <Badge variant="danger" size="sm" dot>
+                              {t('meetings.dashboard.labels.servants')}
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <Badge variant={sector.meetingsCount > 0 ? 'primary' : 'default'}>
+                          {sector.meetingsCount} {t('meetings.dashboard.labels.meetings')}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 flex items-center gap-3">
+                        <div className="relative h-1.5 flex-1 rounded-full bg-surface-alt">
+                          <div
+                            className="absolute inset-y-0 start-0 rounded-full bg-primary/70 transition-all duration-500"
+                            style={{ width: `${loadPct}%` }}
+                          />
+                        </div>
+                        <div className="flex shrink-0 items-center gap-3 text-[11px] font-medium text-muted">
+                          <span className="inline-flex items-center gap-1">
+                            <Shield className="h-3 w-3" />
+                            {sector.officialsCount}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <UserCheck className="h-3 w-3" />
+                            {sector.servantsCount}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <Sparkles className="h-3 w-3" />
+                            {sector.activitiesCount}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </Section>

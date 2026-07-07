@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Clock, Home, LayoutGrid } from 'lucide-react';
+import {
+  BarChart3, Clock, Home, LayoutGrid, TrendingUp, Trophy, Sparkles, RefreshCw, AlertTriangle,
+} from 'lucide-react';
 import { visitationsApi } from '../../../api/endpoints';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Card, { CardHeader } from '../../../components/ui/Card';
@@ -8,23 +10,14 @@ import Select from '../../../components/ui/Select';
 import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import Badge from '../../../components/ui/Badge';
+import Button from '../../../components/ui/Button';
+import EmptyState from '../../../components/ui/EmptyState';
+import Skeleton from '../../../components/ui/Skeleton';
 import PageHeader from '../../../components/ui/PageHeader';
 import { formatDateTime } from '../../../utils/formatters';
 import { useI18n } from '../../../i18n/i18n';
 
-/* ── primitives ──────────────────────────────────────────────────────────── */
-
-function SectionLabel({ children, icon: Icon }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-        {children}
-      </span>
-      <div className="h-px flex-1 bg-border/60" />
-      {Icon && <Icon className="h-3.5 w-3.5 shrink-0 text-primary" />}
-    </div>
-  );
-}
+/* ── presentational helpers (read-only derivations) ───────────────────────── */
 
 function formatMonthlyTrendLabel(item, language) {
   const year = Number(item?.year);
@@ -55,13 +48,27 @@ function formatMonthlyTrendLabel(item, language) {
   return rawLabel;
 }
 
+// Month-over-month % change from a numeric series. Guards divide-by-zero.
+function momChange(series) {
+  if (!Array.isArray(series) || series.length < 2) return null;
+  const last = series[series.length - 1];
+  const prev = series[series.length - 2];
+  if (prev === 0) return null;
+  return Math.round(((last - prev) / prev) * 100);
+}
+
 /* ── page ────────────────────────────────────────────────────────────────── */
 
 export default function PastoralVisitationAnalyticsPage() {
   const { t, language, isRTL } = useI18n();
   const [months, setMonths] = useState('1');
 
-  const { data: analyticsRes, isLoading } = useQuery({
+  const {
+    data: analyticsRes,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['visitations', 'analytics', { months }],
     queryFn: async () => {
       const { data } = await visitationsApi.getAnalytics({ months: Number(months) });
@@ -71,24 +78,74 @@ export default function PastoralVisitationAnalyticsPage() {
   });
 
   const summary = analyticsRes?.summary || {};
-  const monthlyTrend = Array.isArray(analyticsRes?.monthlyTrend) ? analyticsRes.monthlyTrend : [];
-  const topHouses = Array.isArray(analyticsRes?.topHouses) ? analyticsRes.topHouses : [];
+  const monthlyTrend = useMemo(
+    () => (Array.isArray(analyticsRes?.monthlyTrend) ? analyticsRes.monthlyTrend : []),
+    [analyticsRes],
+  );
+  const topHouses = useMemo(
+    () => (Array.isArray(analyticsRes?.topHouses) ? analyticsRes.topHouses : []),
+    [analyticsRes],
+  );
   const topRecorders = Array.isArray(analyticsRes?.topRecorders) ? analyticsRes.topRecorders : [];
 
   const maxTrendCount = Math.max(...monthlyTrend.map((item) => item.count || 0), 1);
   const maxHouseCount = Math.max(...topHouses.map((item) => item.count || 0), 1);
 
+  /* ── derived series & highlights (pure, read-only) ── */
+  const trendSeries = useMemo(() => monthlyTrend.map((item) => item.count || 0), [monthlyTrend]);
+  const trendPct = useMemo(() => momChange(trendSeries), [trendSeries]);
+
+  const busiestMonth = useMemo(() => {
+    if (monthlyTrend.length === 0) return null;
+    return monthlyTrend.reduce((best, item) => ((item.count || 0) > (best.count || 0) ? item : best), monthlyTrend[0]);
+  }, [monthlyTrend]);
+
+  const topHouse = useMemo(() => {
+    if (topHouses.length === 0) return null;
+    return topHouses.reduce((best, item) => ((item.count || 0) > (best.count || 0) ? item : best), topHouses[0]);
+  }, [topHouses]);
+
+  const avgPerMonth = useMemo(() => {
+    if (trendSeries.length === 0) return 0;
+    const total = trendSeries.reduce((sum, n) => sum + n, 0);
+    return Math.round(total / trendSeries.length);
+  }, [trendSeries]);
+
+  const hasHighlights = Boolean(busiestMonth || topHouse) && trendSeries.length > 0;
+
   /* ── KPI config ── */
   const kpiTiles = [
-    { label: t('visitations.analytics.cards.totalVisitations'), value: summary.totalVisitations ?? 0, icon: LayoutGrid, tone: 'default' },
-    { label: t('visitations.analytics.cards.visitationsInPeriod'), value: summary.visitationsInPeriod ?? 0, icon: BarChart3, tone: 'primary' },
-    { label: t('visitations.analytics.cards.uniqueHouses'), value: summary.uniqueHouses ?? 0, icon: Home, tone: 'gold' },
     {
+      key: 'totalVisitations',
+      label: t('visitations.analytics.cards.totalVisitations'),
+      value: summary.totalVisitations ?? 0,
+      icon: LayoutGrid,
+      tone: 'primary',
+    },
+    {
+      key: 'visitationsInPeriod',
+      label: t('visitations.analytics.cards.visitationsInPeriod'),
+      value: summary.visitationsInPeriod ?? 0,
+      icon: BarChart3,
+      tone: 'info',
+      spark: trendSeries,
+      trend: trendPct,
+      trendLabel: trendPct != null ? `${Math.abs(trendPct)}%` : undefined,
+    },
+    {
+      key: 'uniqueHouses',
+      label: t('visitations.analytics.cards.uniqueHouses'),
+      value: summary.uniqueHouses ?? 0,
+      icon: Home,
+      tone: 'gold',
+    },
+    {
+      key: 'avgDurationMinutes',
       label: t('visitations.analytics.cards.avgDurationMinutes'),
       value: summary.avgDurationMinutes ?? 0,
       hint: t('visitations.shared.minutes'),
       icon: Clock,
-      tone: 'info',
+      tone: 'success',
     },
   ];
 
@@ -160,113 +217,223 @@ export default function PastoralVisitationAnalyticsPage() {
         )}
       />
 
-      {/* ══ KPI TILES ═══════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {kpiTiles.map(({ label, value, hint, icon: Icon, tone }) => (
-          <StatCard
-            key={label}
-            icon={Icon}
-            label={label}
-            value={value}
-            hint={hint}
-            tone={tone}
-            isRTL={isRTL}
+      {isError ? (
+        /* ══ ERROR STATE ═══════════════════════════════════════════════ */
+        <Card padding="lg" tone="default" className="border-danger/25">
+          <EmptyState
+            icon={AlertTriangle}
+            title={t('visitations.analytics.emptyTitle')}
+            description={t('visitations.analytics.noData')}
+            action={(
+              <Button
+                variant="outline"
+                icon={RefreshCw}
+                onClick={() => refetch()}
+                aria-label={t('visitations.analytics.loading')}
+              >
+                {t('visitations.analytics.loading')}
+              </Button>
+            )}
           />
-        ))}
-      </div>
+        </Card>
+      ) : isLoading ? (
+        /* ══ LOADING STATE ═════════════════════════════════════════════ */
+        <div className="space-y-8">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} padding="md" className="space-y-3">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-8 w-1/2" />
+                <Skeleton className="h-6 w-full" />
+              </Card>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Card key={i} padding="lg" className="space-y-4">
+                <Skeleton className="h-5 w-1/3" />
+                {Array.from({ length: 5 }).map((__, j) => (
+                  <Skeleton key={j} className="h-6 w-full" />
+                ))}
+              </Card>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* ══ KPI BAND ══════════════════════════════════════════════════ */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {kpiTiles.map(({ key, label, value, hint, icon: Icon, tone, spark, trend, trendLabel }) => (
+              <StatCard
+                key={key}
+                icon={Icon}
+                label={label}
+                value={value}
+                hint={hint}
+                tone={tone}
+                spark={spark}
+                trend={trend}
+                trendLabel={trendLabel}
+                isRTL={isRTL}
+              />
+            ))}
+          </div>
 
-      {/* ══ CHARTS ROW ══════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-
-        {/* monthly trend */}
-        <Card padding="lg">
-          <CardHeader icon={BarChart3} title={t('visitations.analytics.monthlyTitle')} />
-          {isLoading ? (
-            <p className="text-sm text-muted">{t('visitations.analytics.loading')}</p>
-          ) : monthlyTrend.length === 0 ? (
-            <p className="text-sm text-muted">{t('visitations.analytics.noData')}</p>
-          ) : (
-            <div className="space-y-4">
-              {monthlyTrend.map((item) => {
-                const pct = Math.max((item.count / maxTrendCount) * 100, 2);
-                return (
-                  <div key={`${item.year}-${item.month}`}>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <span className="text-xs font-medium text-heading">
-                        {formatMonthlyTrendLabel(item, language)}
-                      </span>
-                      <span className="text-xs font-bold tabular-nums text-primary">{item.count}</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-surface-alt">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all duration-500"
-                        style={{ width: `${pct}%` }}
-                      />
+          {/* ══ HIGHLIGHTS STRIP ══════════════════════════════════════════ */}
+          {hasHighlights && (
+            <Card padding="md" tone="gold" className="overflow-hidden">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:divide-x sm:divide-border/60 sm:rtl:divide-x-reverse">
+                {busiestMonth && (
+                  <div className="flex items-start gap-3 sm:px-4 sm:first:ps-0">
+                    <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <TrendingUp className="h-[18px] w-[18px]" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                        {t('visitations.analytics.monthlyTitle')}
+                      </p>
+                      <p className="truncate text-sm font-bold text-heading">
+                        {formatMonthlyTrendLabel(busiestMonth, language)}
+                      </p>
+                      <p className="text-xs text-muted">
+                        <span className="font-semibold text-heading">{busiestMonth.count}</span>{' '}
+                        {t('visitations.analytics.cards.visitationsInPeriod')}
+                      </p>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                )}
+                {topHouse && (
+                  <div className="flex items-start gap-3 sm:px-4">
+                    <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-secondary/12 text-secondary">
+                      <Trophy className="h-[18px] w-[18px]" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                        {t('visitations.analytics.topHousesTitle')}
+                      </p>
+                      <p className="truncate text-sm font-bold text-heading">{topHouse.houseName}</p>
+                      <p className="text-xs text-muted">
+                        <span className="font-semibold text-heading">{topHouse.count}</span>{' '}
+                        {t('visitations.analytics.columns.records')}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-start gap-3 sm:px-4">
+                  <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-info/12 text-info">
+                    <Sparkles className="h-[18px] w-[18px]" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                      {t('visitations.analytics.cards.visitationsInPeriod')}
+                    </p>
+                    <p className="truncate text-sm font-bold text-heading">{avgPerMonth}</p>
+                    <p className="text-xs text-muted">{t('visitations.analytics.monthlySubtitle')}</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
           )}
-        </Card>
 
-        {/* top houses */}
-        <Card padding="lg">
-          <CardHeader icon={Home} title={t('visitations.analytics.topHousesTitle')} />
-          {isLoading ? (
-            <p className="text-sm text-muted">{t('visitations.analytics.loading')}</p>
-          ) : topHouses.length === 0 ? (
-            <p className="text-sm text-muted">{t('visitations.analytics.noHousesData')}</p>
-          ) : (
-            <div className="space-y-5">
-              {topHouses.map((item) => {
-                const pct = Math.max((item.count / maxHouseCount) * 100, 2);
-                return (
-                  <div key={item.houseName}>
-                    <div className="mb-1.5 flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-heading">
-                          {item.houseName}
-                        </p>
-                        <p className="text-xs text-muted">
-                          {t('visitations.analytics.avgPerHouse')}{' '}
-                          <strong className="text-heading">{item.avgDurationMinutes}</strong>{' '}
-                          {t('visitations.shared.minutes')}
-                        </p>
+          {/* ══ CHARTS ROW ══════════════════════════════════════════════════ */}
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+
+            {/* monthly trend */}
+            <Card padding="lg">
+              <CardHeader
+                icon={BarChart3}
+                title={t('visitations.analytics.monthlyTitle')}
+                subtitle={t('visitations.analytics.monthlySubtitle')}
+              />
+              {monthlyTrend.length === 0 ? (
+                <EmptyState compact icon={BarChart3} title={t('visitations.analytics.noData')} />
+              ) : (
+                <div className="space-y-4">
+                  {monthlyTrend.map((item) => {
+                    const pct = Math.max((item.count / maxTrendCount) * 100, 2);
+                    return (
+                      <div key={`${item.year}-${item.month}`}>
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <span className="text-xs font-medium text-heading">
+                            {formatMonthlyTrendLabel(item, language)}
+                          </span>
+                          <span className="text-xs font-bold tabular-nums text-primary">{item.count}</span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-surface-alt">
+                          <div
+                            className="h-full rounded-full bg-primary transition-all duration-500"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
                       </div>
-                      <Badge variant="primary">{item.count}</Badge>
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-surface-alt">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all duration-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+
+            {/* top houses */}
+            <Card padding="lg">
+              <CardHeader
+                icon={Home}
+                title={t('visitations.analytics.topHousesTitle')}
+                subtitle={t('visitations.analytics.topHousesSubtitle')}
+              />
+              {topHouses.length === 0 ? (
+                <EmptyState compact icon={Home} title={t('visitations.analytics.noHousesData')} />
+              ) : (
+                <div className="space-y-5">
+                  {topHouses.map((item) => {
+                    const pct = Math.max((item.count / maxHouseCount) * 100, 2);
+                    return (
+                      <div key={item.houseName}>
+                        <div className="mb-1.5 flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-heading">
+                              {item.houseName}
+                            </p>
+                            <p className="text-xs text-muted">
+                              {t('visitations.analytics.avgPerHouse')}{' '}
+                              <strong className="text-heading">{item.avgDurationMinutes}</strong>{' '}
+                              {t('visitations.shared.minutes')}
+                            </p>
+                          </div>
+                          <Badge variant="primary">{item.count}</Badge>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-surface-alt">
+                          <div
+                            className="h-full rounded-full bg-primary transition-all duration-500"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* ══ TOP RECORDERS TABLE ═════════════════════════════════════════ */}
+          <Card padding="lg">
+            <CardHeader
+              icon={Trophy}
+              title={t('visitations.analytics.topRecordersTitle')}
+              subtitle={t('visitations.analytics.topRecordersSubtitle')}
+              action={<Badge variant="gold">{topRecorders.length}</Badge>}
+            />
+            <div className="overflow-hidden tttable">
+              <Table
+                columns={topRecordersColumns}
+                data={topRecorders}
+                loading={isLoading}
+                emptyTitle={t('visitations.analytics.emptyTitle')}
+                emptyDescription={t('visitations.analytics.emptyDescription')}
+              />
             </div>
-          )}
-        </Card>
-      </div>
-
-      {/* ══ TOP RECORDERS TABLE ═════════════════════════════════════════ */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <SectionLabel>{t('visitations.analytics.topRecordersTitle')}</SectionLabel>
-          <span className="text-xs text-muted">{topRecorders.length}</span>
-        </div>
-
-        <div className="overflow-hidden tttable">
-          <Table
-            columns={topRecordersColumns}
-            data={topRecorders}
-            loading={isLoading}
-            emptyTitle={t('visitations.analytics.emptyTitle')}
-            emptyDescription={t('visitations.analytics.emptyDescription')}
-          />
-        </div>
-      </section>
+          </Card>
+        </>
+      )}
 
     </div>
   );

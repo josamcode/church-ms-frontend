@@ -1,7 +1,17 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Building2, Eye, Filter, ShieldCheck } from 'lucide-react';
+import {
+  AlertTriangle,
+  Building2,
+  Coins,
+  Eye,
+  Filter,
+  Layers,
+  RefreshCw,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import { householdClassificationsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
@@ -14,6 +24,7 @@ import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import SearchInput from '../../../components/ui/SearchInput';
 import Select from '../../../components/ui/Select';
+import StatCard from '../../../components/ui/StatCard';
 import Switch from '../../../components/ui/Switch';
 import Table from '../../../components/ui/Table';
 import {
@@ -42,6 +53,14 @@ const COPY = {
     criteriaCount: 'criteria',
     noCategoryCards: 'No active household classification categories found.',
     tableResults: '{count} household results',
+    statHouseholds: 'Households classified',
+    statCategories: 'Active categories',
+    statIncome: 'Total income (this page)',
+    statHouseholdsHint: 'Matching the current view',
+    statCategoriesHint: 'Rules currently applied',
+    statIncomeHint: 'Combined declared income',
+    ofTotal: 'of total',
+    retry: 'Try again',
     columns: {
       householdName: 'Household',
       source: 'Source',
@@ -75,6 +94,14 @@ const COPY = {
     criteriaCount: 'معايير',
     noCategoryCards: 'لا توجد فئات تصنيف أسر نشطة.',
     tableResults: '{count} نتيجة',
+    statHouseholds: 'الأسر المصنفة',
+    statCategories: 'الفئات النشطة',
+    statIncome: 'إجمالي الدخل (هذه الصفحة)',
+    statHouseholdsHint: 'ضمن العرض الحالي',
+    statCategoriesHint: 'القواعد المُطبَّقة حاليًا',
+    statIncomeHint: 'إجمالي الدخل المُعلن',
+    ofTotal: 'من الإجمالي',
+    retry: 'إعادة المحاولة',
     columns: {
       householdName: 'الأسرة',
       source: 'مصدر التجميع',
@@ -177,8 +204,15 @@ function HouseholdStatusBadge({ classification, language }) {
   );
 }
 
-function CategorySummaryCard({ category, copy }) {
+function CategorySummaryCard({ category, copy, maxCount = 0, totalCount = 0, language = 'en' }) {
   const color = category.color || '#2563eb';
+  const count = Number(category.count) || 0;
+  const localeCode = language === 'ar' ? 'ar-EG' : 'en-US';
+  const countLabel = new Intl.NumberFormat(localeCode).format(count);
+  // Proportion bar: width relative to the largest category so cards are
+  // visually comparable at a glance. Share % is relative to the total.
+  const barWidth = maxCount > 0 ? Math.max((count / maxCount) * 100, count > 0 ? 6 : 0) : 0;
+  const sharePercent = totalCount > 0 ? Math.round((count / totalCount) * 100) : null;
 
   return (
     <div
@@ -217,12 +251,29 @@ function CategorySummaryCard({ category, copy }) {
 
         <div className="mt-6 flex items-end justify-between gap-4">
           <div>
-            <p className="text-3xl font-bold tracking-tight text-heading">{category.count}</p>
+            <p className="text-3xl font-bold tracking-tight text-heading">{countLabel}</p>
             <p className="mt-1 text-sm text-muted">{copy.householdsCount}</p>
           </div>
           <Badge variant="default">
             {category.criteriaCount} {copy.criteriaCount}
           </Badge>
+        </div>
+
+        <div className="mt-4">
+          <div
+            className="h-2 w-full overflow-hidden rounded-full bg-surface-alt"
+            role="presentation"
+          >
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${barWidth}%`, backgroundColor: color }}
+            />
+          </div>
+          {sharePercent != null ? (
+            <p className="mt-2 text-[11px] font-medium text-muted">
+              {new Intl.NumberFormat(localeCode).format(sharePercent)}% {copy.ofTotal}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -231,7 +282,7 @@ function CategorySummaryCard({ category, copy }) {
 
 export default function HouseholdClassificationResultsPage() {
   const { hasPermission } = useAuth();
-  const { language, t } = useI18n();
+  const { language, t, isRTL } = useI18n();
   const copy = COPY[language === 'ar' ? 'ar' : 'en'];
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -304,26 +355,64 @@ export default function HouseholdClassificationResultsPage() {
     [categorySummaryCards]
   );
 
+  // Read-only derived values for the KPI strip + proportion bars (presentation only).
+  const localeCode = language === 'ar' ? 'ar-EG' : 'en-US';
+  const formatCount = (n) => new Intl.NumberFormat(localeCode).format(Number(n) || 0);
+  const householdsTotal = meta.totalCount ?? households.length;
+  const incomeOnPage = households.reduce(
+    (sum, row) => sum + (Number(row.totalMemberIncome) || 0),
+    0
+  );
+  const categoryMaxCount = categorySummaryCards.reduce(
+    (max, category) => Math.max(max, Number(category.count) || 0),
+    0
+  );
+  const categoryTotalCount = categorySummaryCards.reduce(
+    (sum, category) => sum + (Number(category.count) || 0),
+    0
+  );
+
   const columns = useMemo(
     () => [
       {
         key: 'householdName',
         label: copy.columns.householdName,
         render: (row) => (
-          <div>
-            <p className="font-semibold text-heading">{row.householdName}</p>
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Building2 className="h-[18px] w-[18px]" />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-heading">{row.householdName}</p>
+              {row.source ? (
+                <p className="truncate text-xs text-muted">
+                  {getHouseholdSourceLabel(row.source, language)}
+                </p>
+              ) : null}
+            </div>
           </div>
         ),
       },
       {
         key: 'memberCount',
         label: copy.columns.members,
-        render: (row) => row.memberCount,
+        render: (row) => (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-sm font-semibold text-primary">
+            <Users className="h-3.5 w-3.5" />
+            {new Intl.NumberFormat(language === 'ar' ? 'ar-EG' : 'en-US').format(
+              Number(row.memberCount) || 0
+            )}
+          </span>
+        ),
       },
       {
         key: 'totalMemberIncome',
         label: copy.columns.income,
-        render: (row) => formatCurrencyEGP(row.totalMemberIncome, language),
+        render: (row) => (
+          <span className="font-bold tracking-tight text-secondary">
+            {formatCurrencyEGP(row.totalMemberIncome, language)}
+          </span>
+        ),
       },
       {
         key: 'primaryClassification',
@@ -385,7 +474,7 @@ export default function HouseholdClassificationResultsPage() {
 
       <PageHeader
         className="border-b border-border pb-6"
-        eyebrow={copy.filtersTitle}
+        eyebrow={copy.title}
         title={copy.title}
         subtitle={copy.subtitle}
         actions={
@@ -397,9 +486,38 @@ export default function HouseholdClassificationResultsPage() {
         }
       />
 
-      <Card className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <StatCard
+          icon={Building2}
+          label={copy.statHouseholds}
+          value={householdsQuery.isLoading ? '—' : formatCount(householdsTotal)}
+          hint={copy.statHouseholdsHint}
+          tone="primary"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Layers}
+          label={copy.statCategories}
+          value={formatCount(categorySummaryCards.length)}
+          hint={copy.statCategoriesHint}
+          tone="info"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Coins}
+          label={copy.statIncome}
+          value={
+            householdsQuery.isLoading ? '—' : formatCurrencyEGP(incomeOnPage, language)
+          }
+          hint={copy.statIncomeHint}
+          tone="gold"
+          isRTL={isRTL}
+        />
+      </div>
+
+      <Card className="space-y-4" tone="muted">
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted" />
+          <Filter className="h-4 w-4 text-primary" />
           <p className="text-sm font-semibold text-heading">{copy.filtersTitle}</p>
         </div>
         <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-[1.4fr_0.8fr_auto]">
@@ -442,7 +560,7 @@ export default function HouseholdClassificationResultsPage() {
           title={copy.categoryCardsTitle}
           subtitle={copy.categoryCardsSubtitle}
           className="mb-0"
-          action={<Badge variant="secondary">{categorySummaryCards.length}</Badge>}
+          action={<Badge variant="secondary">{formatCount(categorySummaryCards.length)}</Badge>}
         />
 
         {categorySummaryRows.length === 0 ? (
@@ -463,6 +581,9 @@ export default function HouseholdClassificationResultsPage() {
                     key={category.id}
                     category={category}
                     copy={copy}
+                    maxCount={categoryMaxCount}
+                    totalCount={categoryTotalCount}
+                    language={language}
                   />
                 ))}
               </div>
@@ -474,20 +595,38 @@ export default function HouseholdClassificationResultsPage() {
       {errorMessage ? (
         <Card tone="muted">
           <EmptyState
-            icon={Building2}
+            icon={AlertTriangle}
             title={copy.noDataTitle}
             description={errorMessage}
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                icon={RefreshCw}
+                onClick={() => householdsQuery.refetch()}
+              >
+                {copy.retry}
+              </Button>
+            }
           />
         </Card>
       ) : (
         <Card className="space-y-4" padding="lg">
           <CardHeader
+            icon={Users}
             title={copy.title}
             subtitle={copy.tableResults.replace(
               '{count}',
               String(meta.totalCount || households.length)
             )}
             className="mb-0"
+            action={
+              !householdsQuery.isLoading && households.length ? (
+                <Badge variant="secondary">
+                  {formatCount(meta.totalCount || households.length)}
+                </Badge>
+              ) : null
+            }
           />
           <Table
             columns={columns}

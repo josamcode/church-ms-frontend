@@ -1,17 +1,28 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BellRing, Save, Users, CalendarClock } from 'lucide-react';
+import {
+  BellRing,
+  Save,
+  Users,
+  CalendarClock,
+  AlertTriangle,
+  UserX,
+  ShieldCheck,
+  Settings2,
+} from 'lucide-react';
 import { confessionsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Card from '../../../components/ui/Card';
+import Section from '../../../components/ui/Section';
 import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
 import SearchInput from '../../../components/ui/SearchInput';
 import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import Badge from '../../../components/ui/Badge';
+import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import Pagination from '../../../components/ui/Pagination';
 import { formatDateTime } from '../../../utils/formatters';
@@ -99,6 +110,40 @@ export default function ConfessionAlertsPage() {
   const alertsTotalPages = Math.max(Number(alertsMeta.totalPages) || 1, 1);
   const currentAlertsPage = Number(alertsMeta.page) || alertsPage;
 
+  /* ── read-only presentation counts + severity ordering ── */
+  const neverAttendedCount = useMemo(
+    () => alerts.filter((row) => row.daysSinceLastSession == null).length,
+    [alerts]
+  );
+  const maxOverdueDays = useMemo(
+    () =>
+      alerts.reduce(
+        (max, row) =>
+          typeof row.daysSinceLastSession === 'number'
+            ? Math.max(max, row.daysSinceLastSession)
+            : max,
+        0
+      ),
+    [alerts]
+  );
+  // Presentation-only ordering: most urgent first (never-attended, then longest overdue).
+  const sortedAlerts = useMemo(() => {
+    const rank = (row) =>
+      row.daysSinceLastSession == null ? Number.POSITIVE_INFINITY : row.daysSinceLastSession;
+    return [...alerts].sort((a, b) => rank(b) - rank(a));
+  }, [alerts]);
+
+  const severityForRow = useCallback(
+    (row) => {
+      if (row.daysSinceLastSession == null) return 'danger';
+      const ratio = thresholdDays > 0 ? row.daysSinceLastSession / thresholdDays : 1;
+      if (ratio >= 2) return 'danger';
+      if (ratio >= 1.4) return 'warning';
+      return 'info';
+    },
+    [thresholdDays]
+  );
+
   useEffect(() => {
     if (alertsPage > alertsTotalPages) {
       setAlertsPage(alertsTotalPages);
@@ -114,6 +159,8 @@ export default function ConfessionAlertsPage() {
     updateThresholdMutation.mutate(parsed);
   };
 
+  const allCaughtUp = !alertsLoading && alertsCount === 0 && !searchName;
+
   /* ── table columns ── */
   const columns = useMemo(() => [
     {
@@ -123,14 +170,25 @@ export default function ConfessionAlertsPage() {
         <button
           type="button"
           onClick={() => navigateToUser(row.userId)}
-          className="group text-start"
+          className="group flex items-center gap-3 text-start"
         >
-          <p className="font-medium text-heading transition-colors group-hover:text-primary">
-            {row.fullName}
-          </p>
-          {row.phonePrimary && (
-            <p className="text-xs text-muted direction-ltr">{row.phonePrimary}</p>
-          )}
+          <span
+            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+              row.daysSinceLastSession == null
+                ? 'bg-danger/10 text-danger'
+                : 'bg-warning/10 text-warning'
+            }`}
+          >
+            {String(row.fullName || '؟').trim().charAt(0)}
+          </span>
+          <span className="min-w-0">
+            <p className="truncate font-semibold text-heading transition-colors group-hover:text-primary">
+              {row.fullName}
+            </p>
+            {row.phonePrimary && (
+              <p className="text-xs text-muted direction-ltr">{row.phonePrimary}</p>
+            )}
+          </span>
         </button>
       ),
     },
@@ -141,33 +199,37 @@ export default function ConfessionAlertsPage() {
         <span className="text-sm text-heading">
           {row.lastSessionAt
             ? formatDateTime(row.lastSessionAt)
-            : <span className="text-muted">{t('confessions.alerts.neverAttended')}</span>}
+            : <span className="font-medium text-danger">{t('confessions.alerts.neverAttended')}</span>}
         </span>
       ),
     },
     {
       key: 'daysSinceLastSession',
       label: t('confessions.alerts.columns.daysSince'),
-      render: (row) => (
-        <span className="font-semibold text-heading">
-          {row.daysSinceLastSession == null
-            ? <span className="text-muted">{t('confessions.alerts.noSessions')}</span>
-            : `${row.daysSinceLastSession} ${t('confessions.alerts.daysWord')}`}
-        </span>
-      ),
+      render: (row) =>
+        row.daysSinceLastSession == null ? (
+          <span className="text-sm font-medium text-muted">{t('confessions.alerts.noSessions')}</span>
+        ) : (
+          <span className="inline-flex items-baseline gap-1">
+            <span className="text-xl font-bold leading-none text-heading">
+              {row.daysSinceLastSession}
+            </span>
+            <span className="text-xs text-muted">{t('confessions.alerts.daysWord')}</span>
+          </span>
+        ),
     },
     {
       key: 'status',
       label: t('confessions.alerts.columns.status'),
       render: (row) => (
-        <Badge variant="danger">
+        <Badge variant={severityForRow(row)} dot>
           {row.daysSinceLastSession == null
             ? t('confessions.alerts.noSessionStatus', { days: thresholdDays })
             : t('confessions.alerts.overdueStatus', { days: row.daysSinceLastSession })}
         </Badge>
       ),
     },
-  ], [navigateToUser, t, thresholdDays]);
+  ], [navigateToUser, t, thresholdDays, severityForRow]);
 
   /* ── render ── */
   return (
@@ -183,26 +245,48 @@ export default function ConfessionAlertsPage() {
       {/* ══ HEADER ══════════════════════════════════════════════════════ */}
       <PageHeader
         className="border-b border-border pb-6"
-        eyebrow={t('shared.dashboard')}
+        eyebrow={t('confessions.alerts.page')}
         title={t('confessions.alerts.title')}
         subtitle={t('confessions.alerts.subtitle')}
         actions={(
-          <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold
+          <div className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold
             ${alertsCount > 0
               ? 'border-danger/30 bg-danger-light text-danger'
               : 'border-success/30 bg-success-light text-success'
             }`}
           >
-            <BellRing className="h-3.5 w-3.5" />
+            {alertsCount > 0 ? <BellRing className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
             {alertsCount} {t('confessions.alerts.alertedUsers')}
           </div>
         )}
       />
 
-      {/* ══ KPI + SETTINGS ROW ══════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-
-        {/* threshold tile */}
+      {/* ══ KPI STRIP ═══════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          icon={Users}
+          label={t('confessions.alerts.alertedUsers')}
+          value={alertsCount}
+          hint={t('confessions.alerts.subtitle')}
+          tone={alertsCount > 0 ? 'danger' : 'success'}
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={UserX}
+          label={t('confessions.alerts.neverAttended')}
+          value={neverAttendedCount}
+          hint={t('confessions.alerts.noSessions')}
+          tone={neverAttendedCount > 0 ? 'warning' : 'success'}
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={AlertTriangle}
+          label={t('confessions.alerts.columns.daysSince')}
+          value={maxOverdueDays > 0 ? `${maxOverdueDays}` : '—'}
+          hint={t('confessions.alerts.daysWord')}
+          tone={maxOverdueDays >= thresholdDays * 2 && maxOverdueDays > 0 ? 'danger' : 'warning'}
+          isRTL={isRTL}
+        />
         <StatCard
           icon={CalendarClock}
           label={t('confessions.alerts.currentThreshold')}
@@ -211,26 +295,19 @@ export default function ConfessionAlertsPage() {
           tone="gold"
           isRTL={isRTL}
         />
+      </div>
 
-        {/* alerted users tile */}
-        <StatCard
-          icon={Users}
-          label={t('confessions.alerts.alertedUsers')}
-          value={alertsCount}
-          hint={t('confessions.alerts.alertedUsers')}
-          tone={alertsCount > 0 ? 'danger' : 'success'}
-          isRTL={isRTL}
-        />
-
-        {/* threshold settings tile */}
-        <Card padding="sm" className="flex flex-col">
-          <p className="section-label">{t('confessions.alerts.settingsTitle')}</p>
-          <p className="mt-1 text-xs text-muted">{t('confessions.alerts.settingsSubtitle')}</p>
-
-          {!canManageThreshold ? (
-            <p className="mt-4 text-sm text-muted">{t('confessions.alerts.noManagePermission')}</p>
-          ) : (
-            <div className="mt-4 flex flex-col gap-3">
+      {/* ══ ALERT SETTINGS ══════════════════════════════════════════════ */}
+      <Section
+        icon={Settings2}
+        title={t('confessions.alerts.settingsTitle')}
+        description={t('confessions.alerts.settingsSubtitle')}
+      >
+        {!canManageThreshold ? (
+          <p className="text-sm text-muted">{t('confessions.alerts.noManagePermission')}</p>
+        ) : (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="sm:max-w-xs sm:flex-1">
               <Input
                 label={t('confessions.alerts.thresholdLabel')}
                 type="number"
@@ -240,57 +317,74 @@ export default function ConfessionAlertsPage() {
                 placeholder={configLoading ? t('common.loading') : t('confessions.alerts.thresholdPlaceholder')}
                 containerClassName="!mb-0"
               />
-              <Button
-                icon={Save}
-                onClick={handleSaveThreshold}
-                loading={updateThresholdMutation.isPending}
-                className="w-full"
-              >
-                {t('confessions.alerts.saveThreshold')}
-              </Button>
             </div>
-          )}
-        </Card>
-      </div>
+            <Button
+              icon={Save}
+              onClick={handleSaveThreshold}
+              loading={updateThresholdMutation.isPending}
+            >
+              {t('confessions.alerts.saveThreshold')}
+            </Button>
+          </div>
+        )}
+      </Section>
 
-      {/* ══ ALERTS TABLE ════════════════════════════════════════════════ */}
+      {/* ══ FOLLOW-UP CENTER ════════════════════════════════════════════ */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <SectionLabel>{t('confessions.alerts.page')}</SectionLabel>
-          <span className="text-xs text-muted">{alertsCount}</span>
-        </div>
-
-        {/* search */}
-        <div className="max-w-sm">
-          <SearchInput
-            value={searchName}
-            onChange={(nextValue) => {
-              setSearchName(nextValue);
-              setAlertsPage(1);
-            }}
-            placeholder={t('confessions.alerts.searchPlaceholder')}
-          />
-        </div>
-
-        <div className="overflow-hidden tttable">
-          <Table
-            columns={columns}
-            data={alerts}
-            loading={alertsLoading}
-            emptyTitle={t('confessions.alerts.emptyTitle')}
-            emptyDescription={t('confessions.alerts.emptyDescription')}
-          />
-          {alertsTotalPages > 1 && (
-            <div className="border-t border-border px-4 pb-4 pt-2">
-              <Pagination
-                page={currentAlertsPage}
-                totalPages={alertsTotalPages}
-                onPageChange={setAlertsPage}
-                loading={alertsLoading}
-              />
-            </div>
+          {alertsCount > 0 && (
+            <span className="rounded-full bg-danger-light px-2.5 py-0.5 text-xs font-semibold text-danger">
+              {alertsCount}
+            </span>
           )}
         </div>
+
+        {/* filter bar */}
+        <Card tone="muted" padding="sm">
+          <div className="max-w-sm">
+            <SearchInput
+              value={searchName}
+              onChange={(nextValue) => {
+                setSearchName(nextValue);
+                setAlertsPage(1);
+              }}
+              placeholder={t('confessions.alerts.searchPlaceholder')}
+            />
+          </div>
+        </Card>
+
+        {allCaughtUp ? (
+          <Card padding="lg" className="border-success/20 bg-success/[0.04]">
+            <EmptyState
+              icon={ShieldCheck}
+              title={t('confessions.alerts.emptyTitle')}
+              description={t('confessions.alerts.emptyDescription')}
+            />
+          </Card>
+        ) : (
+          <div>
+            <Table
+              columns={columns}
+              data={sortedAlerts}
+              loading={alertsLoading}
+              renderMode="auto"
+              emptyIcon={BellRing}
+              emptyTitle={t('confessions.alerts.emptyTitle')}
+              emptyDescription={t('confessions.alerts.emptyDescription')}
+            />
+            {alertsTotalPages > 1 && (
+              <div className="mt-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-card">
+                <Pagination
+                  page={currentAlertsPage}
+                  totalPages={alertsTotalPages}
+                  onPageChange={setAlertsPage}
+                  loading={alertsLoading}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
     </div>

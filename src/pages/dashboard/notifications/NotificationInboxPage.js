@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Bell, BellOff, Loader2 } from 'lucide-react';
+import { ArrowRight, Bell, BellOff, BellRing, CheckCheck, Inbox, MailOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -12,6 +12,8 @@ import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
+import StatCard from '../../../components/ui/StatCard';
+import Skeleton from '../../../components/ui/Skeleton';
 import NotificationListItem from '../../../components/notifications/NotificationListItem';
 import {
   getChatNotificationThreadId,
@@ -34,7 +36,7 @@ const PAGE_SIZE = 20;
 export default function NotificationInboxPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const tf = (key, fallback, values) => {
     const value = t(key, values);
     return value === key ? fallback : value;
@@ -84,6 +86,18 @@ export default function NotificationInboxPage() {
   const meta = notificationsQuery.data?.meta || null;
   const unreadCount = Number(unreadCountQuery.data || 0);
   const unreadBadge = getUnreadBadgeLabel(unreadCount);
+
+  // Read-only groupings for a scannable, app-like inbox.
+  const unreadItems = useMemo(
+    () => notifications.filter((notification) => !notification?.isRead),
+    [notifications]
+  );
+  const readItems = useMemo(
+    () => notifications.filter((notification) => notification?.isRead),
+    [notifications]
+  );
+  const pageUnreadCount = unreadItems.length;
+  const pageReadCount = readItems.length;
 
   const markReadMutation = useMutation({
     mutationFn: (notificationId) => userNotificationsApi.markRead(notificationId),
@@ -259,6 +273,34 @@ export default function NotificationInboxPage() {
         )}
       />
 
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatCard
+          icon={Inbox}
+          label={tf('notificationCenter.listTitle', 'Inbox')}
+          value={notifications.length}
+          hint={pushSupported && pushSubscribed
+            ? tf('notificationCenter.push.active', 'Active on this browser')
+            : undefined}
+          tone="primary"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={BellRing}
+          label={tf('notificationCenter.unreadSummary', '{count} unread', { count: unreadCount })}
+          value={unreadCount}
+          hint={unreadCount === 0 ? tf('notificationCenter.allCaughtUp', 'You are all caught up.') : undefined}
+          tone={unreadCount > 0 ? 'gold' : 'success'}
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={MailOpen}
+          label={t('common.actions.view')}
+          value={pageReadCount}
+          tone="success"
+          isRTL={isRTL}
+        />
+      </div>
+
       <Card padding="sm" className="p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -284,26 +326,72 @@ export default function NotificationInboxPage() {
         </div>
 
         {notificationsQuery.isLoading ? (
-          <div className="flex items-center justify-center rounded-2xl border border-dashed border-border bg-surface-alt/30 p-8 text-sm text-muted">
-            <Loader2 className="me-2 h-4 w-4 animate-spin" />
-            {tf('notificationCenter.loading', 'Loading notifications...')}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="flex items-start gap-3 rounded-2xl border border-border bg-surface p-4"
+              >
+                <Skeleton className="h-10 w-10 shrink-0 rounded-2xl" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton className="h-3 w-1/3" />
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : notifications.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {notifications.map((notification) => (
-              <NotificationListItem
-                key={notification.id}
-                notification={notification}
-                tf={tf}
-                loading={openingNotificationId === notification.id}
-                onOpen={() => openNotificationDestination(notification)}
-              />
-            ))}
+          <div className="space-y-6">
+            {unreadItems.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="section-label">
+                    {tf('notificationCenter.unreadSummary', '{count} unread', { count: pageUnreadCount })}
+                  </span>
+                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+                  <div className="h-px flex-1 bg-border/60" />
+                </div>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {unreadItems.map((notification) => (
+                    <NotificationListItem
+                      key={notification.id}
+                      notification={notification}
+                      tf={tf}
+                      loading={openingNotificationId === notification.id}
+                      onOpen={() => openNotificationDestination(notification)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {readItems.length > 0 ? (
+              <div className="space-y-3">
+                {unreadItems.length > 0 ? (
+                  <div className="flex items-center gap-2">
+                    <span className="section-label">{t('common.actions.view')}</span>
+                    <div className="h-px flex-1 bg-border/60" />
+                  </div>
+                ) : null}
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {readItems.map((notification) => (
+                    <NotificationListItem
+                      key={notification.id}
+                      notification={notification}
+                      tf={tf}
+                      loading={openingNotificationId === notification.id}
+                      onOpen={() => openNotificationDestination(notification)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : (
           <EmptyState
-            icon={Bell}
-            title={tf('notificationCenter.emptyTitle', 'No notifications yet')}
+            icon={CheckCheck}
+            title={tf('notificationCenter.allCaughtUp', 'You are all caught up.')}
             description={tf(
               'notificationCenter.emptyDescription',
               'New chat messages, system events, and admin alerts will appear here.'

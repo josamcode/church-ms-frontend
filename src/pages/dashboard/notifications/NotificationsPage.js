@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, Bell, CalendarDays, Eye, Pencil, Plus } from 'lucide-react';
+import { ArrowRight, Bell, BellRing, CalendarDays, CheckCircle2, Eye, Layers, Pencil, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { notificationsApi } from '../../../api/endpoints';
@@ -9,12 +9,13 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
-import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
+import SearchInput from '../../../components/ui/SearchInput';
 import Badge from '../../../components/ui/Badge';
 import Skeleton from '../../../components/ui/Skeleton';
 import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
+import StatCard from '../../../components/ui/StatCard';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
 import { localizeNotificationTypeName } from '../../../utils/notificationTypeLocalization';
@@ -33,7 +34,12 @@ function NewsCard({ notification, onOpen, onEdit, canEdit, t }) {
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
-      <div className="relative h-44 w-full overflow-hidden">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="relative block h-44 w-full overflow-hidden text-start"
+        aria-label={notification.name}
+      >
         {notification.coverImageUrl ? (
           <img
             src={notification.coverImageUrl}
@@ -45,35 +51,40 @@ function NewsCard({ notification, onOpen, onEdit, canEdit, t }) {
             <Bell className="h-10 w-10" />
           </div>
         )}
-      </div>
-
-      <div className="flex flex-1 flex-col space-y-4 p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="primary">{localizeNotificationTypeName(notification.type?.name, t)}</Badge>
-          <Badge variant={notification.isActive ? 'success' : 'default'}>
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
+          <Badge variant="primary" className="bg-primary text-white shadow-sm">
+            {localizeNotificationTypeName(notification.type?.name, t)}
+          </Badge>
+          <Badge variant={notification.isActive ? 'success' : 'default'} dot className="shadow-sm">
             {notification.isActive ? t('notifications.status.active') : t('notifications.status.inactive')}
           </Badge>
-          <span className="text-xs text-muted">
-            <CalendarDays className="mb-0.5 me-1 inline h-3 w-3" />
+        </div>
+      </button>
+
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-center gap-3 text-xs text-muted">
+          <span className="inline-flex items-center gap-1.5">
+            <CalendarDays className="h-3.5 w-3.5" />
             {notification.eventDate ? formatDateTime(notification.eventDate) : formatDateTime(notification.createdAt)}
           </span>
         </div>
 
-        <div>
-          <h3 className="text-xl font-bold leading-snug text-heading">{notification.name}</h3>
-          {notification.summary ? (
-            <p className="mt-2 line-clamp-3 text-sm text-muted">{notification.summary}</p>
-          ) : null}
-        </div>
+        <h3 className="mt-3 line-clamp-2 text-lg font-bold leading-snug text-heading transition-colors group-hover:text-primary">
+          {notification.name}
+        </h3>
+        {notification.summary ? (
+          <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted">{notification.summary}</p>
+        ) : null}
 
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-border/60 pt-3 text-xs text-muted">
-          <span>
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-border/60 pt-3 text-xs text-muted">
+          <span className="inline-flex items-center gap-1.5">
+            <Layers className="h-3.5 w-3.5" />
             {t('notifications.columns.detailsCount')}: {detailsCount}
           </span>
           <span>{formatDateTime(notification.updatedAt)}</span>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           <Button type="button" size="sm" icon={Eye} onClick={onOpen}>
             {t('notifications.actions.readFull')}
           </Button>
@@ -146,7 +157,7 @@ function FeaturedNewsCard({ notification, onOpen, onEdit, canEdit, t, tf }) {
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const { hasPermission } = useAuth();
 
   const tf = (key, fallback) => {
@@ -218,6 +229,11 @@ export default function NotificationsPage() {
 
   const hasActiveFilters = Boolean(filters.q || filters.typeId || filters.isActive !== 'all');
 
+  // Read-only derived counts for the KPI strip (page-scoped where a total is not provided).
+  const totalCount = meta?.count != null ? meta.count : notifications.length;
+  const activeCount = notifications.filter((item) => item.isActive).length;
+  const inactiveCount = notifications.length - activeCount;
+
   const handleNext = () => {
     if (!meta?.nextCursor) return;
     setCursorStack((prev) => [...prev, meta.nextCursor]);
@@ -257,7 +273,32 @@ export default function NotificationsPage() {
         )}
       />
 
-      <Card padding="sm" className="space-y-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatCard
+          icon={Bell}
+          label={t('notifications.page')}
+          value={totalCount}
+          hint={t('notifications.news.latest')}
+          tone="primary"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={BellRing}
+          label={t('notifications.status.active')}
+          value={activeCount}
+          tone="success"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={CheckCircle2}
+          label={t('notifications.status.inactive')}
+          value={inactiveCount}
+          tone="gold"
+          isRTL={isRTL}
+        />
+      </div>
+
+      <Card tone="muted" padding="sm" className="space-y-3">
         <div className="flex items-center justify-between">
           <SectionLabel>{t('notifications.filters.title')}</SectionLabel>
           {hasActiveFilters ? (
@@ -272,10 +313,9 @@ export default function NotificationsPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <Input
-            containerClassName="!mb-0"
+          <SearchInput
             value={filters.q}
-            onChange={(event) => setFilters((prev) => ({ ...prev, q: event.target.value }))}
+            onChange={(value) => setFilters((prev) => ({ ...prev, q: value }))}
             placeholder={t('notifications.filters.searchPlaceholder')}
           />
           <Select
@@ -344,7 +384,7 @@ export default function NotificationsPage() {
             ) : null}
 
             {regularNotifications.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {regularNotifications.map((notification) => (
                   <NewsCard
                     key={notification.id}

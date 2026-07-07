@@ -5,8 +5,11 @@ import {
   BarChart3,
   ChevronDown,
   Clock3,
+  Flame,
   Globe2,
+  MousePointerClick,
   Shield,
+  TrendingUp,
   Users,
 } from 'lucide-react';
 import { systemAnalyticsApi } from '../../../api/endpoints';
@@ -16,6 +19,8 @@ import Select from '../../../components/ui/Select';
 import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import Badge from '../../../components/ui/Badge';
+import EmptyState from '../../../components/ui/EmptyState';
+import Skeleton from '../../../components/ui/Skeleton';
 import PageHeader from '../../../components/ui/PageHeader';
 import { formatDateTime } from '../../../utils/formatters';
 import { useI18n } from '../../../i18n/i18n';
@@ -93,6 +98,15 @@ function getSessionDisplayName(session, t) {
   );
 }
 
+// Read-only presentational helper: month-over-month (point-over-point) % change.
+function pointChange(series = []) {
+  if (!Array.isArray(series) || series.length < 2) return null;
+  const last = Number(series[series.length - 1] || 0);
+  const prev = Number(series[series.length - 2] || 0);
+  if (prev === 0) return null;
+  return Math.round(((last - prev) / prev) * 100);
+}
+
 export default function SystemAnalyticsPage() {
   const { language, t, isRTL } = useI18n();
   const [days, setDays] = useState('7');
@@ -136,18 +150,57 @@ export default function SystemAnalyticsPage() {
     1
   );
 
+  // ---- Read-only presentational derivations for sparklines & insights ----
+  const sessionSeries = useMemo(
+    () => dailyTrend.map((entry) => Number(entry.sessions || 0)),
+    [dailyTrend]
+  );
+  const visitorSeries = useMemo(
+    () => dailyTrend.map((entry) => Number(entry.uniqueVisitors || 0)),
+    [dailyTrend]
+  );
+  const activeSecondsSeries = useMemo(
+    () => dailyTrend.map((entry) => Number(entry.activeSeconds || 0)),
+    [dailyTrend]
+  );
+  const avgSecondsSeries = useMemo(
+    () =>
+      dailyTrend.map((entry) => {
+        const s = Number(entry.sessions || 0);
+        return s > 0 ? Math.round(Number(entry.activeSeconds || 0) / s) : 0;
+      }),
+    [dailyTrend]
+  );
+
+  const insights = useMemo(() => {
+    const busiestDay = dailyTrend.reduce(
+      (best, entry) => ((entry.sessions || 0) > (best?.sessions || 0) ? entry : best),
+      null
+    );
+    const topSurface = surfaceBreakdown.reduce(
+      (best, entry) => ((entry.sessions || 0) > (best?.sessions || 0) ? entry : best),
+      null
+    );
+    const topPage = topPages[0] || null;
+    return { busiestDay, topSurface, topPage };
+  }, [dailyTrend, surfaceBreakdown, topPages]);
+
   const kpiTiles = [
     {
       label: t('systemAnalyticsPage.cards.sessions'),
       value: summary.totalSessions ?? 0,
       icon: Activity,
       tone: 'primary',
+      spark: sessionSeries,
+      trend: pointChange(sessionSeries),
     },
     {
       label: t('systemAnalyticsPage.cards.uniqueVisitors'),
       value: summary.uniqueVisitors ?? 0,
       icon: Globe2,
       tone: 'info',
+      spark: visitorSeries,
+      trend: pointChange(visitorSeries),
     },
     {
       label: t('systemAnalyticsPage.cards.authenticatedSessions'),
@@ -160,12 +213,16 @@ export default function SystemAnalyticsPage() {
       value: formatDuration(summary.avgActiveSeconds ?? 0, t),
       icon: Clock3,
       tone: 'gold',
+      spark: avgSecondsSeries,
+      trend: pointChange(avgSecondsSeries),
     },
     {
       label: t('systemAnalyticsPage.cards.totalTimeSpent'),
       value: formatDuration(summary.totalActiveSeconds ?? 0, t),
       icon: BarChart3,
       tone: 'default',
+      spark: activeSecondsSeries,
+      trend: pointChange(activeSecondsSeries),
     },
     {
       label: t('systemAnalyticsPage.cards.avgPageViews'),
@@ -261,6 +318,45 @@ export default function SystemAnalyticsPage() {
     [selectedSessionId, t]
   );
 
+  const highlightCards = [
+    insights.busiestDay
+      ? {
+          icon: Flame,
+          tone: 'text-warning',
+          wrap: 'bg-warning/10',
+          label: t('systemAnalyticsPage.sections.sessionTrend'),
+          value: formatTrendLabel(insights.busiestDay.date, language),
+          hint: t('systemAnalyticsPage.text.sessionsCount', {
+            count: insights.busiestDay.sessions,
+          }),
+        }
+      : null,
+    insights.topSurface
+      ? {
+          icon: Shield,
+          tone: 'text-primary',
+          wrap: 'bg-primary/10',
+          label: t('systemAnalyticsPage.sections.surfaceBreakdown'),
+          value: formatSurfaceLabel(insights.topSurface.surface, t),
+          hint: t('systemAnalyticsPage.text.sessionsCount', {
+            count: insights.topSurface.sessions,
+          }),
+        }
+      : null,
+    insights.topPage
+      ? {
+          icon: MousePointerClick,
+          tone: 'text-info',
+          wrap: 'bg-info/10',
+          label: t('systemAnalyticsPage.sections.topPages'),
+          value: insights.topPage.title || compactPath(insights.topPage.path),
+          hint: t('systemAnalyticsPage.text.viewsCount', {
+            count: insights.topPage.views,
+          }),
+        }
+      : null,
+  ].filter(Boolean);
+
   return (
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs
@@ -308,31 +404,88 @@ export default function SystemAnalyticsPage() {
         )}
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        {kpiTiles.map(({ label, value, icon: Icon, tone }) => (
-          <StatCard
-            key={label}
-            icon={Icon}
-            label={label}
-            value={value}
-            tone={tone}
-            isRTL={isRTL}
-          />
-        ))}
-      </div>
+      {/* KPI band */}
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton key={index} className="h-[132px] rounded-xl" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {kpiTiles.map(({ label, value, icon: Icon, tone, spark, trend }) => (
+            <StatCard
+              key={label}
+              icon={Icon}
+              label={label}
+              value={value}
+              tone={tone}
+              spark={spark}
+              trend={trend}
+              trendLabel={typeof trend === 'number' ? `${Math.abs(trend)}%` : undefined}
+              isRTL={isRTL}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Highlights strip */}
+      {!isLoading && highlightCards.length > 0 ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {highlightCards.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.label}
+                className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-card"
+              >
+                <span className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${item.wrap} ${item.tone}`}>
+                  <Icon className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-muted">
+                    {item.label}
+                  </p>
+                  <p className="truncate text-sm font-bold text-heading">{item.value}</p>
+                  <p className="truncate text-xs text-muted">{item.hint}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2" padding="lg">
           <CardHeader
             icon={BarChart3}
             title={t('systemAnalyticsPage.sections.sessionTrend')}
+            action={
+              typeof pointChange(sessionSeries) === 'number' ? (
+                <Badge variant={pointChange(sessionSeries) >= 0 ? 'success' : 'danger'} dot>
+                  {pointChange(sessionSeries) >= 0 ? '+' : ''}
+                  {pointChange(sessionSeries)}%
+                </Badge>
+              ) : null
+            }
           />
 
           <div>
             {isLoading ? (
-              <p className="text-sm text-muted">{t('systemAnalyticsPage.states.loadingAnalytics')}</p>
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} className="space-y-1.5">
+                    <Skeleton className="h-3 w-28" />
+                    <Skeleton className="h-2 w-full rounded-full" />
+                  </div>
+                ))}
+              </div>
             ) : dailyTrend.length === 0 ? (
-              <p className="text-sm text-muted">{t('systemAnalyticsPage.states.noSessionData')}</p>
+              <EmptyState
+                compact
+                icon={TrendingUp}
+                title={t('systemAnalyticsPage.states.noSessionData')}
+              />
             ) : (
               <div className="space-y-4">
                 {dailyTrend.map((entry) => {
@@ -381,7 +534,14 @@ export default function SystemAnalyticsPage() {
 
           <div>
             {isLoading ? (
-              <p className="text-sm text-muted">{t('systemAnalyticsPage.states.loadingBreakdown')}</p>
+              <div className="space-y-4">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="space-y-1.5">
+                    <Skeleton className="h-4 w-20 rounded-full" />
+                    <Skeleton className="h-1.5 w-full rounded-full" />
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="space-y-4">
                 {surfaceBreakdown.map((entry) => {
@@ -427,9 +587,20 @@ export default function SystemAnalyticsPage() {
 
           <div>
             {isLoading ? (
-              <p className="text-sm text-muted">{t('systemAnalyticsPage.states.loadingTopPages')}</p>
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} className="space-y-1.5">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-1.5 w-full rounded-full" />
+                  </div>
+                ))}
+              </div>
             ) : topPages.length === 0 ? (
-              <p className="text-sm text-muted">{t('systemAnalyticsPage.states.noTopPages')}</p>
+              <EmptyState
+                compact
+                icon={Globe2}
+                title={t('systemAnalyticsPage.states.noTopPages')}
+              />
             ) : (
               <div className="space-y-4">
                 {topPages.map((entry) => {
@@ -483,9 +654,17 @@ export default function SystemAnalyticsPage() {
 
           <div>
             {isLoading ? (
-              <p className="text-sm text-muted">{t('systemAnalyticsPage.states.loadingSessions')}</p>
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Skeleton key={index} className="h-[68px] rounded-xl" />
+                ))}
+              </div>
             ) : recentSessions.length === 0 ? (
-              <p className="text-sm text-muted">{t('systemAnalyticsPage.states.noRecentSessions')}</p>
+              <EmptyState
+                compact
+                icon={Clock3}
+                title={t('systemAnalyticsPage.states.noRecentSessions')}
+              />
             ) : (
               <div className="space-y-3">
                 {recentSessions.slice(0, 5).map((session) => (

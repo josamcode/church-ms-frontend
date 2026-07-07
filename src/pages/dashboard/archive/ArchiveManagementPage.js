@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   Award,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
@@ -10,6 +11,7 @@ import {
   FolderOpen,
   ImagePlus,
   Pencil,
+  RefreshCw,
   Save,
   Trash2,
   X,
@@ -859,6 +861,11 @@ export default function ArchiveManagementPage() {
     [collectionDirectory, ta]
   );
 
+  const totalPublished =
+    (archiveData.counts.publishedCollections || 0) +
+    (archiveData.counts.publishedStories || 0) +
+    (archiveData.counts.publishedHonorees || 0);
+
   const archiveStatCards = useMemo(
     () => [
       {
@@ -882,8 +889,16 @@ export default function ArchiveManagementPage() {
         icon: Award,
         tone: 'success',
       },
+      {
+        label: ta('status.published'),
+        value: totalPublished,
+        published: totalPublished,
+        icon: CheckCircle2,
+        tone: 'info',
+        hideHint: true,
+      },
     ],
-    [archiveData.counts, ta]
+    [archiveData.counts, ta, totalPublished]
   );
 
   const activeCollection = useMemo(
@@ -1301,17 +1316,25 @@ export default function ArchiveManagementPage() {
           title={ta('title')}
           subtitle={ta('loadErrorSubtitle')}
           actions={(
-            <Button variant="outline" onClick={() => archiveQuery.refetch()}>
+            <Button variant="outline" icon={RefreshCw} onClick={() => archiveQuery.refetch()}>
               {ta('actions.refresh')}
             </Button>
           )}
         />
         <Card className="!bg-danger-light/40 !border-danger/20">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-danger/10 text-danger">
-              <AlertTriangle className="h-[18px] w-[18px]" />
+          <div className="flex flex-col items-center gap-4 py-8 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-danger/10 text-danger">
+              <AlertTriangle className="h-7 w-7" />
             </span>
-            <p className="text-sm text-danger">{normalizeApiError(archiveQuery.error).message}</p>
+            <div>
+              <p className="text-base font-bold text-heading">{ta('loadErrorSubtitle')}</p>
+              <p className="mt-1 max-w-md text-sm text-danger">
+                {normalizeApiError(archiveQuery.error).message}
+              </p>
+            </div>
+            <Button variant="outline" icon={RefreshCw} onClick={() => archiveQuery.refetch()}>
+              {ta('actions.refresh')}
+            </Button>
           </div>
         </Card>
       </div>
@@ -1335,7 +1358,7 @@ export default function ArchiveManagementPage() {
         actions={(
           !isGalleryOnlyView ? (
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => archiveQuery.refetch()}>
+              <Button variant="outline" icon={RefreshCw} onClick={() => archiveQuery.refetch()}>
                 {ta('actions.refresh')}
               </Button>
             </div>
@@ -1348,14 +1371,14 @@ export default function ArchiveManagementPage() {
       ) : (
         <>
           {shouldShowAdminStats ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {archiveStatCards.map(({ label, value, published, icon: Icon, tone }) => (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {archiveStatCards.map(({ label, value, published, icon: Icon, tone, hideHint }) => (
                 <StatCard
                   key={label}
                   icon={Icon}
                   label={label}
                   value={value}
-                  hint={ta('stats.published', { count: published })}
+                  hint={hideHint ? undefined : ta('stats.published', { count: published })}
                   tone={tone}
                   isRTL={language === 'ar'}
                 />
@@ -1366,7 +1389,9 @@ export default function ArchiveManagementPage() {
           {showCollectionsSection ? (
             <Card>
               <CardHeader
+                icon={FolderOpen}
                 title={ta('collections.title')}
+                subtitle={ta('collections.subtitle')}
                 action={collectionDirectory.length ? (
                   <Badge variant="primary">
                     {archiveData.counts.collections} {ta('stats.collections')}

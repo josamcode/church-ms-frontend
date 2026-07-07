@@ -1,13 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowUpRight, Eye, Plus } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Eye,
+  Plus,
+  Home,
+  ClipboardList,
+  Clock,
+  Filter,
+  Users,
+} from 'lucide-react';
 import { visitationsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
+import Badge from '../../../components/ui/Badge';
+import StatCard from '../../../components/ui/StatCard';
 import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
 import Table from '../../../components/ui/Table';
@@ -31,7 +42,7 @@ function SectionLabel({ children }) {
 /* ── page ────────────────────────────────────────────────────────────────── */
 
 export default function PastoralVisitationListPage() {
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const { hasPermission } = useAuth();
   const navigateToUser = useNavigateToUser();
   const canCreate = hasPermission('PASTORAL_VISITATIONS_CREATE');
@@ -72,6 +83,32 @@ export default function PastoralVisitationListPage() {
   const visitations = Array.isArray(listRes?.data) ? listRes.data : [];
   const meta = listRes?.meta || null;
 
+  /* ── read-only presentation KPIs (from already-fetched page data) ── */
+  const pageCount = visitations.length;
+  const totalLabel = meta?.count != null ? meta.count : pageCount;
+  const totalMinutes = useMemo(
+    () => visitations.reduce((sum, row) => sum + (Number(row.durationMinutes) || 10), 0),
+    [visitations]
+  );
+  const distinctHouses = useMemo(
+    () =>
+      new Set(
+        visitations
+          .map((row) => String(row.houseName || '').trim())
+          .filter(Boolean)
+      ).size,
+    [visitations]
+  );
+  const distinctRecorders = useMemo(
+    () =>
+      new Set(
+        visitations
+          .map((row) => row.recordedBy?.id)
+          .filter(Boolean)
+      ).size,
+    [visitations]
+  );
+
   const handleNext = () => {
     if (!meta?.nextCursor) return;
     setCursorStack((prev) => [...prev, meta.nextCursor]);
@@ -93,16 +130,30 @@ export default function PastoralVisitationListPage() {
       label: t('visitations.list.columns.houseName'),
       render: (row) => {
         const houseName = String(row.houseName || '').trim();
-        if (!houseName) return <span className="text-muted text-sm">{t('common.placeholder.empty')}</span>;
+        if (!houseName) {
+          return (
+            <span className="flex items-center gap-3">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-surface-alt text-muted">
+                <Home className="h-4 w-4" />
+              </span>
+              <span className="text-muted text-sm">{t('common.placeholder.empty')}</span>
+            </span>
+          );
+        }
 
         const query = new URLSearchParams({ lookupType: 'houseName', lookupName: houseName }).toString();
         return (
           <Link
             to={`/dashboard/users/family-house/details?${query}`}
-            className="group inline-flex items-center gap-1 font-medium text-heading transition-colors hover:text-primary"
+            className="group flex items-center gap-3"
           >
-            {houseName}
-            <ArrowUpRight className="h-3 w-3 text-border transition-colors group-hover:text-primary" />
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Home className="h-4 w-4" />
+            </span>
+            <span className="inline-flex items-center gap-1 font-semibold text-heading transition-colors group-hover:text-primary">
+              {houseName}
+              <ArrowUpRight className="h-3 w-3 text-border transition-colors group-hover:text-primary" />
+            </span>
           </Link>
         );
       },
@@ -110,16 +161,15 @@ export default function PastoralVisitationListPage() {
     {
       key: 'visitedAt',
       label: t('visitations.list.columns.visitedAt'),
-      render: (row) => <span className="text-sm text-heading">{formatDateTime(row.visitedAt)}</span>,
+      render: (row) => <span className="text-sm font-medium text-heading">{formatDateTime(row.visitedAt)}</span>,
     },
     {
       key: 'durationMinutes',
       label: t('visitations.list.columns.durationMinutes'),
       render: (row) => (
-        <span className="text-sm text-heading">
-          {row.durationMinutes || 10}{' '}
-          <span className="text-muted">{t('visitations.shared.minutes')}</span>
-        </span>
+        <Badge variant="info" dot>
+          {row.durationMinutes || 10} {t('visitations.shared.minutes')}
+        </Badge>
       ),
     },
     {
@@ -173,7 +223,7 @@ export default function PastoralVisitationListPage() {
       {/* ══ HEADER ══════════════════════════════════════════════════════ */}
       <PageHeader
         className="border-b border-border pb-6"
-        eyebrow={t('shared.dashboard')}
+        eyebrow={t('visitations.list.page')}
         title={t('visitations.list.title')}
         subtitle={t('visitations.list.subtitle')}
         actions={
@@ -184,6 +234,42 @@ export default function PastoralVisitationListPage() {
           ) : null
         }
       />
+
+      {/* ══ KPI STRIP ═══════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          icon={ClipboardList}
+          label={t('visitations.list.page')}
+          value={totalLabel}
+          hint={t('visitations.list.subtitle')}
+          tone="primary"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Home}
+          label={t('visitations.list.columns.houseName')}
+          value={distinctHouses}
+          hint={t('visitations.list.title')}
+          tone="gold"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Clock}
+          label={t('visitations.list.columns.durationMinutes')}
+          value={`${totalMinutes} ${t('visitations.shared.minutes')}`}
+          hint={t('visitations.list.columns.visitedAt')}
+          tone="info"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Users}
+          label={t('visitations.list.columns.recordedBy')}
+          value={distinctRecorders}
+          hint={t('visitations.list.columns.recordedAt')}
+          tone="success"
+          isRTL={isRTL}
+        />
+      </div>
 
       {/* ══ FILTERS ═════════════════════════════════════════════════════ */}
       <section className="space-y-3">
@@ -203,6 +289,7 @@ export default function PastoralVisitationListPage() {
         <Card tone="muted" padding="sm">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <Input
+              icon={Filter}
               value={filters.houseName}
               onChange={(e) => setFilter('houseName', e.target.value)}
               placeholder={t('visitations.list.houseNameFilterPlaceholder')}
@@ -231,27 +318,33 @@ export default function PastoralVisitationListPage() {
         <div className="flex items-center justify-between">
           <SectionLabel>{t('visitations.list.page')}</SectionLabel>
           {meta?.count != null && (
-            <span className="text-xs text-muted">{meta.count}</span>
+            <span className="rounded-full bg-surface-alt px-2.5 py-0.5 text-xs font-semibold text-muted">
+              {meta.count}
+            </span>
           )}
         </div>
 
-        <div className="overflow-hidden tttable">
+        <div>
           <Table
             columns={columns}
             data={visitations}
             loading={isLoading}
+            renderMode="auto"
+            emptyIcon={Home}
             emptyTitle={t('visitations.list.emptyTitle')}
             emptyDescription={t('visitations.list.emptyDescription')}
           />
-          <div className="border-t border-border px-4 pb-4 pt-2">
-            <Pagination
-              meta={meta}
-              onLoadMore={handleNext}
-              onPrev={handlePrev}
-              cursors={cursorStack}
-              loading={isLoading}
-            />
-          </div>
+          {(meta?.nextCursor || cursorStack.length > 1) && (
+            <div className="mt-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-card">
+              <Pagination
+                meta={meta}
+                onLoadMore={handleNext}
+                onPrev={handlePrev}
+                cursors={cursorStack}
+                loading={isLoading}
+              />
+            </div>
+          )}
         </div>
       </section>
 

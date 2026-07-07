@@ -1,14 +1,24 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarPlus } from 'lucide-react';
+import {
+  CalendarPlus,
+  CalendarCheck,
+  CalendarClock,
+  UserCircle,
+  Layers,
+  ListChecks,
+  Filter,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { confessionsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import Table from '../../../components/ui/Table';
 import Pagination from '../../../components/ui/Pagination';
 import Badge from '../../../components/ui/Badge';
+import StatCard from '../../../components/ui/StatCard';
 import PageHeader from '../../../components/ui/PageHeader';
 import { formatDateTime } from '../../../utils/formatters';
 import { localizeSessionTypeName } from '../../../utils/sessionTypeLocalization';
@@ -29,7 +39,7 @@ function SectionLabel({ children }) {
 
 export default function ConfessionSessionsPage() {
   const { user, hasPermission } = useAuth();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const navigate = useNavigate();
   const navigateToUser = useNavigateToUser();
   const canCreate = hasPermission('CONFESSIONS_CREATE');
@@ -84,6 +94,32 @@ export default function ConfessionSessionsPage() {
       )
     : t('confessions.sessions.emptyDescription');
 
+  /* ── derived read-only KPI counts (from already-fetched page data) ── */
+  const nowTs = Date.now();
+  const pageCount = sessions.length;
+  const upcomingCount = useMemo(
+    () =>
+      sessions.filter((row) => {
+        const ts = new Date(row.nextSessionAt || row.scheduledAt).getTime();
+        return Number.isFinite(ts) && ts >= nowTs;
+      }).length,
+    [sessions, nowTs]
+  );
+  const withFollowUpCount = useMemo(
+    () => sessions.filter((row) => Boolean(row.nextSessionAt)).length,
+    [sessions]
+  );
+  const distinctTypes = useMemo(
+    () =>
+      new Set(
+        sessions
+          .map((row) => row.sessionType?.name)
+          .filter(Boolean)
+      ).size,
+    [sessions]
+  );
+  const totalLabel = sessionsMeta?.count != null ? sessionsMeta.count : pageCount;
+
   const handleNext = () => {
     if (sessionsMeta?.nextCursor) {
       setCursorStack((prev) => [...prev, sessionsMeta.nextCursor]);
@@ -107,16 +143,49 @@ export default function ConfessionSessionsPage() {
         <button
           type="button"
           onClick={() => navigateToUser(row.attendee?.id)}
-          className="group text-start"
+          className="group flex items-center gap-3 text-start"
         >
-          <p className="font-medium text-heading transition-colors group-hover:text-primary">
-            {row.attendee?.fullName || t('common.placeholder.empty')}
-          </p>
-          {row.attendee?.phonePrimary && (
-            <p className="text-xs text-muted direction-ltr">{row.attendee.phonePrimary}</p>
-          )}
+          <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <UserCircle className="h-5 w-5" />
+          </span>
+          <span className="min-w-0">
+            <p className="truncate font-semibold text-heading transition-colors group-hover:text-primary">
+              {row.attendee?.fullName || t('common.placeholder.empty')}
+            </p>
+            {row.attendee?.phonePrimary && (
+              <p className="text-xs text-muted direction-ltr">{row.attendee.phonePrimary}</p>
+            )}
+          </span>
         </button>
       ),
+    },
+    {
+      key: 'sessionType',
+      label: t('confessions.sessions.columns.type'),
+      render: (row) => (
+        <Badge variant="primary" dot>
+          {localizeSessionTypeName(row.sessionType?.name, t)}
+        </Badge>
+      ),
+    },
+    {
+      key: 'scheduledAt',
+      label: t('confessions.sessions.columns.scheduledAt'),
+      render: (row) => (
+        <span className="text-sm font-medium text-heading">{formatDateTime(row.scheduledAt)}</span>
+      ),
+    },
+    {
+      key: 'nextSessionAt',
+      label: t('confessions.sessions.columns.nextSessionAt'),
+      render: (row) =>
+        row.nextSessionAt ? (
+          <Badge variant="info" dot>
+            {formatDateTime(row.nextSessionAt)}
+          </Badge>
+        ) : (
+          <span className="text-sm text-muted">{t('common.placeholder.empty')}</span>
+        ),
     },
     {
       key: 'createdBy',
@@ -126,32 +195,6 @@ export default function ConfessionSessionsPage() {
           {row.createdByUser?.fullName || t('common.placeholder.empty')}
         </span>
       ),
-    },
-    {
-      key: 'sessionType',
-      label: t('confessions.sessions.columns.type'),
-      render: (row) => (
-        <Badge variant="primary">
-          {localizeSessionTypeName(row.sessionType?.name, t)}
-        </Badge>
-      ),
-    },
-    {
-      key: 'scheduledAt',
-      label: t('confessions.sessions.columns.scheduledAt'),
-      render: (row) => (
-        <span className="text-sm text-heading">{formatDateTime(row.scheduledAt)}</span>
-      ),
-    },
-    {
-      key: 'nextSessionAt',
-      label: t('confessions.sessions.columns.nextSessionAt'),
-      render: (row) =>
-        row.nextSessionAt ? (
-          <span className="text-sm text-heading">{formatDateTime(row.nextSessionAt)}</span>
-        ) : (
-          <span className="text-sm text-muted">{t('common.placeholder.empty')}</span>
-        ),
     },
   ], [navigateToUser, t]);
 
@@ -169,25 +212,11 @@ export default function ConfessionSessionsPage() {
       {/* ══ PAGE HEADER ═══════════════════════════════════════════════════ */}
       <PageHeader
         className="border-b border-border pb-6"
+        eyebrow={t('confessions.sessions.page')}
         title={t('confessions.sessions.recentTitle')}
         subtitle={t('confessions.sessions.recentSubtitle')}
         actions={(
           <div className="flex flex-wrap gap-2">
-            {currentUserId ? (
-              <Button
-                type="button"
-                size="sm"
-                variant={showMineOnly ? 'primary' : 'outline'}
-                onClick={() => {
-                  setShowMineOnly((prev) => !prev);
-                  resetPagination();
-                }}
-              >
-                {showMineOnly
-                  ? tf('confessions.sessions.showAllAction', 'Show all sessions')
-                  : tf('confessions.sessions.showMineAction', 'My created sessions')}
-              </Button>
-            ) : null}
             {canCreate ? (
               <Button
                 icon={CalendarPlus}
@@ -200,33 +229,119 @@ export default function ConfessionSessionsPage() {
         )}
       />
 
+      {/* ══ KPI STRIP ═════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          icon={ListChecks}
+          label={sectionTitle}
+          value={totalLabel}
+          hint={t('confessions.sessions.page')}
+          tone="primary"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={CalendarCheck}
+          label={t('confessions.sessions.columns.scheduledAt')}
+          value={upcomingCount}
+          hint={t('confessions.sessions.recentSubtitle')}
+          tone="success"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={CalendarClock}
+          label={t('confessions.sessions.columns.nextSessionAt')}
+          value={withFollowUpCount}
+          hint={t('confessions.sessions.columns.nextSessionAt')}
+          tone="gold"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Layers}
+          label={t('confessions.sessions.columns.type')}
+          value={distinctTypes}
+          hint={t('confessions.sessions.columns.type')}
+          tone="info"
+          isRTL={isRTL}
+        />
+      </div>
+
+      {/* ══ FILTER BAR ════════════════════════════════════════════════════ */}
+      {currentUserId ? (
+        <Card tone="muted" padding="sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+              <Filter className="h-3.5 w-3.5" />
+              {tf('confessions.sessions.showMineAction', 'My created sessions')}
+            </span>
+            <div className="inline-flex rounded-lg border border-border bg-surface p-0.5 shadow-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!showMineOnly) return;
+                  setShowMineOnly(false);
+                  resetPagination();
+                }}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  !showMineOnly
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-muted hover:text-heading'
+                }`}
+              >
+                {tf('confessions.sessions.showAllAction', 'Show all sessions')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (showMineOnly) return;
+                  setShowMineOnly(true);
+                  resetPagination();
+                }}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  showMineOnly
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-muted hover:text-heading'
+                }`}
+              >
+                {tf('confessions.sessions.showMineAction', 'My created sessions')}
+              </button>
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
       {/* ══ TABLE SECTION ═════════════════════════════════════════════════ */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <SectionLabel>{sectionTitle}</SectionLabel>
           {sessionsMeta?.count != null && (
-            <span className="text-xs text-muted">{sessionsMeta.count}</span>
+            <span className="rounded-full bg-surface-alt px-2.5 py-0.5 text-xs font-semibold text-muted">
+              {sessionsMeta.count}
+            </span>
           )}
         </div>
 
-        <div className="overflow-hidden tttable">
+        <div>
           <Table
             columns={columns}
             data={sessions}
             loading={sessionsLoading}
+            renderMode="auto"
+            emptyIcon={CalendarPlus}
             emptyTitle={emptyTitle}
             emptyDescription={emptyDescription}
           />
 
-          <div className="border-t border-border px-4 pb-4 pt-2">
-            <Pagination
-              meta={sessionsMeta}
-              onLoadMore={handleNext}
-              onPrev={handlePrev}
-              cursors={cursorStack}
-              loading={sessionsLoading}
-            />
-          </div>
+          {(sessionsMeta?.nextCursor || cursorStack.length > 1) && (
+            <div className="mt-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-card">
+              <Pagination
+                meta={sessionsMeta}
+                onLoadMore={handleNext}
+                onPrev={handlePrev}
+                cursors={cursorStack}
+                loading={sessionsLoading}
+              />
+            </div>
+          )}
         </div>
       </section>
 

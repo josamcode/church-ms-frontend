@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useCallback, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Activity,
   ArrowUpRight,
   BarChart3,
   Building2,
-  ChevronRight,
+  Crown,
   Home,
   LockKeyhole,
+  MapPin,
   RefreshCw,
-  Search,
   ShieldCheck,
   UserCheck,
   Users as UsersIcon,
@@ -24,14 +24,12 @@ import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
-import SearchInput from '../../../components/ui/SearchInput';
-import Select from '../../../components/ui/Select';
+import Skeleton from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import {
   FAMILY_HOUSE_DETAILS_PATH,
   buildLookupQuery,
-  normalizeText,
 } from './familyHouseLookup.shared';
 
 const CHART_COLORS = [
@@ -79,34 +77,14 @@ function toRows(items = [], maxItems = 6) {
 export default function FamilyHouseAnalyticsPage() {
   const { t, language, isRTL } = useI18n();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [lookupType, setLookupType] = useState('familyName');
-  const [lookupName, setLookupName] = useState('');
 
   const tr = useCallback((key, values) => t(key, values), [t]);
-  const isFamilyLookup = lookupType === 'familyName';
-  const normalizedLookupName = normalizeText(lookupName);
-  const trimmedLookupName = lookupName.trim();
-  const detailsHref = trimmedLookupName
-    ? `${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery(lookupType, trimmedLookupName)}`
-    : null;
 
   const analyticsQuery = useQuery({
     queryKey: ['users', 'family-house-analytics'],
     queryFn: async () => {
       const { data } = await usersApi.getFamilyHouseAnalytics();
       return data?.data || EMPTY_ANALYTICS;
-    },
-    staleTime: 120000,
-  });
-
-  const lookupNamesQuery = useQuery({
-    queryKey: ['users', isFamilyLookup ? 'family-names' : 'house-names', 'analytics'],
-    queryFn: async () => {
-      const { data } = isFamilyLookup
-        ? await usersApi.getFamilyNames()
-        : await usersApi.getHouseNames();
-      return data?.data ?? [];
     },
     staleTime: 120000,
   });
@@ -142,17 +120,26 @@ export default function FamilyHouseAnalyticsPage() {
     [tr]
   );
 
-  const lookupNames = useMemo(
-    () => (Array.isArray(lookupNamesQuery.data) ? lookupNamesQuery.data : []),
-    [lookupNamesQuery.data]
+  // Read-only presentational derivations: monthly registration series + trend.
+  const registrationSeries = useMemo(
+    () => monthlyRegistrations.map((item) => Number(item.count || 0)),
+    [monthlyRegistrations]
   );
 
-  const filteredLookupNames = useMemo(() => {
-    const names = normalizedLookupName
-      ? lookupNames.filter((name) => normalizeText(name).includes(normalizedLookupName))
-      : lookupNames;
-    return names.slice(0, 8);
-  }, [lookupNames, normalizedLookupName]);
+  const registrationTrend = useMemo(() => {
+    if (registrationSeries.length < 2) return null;
+    const last = registrationSeries[registrationSeries.length - 1];
+    const prev = registrationSeries[registrationSeries.length - 2];
+    if (prev === 0) return null;
+    return Math.round(((last - prev) / prev) * 100);
+  }, [registrationSeries]);
+
+  const highlights = useMemo(() => {
+    const topFamily = familyRanks[0] || null;
+    const topHouse = houseRanks[0] || null;
+    const topCity = (distributions.cities || [])[0] || null;
+    return { topFamily, topHouse, topCity };
+  }, [familyRanks, houseRanks, distributions.cities]);
 
   const coverageRows = useMemo(
     () => [
@@ -192,6 +179,8 @@ export default function FamilyHouseAnalyticsPage() {
         detail: tr('familyHouseAnalytics.metrics.averageAge', { age: summary.averageAge ?? '---' }),
         icon: UsersIcon,
         tone: 'primary',
+        spark: registrationSeries,
+        trend: registrationTrend,
       },
       {
         label: tr('familyHouseLookup.analytics.totalFamilies'),
@@ -221,7 +210,7 @@ export default function FamilyHouseAnalyticsPage() {
         tone: 'danger',
       },
     ],
-    [summary, totalMembers, language, tr]
+    [summary, totalMembers, language, tr, registrationSeries, registrationTrend]
   );
 
   const familyRankColumns = useMemo(
@@ -308,21 +297,7 @@ export default function FamilyHouseAnalyticsPage() {
     [language, tr]
   );
 
-  useEffect(() => {
-    const urlLookupType = searchParams.get('lookupType');
-    const urlLookupName = String(searchParams.get('lookupName') || '').trim();
-
-    if (urlLookupType === 'houseName' || urlLookupType === 'familyName') {
-      setLookupType(urlLookupType);
-    }
-    if (urlLookupName) setLookupName(urlLookupName);
-  }, [searchParams]);
-
   const errorMessage = analyticsQuery.error ? normalizeApiError(analyticsQuery.error).message : null;
-
-  const openDetails = () => {
-    if (detailsHref) navigate(detailsHref);
-  };
 
   return (
     <div className="animate-fade-in space-y-7 pb-10">
@@ -359,23 +334,84 @@ export default function FamilyHouseAnalyticsPage() {
             icon={UsersIcon}
             title={tr('familyHouseAnalytics.states.errorTitle')}
             description={errorMessage}
+            action={
+              <Button
+                variant="outline"
+                icon={RefreshCw}
+                loading={analyticsQuery.isFetching}
+                onClick={() => analyticsQuery.refetch()}
+              >
+                {tr('familyHouseAnalytics.actions.refresh')}
+              </Button>
+            }
           />
         </Card>
       ) : (
         <>
           <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-            {kpiItems.map((item) => (
-              <StatCard
-                key={item.label}
-                icon={item.icon}
-                label={item.label}
-                value={analyticsQuery.isLoading ? '···' : (item.value ?? '---')}
-                hint={item.detail}
-                tone={item.tone}
-                isRTL={isRTL}
-              />
-            ))}
+            {analyticsQuery.isLoading
+              ? Array.from({ length: 4 }).map((_, index) => (
+                  <Skeleton key={index} className="h-[132px] rounded-xl" />
+                ))
+              : kpiItems.map((item) => (
+                  <StatCard
+                    key={item.label}
+                    icon={item.icon}
+                    label={item.label}
+                    value={item.value ?? '---'}
+                    hint={item.detail}
+                    tone={item.tone}
+                    spark={item.spark}
+                    trend={item.trend}
+                    trendLabel={
+                      typeof item.trend === 'number' ? `${Math.abs(item.trend)}%` : undefined
+                    }
+                    isRTL={isRTL}
+                  />
+                ))}
           </section>
+
+          {!analyticsQuery.isLoading &&
+          (highlights.topFamily || highlights.topHouse || highlights.topCity) ? (
+            <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {highlights.topFamily ? (
+                <HighlightTile
+                  icon={Crown}
+                  wrap="bg-secondary/12"
+                  tone="text-secondary"
+                  label={tr('familyHouseLookup.analytics.biggestFamilies')}
+                  value={highlights.topFamily.name}
+                  hint={tr('familyHouseAnalytics.metrics.memberShare', {
+                    percent: formatNumber(highlights.topFamily.count, language),
+                  })}
+                />
+              ) : null}
+              {highlights.topHouse ? (
+                <HighlightTile
+                  icon={Home}
+                  wrap="bg-primary/10"
+                  tone="text-primary"
+                  label={tr('familyHouseLookup.analytics.biggestHouses')}
+                  value={highlights.topHouse.name}
+                  hint={tr('familyHouseAnalytics.metrics.memberShare', {
+                    percent: formatNumber(highlights.topHouse.count, language),
+                  })}
+                />
+              ) : null}
+              {highlights.topCity ? (
+                <HighlightTile
+                  icon={MapPin}
+                  wrap="bg-info/12"
+                  tone="text-info"
+                  label={tr('familyHouseAnalytics.sections.topCities')}
+                  value={highlights.topCity.name}
+                  hint={tr('familyHouseAnalytics.metrics.memberShare', {
+                    percent: formatNumber(highlights.topCity.count, language),
+                  })}
+                />
+              ) : null}
+            </section>
+          ) : null}
 
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.75fr)]">
             <Card className="space-y-5">
@@ -710,64 +746,16 @@ function BarBreakdown({ title, items = [], language, loading, maxItems = 6 }) {
   );
 }
 
-function LookupConsole({
-  lookupType,
-  onLookupTypeChange,
-  lookupName,
-  onLookupNameChange,
-  filteredLookupNames,
-  lookupLoading,
-  detailsHref,
-  onOpenDetails,
-  tr,
-  isRTL,
-}) {
+function HighlightTile({ icon: Icon, wrap, tone, label, value, hint }) {
   return (
-    <div className="space-y-4">
-      <Select
-        value={lookupType}
-        onChange={(event) => {
-          onLookupTypeChange(event.target.value);
-          onLookupNameChange('');
-        }}
-        options={[
-          { value: 'familyName', label: tr('familyHouseLookup.filters.familyName') },
-          { value: 'houseName', label: tr('familyHouseLookup.filters.houseName') },
-        ]}
-        containerClassName="!mb-0"
-      />
-      <SearchInput
-        value={lookupName}
-        onChange={onLookupNameChange}
-        debounceMs={120}
-        placeholder={tr('familyHouseAnalytics.lookup.placeholder')}
-      />
-      <div className="min-h-[150px] rounded-lg border border-border bg-surface-alt/35 p-2">
-        {lookupLoading ? (
-          <SkeletonStack count={4} />
-        ) : filteredLookupNames.length === 0 ? (
-          <p className="px-2 py-3 text-sm text-muted">{tr('familyHouseAnalytics.lookup.noMatches')}</p>
-        ) : filteredLookupNames.map((name) => (
-          <button
-            key={name}
-            type="button"
-            onClick={() => onLookupNameChange(name)}
-            className="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm text-heading transition hover:bg-surface"
-          >
-            <span className="truncate">{name}</span>
-            <ChevronRight className={`h-4 w-4 text-muted ${isRTL ? 'rotate-180' : ''}`} />
-          </button>
-        ))}
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button disabled={!detailsHref} icon={ArrowUpRight} onClick={onOpenDetails}>
-          {tr('familyHouseAnalytics.actions.openDetails')}
-        </Button>
-        {detailsHref ? (
-          <Link to={detailsHref} className="text-sm font-semibold text-primary hover:underline">
-            {tr('familyHouseAnalytics.actions.viewProfile')}
-          </Link>
-        ) : null}
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-card">
+      <span className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${wrap} ${tone}`}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
+        <p className="truncate text-sm font-bold text-heading">{value}</p>
+        <p className="truncate text-xs text-muted">{hint}</p>
       </div>
     </div>
   );

@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, HandCoins, History, Search, Plus, Filter, BellRing, Users } from 'lucide-react';
+import { CalendarDays, HandCoins, History, Plus, Filter, BellRing, Users, Layers } from 'lucide-react';
 import { aidsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
 import { useI18n } from '../../../i18n/i18n';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Card, { CardHeader } from '../../../components/ui/Card';
-import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import Pagination from '../../../components/ui/Pagination';
+import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import Button from '../../../components/ui/Button';
 import SearchInput from '../../../components/ui/SearchInput';
@@ -26,6 +26,13 @@ const COPY = {
     categoryFilter: 'All Categories',
     emptyTitle: 'No distributed aid found',
     emptyDesc: 'Once aid is disbursed, the records will appear here.',
+    statRecords: 'Records on this page',
+    statBeneficiaries: 'Beneficiaries reached',
+    statCategories: 'Aid categories',
+    statPage: 'Current page',
+    statRecordsHint: 'Aid entries shown below',
+    statBeneficiariesHint: 'Across the listed records',
+    statCategoriesHint: 'Distinct on this page',
     columns: {
       date: 'Date',
       category: 'Category',
@@ -43,6 +50,13 @@ const COPY = {
     categoryFilter: 'جميع الفئات',
     emptyTitle: 'لا توجد مساعدات منصرفة',
     emptyDesc: 'بمجرد صرف المساعدات للأسر، ستظهر السجلات هنا.',
+    statRecords: 'سجلات هذه الصفحة',
+    statBeneficiaries: 'المستفيدون',
+    statCategories: 'فئات المساعدة',
+    statPage: 'الصفحة الحالية',
+    statRecordsHint: 'المساعدات المعروضة أدناه',
+    statBeneficiariesHint: 'ضمن السجلات المعروضة',
+    statCategoriesHint: 'المميزة في هذه الصفحة',
     columns: {
       date: 'التاريخ',
       category: 'فئة المساعدة',
@@ -54,7 +68,7 @@ const COPY = {
 };
 
 export default function DisbursedAidsPage() {
-  const { language, t } = useI18n();
+  const { language, t, isRTL } = useI18n();
   const copy = COPY[language === 'ar' ? 'ar' : 'en'];
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
@@ -90,6 +104,17 @@ export default function DisbursedAidsPage() {
     { label: copy.categoryFilter, value: '' },
     ...(optionsData?.categories || []).map((cat) => ({ label: cat, value: cat })),
   ];
+
+  // Read-only derived summary counts for the KPI strip (presentation only).
+  const localeCode = language === 'ar' ? 'ar-EG' : 'en-US';
+  const beneficiariesOnPage = items.reduce(
+    (sum, row) => sum + (Number(row.beneficiariesCount) || 0),
+    0
+  );
+  const categoriesOnPage = new Set(
+    items.map((row) => row.category).filter(Boolean)
+  ).size;
+  const formatCount = (n) => new Intl.NumberFormat(localeCode).format(Number(n) || 0);
 
   const handleRowClick = (row) => {
     // Navigate to details page with query params
@@ -138,6 +163,33 @@ export default function DisbursedAidsPage() {
         }
       />
 
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <StatCard
+          icon={History}
+          label={copy.statRecords}
+          value={isLoading ? '—' : formatCount(items.length)}
+          hint={copy.statRecordsHint}
+          tone="primary"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Users}
+          label={copy.statBeneficiaries}
+          value={isLoading ? '—' : formatCount(beneficiariesOnPage)}
+          hint={copy.statBeneficiariesHint}
+          tone="gold"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Layers}
+          label={copy.statCategories}
+          value={isLoading ? '—' : formatCount(categoriesOnPage)}
+          hint={copy.statCategoriesHint}
+          tone="info"
+          isRTL={isRTL}
+        />
+      </div>
+
       <Card className="space-y-4" tone="muted">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-primary" />
@@ -169,6 +221,11 @@ export default function DisbursedAidsPage() {
           icon={History}
           title={copy.title}
           className="mb-0"
+          action={
+            !isLoading && items.length ? (
+              <Badge variant="secondary">{formatCount(items.length)}</Badge>
+            ) : null
+          }
         />
         <Table
           columns={[
@@ -186,7 +243,14 @@ export default function DisbursedAidsPage() {
             {
               key: 'category',
               label: copy.columns.category,
-              render: (row) => <Badge variant="secondary">{row.category}</Badge>,
+              render: (row) =>
+                row.category ? (
+                  <Badge variant="gold" dot>
+                    {row.category}
+                  </Badge>
+                ) : (
+                  <span className="text-muted">-</span>
+                ),
               onClick: handleRowClick,
             },
             {
