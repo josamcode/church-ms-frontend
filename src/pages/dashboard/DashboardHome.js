@@ -17,6 +17,12 @@ import {
   ShieldCheck,
   Sparkles,
   TrendingUp,
+  TrendingDown,
+  Minus,
+  AlertTriangle,
+  CalendarClock,
+  ArrowRight,
+  ArrowLeft,
   UserCircle,
   Users,
 } from 'lucide-react';
@@ -157,8 +163,63 @@ const KPI_TONES = {
   warning: { icon: 'bg-warning-light text-warning', value: 'text-warning', accent: 'before:bg-warning/60' },
 };
 
-function KpiCard({ label, value, hint, tone = 'default', icon: Icon = Activity }) {
+const KPI_SPARK_COLOR = {
+  default: 'var(--color-primary)',
+  primary: 'var(--color-primary)',
+  success: 'var(--color-success)',
+  warning: 'var(--color-warning)',
+};
+
+// Tiny inline trend chart drawn from a numeric series.
+function Sparkline({ data = [], color = 'var(--color-primary)' }) {
+  const rawId = useId();
+  const id = rawId.replace(/[:]/g, '');
+  if (!Array.isArray(data) || data.length < 2) return <div className="h-7" />;
+  const w = 120;
+  const h = 28;
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => ({
+    x: (i / (data.length - 1)) * w,
+    y: h - 2 - ((v - min) / range) * (h - 4),
+  }));
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const area = `${line} L ${w} ${h} L 0 ${h} Z`;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-7 w-full" aria-hidden>
+      <defs>
+        <linearGradient id={`sp-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.24" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#sp-${id})`} />
+      <path
+        d={line}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+function KpiCard({ label, value, hint, tone = 'default', icon: Icon = Activity, trend, spark }) {
   const palette = KPI_TONES[tone] || KPI_TONES.default;
+  const sparkColor = KPI_SPARK_COLOR[tone] || KPI_SPARK_COLOR.default;
+  const hasTrend = typeof trend === 'number' && Number.isFinite(trend);
+  const trendUp = trend > 0;
+  const trendFlat = trend === 0;
+  const TrendIcon = trendFlat ? Minus : trendUp ? TrendingUp : TrendingDown;
+  const trendClass = trendFlat
+    ? 'bg-surface-alt text-muted'
+    : trendUp
+      ? 'bg-success/10 text-success'
+      : 'bg-danger/10 text-danger';
   return (
     <div
       className={`group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:rounded-t-3xl before:opacity-0 before:transition-opacity before:content-[''] group-hover:before:opacity-100 ${palette.accent}`}
@@ -167,13 +228,23 @@ function KpiCard({ label, value, hint, tone = 'default', icon: Icon = Activity }
         <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${palette.icon}`}>
           <Icon className="h-5 w-5" />
         </span>
-        {tone === 'warning' && value !== '...' && Number(value) > 0 ? (
-          <span className="flex h-2.5 w-2.5 rounded-full bg-warning ring-4 ring-warning/15" />
+        {hasTrend ? (
+          <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-bold ${trendClass}`}>
+            <TrendIcon className="h-3 w-3" />
+            {trendFlat ? '0%' : `${Math.abs(trend)}%`}
+          </span>
+        ) : tone === 'warning' && value !== '...' && Number(value) > 0 ? (
+          <span className="mt-1 flex h-2.5 w-2.5 rounded-full bg-warning ring-4 ring-warning/15" />
         ) : null}
       </div>
       <p className={`mt-4 text-3xl font-bold tracking-tight ${palette.value}`}>{value}</p>
       <p className="mt-1 text-[13px] font-semibold text-heading">{label}</p>
       {hint ? <p className="mt-0.5 text-xs leading-5 text-muted">{hint}</p> : null}
+      {Array.isArray(spark) && spark.length > 1 ? (
+        <div className="mt-3 -mb-1">
+          <Sparkline data={spark} color={sparkColor} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -570,6 +641,39 @@ function QuickAction({ action, isRTL }) {
   );
 }
 
+const PRIORITY_TONES = {
+  danger: 'border-danger/25 bg-danger/[0.06]',
+  warning: 'border-warning/25 bg-warning/[0.06]',
+  primary: 'border-primary/20 bg-primary/[0.05]',
+  success: 'border-success/25 bg-success/[0.06]',
+};
+const PRIORITY_ICON_TONES = {
+  danger: 'text-danger',
+  warning: 'text-warning',
+  primary: 'text-primary',
+  success: 'text-success',
+};
+
+function PriorityCard({ item, isRTL }) {
+  const Icon = item.icon;
+  const Arrow = isRTL ? ArrowLeft : ArrowRight;
+  return (
+    <Link
+      to={item.href}
+      className={`group flex items-center gap-3 rounded-2xl border p-4 transition-all hover:-translate-y-0.5 hover:shadow-card ${PRIORITY_TONES[item.tone] || PRIORITY_TONES.primary}`}
+    >
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface/70 shadow-sm ${PRIORITY_ICON_TONES[item.tone] || PRIORITY_ICON_TONES.primary}`}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-2xl font-bold leading-none tracking-tight text-heading">{item.value}</p>
+        <p className="mt-1 truncate text-xs font-medium text-muted">{item.label}</p>
+      </div>
+      <Arrow className="h-4 w-4 shrink-0 text-muted opacity-40 transition-all group-hover:opacity-100" />
+    </Link>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Dashboard
 // ─────────────────────────────────────────────────────────────────────────────
@@ -778,6 +882,22 @@ export default function DashboardHome() {
     [bookings, divineAttendance, language, meetingAttendance, tx]
   );
 
+  // Derive tiny sparkline series + month-over-month trend from the monthly buckets.
+  const seriesValues = (buckets, key) =>
+    buckets.map((bucket) => bucket.parts.find((p) => p.key === key)?.value || 0);
+  const pctChange = (arr) => {
+    if (!Array.isArray(arr) || arr.length < 2) return undefined;
+    const prev = arr[arr.length - 2];
+    const curr = arr[arr.length - 1];
+    if (prev === 0) return curr > 0 ? 100 : 0;
+    return Math.round(((curr - prev) / prev) * 100);
+  };
+  const confSpark = seriesValues(adminBuckets, 'conf');
+  const visitSpark = seriesValues(adminBuckets, 'visit');
+  const meetSpark = seriesValues(memberBuckets, 'meet');
+  const divineSpark = seriesValues(memberBuckets, 'divine');
+  const bookSpark = seriesValues(memberBuckets, 'book');
+
   const nextExceptional = useMemo(() => {
     const today = isoDate(new Date());
     return exceptional
@@ -818,18 +938,18 @@ export default function DashboardHome() {
   const adminCards = [
     canUsers ? { icon: Users, label: tx('Total users', 'إجمالي الأفراد'), value: usersQuery.isLoading && !usersQuery.data ? dots : usersQuery.data?.total ?? 0, hint: `${usersQuery.data?.active ?? 0} ${tx('active', 'نشط')}` } : null,
     canUsers ? { icon: Building2, label: tx('Families', 'العائلات'), value: usersQuery.isLoading && !usersQuery.data ? dots : usersQuery.data?.families ?? 0, hint: tx('Distinct family', 'عدد العائلات') } : null,
-    canConfessionAnalytics ? { icon: CalendarCheck2, label: tx('Confessions in 6 months', 'الاعترافات اخر 6 أشهر'), value: confAnalyticsQuery.isLoading && !confAnalyticsQuery.data ? dots : confSummary.sessionsInPeriod ?? 0, hint: `${confSummary.uniqueAttendees ?? 0} ${tx('unique people', 'شخص مختلف')}`, tone: 'primary' } : null,
+    canConfessionAnalytics ? { icon: CalendarCheck2, label: tx('Confessions in 6 months', 'الاعترافات اخر 6 أشهر'), value: confAnalyticsQuery.isLoading && !confAnalyticsQuery.data ? dots : confSummary.sessionsInPeriod ?? 0, hint: `${confSummary.uniqueAttendees ?? 0} ${tx('unique people', 'شخص مختلف')}`, tone: 'primary', spark: confSpark, trend: pctChange(confSpark) } : null,
     canConfessionAlerts || canConfessionAnalytics ? { icon: BellRing, label: tx('Overdue follow-up', 'متابعة متأخرة'), value: (confAlertsQuery.isLoading && !confAlertsQuery.data) || (confAnalyticsQuery.isLoading && !confAnalyticsQuery.data) ? dots : overdueAlerts, hint: `${confSummary.upcomingSessions ?? 0} ${tx('upcoming', 'قادم')}`, tone: overdueAlerts > 0 ? 'warning' : 'success' } : null,
-    canVisitationAnalytics ? { icon: Home, label: tx('Visitations in 6 months', 'الزيارات خلال 6 أشهر'), value: visitAnalyticsQuery.isLoading && !visitAnalyticsQuery.data ? dots : visitSummary.visitationsInPeriod ?? 0, hint: `${visitSummary.avgDurationMinutes ?? 0} ${tx('avg. minutes', 'متوسط دقيقة')}`, tone: 'primary' } : null,
+    canVisitationAnalytics ? { icon: Home, label: tx('Visitations in 6 months', 'الزيارات خلال 6 أشهر'), value: visitAnalyticsQuery.isLoading && !visitAnalyticsQuery.data ? dots : visitSummary.visitationsInPeriod ?? 0, hint: `${visitSummary.avgDurationMinutes ?? 0} ${tx('avg. minutes', 'متوسط دقيقة')}`, tone: 'primary', spark: visitSpark, trend: pctChange(visitSpark) } : null,
     canVisitationAnalytics ? { icon: Building2, label: tx('Visited houses', 'المنازل التي تمت زيارتها'), value: visitAnalyticsQuery.isLoading && !visitAnalyticsQuery.data ? dots : visitSummary.uniqueHouses ?? 0, hint: `${(visitAnalyticsQuery.data?.topRecorders || []).length} ${tx('active recorders', 'مسجل نشط')}` } : null,
   ].filter(Boolean);
 
   const memberCards = [
     { icon: UserCircle, label: tx('Profile completion', 'اكتمال الملف الشخصي'), value: meQuery.isLoading && !meQuery.data ? dots : `${profileScore}%`, hint: me?.houseName || tx('No house name yet', 'لا يوجد اسم بيت بعد'), tone: profileScore >= 70 ? 'success' : 'primary' },
     { icon: Users, label: tx('Family links', 'روابط العائلة'), value: meQuery.isLoading && !meQuery.data ? dots : familyLinksCount(me), hint: me?.familyName || tx('No family name yet', 'لا يوجد اسم عائلة بعد') },
-    { icon: CalendarDays, label: tx('Meeting attendance', 'حضور الاجتماعات'), value: meQuery.isLoading && !meQuery.data ? dots : meetingAttendance.length, hint: `${meetings.length} ${tx('visible meetings', 'اجتماعات ظاهرة')}`, tone: 'primary' },
-    { icon: Church, label: tx('Divine attendance', 'حضور القداسات'), value: meQuery.isLoading && !meQuery.data ? dots : divineAttendance.length, hint: `${weeklyServices} ${tx('weekly services', 'خدمات أسبوعية')}`, tone: 'success' },
-    canBookings ? { icon: NotebookPen, label: tx('Pending bookings', 'الحجوزات المعلقة'), value: bookingsQuery.isLoading && !bookingsQuery.data ? dots : pendingBookings, hint: `${bookings.length} ${tx('total bookings', 'إجمالي الحجوزات')}`, tone: pendingBookings > 0 ? 'warning' : 'default' } : null,
+    { icon: CalendarDays, label: tx('Meeting attendance', 'حضور الاجتماعات'), value: meQuery.isLoading && !meQuery.data ? dots : meetingAttendance.length, hint: `${meetings.length} ${tx('visible meetings', 'اجتماعات ظاهرة')}`, tone: 'primary', spark: meetSpark },
+    { icon: Church, label: tx('Divine attendance', 'حضور القداسات'), value: meQuery.isLoading && !meQuery.data ? dots : divineAttendance.length, hint: `${weeklyServices} ${tx('weekly services', 'خدمات أسبوعية')}`, tone: 'success', spark: divineSpark },
+    canBookings ? { icon: NotebookPen, label: tx('Pending bookings', 'الحجوزات المعلقة'), value: bookingsQuery.isLoading && !bookingsQuery.data ? dots : pendingBookings, hint: `${bookings.length} ${tx('total bookings', 'إجمالي الحجوزات')}`, tone: pendingBookings > 0 ? 'warning' : 'default', spark: bookSpark } : null,
     canChats ? { icon: MessageCircle, label: tx('Unread chats', 'دردشات غير مقروءة'), value: chatsQuery.isLoading && !chatsQuery.data ? dots : unreadChats, hint: `${chats.length} ${tx('chat threads', 'محادثة')}`, tone: unreadChats > 0 ? 'warning' : 'default' } : null,
   ].filter(Boolean);
 
@@ -919,6 +1039,22 @@ export default function DashboardHome() {
     : meQuery.isLoading && !meQuery.data;
   const actions = systemMode ? systemActions : memberActions;
   const periodLabel = tx('Last 6 months', 'آخر 6 أشهر');
+  const periodTotal = activeBuckets.reduce((sum, bucket) => sum + bucket.total, 0);
+
+  const priorityItems = (systemMode
+    ? [
+      (canConfessionAlerts || canConfessionAnalytics) && { icon: AlertTriangle, label: tx('Overdue follow-up', 'متابعة متأخرة'), value: overdueAlerts, tone: overdueAlerts > 0 ? 'danger' : 'success', href: '/dashboard/confessions/alerts' },
+      canConfessionAnalytics && { icon: CalendarClock, label: tx('Upcoming sessions', 'جلسات قادمة'), value: confSummary.upcomingSessions ?? 0, tone: 'primary', href: '/dashboard/confessions' },
+      canVisitationAnalytics && { icon: Home, label: tx('Visited houses', 'منازل تمت زيارتها'), value: visitSummary.uniqueHouses ?? 0, tone: 'success', href: '/dashboard/visitations' },
+      canUsers && { icon: Users, label: tx('Active accounts', 'حسابات نشطة'), value: usersQuery.data?.active ?? 0, tone: 'primary', href: '/dashboard/users' },
+    ]
+    : [
+      canBookings && { icon: NotebookPen, label: tx('Pending bookings', 'حجوزات معلقة'), value: pendingBookings, tone: pendingBookings > 0 ? 'warning' : 'success', href: '/dashboard/bookings/mine' },
+      canChats && { icon: MessageCircle, label: tx('Unread chats', 'رسائل غير مقروءة'), value: unreadChats, tone: unreadChats > 0 ? 'warning' : 'success', href: '/dashboard/chats' },
+      { icon: CalendarClock, label: tx('Weekly services', 'خدمات أسبوعية'), value: weeklyServices, tone: 'primary', href: '/dashboard/divine-liturgies' },
+      canNotifications && { icon: BellRing, label: tx('Active notifications', 'إشعارات نشطة'), value: notifications.length, tone: 'primary', href: '/dashboard/notifications' },
+    ]
+  ).filter(Boolean).slice(0, 4);
 
   return (
     <div className="animate-fade-in space-y-6 pb-10 sm:space-y-7">
@@ -976,6 +1112,22 @@ export default function DashboardHome() {
           : cards.map((card) => <KpiCard key={card.label} {...card} />)}
       </div>
 
+      {/* ── Priority band ────────────────────────────────────────────────── */}
+      {priorityItems.length > 0 ? (
+        <section>
+          <SectionHeading
+            eyebrow={tx('Action center', 'مركز الإجراءات')}
+            title={systemMode ? tx('Needs attention', 'يحتاج إلى متابعة') : tx('Your quick glance', 'لمحتك السريعة')}
+            icon={AlertTriangle}
+          />
+          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {priorityItems.map((item) => (
+              <PriorityCard key={`${item.href}-${item.label}`} item={item} isRTL={isRTL} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       {/* ── Main analytics + Quick actions ───────────────────────────────── */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <section className="rounded-3xl border border-border bg-surface p-6 shadow-card xl:col-span-2">
@@ -988,6 +1140,14 @@ export default function DashboardHome() {
                 : tx('Meetings, liturgies, and bookings over time.', 'الاجتماعات والقداسات والحجوزات عبر الوقت.')
             }
             icon={TrendingUp}
+            action={
+              periodTotal > 0 ? (
+                <div className="text-end">
+                  <p className="text-2xl font-bold leading-none tracking-tight text-heading">{periodTotal}</p>
+                  <p className="mt-1 text-[11px] font-medium text-muted">{tx('total this period', 'الإجمالي بالفترة')}</p>
+                </div>
+              ) : null
+            }
           />
           <MonthlyActivityChart
             buckets={activeBuckets}
