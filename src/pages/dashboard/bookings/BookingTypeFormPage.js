@@ -13,6 +13,7 @@ import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
 import { SkeletonCard } from '../../../components/ui/Skeleton';
+import Switch from '../../../components/ui/Switch';
 import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
 import {
@@ -255,7 +256,11 @@ export default function BookingTypeFormPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
-          <CardHeader icon={Settings2} title={pageTitle} subtitle={pageSubtitle} />
+          <CardHeader
+            icon={Settings2}
+            title={tf('bookings.dashboard.basicDetails', 'Basic details')}
+            subtitle={pageSubtitle}
+          />
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
@@ -319,20 +324,16 @@ export default function BookingTypeFormPage() {
                 key={fieldKey}
                 className="rounded-2xl border border-border bg-surface-alt/35 p-4"
               >
-                <label className="flex items-center gap-3 text-sm font-medium text-heading">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(advancedSettings[fieldKey])}
-                    onChange={(event) =>
-                      setAdvancedSettings((current) => ({
-                        ...current,
-                        [fieldKey]: event.target.checked,
-                      }))
-                    }
-                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-                  />
-                  {label}
-                </label>
+                <Switch
+                  checked={Boolean(advancedSettings[fieldKey])}
+                  onChange={(next) =>
+                    setAdvancedSettings((current) => ({
+                      ...current,
+                      [fieldKey]: next,
+                    }))
+                  }
+                  label={label}
+                />
                 {advancedSettings[fieldKey] ? (
                   <Input
                     type="number"
@@ -348,18 +349,14 @@ export default function BookingTypeFormPage() {
                 ) : null}
               </div>
             ))}
-            <div className="mb-4 flex items-end rounded-2xl border border-border bg-surface-alt/35 px-4 py-3">
-              <label className="flex items-center gap-3 text-sm font-medium text-heading">
-                <input
-                  type="checkbox"
-                  checked={typeForm.isActive}
-                  onChange={(event) =>
-                    setTypeForm((current) => ({ ...current, isActive: event.target.checked }))
-                  }
-                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-                />
-                {tf('bookings.dashboard.activeType', 'Type is active')}
-              </label>
+            <div className="mb-4 flex items-center rounded-2xl border border-border bg-surface-alt/35 px-4 py-3">
+              <Switch
+                checked={typeForm.isActive}
+                onChange={(next) =>
+                  setTypeForm((current) => ({ ...current, isActive: next }))
+                }
+                label={tf('bookings.dashboard.activeType', 'Type is active')}
+              />
             </div>
           </div>
         </Card>
@@ -680,22 +677,18 @@ export default function BookingTypeFormPage() {
                     options={FIELD_TYPES}
                     containerClassName="mb-0"
                   />
-                  <div className="mb-4 flex items-end rounded-2xl border border-border bg-surface-alt/35 px-4 py-3">
-                    <label className="flex items-center gap-3 text-sm font-medium text-heading">
-                      <input
-                        type="checkbox"
-                        checked={field.required}
-                        onChange={(event) =>
-                          setTypeForm((current) => {
-                            const next = [...current.dynamicFields];
-                            next[index] = { ...next[index], required: event.target.checked };
-                            return { ...current, dynamicFields: next };
-                          })
-                        }
-                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-                      />
-                      {tf('bookings.dashboard.requiredField', 'Required field')}
-                    </label>
+                  <div className="mb-4 flex items-center rounded-2xl border border-border bg-surface-alt/35 px-4 py-3">
+                    <Switch
+                      checked={field.required}
+                      onChange={(nextValue) =>
+                        setTypeForm((current) => {
+                          const next = [...current.dynamicFields];
+                          next[index] = { ...next[index], required: nextValue };
+                          return { ...current, dynamicFields: next };
+                        })
+                      }
+                      label={tf('bookings.dashboard.requiredField', 'Required field')}
+                    />
                   </div>
                 </div>
 

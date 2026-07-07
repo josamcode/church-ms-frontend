@@ -10,6 +10,7 @@ import TextArea from '../../../components/ui/TextArea';
 import Button from '../../../components/ui/Button';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
 import HouseholdSocioeconomicSection, {
   buildSocioeconomicPayload,
   getSocioeconomicInitialValues,
@@ -22,7 +23,7 @@ import UserFormSectionTabs from '../../../components/users/UserFormSectionTabs';
 import { extractBirthDateFromNationalId } from '../../../utils/egyptianNationalId';
 import { useI18n } from '../../../i18n/i18n';
 import toast from 'react-hot-toast';
-import { ArrowRight, Plus, Save, Trash2, Upload, Users, X } from 'lucide-react';
+import { ArrowRight, GraduationCap, HeartPulse, ListPlus, MapPin, Plus, Save, Trash2, Upload, User, Users, X } from 'lucide-react';
 
 /* ── constants ───────────────────────────────────────────────────────────── */
 
@@ -40,23 +41,42 @@ const roleOptions = [
 
 /* ── primitives ──────────────────────────────────────────────────────────── */
 
-function SectionLabel({ children }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-        {children}
-      </span>
-      <div className="h-px flex-1 bg-border/60" />
-    </div>
-  );
-}
-
 function StepBadge({ n }) {
   return (
     <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
       {n}
     </div>
   );
+}
+
+const SECTION_ICONS = {
+  basic: User,
+  additional: Users,
+  education: GraduationCap,
+  address: MapPin,
+  custom: ListPlus,
+  socioeconomic: HeartPulse,
+};
+
+function getSectionHelpers(language = 'ar') {
+  if (language === 'ar') {
+    return {
+      basic: 'الصورة والبيانات التعريفية للمستخدم.',
+      additional: 'وسائل التواصل والدور وبيانات الحساب.',
+      education: 'المرحلة والتفاصيل التعليمية.',
+      address: 'محل الإقامة وتفاصيل العنوان.',
+      custom: 'حقول إضافية بصيغة مفتاح وقيمة.',
+      socioeconomic: 'البيانات الاقتصادية والصحية للأسرة.',
+    };
+  }
+  return {
+    basic: 'Photo and identifying details of the user.',
+    additional: 'Contact channels, role and account details.',
+    education: 'Educational stage and details.',
+    address: 'Place of residence and address details.',
+    custom: 'Extra key/value fields.',
+    socioeconomic: 'Household economic and health data.',
+  };
 }
 
 function getCreateFormSections(language = 'ar') {
@@ -167,6 +187,8 @@ export default function UserCreatePage() {
   const fileInputRef = useRef(null);
   const nextCustomDetailId = useRef(2);
   const formSections = useMemo(() => getCreateFormSectionsWithEducation(language), [language]);
+  const sectionHelpers = useMemo(() => getSectionHelpers(language), [language]);
+  const getSection = (id) => formSections.find((section) => section.id === id) || { label: '', step: 1 };
   const activeSectionIndex = formSections.findIndex((section) => section.id === activeSection);
   const previousSection = activeSectionIndex > 0 ? formSections[activeSectionIndex - 1] : null;
   const nextSection =
@@ -407,13 +429,13 @@ export default function UserCreatePage() {
 
           {/* ── STEP 1 · الصورة والبيانات الأساسية ─────────────────── */}
           {activeSection === 'basic' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={1} />
-                <SectionLabel>البيانات الأساسية</SectionLabel>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+            <Section
+              icon={SECTION_ICONS.basic}
+              title={getSection('basic').label}
+              description={sectionHelpers.basic}
+              actions={<StepBadge n={getSection('basic').step} />}
+              bodyClassName="space-y-4"
+            >
 
                 {/* avatar upload */}
                 <div>
@@ -514,19 +536,18 @@ export default function UserCreatePage() {
                     containerClassName="!mb-0"
                   />
                 </div>
-              </div>
-            </section>
+            </Section>
           )}
 
           {/* ── STEP 2 · معلومات إضافية ──────────────────────────────── */}
           {activeSection === 'additional' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={2} />
-                <SectionLabel>معلومات إضافية</SectionLabel>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+            <Section
+              icon={SECTION_ICONS.additional}
+              title={getSection('additional').label}
+              description={sectionHelpers.additional}
+              actions={<StepBadge n={getSection('additional').step} />}
+              bodyClassName="space-y-4"
+            >
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <PhoneInput
                     label="الهاتف الثانوي"
@@ -613,36 +634,33 @@ export default function UserCreatePage() {
                   placeholder="اي ملاحظات إضافية"
                   containerClassName="!mb-0"
                 />
-              </div>
-            </section>
+            </Section>
           )}
 
-          {/* ── STEP 3 · العنوان ─────────────────────────────────────── */}
+          {/* ── STEP · التعليم ───────────────────────────────────────── */}
           {activeSection === 'education' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={3} />
-                <SectionLabel>التعليم</SectionLabel>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-5">
+            <Section
+              icon={SECTION_ICONS.education}
+              title={getSection('education').label}
+              description={sectionHelpers.education}
+              actions={<StepBadge n={getSection('education').step} />}
+            >
                 <UserEducationSection
                   form={form}
                   errors={errors}
                   onChange={update}
                 />
-              </div>
-            </section>
+            </Section>
           )}
 
+          {/* ── STEP · العنوان ───────────────────────────────────────── */}
           {activeSection === 'address' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={4} />
-                <SectionLabel>العنوان</SectionLabel>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-5">
+            <Section
+              icon={SECTION_ICONS.address}
+              title={getSection('address').label}
+              description={sectionHelpers.address}
+              actions={<StepBadge n={getSection('address').step} />}
+            >
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Input
                     label="المحافظة"
@@ -673,19 +691,18 @@ export default function UserCreatePage() {
                     containerClassName="!mb-0"
                   />
                 </div>
-              </div>
-            </section>
+            </Section>
           )}
 
-          {/* ── STEP 4 · تفاصيل مخصصة ───────────────────────────────── */}
+          {/* ── STEP · تفاصيل مخصصة ─────────────────────────────────── */}
           {activeSection === 'custom' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={5} />
-                <SectionLabel>تفاصيل مخصصة</SectionLabel>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+            <Section
+              icon={SECTION_ICONS.custom}
+              title={getSection('custom').label}
+              description={sectionHelpers.custom}
+              actions={<StepBadge n={getSection('custom').step} />}
+              bodyClassName="space-y-4"
+            >
                 <p className="text-xs text-muted">
                   أضف حقولاً مخصصة (مفتاح وقيمة). المفاتيح المستخدمة سابقاً تظهر كاقتراحات عند الإضافة.
                 </p>
@@ -742,33 +759,33 @@ export default function UserCreatePage() {
                 <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addCustomDetailRow}>
                   إضافة حقل
                 </Button>
-              </div>
-            </section>
+            </Section>
           )}
 
-          {/* ── ACTIONS ───────────────────────────────────────────────── */}
+          {/* ── STEP · الملف الاقتصادي والصحي ───────────────────────── */}
           {activeSection === 'socioeconomic' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={6} />
-                <SectionLabel>الملف الاقتصادي والصحي</SectionLabel>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-5">
+            <Section
+              icon={SECTION_ICONS.socioeconomic}
+              title={getSection('socioeconomic').label}
+              description={sectionHelpers.socioeconomic}
+              actions={<StepBadge n={getSection('socioeconomic').step} />}
+            >
                 <HouseholdSocioeconomicSection
                   form={form}
                   errors={errors}
                   onChange={update}
                 />
-              </div>
-            </section>
+            </Section>
           )}
 
-          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          {/* ── ACTIONS ───────────────────────────────────────────────── */}
+          <div className="sticky bottom-0 z-20 flex flex-col gap-3 rounded-2xl border border-border bg-surface/95 px-4 py-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-surface/80 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-1 gap-2">
               <Button
                 type="button"
                 variant="ghost"
+                fullWidth
+                className="sm:w-auto"
                 onClick={() => previousSection && setActiveSection(previousSection.id)}
                 disabled={!previousSection}
               >
@@ -777,15 +794,17 @@ export default function UserCreatePage() {
               <Button
                 type="button"
                 variant="outline"
+                fullWidth
+                className="sm:w-auto"
                 onClick={() => nextSection && setActiveSection(nextSection.id)}
                 disabled={!nextSection}
               >
                 {sectionNavCopy.next}
               </Button>
             </div>
-            <div className="flex gap-2">
-              <Button variant="ghost" type="button" onClick={() => navigate(-1)}>إلغاء</Button>
-              <Button type="submit" icon={Save} loading={mutation.isPending}>حفظ المستخدم</Button>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row">
+              <Button variant="ghost" type="button" fullWidth className="sm:w-auto" onClick={() => navigate(-1)}>إلغاء</Button>
+              <Button type="submit" icon={Save} fullWidth className="sm:w-auto" loading={mutation.isPending}>حفظ المستخدم</Button>
             </div>
 
           </div>

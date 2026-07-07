@@ -39,6 +39,7 @@ import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import PageHeader from '../../../components/ui/PageHeader';
 import SearchInput from '../../../components/ui/SearchInput';
 import Select from '../../../components/ui/Select';
+import Skeleton from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import Table, { RowActions } from '../../../components/ui/Table';
 import Tabs from '../../../components/ui/Tabs';
@@ -1535,7 +1536,7 @@ export default function UsersExplorerPage() {
 
   if (usersQuery.isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="animate-fade-in space-y-8 pb-10">
         <Breadcrumbs
           items={[
             { label: t('shared.dashboard'), href: '/dashboard' },
@@ -1543,19 +1544,41 @@ export default function UsersExplorerPage() {
             { label: tx('page') },
           ]}
         />
-        <Card>
-          <div className="flex items-center gap-3 text-sm text-muted">
-            <RefreshCw className="h-4 w-4 animate-spin" />
-            {tx('states.loading')}
+        <div className="border-b border-border pb-6">
+          <Skeleton className="h-8 w-56" />
+          <Skeleton className="mt-3 h-4 w-80 max-w-full" />
+        </div>
+        <Card padding={false} className="overflow-hidden rounded-[28px]">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.45fr)_360px]">
+            <div className="space-y-4 p-6">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-11 w-full rounded-xl" />
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <Skeleton key={index} className="h-11 w-full rounded-xl" />
+                ))}
+              </div>
+            </div>
+            <div className="border-t border-border/70 bg-surface-alt/30 p-6 lg:border-l lg:border-t-0">
+              <Skeleton className="h-56 w-full rounded-3xl" />
+            </div>
           </div>
         </Card>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(340px,0.95fr)]">
+          <Skeleton className="h-96 w-full rounded-xl" />
+          <Skeleton className="h-96 w-full rounded-xl" />
+        </div>
+        <div className="flex items-center gap-3 text-sm text-muted">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          {tx('states.loading')}
+        </div>
       </div>
     );
   }
 
   if (usersQuery.error) {
     return (
-      <div className="space-y-6">
+      <div className="animate-fade-in space-y-8 pb-10">
         <Breadcrumbs
           items={[
             { label: t('shared.dashboard'), href: '/dashboard' },
@@ -1563,16 +1586,18 @@ export default function UsersExplorerPage() {
             { label: tx('page') },
           ]}
         />
-        <EmptyState
-          icon={UsersIcon}
-          title={tx('states.loadErrorTitle')}
-          description={normalizeApiError(usersQuery.error).message}
-          action={(
-            <Button icon={RefreshCw} onClick={() => usersQuery.refetch()}>
-              {tx('actions.reload')}
-            </Button>
-          )}
-        />
+        <Card tone="muted">
+          <EmptyState
+            icon={UsersIcon}
+            title={tx('states.loadErrorTitle')}
+            description={normalizeApiError(usersQuery.error).message}
+            action={(
+              <Button icon={RefreshCw} onClick={() => usersQuery.refetch()}>
+                {tx('actions.reload')}
+              </Button>
+            )}
+          />
+        </Card>
       </div>
     );
   }

@@ -17,9 +17,11 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import TextArea from '../../../components/ui/TextArea';
 import Switch from '../../../components/ui/Switch';
+import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
 import Skeleton from '../../../components/ui/Skeleton';
 import CreatableTagComboboxInput from '../../../components/ui/CreatableTagComboboxInput';
 import UserSearchSelect from '../../../components/UserSearchSelect';
@@ -36,8 +38,8 @@ import { extractBirthDateFromNationalId } from '../../../utils/egyptianNationalI
 import toast from 'react-hot-toast';
 import { useI18n } from '../../../i18n/i18n';
 import {
-  ArrowRight, CheckCircle2, MinusCircle, Plus,
-  Save, ShieldAlert, ShieldCheck, ShieldOff, Trash2, Upload, Users,
+  ArrowRight, CheckCircle2, GraduationCap, HeartPulse, ListPlus, MapPin, MinusCircle, Plus,
+  Save, ShieldAlert, ShieldCheck, ShieldOff, Trash2, Upload, User, Users, UsersRound,
 } from 'lucide-react';
 
 /* ── constants ───────────────────────────────────────────────────────────── */
@@ -123,26 +125,48 @@ const PERMISSION_GROUP_LABELS_AR = {
 
 /* ── primitives ──────────────────────────────────────────────────────────── */
 
-function SectionLabel({ children, count }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-        {children}
-      </span>
-      <div className="h-px flex-1 bg-border/60" />
-      {count != null && (
-        <span className="text-[11px] tabular-nums text-muted">{count}</span>
-      )}
-    </div>
-  );
-}
-
 function StepBadge({ n }) {
   return (
     <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
       {n}
     </div>
   );
+}
+
+const SECTION_ICONS = {
+  basic: User,
+  additional: Users,
+  education: GraduationCap,
+  permissions: ShieldCheck,
+  family: UsersRound,
+  address: MapPin,
+  custom: ListPlus,
+  socioeconomic: HeartPulse,
+};
+
+function getSectionHelpers(language = 'ar') {
+  if (language === 'ar') {
+    return {
+      basic: 'الصورة والبيانات التعريفية للمستخدم.',
+      additional: 'الوسوم ووسائل التواصل والدور وحالة الحساب.',
+      education: 'المرحلة والتفاصيل التعليمية.',
+      permissions: 'منح أو سحب صلاحيات فوق صلاحيات الدور.',
+      family: 'ربط أفراد العائلة وصلات القرابة.',
+      address: 'محل الإقامة وتفاصيل العنوان.',
+      custom: 'حقول إضافية بصيغة مفتاح وقيمة.',
+      socioeconomic: 'البيانات الاقتصادية والصحية للأسرة.',
+    };
+  }
+  return {
+    basic: 'Photo and identifying details of the user.',
+    additional: 'Tags, contact channels, role and account status.',
+    education: 'Educational stage and details.',
+    permissions: 'Grant or revoke permissions beyond the role.',
+    family: 'Link family members and relations.',
+    address: 'Place of residence and address details.',
+    custom: 'Extra key/value fields.',
+    socioeconomic: 'Household economic and health data.',
+  };
 }
 
 function getEditFormSections(language = 'ar', canManagePermissionOverrides = false) {
@@ -594,6 +618,9 @@ export default function UserEditPage() {
     : { previous: 'Previous', next: 'Next' };
   const getSectionStep = (sectionId) =>
     formSections.find((section) => section.id === sectionId)?.step || 1;
+  const sectionHelpers = useMemo(() => getSectionHelpers(language), [language]);
+  const getSectionLabel = (sectionId) =>
+    formSections.find((section) => section.id === sectionId)?.label || '';
 
   useEffect(() => {
     if (!formSections.some((section) => section.id === activeSection)) {
@@ -1066,9 +1093,13 @@ export default function UserEditPage() {
 
           {/* ── STEP 1 · البيانات الأساسية ────────────────────────────── */}
           {activeSection === 'basic' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2"><StepBadge n={getSectionStep('basic')} /><SectionLabel>البيانات الأساسية</SectionLabel></div>
-              <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+            <Section
+              icon={SECTION_ICONS.basic}
+              title={getSectionLabel('basic')}
+              description={sectionHelpers.basic}
+              actions={<StepBadge n={getSectionStep('basic')} />}
+              bodyClassName="space-y-4"
+            >
 
                 {/* avatar */}
                 <div>
@@ -1099,15 +1130,18 @@ export default function UserEditPage() {
                   <Input label="البريد الإلكتروني" type="email" dir="ltr" className="text-left" value={form.email} onChange={(e) => update('email', e.target.value)} error={errors.email} containerClassName="!mb-0" />
                   <Input label="الرقم القومي" dir="ltr" className="text-left" value={form.nationalId} onChange={(e) => update('nationalId', e.target.value)} error={errors.nationalId} containerClassName="!mb-0" />
                 </div>
-              </div>
-            </section>
+            </Section>
           )}
 
           {/* ── STEP 2 · معلومات إضافية ──────────────────────────────── */}
           {activeSection === 'additional' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2"><StepBadge n={getSectionStep('additional')} /><SectionLabel>معلومات إضافية</SectionLabel></div>
-              <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+            <Section
+              icon={SECTION_ICONS.additional}
+              title={getSectionLabel('additional')}
+              description={sectionHelpers.additional}
+              actions={<StepBadge n={getSectionStep('additional')} />}
+              bodyClassName="space-y-4"
+            >
                 <CreatableTagComboboxInput
                   label={t('userDetails.profile.tagsTitle')}
                   values={form.tags || []}
@@ -1169,30 +1203,39 @@ export default function UserEditPage() {
                   </div>
                 </div>
                 <TextArea label="ملاحظات" value={form.notes} onChange={(e) => update('notes', e.target.value)} containerClassName="!mb-0" />
-              </div>
-            </section>
+            </Section>
           )}
 
-          {/* ── STEP 3 · الصلاحيات ───────────────────────────────────── */}
+          {/* ── STEP · التعليم ───────────────────────────────────────── */}
           {activeSection === 'education' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={getSectionStep('education')} />
-                <SectionLabel>التعليم</SectionLabel>
-              </div>
-              <div className="rounded-2xl border border-border bg-surface p-5">
+            <Section
+              icon={SECTION_ICONS.education}
+              title={getSectionLabel('education')}
+              description={sectionHelpers.education}
+              actions={<StepBadge n={getSectionStep('education')} />}
+            >
                 <UserEducationSection
                   form={form}
                   errors={errors}
                   onChange={update}
                 />
-              </div>
-            </section>
+            </Section>
           )}
 
           {canManagePermissionOverrides && activeSection === 'permissions' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2"><StepBadge n={getSectionStep('permissions')} /><SectionLabel>إدارة الصلاحيات</SectionLabel></div>
+            <section className="space-y-5">
+              <div className="flex items-start justify-between gap-3 rounded-xl border border-border bg-surface px-5 py-4 shadow-card">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <ShieldCheck className="h-[18px] w-[18px]" />
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="text-base font-bold leading-tight text-heading">{getSectionLabel('permissions')}</h2>
+                    <p className="mt-0.5 text-sm text-muted">{sectionHelpers.permissions}</p>
+                  </div>
+                </div>
+                <StepBadge n={getSectionStep('permissions')} />
+              </div>
               <PermissionsPanel
                 form={form}
                 selectedRolePermissions={selectedRolePermissions}
@@ -1203,18 +1246,21 @@ export default function UserEditPage() {
             </section>
           )}
 
-          {/* ── STEP 4 · أفراد العائلة ───────────────────────────────── */}
+          {/* ── STEP · أفراد العائلة ─────────────────────────────────── */}
           {activeSection === 'family' && (
-            <section className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+            <Section
+              icon={SECTION_ICONS.family}
+              title={getSectionLabel('family')}
+              description={sectionHelpers.family}
+              actions={(
+                <>
+                  <Badge variant="neutral">{(form.family || []).length}</Badge>
                   <StepBadge n={getSectionStep('family')} />
-                  <SectionLabel count={(form.family || []).length}>أفراد العائلة</SectionLabel>
-                </div>
-                <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addFamilyMember}>إضافة فرد</Button>
-              </div>
-
-              <div className="space-y-3">
+                  <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addFamilyMember}>إضافة فرد</Button>
+                </>
+              )}
+              bodyClassName="space-y-3"
+            >
                 {(form.family || []).length === 0 && (
                   <p className="rounded-2xl border border-dashed border-border px-5 py-6 text-center text-sm text-muted">
                     لا يوجد أفراد عائلة مضافون بعد.
@@ -1272,36 +1318,35 @@ export default function UserEditPage() {
                     </div>
                   );
                 })}
-              </div>
-            </section>
+            </Section>
           )}
 
-          {/* ── STEP 5 · العنوان ─────────────────────────────────────── */}
+          {/* ── STEP · العنوان ───────────────────────────────────────── */}
           {activeSection === 'address' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={getSectionStep('address')} />
-                <SectionLabel>العنوان</SectionLabel>
-              </div>
-              <div className="rounded-2xl border border-border bg-surface p-5">
+            <Section
+              icon={SECTION_ICONS.address}
+              title={getSectionLabel('address')}
+              description={sectionHelpers.address}
+              actions={<StepBadge n={getSectionStep('address')} />}
+            >
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Input label="المحافظة" value={form.governorate} onChange={(e) => update('governorate', e.target.value)} placeholder="المحافظة" containerClassName="!mb-0" />
                   <Input label="المدينة" value={form.city} onChange={(e) => update('city', e.target.value)} placeholder="المدينة" containerClassName="!mb-0" />
                   <Input label="الشارع" value={form.street} onChange={(e) => update('street', e.target.value)} placeholder="الشارع" containerClassName="!mb-0" />
                   <Input label="تفاصيل إضافية" value={form.details} onChange={(e) => update('details', e.target.value)} placeholder="اي تفاصيل إضافية" containerClassName="!mb-0" />
                 </div>
-              </div>
-            </section>
+            </Section>
           )}
 
-          {/* ── STEP 6 · تفاصيل مخصصة ───────────────────────────────── */}
+          {/* ── STEP · تفاصيل مخصصة ─────────────────────────────────── */}
           {activeSection === 'custom' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={getSectionStep('custom')} />
-                <SectionLabel>تفاصيل مخصصة</SectionLabel>
-              </div>
-              <div className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+            <Section
+              icon={SECTION_ICONS.custom}
+              title={getSectionLabel('custom')}
+              description={sectionHelpers.custom}
+              actions={<StepBadge n={getSectionStep('custom')} />}
+              bodyClassName="space-y-4"
+            >
                 <p className="text-xs text-muted">أضف أو عدّل حقولاً مخصصة. المفاتيح المستخدمة سابقاً تظهر كاقتراحات.</p>
                 <div className="space-y-2.5">
                   {customDetailsRows.map((row) => (
@@ -1334,32 +1379,33 @@ export default function UserEditPage() {
                   ))}
                 </div>
                 <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addCustomDetailRow}>إضافة حقل</Button>
-              </div>
-            </section>
+            </Section>
           )}
 
-          {/* ── ACTIONS ───────────────────────────────────────────────── */}
+          {/* ── STEP · الملف الاقتصادي والصحي ───────────────────────── */}
           {activeSection === 'socioeconomic' && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <StepBadge n={getSectionStep('socioeconomic')} />
-                <SectionLabel>الملف الاقتصادي والصحي</SectionLabel>
-              </div>
-              <div className="rounded-2xl border border-border bg-surface p-5">
+            <Section
+              icon={SECTION_ICONS.socioeconomic}
+              title={getSectionLabel('socioeconomic')}
+              description={sectionHelpers.socioeconomic}
+              actions={<StepBadge n={getSectionStep('socioeconomic')} />}
+            >
                 <HouseholdSocioeconomicSection
                   form={form}
                   errors={errors}
                   onChange={update}
                 />
-              </div>
-            </section>
+            </Section>
           )}
 
-          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          {/* ── ACTIONS ───────────────────────────────────────────────── */}
+          <div className="sticky bottom-0 z-20 flex flex-col gap-3 rounded-2xl border border-border bg-surface/95 px-4 py-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-surface/80 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-1 gap-2">
               <Button
                 type="button"
                 variant="ghost"
+                fullWidth
+                className="sm:w-auto"
                 onClick={() => previousSection && setActiveSection(previousSection.id)}
                 disabled={!previousSection}
               >
@@ -1368,6 +1414,8 @@ export default function UserEditPage() {
               <Button
                 type="button"
                 variant="outline"
+                fullWidth
+                className="sm:w-auto"
                 onClick={() => nextSection && setActiveSection(nextSection.id)}
                 disabled={!nextSection}
               >

@@ -397,18 +397,25 @@ export default function FamilyHouseLookupPage() {
           const userId = row._id || row.id;
           return (
             <div className="flex items-center gap-3">
-              {row.avatar?.url ? (
-                <img
-                  src={row.avatar.url}
-                  alt=""
-                  className="h-9 w-9 rounded-full border border-border object-cover"
-                />
-              ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
-                  {getInitial(row.fullName)}
-                </div>
-              )}
-              <div>
+              <div className="relative shrink-0">
+                {row.avatar?.url ? (
+                  <img
+                    src={row.avatar.url}
+                    alt=""
+                    className="h-9 w-9 rounded-full border border-border object-cover"
+                  />
+                ) : (
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
+                    {getInitial(row.fullName)}
+                  </div>
+                )}
+                {row.isLocked ? (
+                  <span className="absolute -bottom-0.5 -left-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-white ring-2 ring-surface">
+                    <LockKeyhole className="h-2.5 w-2.5" aria-hidden="true" />
+                  </span>
+                ) : null}
+              </div>
+              <div className="min-w-0">
                 {userId ? (
                   <Link
                     to={`/dashboard/users/${userId}`}
@@ -485,7 +492,7 @@ export default function FamilyHouseLookupPage() {
   };
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
@@ -579,8 +586,7 @@ export default function FamilyHouseLookupPage() {
             </div>
             {lookupDropdownOpen && (
               <ul
-                className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-md border border-border shadow-lg py-1"
-                style={{ backgroundColor: 'var(--color-surface, #ffffff)' }}
+                className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-md border border-border bg-surface shadow-lg py-1"
                 role="listbox"
               >
                 {lookupNamesLoading ? (
@@ -595,7 +601,7 @@ export default function FamilyHouseLookupPage() {
                       key={name}
                       role="option"
                       aria-selected={lookupName === name}
-                      className="px-3 py-2 text-sm cursor-pointer hover:bg-muted focus:bg-muted"
+                      className="px-3 py-2 text-sm cursor-pointer text-base hover:bg-surface-alt focus:bg-surface-alt"
                       onMouseDown={(event) => {
                         event.preventDefault();
                         setLookupName(name);
@@ -967,7 +973,21 @@ function HouseholdClassificationPanel({
           description={errorMessage}
         />
       ) : loading ? (
-        <p className="text-sm text-muted">...</p>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="rounded-xl border border-border bg-surface-alt/50 p-3">
+                <div className="h-3 w-2/3 animate-pulse rounded bg-surface-alt" />
+                <div className="mt-3 h-5 w-1/2 animate-pulse rounded bg-surface-alt" />
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {Array.from({ length: 2 }).map((_, index) => (
+              <div key={index} className="h-28 animate-pulse rounded-2xl border border-border bg-surface" />
+            ))}
+          </div>
+        </div>
       ) : !household ? (
         <EmptyState
           icon={Building2}
@@ -1152,7 +1172,22 @@ function RankedBars({ title, items, loading, emptyLabel, linkType }) {
     <div className="rounded-xl border border-border bg-surface p-4">
       <h3 className="text-sm font-semibold text-heading">{title}</h3>
       {loading ? (
-        <p className="mt-3 text-sm text-muted">...</p>
+        <div className="mt-4 space-y-3">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="space-y-1.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="h-3 w-24 animate-pulse rounded bg-surface-alt" />
+                <div className="h-4 w-6 animate-pulse rounded bg-surface-alt" />
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-surface-alt">
+                <div
+                  className="h-full animate-pulse rounded-full bg-border"
+                  style={{ width: `${70 - index * 15}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : items.length === 0 ? (
         <p className="mt-3 text-sm text-muted">{emptyLabel}</p>
       ) : (

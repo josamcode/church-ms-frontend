@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
+  AlertCircle,
+  ListFilter,
   Plus,
   Save,
   Settings2,
@@ -14,11 +16,13 @@ import { mapFieldErrors, normalizeApiError } from '../../../api/errors';
 import { useI18n } from '../../../i18n/i18n';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
 import Select from '../../../components/ui/Select';
+import Skeleton from '../../../components/ui/Skeleton';
 import Switch from '../../../components/ui/Switch';
 import TagInput from '../../../components/ui/TagInput';
 import TextArea from '../../../components/ui/TextArea';
@@ -135,27 +139,30 @@ function CategoryBadge({ category, selected, onClick }) {
       onClick={onClick}
       className={`w-full rounded-2xl border p-4 text-start transition-all ${selected
           ? 'border-primary bg-primary/5 shadow-sm'
-          : 'border-border bg-surface hover:border-primary/30'
+          : 'border-border bg-surface hover:border-primary/30 hover:shadow-sm'
         }`}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="font-semibold text-heading">{category.name}</p>
-        <span
-          className="h-3 w-3 rounded-full border"
-          style={{ backgroundColor: category.color, borderColor: `${category.color}66` }}
-        />
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span
+            className="h-3 w-3 flex-shrink-0 rounded-full border"
+            style={{ backgroundColor: category.color, borderColor: `${category.color}66` }}
+          />
+          <p className="truncate font-semibold text-heading">{category.name}</p>
+        </div>
+        <Badge variant="neutral" size="sm">{category.priority}</Badge>
       </div>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        <Badge variant={category.isActive ? 'success' : 'warning'}>
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
+        <Badge variant={category.isActive ? 'success' : 'warning'} size="sm" dot>
           {category.isActive ? 'Active' : 'Inactive'}
         </Badge>
         {category.isLordsBrethren && (
-          <Badge variant="primary" className="bg-primary/10 text-primary border-primary/20">
-            Lords Brethren
-          </Badge>
+          <Badge variant="gold" size="sm">Lords Brethren</Badge>
         )}
-        <Badge>{category.priority}</Badge>
-        <Badge variant="secondary">{category.criteriaCount}</Badge>
+        <Badge variant="primary" size="sm">
+          <ListFilter className="h-3 w-3" />
+          {category.criteriaCount}
+        </Badge>
       </div>
     </button>
   );
@@ -323,14 +330,14 @@ export default function HouseholdClassificationCategoriesPage() {
     deleteMutation.mutate(draft.id);
   };
 
+  const breadcrumbs = [
+    { label: t('shared.dashboard'), href: '/dashboard' },
+    { label: copy.title },
+  ];
+
   return (
     <div className="animate-fade-in space-y-8 pb-10">
-      <Breadcrumbs
-        items={[
-          { label: t('shared.dashboard'), href: '/dashboard' },
-          { label: copy.title },
-        ]}
-      />
+      <Breadcrumbs items={breadcrumbs} />
 
       <PageHeader
         className="border-b border-border pb-6"
@@ -352,15 +359,41 @@ export default function HouseholdClassificationCategoriesPage() {
       />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-        <Card className="space-y-4 xl:sticky xl:top-20 xl:self-start" padding="lg">
-          <CardHeader
-            icon={Settings2}
-            title={copy.categoriesTitle}
-            className="mb-0"
-            action={<Badge variant="secondary">{categories.length}</Badge>}
-          />
-          {categories.length === 0 ? (
-            <EmptyCategoryState copy={copy} onCreate={startNewCategory} />
+        {/* ══ CATEGORIES LIST ═════════════════════════════════════════════ */}
+        <Section
+          icon={Settings2}
+          title={copy.categoriesTitle}
+          actions={<Badge variant="primary">{categories.length}</Badge>}
+          className="xl:sticky xl:top-20 xl:self-start"
+          bodyClassName="space-y-3"
+        >
+          {categoriesQuery.isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Skeleton key={index} className="h-24 rounded-2xl" />
+              ))}
+            </div>
+          ) : categoriesQuery.isError ? (
+            <div className="rounded-2xl border border-danger/20 bg-danger-light px-4 py-5 text-center">
+              <AlertCircle className="mx-auto mb-2 h-6 w-6 text-danger" />
+              <p className="text-sm text-danger">{normalizeApiError(categoriesQuery.error).message}</p>
+              <div className="mt-3">
+                <Button size="sm" variant="outline" onClick={() => categoriesQuery.refetch()}>
+                  {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+                </Button>
+              </div>
+            </div>
+          ) : categories.length === 0 ? (
+            <EmptyState
+              compact
+              icon={Settings2}
+              title={copy.emptyCategories}
+              action={(
+                <Button icon={Plus} onClick={startNewCategory}>
+                  {copy.newCategory}
+                </Button>
+              )}
+            />
           ) : (
             <div className="space-y-3">
               {categories.map((category) => (
@@ -373,9 +406,11 @@ export default function HouseholdClassificationCategoriesPage() {
               ))}
             </div>
           )}
-        </Card>
+        </Section>
 
-        <Card className="space-y-6" padding="lg">
+        {/* ══ RULE EDITOR ═════════════════════════════════════════════════ */}
+        <div className="space-y-6">
+          {/* editor intro banner */}
           <div className="flex items-start gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
             <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <SlidersHorizontal className="h-[18px] w-[18px]" />
@@ -386,311 +421,325 @@ export default function HouseholdClassificationCategoriesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input
-              label={copy.name}
-              value={draft.name}
-              onChange={(event) => updateDraft('name', event.target.value)}
-              error={errors.name}
-              containerClassName="!mb-0"
-            />
-            <Input
-              label={copy.color}
-              type="color"
-              value={draft.color}
-              onChange={(event) => updateDraft('color', event.target.value)}
-              containerClassName="!mb-0"
-            />
-            <Input
-              label={copy.priority}
-              type="number"
-              min="0"
-              value={draft.priority}
-              onChange={(event) => updateDraft('priority', event.target.value)}
-              containerClassName="!mb-0"
-            />
-            <div className="rounded-xl flex flex-col gap-2 border border-border bg-surface-alt/40 px-4 py-3">
-              <Switch
-                checked={draft.isActive}
-                onChange={(checked) => updateDraft('isActive', checked)}
-                label={copy.active}
-              />
-              <Switch
-                checked={draft.isLordsBrethren}
-                onChange={(checked) => updateDraft('isLordsBrethren', checked)}
-                label={copy.isLordsBrethren}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <TextArea
-                label={copy.description}
-                value={draft.description}
-                onChange={(event) => updateDraft('description', event.target.value)}
+          {/* general details */}
+          <Section icon={Settings2} title={copy.editorTitle} divided={false} bodyClassName="pt-0">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input
+                label={copy.name}
+                value={draft.name}
+                onChange={(event) => updateDraft('name', event.target.value)}
+                error={errors.name}
                 containerClassName="!mb-0"
               />
+              <Input
+                label={copy.color}
+                type="color"
+                value={draft.color}
+                onChange={(event) => updateDraft('color', event.target.value)}
+                containerClassName="!mb-0"
+              />
+              <Input
+                label={copy.priority}
+                type="number"
+                min="0"
+                value={draft.priority}
+                onChange={(event) => updateDraft('priority', event.target.value)}
+                containerClassName="!mb-0"
+              />
+              <div className="rounded-xl flex flex-col gap-2 border border-border bg-surface-alt/40 px-4 py-3">
+                <Switch
+                  checked={draft.isActive}
+                  onChange={(checked) => updateDraft('isActive', checked)}
+                  label={copy.active}
+                />
+                <Switch
+                  checked={draft.isLordsBrethren}
+                  onChange={(checked) => updateDraft('isLordsBrethren', checked)}
+                  label={copy.isLordsBrethren}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <TextArea
+                  label={copy.description}
+                  value={draft.description}
+                  onChange={(event) => updateDraft('description', event.target.value)}
+                  containerClassName="!mb-0"
+                />
+              </div>
             </div>
-          </div>
+          </Section>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-heading">{copy.criteriaTitle}</p>
-              <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addCriterion}>
-                {copy.addCriterion}
-              </Button>
-            </div>
+          {/* criteria */}
+          <Section
+            icon={ListFilter}
+            title={copy.criteriaTitle}
+            actions={(
+              <>
+                <Badge variant="neutral">{draft.criteria.length}</Badge>
+                <Button type="button" variant="outline" size="sm" icon={Plus} onClick={addCriterion}>
+                  {copy.addCriterion}
+                </Button>
+              </>
+            )}
+            bodyClassName="space-y-4"
+          >
+            {draft.criteria.map((criterion, index) => {
+              const operatorOptions = getOperatorOptions(criterion.metric, language);
+              const showFilters = metricUsesFilters(criterion.metric);
+              const isBooleanMetric = metricUsesBooleanOperator(criterion.metric);
 
-            <div className="space-y-4">
-              {draft.criteria.map((criterion, index) => {
-                const operatorOptions = getOperatorOptions(criterion.metric, language);
-                const showFilters = metricUsesFilters(criterion.metric);
-                const isBooleanMetric = metricUsesBooleanOperator(criterion.metric);
-
-                return (
-                  <div key={criterion.id} className="rounded-2xl border border-border bg-surface-alt/30 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
-                          {index + 1}
-                        </span>
-                        <p className="text-sm font-semibold text-heading">
-                          {copy.criteriaTitle} #{index + 1}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeCriterion(criterion.id)}
-                        className="flex h-8 w-8 items-center justify-center rounded-xl border border-border text-muted transition-colors hover:border-danger/30 hover:bg-danger-light hover:text-danger"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                      <Input
-                        label={copy.label}
-                        value={criterion.label}
-                        onChange={(event) =>
-                          updateCriterion(criterion.id, { label: event.target.value })
-                        }
-                        containerClassName="!mb-0"
-                      />
-                      <div className="rounded-xl border border-border bg-surface-alt/40 px-4 py-3">
-                        <Switch
-                          checked={criterion.isRequired}
-                          onChange={(checked) =>
-                            updateCriterion(criterion.id, { isRequired: checked })
-                          }
-                          label={copy.required}
-                        />
-                      </div>
-                      <Select
-                        label={copy.metric}
-                        options={metricOptions}
-                        value={criterion.metric}
-                        onChange={(event) =>
-                          updateCriterion(criterion.id, (current) => ({
-                            ...current,
-                            metric: event.target.value,
-                            operator: getOperatorOptions(event.target.value, language)[0]?.value,
-                          }))
-                        }
-                        containerClassName="!mb-0"
-                      />
-                      <Select
-                        label={copy.operator}
-                        options={operatorOptions}
-                        value={criterion.operator}
-                        onChange={(event) =>
-                          updateCriterion(criterion.id, { operator: event.target.value })
-                        }
-                        containerClassName="!mb-0"
-                      />
-
-                      {criterion.operator === 'between' ? (
-                        <>
-                          <Input
-                            label={copy.minValue}
-                            type="number"
-                            min="0"
-                            value={criterion.minValue}
-                            onChange={(event) =>
-                              updateCriterion(criterion.id, { minValue: event.target.value })
-                            }
-                            containerClassName="!mb-0"
-                          />
-                          <Input
-                            label={copy.maxValue}
-                            type="number"
-                            min="0"
-                            value={criterion.maxValue}
-                            onChange={(event) =>
-                              updateCriterion(criterion.id, { maxValue: event.target.value })
-                            }
-                            containerClassName="!mb-0"
-                          />
-                        </>
-                      ) : !isBooleanMetric ? (
-                        <Input
-                          label={copy.value}
-                          type="number"
-                          min="0"
-                          value={criterion.value}
-                          onChange={(event) =>
-                            updateCriterion(criterion.id, { value: event.target.value })
-                          }
-                          containerClassName="!mb-0 lg:col-span-2"
-                        />
+              return (
+                <div key={criterion.id} className="rounded-2xl border border-border bg-surface-alt/30 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                        {index + 1}
+                      </span>
+                      <p className="text-sm font-semibold text-heading">
+                        {copy.criteriaTitle} #{index + 1}
+                      </p>
+                      {criterion.isRequired ? (
+                        <Badge variant="primary" size="sm">{copy.required}</Badge>
                       ) : null}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => removeCriterion(criterion.id)}
+                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-border text-muted transition-colors hover:border-danger/30 hover:bg-danger-light hover:text-danger"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
 
-                    {showFilters ? (
-                      <div className="mt-5 space-y-4 rounded-2xl border border-border bg-surface-alt/30 p-4">
+                  <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <Input
+                      label={copy.label}
+                      value={criterion.label}
+                      onChange={(event) =>
+                        updateCriterion(criterion.id, { label: event.target.value })
+                      }
+                      containerClassName="!mb-0"
+                    />
+                    <div className="flex items-center rounded-xl border border-border bg-surface-alt/40 px-4 py-3">
+                      <Switch
+                        checked={criterion.isRequired}
+                        onChange={(checked) =>
+                          updateCriterion(criterion.id, { isRequired: checked })
+                        }
+                        label={copy.required}
+                      />
+                    </div>
+                    <Select
+                      label={copy.metric}
+                      options={metricOptions}
+                      value={criterion.metric}
+                      onChange={(event) =>
+                        updateCriterion(criterion.id, (current) => ({
+                          ...current,
+                          metric: event.target.value,
+                          operator: getOperatorOptions(event.target.value, language)[0]?.value,
+                        }))
+                      }
+                      containerClassName="!mb-0"
+                    />
+                    <Select
+                      label={copy.operator}
+                      options={operatorOptions}
+                      value={criterion.operator}
+                      onChange={(event) =>
+                        updateCriterion(criterion.id, { operator: event.target.value })
+                      }
+                      containerClassName="!mb-0"
+                    />
+
+                    {criterion.operator === 'between' ? (
+                      <>
+                        <Input
+                          label={copy.minValue}
+                          type="number"
+                          min="0"
+                          value={criterion.minValue}
+                          onChange={(event) =>
+                            updateCriterion(criterion.id, { minValue: event.target.value })
+                          }
+                          containerClassName="!mb-0"
+                        />
+                        <Input
+                          label={copy.maxValue}
+                          type="number"
+                          min="0"
+                          value={criterion.maxValue}
+                          onChange={(event) =>
+                            updateCriterion(criterion.id, { maxValue: event.target.value })
+                          }
+                          containerClassName="!mb-0"
+                        />
+                      </>
+                    ) : !isBooleanMetric ? (
+                      <Input
+                        label={copy.value}
+                        type="number"
+                        min="0"
+                        value={criterion.value}
+                        onChange={(event) =>
+                          updateCriterion(criterion.id, { value: event.target.value })
+                        }
+                        containerClassName="!mb-0 lg:col-span-2"
+                      />
+                    ) : null}
+                  </div>
+
+                  {showFilters ? (
+                    <div className="mt-5 space-y-4 rounded-2xl border border-border bg-surface p-4">
+                      <div className="flex items-center gap-2">
+                        <ListFilter className="h-4 w-4 text-primary" />
                         <p className="text-sm font-semibold text-heading">{copy.filtersTitle}</p>
-                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                          <MultiSelectChips
-                            label={copy.genders}
-                            options={filterOptions.genderOptions}
-                            values={criterion.filters.genders}
-                            onChange={(next) =>
-                              updateCriterion(criterion.id, (current) => ({
-                                ...current,
-                                filters: { ...current.filters, genders: next },
-                              }))
-                            }
-                            containerClassName="!mb-0"
-                          />
-                          <MultiSelectChips
-                            label={copy.ageGroups}
-                            options={filterOptions.ageGroupOptions}
-                            values={criterion.filters.ageGroups}
-                            onChange={(next) =>
-                              updateCriterion(criterion.id, (current) => ({
-                                ...current,
-                                filters: { ...current.filters, ageGroups: next },
-                              }))
-                            }
-                            containerClassName="!mb-0"
-                          />
-                          <MultiSelectChips
-                            label={copy.educationStages}
-                            options={filterOptions.educationStageOptions}
-                            values={criterion.filters.educationStages}
-                            onChange={(next) =>
-                              updateCriterion(criterion.id, (current) => ({
-                                ...current,
-                                filters: { ...current.filters, educationStages: next },
-                              }))
-                            }
-                            containerClassName="!mb-0"
-                          />
-                          <MultiSelectChips
-                            label={copy.employmentStatuses}
-                            options={filterOptions.employmentStatusOptions}
-                            values={criterion.filters.employmentStatuses}
-                            onChange={(next) =>
-                              updateCriterion(criterion.id, (current) => ({
-                                ...current,
-                                filters: { ...current.filters, employmentStatuses: next },
-                              }))
-                            }
-                            containerClassName="!mb-0"
-                          />
-                          <MultiSelectChips
-                            label={copy.presenceStatuses}
-                            options={filterOptions.presenceStatusOptions}
-                            values={criterion.filters.presenceStatuses}
-                            onChange={(next) =>
-                              updateCriterion(criterion.id, (current) => ({
-                                ...current,
-                                filters: { ...current.filters, presenceStatuses: next },
-                              }))
-                            }
-                            containerClassName="!mb-0"
-                          />
-                          <TagInput
-                            label={copy.diseases}
-                            values={criterion.filters.diseases}
-                            onChange={(next) =>
-                              updateCriterion(criterion.id, (current) => ({
-                                ...current,
-                                filters: { ...current.filters, diseases: next },
-                              }))
-                            }
-                            containerClassName="!mb-0"
-                          />
-                          <Select
-                            label={copy.diseaseMatchMode}
-                            options={[
-                              { value: 'any', label: copy.any },
-                              { value: 'all', label: copy.all },
-                            ]}
-                            value={criterion.filters.diseaseMatchMode}
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <MultiSelectChips
+                          label={copy.genders}
+                          options={filterOptions.genderOptions}
+                          values={criterion.filters.genders}
+                          onChange={(next) =>
+                            updateCriterion(criterion.id, (current) => ({
+                              ...current,
+                              filters: { ...current.filters, genders: next },
+                            }))
+                          }
+                          containerClassName="!mb-0"
+                        />
+                        <MultiSelectChips
+                          label={copy.ageGroups}
+                          options={filterOptions.ageGroupOptions}
+                          values={criterion.filters.ageGroups}
+                          onChange={(next) =>
+                            updateCriterion(criterion.id, (current) => ({
+                              ...current,
+                              filters: { ...current.filters, ageGroups: next },
+                            }))
+                          }
+                          containerClassName="!mb-0"
+                        />
+                        <MultiSelectChips
+                          label={copy.educationStages}
+                          options={filterOptions.educationStageOptions}
+                          values={criterion.filters.educationStages}
+                          onChange={(next) =>
+                            updateCriterion(criterion.id, (current) => ({
+                              ...current,
+                              filters: { ...current.filters, educationStages: next },
+                            }))
+                          }
+                          containerClassName="!mb-0"
+                        />
+                        <MultiSelectChips
+                          label={copy.employmentStatuses}
+                          options={filterOptions.employmentStatusOptions}
+                          values={criterion.filters.employmentStatuses}
+                          onChange={(next) =>
+                            updateCriterion(criterion.id, (current) => ({
+                              ...current,
+                              filters: { ...current.filters, employmentStatuses: next },
+                            }))
+                          }
+                          containerClassName="!mb-0"
+                        />
+                        <MultiSelectChips
+                          label={copy.presenceStatuses}
+                          options={filterOptions.presenceStatusOptions}
+                          values={criterion.filters.presenceStatuses}
+                          onChange={(next) =>
+                            updateCriterion(criterion.id, (current) => ({
+                              ...current,
+                              filters: { ...current.filters, presenceStatuses: next },
+                            }))
+                          }
+                          containerClassName="!mb-0"
+                        />
+                        <TagInput
+                          label={copy.diseases}
+                          values={criterion.filters.diseases}
+                          onChange={(next) =>
+                            updateCriterion(criterion.id, (current) => ({
+                              ...current,
+                              filters: { ...current.filters, diseases: next },
+                            }))
+                          }
+                          containerClassName="!mb-0"
+                        />
+                        <Select
+                          label={copy.diseaseMatchMode}
+                          options={[
+                            { value: 'any', label: copy.any },
+                            { value: 'all', label: copy.all },
+                          ]}
+                          value={criterion.filters.diseaseMatchMode}
+                          onChange={(event) =>
+                            updateCriterion(criterion.id, (current) => ({
+                              ...current,
+                              filters: {
+                                ...current.filters,
+                                diseaseMatchMode: event.target.value,
+                              },
+                            }))
+                          }
+                          containerClassName="!mb-0"
+                        />
+                        <TagInput
+                          label={copy.travelDestinations}
+                          values={criterion.filters.travelDestinations}
+                          onChange={(next) =>
+                            updateCriterion(criterion.id, (current) => ({
+                              ...current,
+                              filters: { ...current.filters, travelDestinations: next },
+                            }))
+                          }
+                          containerClassName="!mb-0"
+                        />
+                        <div className="grid grid-cols-2 gap-4">
+                          <Input
+                            label={copy.minIncome}
+                            type="number"
+                            min="0"
+                            value={criterion.filters.minMonthlyIncome}
                             onChange={(event) =>
                               updateCriterion(criterion.id, (current) => ({
                                 ...current,
                                 filters: {
                                   ...current.filters,
-                                  diseaseMatchMode: event.target.value,
+                                  minMonthlyIncome: event.target.value,
                                 },
                               }))
                             }
                             containerClassName="!mb-0"
                           />
-                          <TagInput
-                            label={copy.travelDestinations}
-                            values={criterion.filters.travelDestinations}
-                            onChange={(next) =>
+                          <Input
+                            label={copy.maxIncome}
+                            type="number"
+                            min="0"
+                            value={criterion.filters.maxMonthlyIncome}
+                            onChange={(event) =>
                               updateCriterion(criterion.id, (current) => ({
                                 ...current,
-                                filters: { ...current.filters, travelDestinations: next },
+                                filters: {
+                                  ...current.filters,
+                                  maxMonthlyIncome: event.target.value,
+                                },
                               }))
                             }
                             containerClassName="!mb-0"
                           />
-                          <div className="grid grid-cols-2 gap-4">
-                            <Input
-                              label={copy.minIncome}
-                              type="number"
-                              min="0"
-                              value={criterion.filters.minMonthlyIncome}
-                              onChange={(event) =>
-                                updateCriterion(criterion.id, (current) => ({
-                                  ...current,
-                                  filters: {
-                                    ...current.filters,
-                                    minMonthlyIncome: event.target.value,
-                                  },
-                                }))
-                              }
-                              containerClassName="!mb-0"
-                            />
-                            <Input
-                              label={copy.maxIncome}
-                              type="number"
-                              min="0"
-                              value={criterion.filters.maxMonthlyIncome}
-                              onChange={(event) =>
-                                updateCriterion(criterion.id, (current) => ({
-                                  ...current,
-                                  filters: {
-                                    ...current.filters,
-                                    maxMonthlyIncome: event.target.value,
-                                  },
-                                }))
-                              }
-                              containerClassName="!mb-0"
-                            />
-                          </div>
                         </div>
                       </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </Section>
 
-          <div className="flex justify-between gap-3">
+          {/* save / delete bar */}
+          <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface/95 px-4 py-3 shadow-md backdrop-blur">
             <div>
               {draft.id ? (
                 <Button
@@ -707,20 +756,7 @@ export default function HouseholdClassificationCategoriesPage() {
               {copy.save}
             </Button>
           </div>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function EmptyCategoryState({ copy, onCreate }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-border px-4 py-6 text-center">
-      <p className="text-sm text-muted">{copy.emptyCategories}</p>
-      <div className="mt-4">
-        <Button icon={Plus} onClick={onCreate}>
-          {copy.newCategory}
-        </Button>
+        </div>
       </div>
     </div>
   );

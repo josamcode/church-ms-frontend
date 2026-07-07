@@ -2,14 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Loader, Plus, Save, Trash2, Upload, X } from 'lucide-react';
+import { Image as ImageIcon, Info, Plus, Save, Trash2, Upload, UsersRound, X } from 'lucide-react';
 import { mapFieldErrors, normalizeApiError } from '../../../api/errors';
 import { meetingsApi } from '../../../api/endpoints';
 import UserSearchSelect from '../../../components/UserSearchSelect';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
+import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
+import Skeleton from '../../../components/ui/Skeleton';
 import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
 import { buildSectorPayload, mapSectorToForm } from './meetingsForm.utils';
@@ -134,132 +136,161 @@ export default function SectorFormPage() {
     setErrors((prev) => ({ ...prev, [`officials_${index}`]: undefined }));
   };
 
+  const breadcrumbs = (
+    <Breadcrumbs
+      items={[
+        { label: t('shared.dashboard'), href: '/dashboard' },
+        { label: t('meetings.sectorsPageTitle'), href: '/dashboard/meetings/sectors' },
+        { label: isEdit ? t('meetings.actions.editSectorPage') : t('meetings.actions.createSectorPage') },
+      ]}
+    />
+  );
+
   if (isEdit && sectorQuery.isLoading) {
     return (
       <div className="animate-fade-in space-y-6">
-        <Breadcrumbs
-          items={[
-            { label: t('shared.dashboard'), href: '/dashboard' },
-            { label: t('meetings.sectorsPageTitle'), href: '/dashboard/meetings/sectors' },
-            { label: t('meetings.actions.editSectorPage') },
-          ]}
+        {breadcrumbs}
+        <PageHeader
+          className="border-b border-border pb-6"
+          eyebrow={t('meetings.sectorsPageTitle')}
+          title={t('meetings.actions.editSectorPage')}
+          subtitle={t('meetings.sections.sectorsSubtitle')}
         />
-        <Card className="flex items-center gap-3">
-          <Loader className="h-4 w-4 animate-spin text-primary" />
-          <p className="text-sm text-muted">{t('common.loading')}</p>
-        </Card>
+        <div className="mx-auto max-w-4xl space-y-6">
+          <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
+            <Skeleton className="h-5 w-40" />
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Skeleton className="h-11 w-full" />
+              <Skeleton className="h-11 w-full" />
+            </div>
+            <Skeleton className="mt-4 h-24 w-full" />
+          </div>
+          <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="mt-4 h-28 w-full" />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in space-y-6">
-      <Breadcrumbs
-        items={[
-          { label: t('shared.dashboard'), href: '/dashboard' },
-          { label: t('meetings.sectorsPageTitle'), href: '/dashboard/meetings/sectors' },
-          { label: isEdit ? t('meetings.actions.editSectorPage') : t('meetings.actions.createSectorPage') },
-        ]}
+    <div className="animate-fade-in space-y-6 pb-10">
+      {breadcrumbs}
+
+      <PageHeader
+        className="border-b border-border pb-6"
+        eyebrow={t('meetings.sectorsPageTitle')}
+        title={isEdit ? t('meetings.actions.editSectorPage') : t('meetings.actions.createSectorPage')}
+        subtitle={t('meetings.sections.sectorsSubtitle')}
       />
 
-      <Card>
-        <CardHeader
-          title={isEdit ? t('meetings.actions.editSectorPage') : t('meetings.actions.createSectorPage')}
-          subtitle={t('meetings.sections.sectorsSubtitle')}
-        />
+      <form onSubmit={handleSubmit}>
+        <div className="mx-auto max-w-4xl space-y-6">
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-            <div className="rounded-xl border border-border bg-surface-alt/40 p-4">
-              <h4 className="text-sm font-semibold text-heading mb-2">{t('meetings.fields.avatar')}</h4>
-              <p className="text-xs text-muted mb-4">{t('meetings.fields.avatarHint')}</p>
+          {/* ── Basic info + avatar ─────────────────────────────────── */}
+          <Section
+            icon={Info}
+            title={t('meetings.sections.basicInfo')}
+            description={t('meetings.sections.sectorsSubtitle')}
+          >
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+              <div className="rounded-xl border border-border bg-surface-alt/40 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4 text-secondary" />
+                  <h4 className="text-sm font-semibold text-heading">{t('meetings.fields.avatar')}</h4>
+                </div>
+                <p className="mb-4 text-xs text-muted">{t('meetings.fields.avatarHint')}</p>
 
-              <div className="flex items-center gap-4 flex-wrap">
-                {form.avatar?.url ? (
-                  <div className="relative inline-block">
-                    <img
-                      src={form.avatar.url}
-                      alt={form.name || t('meetings.fields.avatar')}
-                      className="h-24 w-24 rounded-full border border-border object-cover"
+                <div className="flex flex-wrap items-center gap-4">
+                  {form.avatar?.url ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={form.avatar.url}
+                        alt={form.name || t('meetings.fields.avatar')}
+                        className="h-24 w-24 rounded-full border border-border object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveAvatar}
+                        className="absolute -top-1 -left-1 rounded-full bg-danger p-1 text-white"
+                        aria-label={t('meetings.actions.removeAvatar')}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-border bg-surface px-2 text-center text-xs text-muted">
+                      {t('meetings.empty.noAvatar')}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      onChange={handleAvatarChange}
+                      disabled={avatarUploading}
+                      className="hidden"
+                      id="sector-avatar-upload"
                     />
-                    <button
-                      type="button"
-                      onClick={handleRemoveAvatar}
-                      className="absolute -top-1 -left-1 rounded-full bg-danger p-1 text-white"
-                      aria-label={t('meetings.actions.removeAvatar')}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="h-24 w-24 rounded-full border-2 border-dashed border-border bg-surface flex items-center justify-center text-xs text-muted text-center px-2">
-                    {t('meetings.empty.noAvatar')}
-                  </div>
-                )}
 
-                <div className="flex flex-col gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    onChange={handleAvatarChange}
-                    disabled={avatarUploading}
-                    className="hidden"
-                    id="sector-avatar-upload"
-                  />
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    icon={Upload}
-                    loading={avatarUploading}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {form.avatar?.url ? t('meetings.actions.changeAvatar') : t('meetings.actions.uploadAvatar')}
-                  </Button>
-
-                  {form.avatar?.url && (
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="text-danger"
-                      onClick={handleRemoveAvatar}
+                      icon={Upload}
+                      loading={avatarUploading}
+                      onClick={() => fileInputRef.current?.click()}
                     >
-                      {t('meetings.actions.removeAvatar')}
+                      {form.avatar?.url ? t('meetings.actions.changeAvatar') : t('meetings.actions.uploadAvatar')}
                     </Button>
-                  )}
+
+                    {form.avatar?.url && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-danger"
+                        onClick={handleRemoveAvatar}
+                      >
+                        {t('meetings.actions.removeAvatar')}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              <div className="rounded-xl border border-border bg-surface p-4 xl:col-span-2">
+                <Input
+                  label={t('meetings.fields.name')}
+                  required
+                  value={form.name}
+                  placeholder={t('meetings.fields.namePlaceholder')}
+                  onChange={(event) => {
+                    setForm((prev) => ({ ...prev, name: event.target.value }));
+                    setErrors((prev) => ({ ...prev, name: undefined }));
+                  }}
+                  error={errors.name}
+                />
+
+                <TextArea
+                  label={t('meetings.fields.notes')}
+                  value={form.notes}
+                  placeholder={t('meetings.fields.sectorNotesPlaceholder')}
+                  onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
+                  containerClassName="!mb-0"
+                />
+              </div>
             </div>
+          </Section>
 
-            <div className="xl:col-span-2 rounded-xl border border-border bg-surface p-4">
-              <h4 className="text-sm font-semibold text-heading mb-3">{t('meetings.sections.basicInfo')}</h4>
-              <Input
-                label={t('meetings.fields.name')}
-                required
-                value={form.name}
-                placeholder={t('meetings.fields.namePlaceholder')}
-                onChange={(event) => {
-                  setForm((prev) => ({ ...prev, name: event.target.value }));
-                  setErrors((prev) => ({ ...prev, name: undefined }));
-                }}
-                error={errors.name}
-              />
-
-              <TextArea
-                label={t('meetings.fields.notes')}
-                value={form.notes}
-                placeholder={t('meetings.fields.sectorNotesPlaceholder')}
-                onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
-              />
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border bg-surface p-4">
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <h4 className="text-sm font-semibold text-heading">{t('meetings.fields.officials')}</h4>
+          {/* ── Officials ───────────────────────────────────────────── */}
+          <Section
+            icon={UsersRound}
+            title={t('meetings.fields.officials')}
+            actions={
               <Button
                 type="button"
                 size="sm"
@@ -274,15 +305,15 @@ export default function SectorFormPage() {
               >
                 {t('meetings.actions.addOfficial')}
               </Button>
-            </div>
-
+            }
+          >
             <div className="space-y-4">
               {form.officials.length === 0 && (
                 <p className="text-sm text-muted">{t('meetings.empty.noOfficialsYet')}</p>
               )}
 
               {form.officials.map((official, index) => (
-                <div key={index} className="rounded-lg border border-border bg-surface-alt/30 p-4">
+                <div key={index} className="rounded-xl border border-border bg-surface-alt/30 p-4">
                   <UserSearchSelect
                     label={t('meetings.fields.userLink')}
                     value={official.user}
@@ -294,7 +325,7 @@ export default function SectorFormPage() {
                     }
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                  <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                     <Input
                       label={t('meetings.fields.nameFallback')}
                       value={official.name}
@@ -335,18 +366,31 @@ export default function SectorFormPage() {
                 </div>
               ))}
             </div>
-          </div>
+          </Section>
 
-          <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
-            <Button type="button" variant="ghost" onClick={() => navigate('/dashboard/meetings/sectors')}>
+          {/* ── Actions ─────────────────────────────────────────────── */}
+          <div className="sticky bottom-0 z-10 -mx-1 flex flex-col-reverse gap-3 rounded-xl border border-border bg-surface/95 p-3 shadow-card backdrop-blur sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
+            <Button
+              type="button"
+              variant="ghost"
+              fullWidth
+              onClick={() => navigate('/dashboard/meetings/sectors')}
+              className="sm:w-auto"
+            >
               {t('common.actions.cancel')}
             </Button>
-            <Button type="submit" icon={Save} loading={saveMutation.isPending} className="sm:w-auto w-full">
+            <Button
+              type="submit"
+              icon={Save}
+              loading={saveMutation.isPending}
+              fullWidth
+              className="sm:w-auto"
+            >
               {t('common.actions.save')}
             </Button>
           </div>
-        </form>
-      </Card>
+        </div>
+      </form>
     </div>
   );
 }

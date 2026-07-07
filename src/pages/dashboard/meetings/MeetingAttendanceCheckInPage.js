@@ -1,16 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarDays, CheckSquare, ClipboardCheck, Loader, Save, Square, Users } from 'lucide-react';
+import {
+  AlertCircle,
+  CalendarDays,
+  CheckSquare,
+  ClipboardCheck,
+  Clock,
+  Square,
+  UserCheck,
+  UserX,
+  Users,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
 import { meetingsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
+import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
 import Select from '../../../components/ui/Select';
+import Skeleton from '../../../components/ui/Skeleton';
+import StatCard from '../../../components/ui/StatCard';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
 import { getDayLabel } from './meetingsForm.utils';
@@ -76,20 +90,26 @@ function buildUniqueMemberIds(groups = []) {
   )];
 }
 
-function MemberToggleCard({ member, checked, onToggle }) {
+function MemberToggleRow({ member, checked, onToggle }) {
   return (
     <button
       type="button"
       onClick={() => onToggle(member.id)}
+      aria-pressed={checked}
       className={[
-        'flex w-full items-center justify-between gap-3 rounded-2xl border p-3 text-start transition-all duration-150',
+        'flex w-full items-center justify-between gap-3 rounded-2xl border p-3 text-start transition-all duration-150 active:scale-[0.99]',
         checked
-          ? 'border-primary bg-primary/8 text-primary'
+          ? 'border-success/40 bg-success-light shadow-sm'
           : 'border-border bg-surface hover:border-primary/30 hover:shadow-sm',
       ].join(' ')}
     >
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+        <div
+          className={[
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors',
+            checked ? 'bg-success/15 text-success' : 'bg-primary/10 text-primary',
+          ].join(' ')}
+        >
           {String(member?.fullName || '?').trim().charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0">
@@ -97,8 +117,13 @@ function MemberToggleCard({ member, checked, onToggle }) {
           <p className="truncate text-xs text-muted direction-ltr text-left">{member?.phonePrimary || EMPTY}</p>
         </div>
       </div>
-      <span className="shrink-0 text-primary">
-        {checked ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5 text-muted" />}
+      <span
+        className={[
+          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors',
+          checked ? 'border-success/30 bg-success/10 text-success' : 'border-border bg-surface-alt/60 text-muted',
+        ].join(' ')}
+      >
+        {checked ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
       </span>
     </button>
   );
@@ -107,7 +132,7 @@ function MemberToggleCard({ member, checked, onToggle }) {
 export default function MeetingAttendanceCheckInPage() {
   const { id } = useParams();
   const queryClient = useQueryClient();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const tf = (key, fallback) => {
     const value = t(key);
     return value === key ? fallback : value;
@@ -179,8 +204,12 @@ export default function MeetingAttendanceCheckInPage() {
   });
 
   const selectedMemberIdSet = useMemo(() => new Set(selectedMemberIds), [selectedMemberIds]);
-  const selectedCount = selectedMemberIds.length;
   const totalVisibleMembers = allVisibleMemberIds.length;
+  const presentCount = useMemo(
+    () => allVisibleMemberIds.filter((memberId) => selectedMemberIdSet.has(memberId)).length,
+    [allVisibleMemberIds, selectedMemberIdSet]
+  );
+  const absentCount = Math.max(totalVisibleMembers - presentCount, 0);
 
   const toggleMember = (memberId) => {
     setSelectedMemberIds((current) => (
@@ -203,7 +232,19 @@ export default function MeetingAttendanceCheckInPage() {
     return (
       <div className="animate-fade-in space-y-6">
         <Breadcrumbs items={breadcrumbs} />
-        <p className="text-sm text-muted">{t('common.loading')}</p>
+        <Card>
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+        </Card>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-24 rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-40 rounded-xl" />
       </div>
     );
   }
@@ -270,11 +311,14 @@ export default function MeetingAttendanceCheckInPage() {
     );
   }
 
+  const isBusy = attendanceQuery.isLoading;
+
   return (
-    <div className="animate-fade-in space-y-8 pb-10">
+    <div className="animate-fade-in space-y-6 pb-28 lg:pb-10">
       <Breadcrumbs items={breadcrumbs} />
 
-      <Card>
+      {/* ══ HEADER / TOOLBAR ══════════════════════════════════════════════ */}
+      <Card padding="lg" tone="primary">
         <PageHeader
           contentOnly
           eyebrow={meeting?.name || t('meetings.meetingsPageTitle')}
@@ -284,20 +328,18 @@ export default function MeetingAttendanceCheckInPage() {
             'Choose a past meeting date and mark the members who attended.'
           )}
         />
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/8 px-3 py-1">
-            <CalendarDays className="h-3.5 w-3.5 text-primary" />
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Badge variant="primary" dot>
+            <CalendarDays className="h-3.5 w-3.5" />
             {getDayLabel(meeting?.day, t)} · {meeting?.time || EMPTY}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1">
+          </Badge>
+          <Badge variant="neutral">
             <Users className="h-3.5 w-3.5" />
-            {selectedCount} / {totalVisibleMembers} {tf('meetings.attendance.attendeesSelected', 'selected')}
-          </span>
+            {presentCount} / {totalVisibleMembers} {tf('meetings.attendance.attendeesSelected', 'selected')}
+          </Badge>
         </div>
-      </Card>
 
-      <Card padding="sm">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_1fr] lg:items-start">
+        <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,320px)_1fr] sm:items-end">
           <Select
             label={tf('meetings.attendance.dateLabel', 'Meeting Date')}
             options={attendanceDateOptions}
@@ -306,15 +348,14 @@ export default function MeetingAttendanceCheckInPage() {
             placeholder={tf('meetings.attendance.datePlaceholder', 'Select a meeting date')}
             containerClassName="!mb-0"
           />
-
-          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
               icon={CheckSquare}
               onClick={() => setSelectedMemberIds(allVisibleMemberIds)}
-              disabled={attendanceQuery.isLoading || totalVisibleMembers === 0}
+              disabled={isBusy || totalVisibleMembers === 0}
             >
               {tf('meetings.attendance.selectAll', 'Select all')}
             </Button>
@@ -324,71 +365,119 @@ export default function MeetingAttendanceCheckInPage() {
               size="sm"
               icon={Square}
               onClick={() => setSelectedMemberIds([])}
-              disabled={attendanceQuery.isLoading || selectedCount === 0}
+              disabled={isBusy || presentCount === 0}
             >
               {tf('meetings.attendance.clearAll', 'Clear all')}
-            </Button>
-            <Button
-              type="button"
-              icon={Save}
-              onClick={() => saveAttendanceMutation.mutate()}
-              loading={saveAttendanceMutation.isPending}
-              disabled={!selectedDate}
-            >
-              {t('common.actions.save')}
             </Button>
           </div>
         </div>
 
         {attendanceQuery.error && (
-          <p className="mt-3 text-sm text-danger">{normalizeApiError(attendanceQuery.error).message}</p>
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-danger/20 bg-danger-light px-3 py-2 text-sm text-danger">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{normalizeApiError(attendanceQuery.error).message}</span>
+          </div>
         )}
 
         {attendanceQuery.data?.viewerUpdatedAt && (
-          <p className="mt-3 text-xs text-muted">
+          <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">
+            <Clock className="h-3.5 w-3.5" />
             {tf('meetings.attendance.lastUpdated', 'Last updated')}: {formatDateTime(attendanceQuery.data.viewerUpdatedAt)} ·{' '}
             {attendanceQuery.data.viewerUpdatedBy?.fullName || EMPTY}
           </p>
         )}
       </Card>
 
-      {attendanceQuery.isLoading ? (
-        <Card className="flex items-center gap-3">
-          <Loader className="h-4 w-4 animate-spin text-primary" />
-          <p className="text-sm text-muted">{t('common.loading')}</p>
-        </Card>
-      ) : (
+      {/* ══ SUMMARY ═══════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard
+          icon={UserCheck}
+          label={tf('meetings.attendance.presentLabel', 'Present')}
+          value={presentCount}
+          tone="success"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={UserX}
+          label={tf('meetings.attendance.absentLabel', 'Absent')}
+          value={absentCount}
+          tone="warning"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Users}
+          label={tf('meetings.attendance.totalLabel', 'Total')}
+          value={totalVisibleMembers}
+          tone="primary"
+          isRTL={isRTL}
+        />
+      </div>
+
+      {/* ══ ATTENDEE LIST ═════════════════════════════════════════════════ */}
+      {isBusy ? (
         <div className="space-y-4">
-          {attendanceGroups.map((group) => (
-            <section key={group.key} className="rounded-2xl border border-border bg-surface">
-              <div className="flex items-center justify-between border-b border-border/60 px-5 py-3.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-                    <ClipboardCheck className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-heading">{group.name || EMPTY}</p>
-                    <p className="text-xs text-muted">
-                      {(group.members || []).filter((member) => selectedMemberIdSet.has(member.id)).length} /{' '}
-                      {group.members.length} {tf('meetings.attendance.groupCountLabel', 'selected')}
-                    </p>
-                  </div>
-                </div>
+          {Array.from({ length: 2 }).map((_, groupIndex) => (
+            <Card key={groupIndex} padding="none">
+              <div className="border-b border-border/60 px-5 py-3.5">
+                <Skeleton className="h-5 w-40" />
               </div>
               <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: 3 }).map((_, rowIndex) => (
+                  <Skeleton key={rowIndex} className="h-16 rounded-2xl" />
+                ))}
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {attendanceGroups.map((group) => {
+            const groupPresent = (group.members || []).filter((member) => selectedMemberIdSet.has(member.id)).length;
+            return (
+              <Section
+                key={group.key}
+                icon={ClipboardCheck}
+                title={group.name || EMPTY}
+                actions={(
+                  <Badge variant={groupPresent === group.members.length ? 'success' : 'neutral'}>
+                    {groupPresent} / {group.members.length}
+                  </Badge>
+                )}
+                bodyClassName="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+              >
                 {group.members.map((member) => (
-                  <MemberToggleCard
+                  <MemberToggleRow
                     key={member.id}
                     member={member}
                     checked={selectedMemberIdSet.has(member.id)}
                     onToggle={toggleMember}
                   />
                 ))}
-              </div>
-            </section>
-          ))}
+              </Section>
+            );
+          })}
         </div>
       )}
+
+      {/* ══ STICKY SAVE ═══════════════════════════════════════════════════ */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/95 px-4 py-3 shadow-lg backdrop-blur lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 lg:max-w-none lg:justify-end">
+          <span className="hidden text-sm text-muted sm:inline lg:me-auto">
+            {presentCount} / {totalVisibleMembers} {tf('meetings.attendance.attendeesSelected', 'selected')}
+          </span>
+          <Button
+            type="button"
+            icon={CheckSquare}
+            fullWidth
+            className="lg:w-auto"
+            onClick={() => saveAttendanceMutation.mutate()}
+            loading={saveAttendanceMutation.isPending}
+            disabled={!selectedDate}
+          >
+            {t('common.actions.save')}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

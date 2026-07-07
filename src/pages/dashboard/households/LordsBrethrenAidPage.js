@@ -353,9 +353,14 @@ export default function LordsBrethrenAidPage() {
         {/* LEFT COLUMN: Filters & Table */}
         <div className="space-y-6">
           <Card className="space-y-5" padding="lg">
-            <div className="flex items-center gap-2 border-b border-border pb-3">
-              <Filter className="h-4 w-4 text-primary" />
-              <p className="text-sm font-semibold text-heading">{copy.filtersTitle}</p>
+            <div className="flex items-start gap-3 border-b border-border pb-4">
+              <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Filter className="h-[18px] w-[18px]" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-base font-bold leading-tight text-heading">{copy.filtersTitle}</p>
+                <p className="mt-0.5 text-xs text-muted">{copy.filterSection}</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -438,10 +443,12 @@ export default function LordsBrethrenAidPage() {
           </Card>
 
           <Card className="space-y-4" padding="lg">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" />
-                <p className="text-sm font-semibold text-heading">{copy.householdsTable}</p>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Users className="h-[18px] w-[18px]" />
+                </span>
+                <p className="text-base font-bold leading-tight text-heading">{copy.householdsTable}</p>
                 <Badge variant="secondary">{households.length}</Badge>
               </div>
               {households.length > 0 && (
@@ -509,9 +516,22 @@ export default function LordsBrethrenAidPage() {
         {/* RIGHT COLUMN: Aid Configuration */}
         <div>
           <Card className="sticky top-20 space-y-5" tone="gold" padding="lg">
-            <div className="flex items-center gap-2 border-b border-secondary/20 pb-3">
-              <HandCoins className="h-4 w-4 text-secondary" />
-              <p className="text-sm font-semibold text-heading">{copy.aidSection}</p>
+            <div className="flex items-start gap-3 border-b border-secondary/20 pb-4">
+              <span className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-secondary shadow-xs">
+                <HandCoins className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-base font-bold leading-tight text-heading">{copy.aidSection}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted">{copy.subtitle}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border border-secondary/20 bg-surface/70 px-3.5 py-2.5">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-heading">
+                <Users className="h-3.5 w-3.5 text-secondary" />
+                {copy.filterSection}
+              </span>
+              <Badge variant="gold">{selectedHouseholds.size}</Badge>
             </div>
 
             <div className="space-y-4">
@@ -554,6 +574,19 @@ export default function LordsBrethrenAidPage() {
                 onChange={(e) => setAidDraft({ ...aidDraft, notes: e.target.value })}
                 containerClassName="!mb-0"
               />
+            </div>
+
+            <div className="border-t border-secondary/20 pt-4">
+              <Button
+                variant="secondary"
+                icon={Save}
+                fullWidth
+                onClick={handleSave}
+                loading={saveMutation.isPending || existingDetailsQuery.isLoading}
+                disabled={selectedHouseholds.size === 0 || existingDetailsQuery.isLoading}
+              >
+                {isEditMode ? copy.updateAction : copy.saveAction}
+              </Button>
             </div>
           </Card>
         </div>

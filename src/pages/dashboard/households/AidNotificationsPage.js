@@ -1,31 +1,33 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, BellRing, CalendarClock, CalendarDays, Eye, RotateCw } from 'lucide-react';
+import {
+  ArrowRight,
+  BellRing,
+  CalendarClock,
+  CalendarDays,
+  CheckCircle2,
+  Eye,
+  RotateCw,
+  X,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { notificationsApi } from '../../../api/endpoints';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Badge from '../../../components/ui/Badge';
 import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
+import Skeleton from '../../../components/ui/Skeleton';
+import StatCard from '../../../components/ui/StatCard';
 import { useI18n } from '../../../i18n/i18n';
 import { localizeAidOccurrence } from '../../../utils/aidOccurrenceLocalization';
 import { formatDateTime } from '../../../utils/formatters';
 import { localizeNotificationTypeName } from '../../../utils/notificationTypeLocalization';
-
-function SectionLabel({ children }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{children}</span>
-      <div className="h-px flex-1 bg-border/60" />
-    </div>
-  );
-}
 
 const COPY = {
   en: {
@@ -159,7 +161,7 @@ const AID_REMINDER_SOURCE = 'aid_recurring';
 
 export default function AidNotificationsPage() {
   const navigate = useNavigate();
-  const { language, t } = useI18n();
+  const { language, t, isRTL } = useI18n();
   const copy = COPY[language === 'ar' ? 'ar' : 'en'];
 
   const [filters, setFilters] = useState({ q: '', typeId: '', isActive: 'all' });
@@ -219,6 +221,16 @@ export default function AidNotificationsPage() {
   const meta = listRes?.meta || null;
   const hasActiveFilters = Boolean(filters.q || filters.typeId || filters.isActive !== 'all');
 
+  const activeOnPageCount = useMemo(
+    () => notifications.filter((notification) => notification?.isActive).length,
+    [notifications]
+  );
+  const dueOnPageCount = useMemo(
+    () =>
+      notifications.filter((notification) => Boolean(notification?.sourceData?.nextDueDate)).length,
+    [notifications]
+  );
+
   const handleNext = () => {
     if (!meta?.nextCursor) return;
     setCursorStack((prev) => [...prev, meta.nextCursor]);
@@ -251,66 +263,94 @@ export default function AidNotificationsPage() {
         subtitle={copy.subtitle}
       />
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <SectionLabel>{t('notifications.filters.title')}</SectionLabel>
-          {hasActiveFilters ? (
-            <button
+      {/* ══ KPI SUMMARY ══════════════════════════════════════════════════ */}
+      {!isLoading && notifications.length > 0 ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <StatCard
+            icon={BellRing}
+            label={copy.latest}
+            value={meta?.count != null ? meta.count : notifications.length}
+            tone="primary"
+            isRTL={isRTL}
+          />
+          <StatCard
+            icon={CheckCircle2}
+            label={t('notifications.status.active')}
+            value={activeOnPageCount}
+            tone="success"
+            isRTL={isRTL}
+          />
+          <StatCard
+            icon={RotateCw}
+            label={copy.nextRepeat}
+            value={dueOnPageCount}
+            tone="gold"
+            isRTL={isRTL}
+          />
+        </div>
+      ) : null}
+
+      {/* ══ FILTERS ══════════════════════════════════════════════════════ */}
+      <Section
+        title={t('notifications.filters.title')}
+        actions={
+          hasActiveFilters ? (
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
+              icon={X}
               onClick={() => setFilters({ q: '', typeId: '', isActive: 'all' })}
-              className="text-xs font-medium text-primary hover:underline"
             >
               {t('usersListPage.filters.clear')}
-            </button>
-          ) : null}
-        </div>
+            </Button>
+          ) : null
+        }
+        bodyClassName="grid grid-cols-1 gap-3 md:grid-cols-3"
+      >
+        <Input
+          containerClassName="!mb-0"
+          value={filters.q}
+          onChange={(event) => setFilters((prev) => ({ ...prev, q: event.target.value }))}
+          placeholder={t('notifications.filters.searchPlaceholder')}
+        />
+        <Select
+          containerClassName="mb-0"
+          value={filters.typeId}
+          onChange={(event) => setFilters((prev) => ({ ...prev, typeId: event.target.value }))}
+          options={[{ value: '', label: t('notifications.filters.allTypes') }, ...typeOptions]}
+        />
+        <Select
+          containerClassName="mb-0"
+          value={filters.isActive}
+          onChange={(event) => setFilters((prev) => ({ ...prev, isActive: event.target.value }))}
+          options={[
+            { value: 'all', label: t('notifications.filters.allStatus') },
+            { value: 'active', label: t('notifications.status.active') },
+            { value: 'inactive', label: t('notifications.status.inactive') },
+          ]}
+        />
+      </Section>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <Input
-            containerClassName="!mb-0"
-            value={filters.q}
-            onChange={(event) => setFilters((prev) => ({ ...prev, q: event.target.value }))}
-            placeholder={t('notifications.filters.searchPlaceholder')}
-          />
-          <Select
-            containerClassName="mb-0"
-            value={filters.typeId}
-            onChange={(event) => setFilters((prev) => ({ ...prev, typeId: event.target.value }))}
-            options={[{ value: '', label: t('notifications.filters.allTypes') }, ...typeOptions]}
-          />
-          <Select
-            containerClassName="mb-0"
-            value={filters.isActive}
-            onChange={(event) => setFilters((prev) => ({ ...prev, isActive: event.target.value }))}
-            options={[
-              { value: 'all', label: t('notifications.filters.allStatus') },
-              { value: 'active', label: t('notifications.status.active') },
-              { value: 'inactive', label: t('notifications.status.inactive') },
-            ]}
-          />
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <SectionLabel>{copy.latest}</SectionLabel>
-          {meta?.count != null ? <span className="text-xs text-muted">{meta.count}</span> : null}
-        </div>
-
+      {/* ══ REMINDERS ════════════════════════════════════════════════════ */}
+      <Section
+        icon={BellRing}
+        title={copy.latest}
+        actions={meta?.count != null ? <Badge variant="primary">{meta.count}</Badge> : null}
+        bodyClassName="space-y-4"
+      >
         {isLoading ? (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-56 animate-pulse rounded-2xl border border-border bg-surface-alt" />
+              <Skeleton key={index} className="h-56 rounded-2xl" />
             ))}
           </div>
         ) : notifications.length === 0 ? (
-          <Card tone="muted">
-            <EmptyState
-              icon={BellRing}
-              title={copy.emptyTitle}
-              description={copy.emptyDescription}
-            />
-          </Card>
+          <EmptyState
+            icon={BellRing}
+            title={copy.emptyTitle}
+            description={copy.emptyDescription}
+          />
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {notifications.map((notification) => (
@@ -340,7 +380,7 @@ export default function AidNotificationsPage() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-border bg-surface px-4 pb-4 pt-3">
+        <div className="rounded-2xl border border-border bg-surface-alt/40 px-4 pb-4 pt-3">
           <Pagination
             meta={meta}
             onLoadMore={handleNext}
@@ -349,7 +389,7 @@ export default function AidNotificationsPage() {
             loading={isLoading}
           />
         </div>
-      </section>
+      </Section>
 
       <div className="flex justify-end">
         <Button

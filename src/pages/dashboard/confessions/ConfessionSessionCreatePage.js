@@ -1,14 +1,14 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarPlus, Check, ChevronDown, ListChecks } from 'lucide-react';
+import { CalendarClock, CalendarPlus, Check, ChevronDown, ListChecks, StickyNote, Tag, UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { confessionsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
-import Card from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import TextArea from '../../../components/ui/TextArea';
 import Button from '../../../components/ui/Button';
+import Section from '../../../components/ui/Section';
 import UserSearchSelect from '../../../components/UserSearchSelect';
 import PageHeader from '../../../components/ui/PageHeader';
 import toast from 'react-hot-toast';
@@ -31,23 +31,12 @@ function toIsoDateTime(value) {
 
 /* ── sub-components ──────────────────────────────────────────────────────── */
 
-function SectionLabel({ children }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-        {children}
-      </span>
-      <div className="h-px flex-1 bg-border/60" />
-    </div>
-  );
-}
-
-/** Thin step number badge */
+/** Step number badge, sized to match Section header icons */
 function StepBadge({ n }) {
   return (
-    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
       {n}
-    </div>
+    </span>
   );
 }
 
@@ -389,7 +378,7 @@ export default function ConfessionSessionCreatePage() {
 
   /* ── render ── */
   return (
-    <div className="animate-fade-in space-y-8 pb-10">
+    <div className="animate-fade-in space-y-6 pb-10">
 
       {/* breadcrumbs */}
       {/* <Breadcrumbs
@@ -416,17 +405,20 @@ export default function ConfessionSessionCreatePage() {
 
       {/* ══ FORM — max width, centred on large screens ═══════════════════ */}
       <form onSubmit={handleCreateSession} noValidate>
-        <div className="mx-auto max-w-7xl space-y-8">
+        <div className="mx-auto max-w-3xl space-y-6">
 
           {/* ── STEP 1 · Attendee ─────────────────────────────────────── */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <StepBadge n={1} />
-              <SectionLabel>{t('confessions.sessions.attendee')}</SectionLabel>
-            </div>
-
+          <Section
+            icon={UserRound}
+            title={
+              <span className="flex items-center gap-2.5">
+                <StepBadge n={1} />
+                {t('confessions.sessions.attendee')}
+              </span>
+            }
+          >
             {canAssign ? (
-              <Card>
+              <>
                 <UserSearchSelect
                   label={t('confessions.sessions.attendee')}
                   value={selectedAttendee}
@@ -442,10 +434,10 @@ export default function ConfessionSessionCreatePage() {
                     {errors.attendee}
                   </p>
                 )}
-              </Card>
+              </>
             ) : (
               /* self-attendee read-only card */
-              <Card tone="primary" padding="sm" className="flex items-center gap-3">
+              <div className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.04] p-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                   {String(user?.fullName || '?').charAt(0).toUpperCase()}
                 </div>
@@ -458,45 +450,49 @@ export default function ConfessionSessionCreatePage() {
                     <p className="text-xs text-muted direction-ltr">{user.phonePrimary}</p>
                   )}
                 </div>
-              </Card>
+              </div>
             )}
-          </section>
+          </Section>
 
           {/* ── STEP 2 · Session details ──────────────────────────────── */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <StepBadge n={2} />
-              <SectionLabel>{t('confessions.sessions.sessionType')}</SectionLabel>
-            </div>
-
-            <Card>
-              <SessionTypeCombobox
-                label={t('confessions.sessions.sessionType')}
-                required
-                value={sessionTypeInput}
-                onChange={handleSessionTypeChange}
-                options={sessionTypeOptions}
-                disabled={createSessionMutation.isPending || createTypeMutation.isPending}
-                error={errors.sessionTypeId}
-                placeholder={
-                  sessionTypesLoading
-                    ? t('confessions.sessions.loadingTypes')
-                    : canManageTypes
-                      ? `${t('confessions.sessions.selectType')} / ${t('confessions.sessions.typeNamePlaceholder')}`
-                      : t('confessions.sessions.selectType')
-                }
-              />
-            </Card>
-          </section>
+          <Section
+            icon={Tag}
+            title={
+              <span className="flex items-center gap-2.5">
+                <StepBadge n={2} />
+                {t('confessions.sessions.sessionType')}
+              </span>
+            }
+          >
+            <SessionTypeCombobox
+              label={t('confessions.sessions.sessionType')}
+              required
+              value={sessionTypeInput}
+              onChange={handleSessionTypeChange}
+              options={sessionTypeOptions}
+              disabled={createSessionMutation.isPending || createTypeMutation.isPending}
+              error={errors.sessionTypeId}
+              placeholder={
+                sessionTypesLoading
+                  ? t('confessions.sessions.loadingTypes')
+                  : canManageTypes
+                    ? `${t('confessions.sessions.selectType')} / ${t('confessions.sessions.typeNamePlaceholder')}`
+                    : t('confessions.sessions.selectType')
+              }
+            />
+          </Section>
 
           {/* ── STEP 3 · Schedule ─────────────────────────────────────── */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <StepBadge n={3} />
-              <SectionLabel>{t('confessions.sessions.sessionDate')}</SectionLabel>
-            </div>
-
-            <Card className="space-y-4">
+          <Section
+            icon={CalendarClock}
+            title={
+              <span className="flex items-center gap-2.5">
+                <StepBadge n={3} />
+                {t('confessions.sessions.sessionDate')}
+              </span>
+            }
+          >
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label={t('confessions.sessions.sessionDate')}
                 type="datetime-local"
@@ -518,37 +514,51 @@ export default function ConfessionSessionCreatePage() {
                 error={errors.nextSessionAt}
                 containerClassName="!mb-0"
               />
-            </Card>
-          </section>
+            </div>
+          </Section>
 
           {/* ── STEP 4 · Notes ────────────────────────────────────────── */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <StepBadge n={4} />
-              <SectionLabel>{t('confessions.sessions.notes')}</SectionLabel>
-            </div>
-
-            <Card>
-              <TextArea
-                label={t('confessions.sessions.notes')}
-                value={form.notes}
-                onChange={(e) => updateField('notes', e.target.value)}
-                placeholder={t('confessions.sessions.notesPlaceholder')}
-                containerClassName="!mb-0"
-              />
-            </Card>
-          </section>
+          <Section
+            icon={StickyNote}
+            title={
+              <span className="flex items-center gap-2.5">
+                <StepBadge n={4} />
+                {t('confessions.sessions.notes')}
+              </span>
+            }
+          >
+            <TextArea
+              label={t('confessions.sessions.notes')}
+              value={form.notes}
+              onChange={(e) => updateField('notes', e.target.value)}
+              placeholder={t('confessions.sessions.notesPlaceholder')}
+              containerClassName="!mb-0"
+            />
+          </Section>
 
           {/* ── SUBMIT ────────────────────────────────────────────────── */}
-          <Button
-            type="submit"
-            icon={CalendarPlus}
-            size="lg"
-            fullWidth
-            loading={createSessionMutation.isPending || createTypeMutation.isPending}
-          >
-            {t('confessions.sessions.createAction')}
-          </Button>
+          <div className="sticky bottom-0 z-10 -mx-1 flex flex-col-reverse gap-3 rounded-xl border border-border bg-surface/95 p-3 shadow-card backdrop-blur sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
+            {canViewSessions ? (
+              <Button
+                type="button"
+                variant="ghost"
+                fullWidth
+                onClick={() => navigate('/dashboard/confessions')}
+                className="sm:w-auto"
+              >
+                {t('common.actions.cancel')}
+              </Button>
+            ) : null}
+            <Button
+              type="submit"
+              icon={CalendarPlus}
+              fullWidth
+              loading={createSessionMutation.isPending || createTypeMutation.isPending}
+              className="sm:w-auto"
+            >
+              {t('confessions.sessions.createAction')}
+            </Button>
+          </div>
 
         </div>
       </form>

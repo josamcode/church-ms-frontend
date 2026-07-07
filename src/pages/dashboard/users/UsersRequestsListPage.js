@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Eye, FileClock, ListFilter, Pencil, SlidersHorizontal, Users as UsersIcon, XCircle } from 'lucide-react';
+import { CheckCircle2, CheckCheck, Eye, FileClock, ListFilter, Pencil, SlidersHorizontal, Users as UsersIcon, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { usersApi } from '../../../api/endpoints';
@@ -36,7 +36,7 @@ function StatusPill({ value }) {
 }
 
 export default function UsersRequestsListPage() {
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const { hasPermission } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -74,20 +74,64 @@ export default function UsersRequestsListPage() {
     onError: (error) => toast.error(normalizeApiError(error).message),
   });
 
-  const rows = Array.isArray(requestsQuery.data?.data) ? requestsQuery.data.data : [];
+  const rows = useMemo(
+    () => (Array.isArray(requestsQuery.data?.data) ? requestsQuery.data.data : []),
+    [requestsQuery.data?.data]
+  );
   const meta = requestsQuery.data?.meta || null;
+
+  const canReview = hasPermission('USERS_UPDATE');
+  const pendingCount = useMemo(
+    () => rows.filter((row) => (row.accountStatus || 'pending') === 'pending').length,
+    [rows]
+  );
+  const mutatingId = actionMutation.isLoading ? actionMutation.variables?.id : null;
+
+  const approve = useCallback(
+    (id) => actionMutation.mutate({ id, accountStatus: 'approved' }),
+    [actionMutation]
+  );
+  const reject = useCallback(
+    (id) => actionMutation.mutate({ id, accountStatus: 'rejected' }),
+    [actionMutation]
+  );
 
   const columns = useMemo(
     () => [
       {
         key: 'fullName',
         label: 'الطلب',
-        render: (row) => (
-          <div className="min-w-0">
-            <p className="truncate font-medium text-heading">{row.fullName || '---'}</p>
-            <p className="truncate text-xs text-muted direction-ltr text-left">{row.phonePrimary || row.email || '---'}</p>
-          </div>
-        ),
+        render: (row) => {
+          const status = row.accountStatus || 'pending';
+          const initial = String(row.fullName || 'U').trim().charAt(0).toUpperCase();
+          return (
+            <div className="flex items-center gap-3">
+              {row.avatar?.url ? (
+                <img
+                  src={row.avatar.url}
+                  alt=""
+                  className="h-9 w-9 rounded-full border border-border object-cover"
+                />
+              ) : (
+                <div
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                    status === 'pending'
+                      ? 'bg-warning/12 text-warning'
+                      : status === 'approved'
+                        ? 'bg-success/12 text-success'
+                        : 'bg-danger/12 text-danger'
+                  }`}
+                >
+                  {initial}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="truncate font-medium text-heading">{row.fullName || '---'}</p>
+                <p className="truncate text-xs text-muted direction-ltr text-left">{row.phonePrimary || row.email || '---'}</p>
+              </div>
+            </div>
+          );
+        },
       },
       {
         key: 'createdAt',
@@ -98,6 +142,42 @@ export default function UsersRequestsListPage() {
         key: 'accountStatus',
         label: 'الحالة',
         render: (row) => <StatusPill value={row.accountStatus || 'pending'} />,
+      },
+      {
+        key: 'review',
+        label: 'المراجعة',
+        render: (row) => {
+          if (!canReview) return <span className="text-xs text-muted">---</span>;
+          const status = row.accountStatus || 'pending';
+          const busy = mutatingId === row._id;
+          return (
+            <div className="flex items-center gap-2">
+              {status !== 'approved' ? (
+                <Button
+                  size="sm"
+                  variant="success"
+                  icon={CheckCircle2}
+                  loading={busy}
+                  disabled={actionMutation.isLoading}
+                  onClick={() => approve(row._id)}
+                >
+                  اعتماد
+                </Button>
+              ) : null}
+              {status !== 'rejected' ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon={XCircle}
+                  disabled={actionMutation.isLoading}
+                  onClick={() => reject(row._id)}
+                >
+                  رفض
+                </Button>
+              ) : null}
+            </div>
+          );
+        },
       },
       {
         key: 'actions',
@@ -121,7 +201,7 @@ export default function UsersRequestsListPage() {
         ),
       },
     ],
-    [actionMutation, hasPermission, navigate, t]
+    [actionMutation, approve, canReview, hasPermission, mutatingId, navigate, reject, t]
   );
 
   return (
@@ -147,22 +227,26 @@ export default function UsersRequestsListPage() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard
+          icon={FileClock}
+          label="طلبات قيد المراجعة"
+          value={pendingCount}
+          hint="بانتظار قرار الاعتماد أو الرفض"
+          tone={pendingCount > 0 ? 'warning' : 'success'}
+          isRTL={isRTL}
+        />
+        <StatCard
           icon={UsersIcon}
           label="المعروض الآن"
           value={rows.length}
           tone="primary"
+          isRTL={isRTL}
         />
         <StatCard
           icon={ListFilter}
           label="الفلاتر الحالية"
           value={filters.accountStatus ? getAccountStatusLabel(filters.accountStatus) : 'كل الحالات'}
           tone="gold"
-        />
-        <StatCard
-          icon={FileClock}
-          label="الطلبات المفتوحة"
-          value={rows.length}
-          hint="افتح كل طلب من صفحة التعديل أو من تفاصيل المستخدم."
+          isRTL={isRTL}
         />
       </div>
 
@@ -218,6 +302,18 @@ export default function UsersRequestsListPage() {
             title="ما الطلبات التي تحتاج إلى مراجعة الآن؟"
             subtitle="يمكنك الاعتماد أو الرفض مباشرة من القائمة"
             className="mb-0"
+            action={
+              pendingCount > 0 ? (
+                <Badge variant="warning" dot>
+                  <CheckCheck className="h-3.5 w-3.5" />
+                  {pendingCount} قيد المراجعة
+                </Badge>
+              ) : (
+                <Badge variant="success" dot>
+                  لا طلبات معلّقة
+                </Badge>
+              )
+            }
           />
         </div>
 

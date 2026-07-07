@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ClipboardList, KeyRound, Phone, ShieldCheck, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { authApi, settingsApi } from '../../../api/endpoints';
@@ -13,6 +13,7 @@ import CreatableComboboxInput from '../../../components/ui/CreatableComboboxInpu
 import CreatableTagComboboxInput from '../../../components/ui/CreatableTagComboboxInput';
 import Input from '../../../components/ui/Input';
 import PhoneInput from '../../../components/ui/PhoneInput';
+import Section from '../../../components/ui/Section';
 import Select from '../../../components/ui/Select';
 import TextArea from '../../../components/ui/TextArea';
 import { getEducationStageOptions } from '../../../constants/education';
@@ -24,14 +25,12 @@ import {
 import { useI18n } from '../../../i18n/i18n';
 import { extractBirthDateFromNationalId } from '../../../utils/egyptianNationalId';
 
-function SectionLabel({ children }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{children}</span>
-      <div className="h-px flex-1 bg-border/60" />
-    </div>
-  );
-}
+const STEP_ICONS = {
+  identity: User,
+  contact: Phone,
+  profile: ClipboardList,
+  security: KeyRound,
+};
 
 function QuestionLabel({ text, required, language }) {
   return (
@@ -608,9 +607,16 @@ export default function UserRegisterPage() {
           onChange={(stepId) => copy.steps.findIndex((step) => step.id === stepId) <= highestUnlocked && setActiveStep(stepId)}
         />
 
-        <section className="space-y-4">
-          <SectionLabel>{copy.steps[activeIndex].label}</SectionLabel>
-          <div className="rounded-[28px] border border-border bg-surface p-5 sm:p-6">
+        <Section
+          className="rounded-2xl"
+          icon={STEP_ICONS[activeStep]}
+          title={copy.steps[activeIndex].label}
+          actions={(
+            <span className="flex h-7 items-center rounded-full bg-primary/10 px-3 text-xs font-bold text-primary">
+              {activeIndex + 1} {copy.steps.length ? `/ ${copy.steps.length}` : ''}
+            </span>
+          )}
+        >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {activeStep === 'identity' ? (
                 <>
@@ -831,17 +837,16 @@ export default function UserRegisterPage() {
                 </>
               ) : null}
             </div>
-          </div>
-        </section>
+        </Section>
 
-        <div className="rounded-[28px] border border-border bg-surface px-4 py-4 shadow-sm">
+        <div className="sticky bottom-0 z-20 rounded-2xl border border-border bg-surface/95 px-4 py-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-surface/80">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-1 gap-2">
-              <Button type="button" variant="ghost" onClick={() => previousStep && setActiveStep(previousStep.id)} disabled={!previousStep}>{copy.back}</Button>
-              <Button type="button" variant="outline" onClick={goNext} disabled={!nextStep}>{copy.next}</Button>
+              <Button type="button" variant="ghost" fullWidth className="lg:w-auto" onClick={() => previousStep && setActiveStep(previousStep.id)} disabled={!previousStep}>{copy.back}</Button>
+              <Button type="button" variant="outline" fullWidth className="lg:w-auto" onClick={goNext} disabled={!nextStep}>{copy.next}</Button>
             </div>
             <div className="flex w-full flex-col items-stretch gap-2 lg:w-auto lg:items-end">
-              <Button type="submit" loading={submitting} disabled={!canSubmit} className="w-full lg:w-auto">{copy.submit}</Button>
+              <Button type="submit" loading={submitting} disabled={!canSubmit} fullWidth className="lg:w-auto">{copy.submit}</Button>
               <p className="text-xs text-muted">{copy.submitHint}</p>
             </div>
           </div>

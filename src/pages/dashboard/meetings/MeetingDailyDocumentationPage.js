@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  AlertCircle,
   CalendarDays,
+  Clock,
   FileImage,
   FileText,
   Film,
-  Loader,
+  ListChecks,
   Paperclip,
   Save,
+  StickyNote,
   Upload,
   X,
 } from 'lucide-react';
@@ -16,13 +19,16 @@ import { useParams } from 'react-router-dom';
 
 import { meetingsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
+import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
+import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
 import Select from '../../../components/ui/Select';
+import Skeleton from '../../../components/ui/Skeleton';
 import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
@@ -363,7 +369,15 @@ export default function MeetingDailyDocumentationPage() {
     return (
       <div className="animate-fade-in space-y-6">
         <Breadcrumbs items={breadcrumbs} />
-        <p className="text-sm text-muted">{t('common.loading')}</p>
+        <Card>
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+        </Card>
+        <Skeleton className="h-32 rounded-xl" />
+        <Skeleton className="h-40 rounded-xl" />
       </div>
     );
   }
@@ -410,10 +424,11 @@ export default function MeetingDailyDocumentationPage() {
   const isUploadingAny = generalUploading || Object.values(fieldUploading).some(Boolean);
 
   return (
-    <div className="animate-fade-in space-y-8 pb-10">
+    <div className="animate-fade-in space-y-6 pb-28 lg:pb-10">
       <Breadcrumbs items={breadcrumbs} />
 
-      <Card>
+      {/* ══ HEADER / TOOLBAR ══════════════════════════════════════════════ */}
+      <Card padding="lg" tone="primary">
         <PageHeader
           contentOnly
           eyebrow={meeting?.name || t('meetings.meetingsPageTitle')}
@@ -423,20 +438,18 @@ export default function MeetingDailyDocumentationPage() {
             'Choose a valid past meeting date, then upload files and complete the meeting documentation.'
           )}
         />
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/8 px-3 py-1">
-            <CalendarDays className="h-3.5 w-3.5 text-primary" />
-            {getDayLabel(meeting?.day, t)} | {meeting?.time || EMPTY}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Badge variant="primary" dot>
+            <CalendarDays className="h-3.5 w-3.5" />
+            {getDayLabel(meeting?.day, t)} · {meeting?.time || EMPTY}
+          </Badge>
+          <Badge variant="neutral">
             <Paperclip className="h-3.5 w-3.5" />
             {attachments.length} {tf('meetings.documentation.attachmentsCount', 'attachments')}
-          </span>
+          </Badge>
         </div>
-      </Card>
 
-      <Card className="rounded-2xl">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_1fr] lg:items-start">
+        <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,320px)_1fr] sm:items-end">
           <Select
             label={tf('meetings.documentation.dateLabel', 'Meeting Date')}
             options={availableDateOptions}
@@ -445,75 +458,70 @@ export default function MeetingDailyDocumentationPage() {
             placeholder={tf('meetings.documentation.datePlaceholder', 'Select a meeting date')}
             containerClassName="!mb-0"
           />
-
-          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-            <Button
-              type="button"
-              icon={Save}
-              onClick={handleSave}
-              loading={saveDocumentationMutation.isPending}
-              disabled={!selectedDate || isUploadingAny}
-            >
-              {t('common.actions.save')}
-            </Button>
-          </div>
         </div>
 
         {documentationQuery.error ? (
-          <p className="mt-3 text-sm text-danger">{normalizeApiError(documentationQuery.error).message}</p>
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-danger/20 bg-danger-light px-3 py-2 text-sm text-danger">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{normalizeApiError(documentationQuery.error).message}</span>
+          </div>
         ) : null}
 
         {documentationQuery.data?.updatedAt ? (
-          <p className="mt-3 text-xs text-muted">
-            {tf('meetings.documentation.lastUpdated', 'Last updated')}: {formatDateTime(documentationQuery.data.updatedAt)} |{' '}
+          <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">
+            <Clock className="h-3.5 w-3.5" />
+            {tf('meetings.documentation.lastUpdated', 'Last updated')}: {formatDateTime(documentationQuery.data.updatedAt)} ·{' '}
             {documentationQuery.data.updatedBy?.fullName || EMPTY}
           </p>
         ) : null}
       </Card>
 
       {documentationQuery.isLoading ? (
-        <Card className="flex items-center gap-3">
-          <Loader className="h-4 w-4 animate-spin text-primary" />
-          <p className="text-sm text-muted">{t('common.loading')}</p>
-        </Card>
+        <div className="space-y-6">
+          <Skeleton className="h-32 rounded-xl" />
+          <Skeleton className="h-40 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
+        </div>
       ) : (
         <>
-          <Card className="rounded-2xl">
-            <CardHeader
-              title={tf('meetings.documentation.attachmentsTitle', 'Meeting Files')}
-              subtitle={tf(
-                'meetings.documentation.attachmentsSubtitle',
-                'Upload photos, videos, or documents related to this meeting day.'
-              )}
-              action={(
-                <>
-                  <input
-                    ref={generalUploadInputRef}
-                    type="file"
-                    multiple
-                    accept={GENERAL_UPLOAD_ACCEPT}
-                    className="hidden"
-                    onChange={handleGeneralUpload}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    icon={Upload}
-                    loading={generalUploading}
-                    disabled={!selectedDate}
-                    onClick={() => generalUploadInputRef.current?.click()}
-                  >
-                    {tf('meetings.documentation.uploadFiles', 'Upload files')}
-                  </Button>
-                </>
-              )}
-            />
-
+          {/* ══ FILES ═══════════════════════════════════════════════════════ */}
+          <Section
+            icon={Paperclip}
+            title={tf('meetings.documentation.attachmentsTitle', 'Meeting Files')}
+            description={tf(
+              'meetings.documentation.attachmentsSubtitle',
+              'Upload photos, videos, or documents related to this meeting day.'
+            )}
+            actions={(
+              <>
+                <input
+                  ref={generalUploadInputRef}
+                  type="file"
+                  multiple
+                  accept={GENERAL_UPLOAD_ACCEPT}
+                  className="hidden"
+                  onChange={handleGeneralUpload}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  icon={Upload}
+                  loading={generalUploading}
+                  disabled={!selectedDate}
+                  onClick={() => generalUploadInputRef.current?.click()}
+                >
+                  {tf('meetings.documentation.uploadFiles', 'Upload files')}
+                </Button>
+              </>
+            )}
+          >
             {attachments.length === 0 ? (
-              <p className="text-sm text-muted">
-                {tf('meetings.documentation.noAttachments', 'No files uploaded for this date yet.')}
-              </p>
+              <EmptyState
+                compact
+                icon={Paperclip}
+                title={tf('meetings.documentation.noAttachments', 'No files uploaded for this date yet.')}
+              />
             ) : (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {attachments.map((asset, index) => (
@@ -527,16 +535,17 @@ export default function MeetingDailyDocumentationPage() {
                 ))}
               </div>
             )}
-          </Card>
+          </Section>
 
-          <Card className="rounded-2xl">
-            <CardHeader
-              title={tf('meetings.documentation.notesTitle', 'Observations')}
-              subtitle={tf(
-                'meetings.documentation.notesSubtitle',
-                'Add any notes or observations from this meeting day.'
-              )}
-            />
+          {/* ══ OBSERVATIONS ════════════════════════════════════════════════ */}
+          <Section
+            icon={StickyNote}
+            title={tf('meetings.documentation.notesTitle', 'Observations')}
+            description={tf(
+              'meetings.documentation.notesSubtitle',
+              'Add any notes or observations from this meeting day.'
+            )}
+          >
             <TextArea
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
@@ -546,23 +555,27 @@ export default function MeetingDailyDocumentationPage() {
               )}
               className="min-h-[140px]"
             />
-          </Card>
+          </Section>
 
+          {/* ══ CONFIGURED FIELDS ═══════════════════════════════════════════ */}
           {activeFields.length > 0 && (
-            <Card className="rounded-2xl">
-              <CardHeader
-                title={tf('meetings.documentation.questionsTitle', 'Configured Fields')}
-                subtitle={tf(
-                  'meetings.documentation.questionsSubtitle',
-                  'These fields are managed specifically for this meeting by its leadership.'
-                )}
-              />
-
+            <Section
+              icon={ListChecks}
+              title={tf('meetings.documentation.questionsTitle', 'Configured Fields')}
+              description={tf(
+                'meetings.documentation.questionsSubtitle',
+                'These fields are managed specifically for this meeting by its leadership.'
+              )}
+              actions={<Badge variant="neutral">{activeFields.length}</Badge>}
+            >
               {settingsQuery.error ? (
-                <p className="text-sm text-danger">{normalizeApiError(settingsQuery.error).message}</p>
+                <div className="mb-4 flex items-center gap-2 rounded-xl border border-danger/20 bg-danger-light px-3 py-2 text-sm text-danger">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{normalizeApiError(settingsQuery.error).message}</span>
+                </div>
               ) : null}
 
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {activeFields.map((field) => {
                   const meta = FIELD_TYPE_META[field.type] || FIELD_TYPE_META.text;
                   const Icon = meta.icon;
@@ -656,10 +669,30 @@ export default function MeetingDailyDocumentationPage() {
                   );
                 })}
               </div>
-            </Card>
+            </Section>
           )}
         </>
       )}
+
+      {/* ══ STICKY SAVE ═══════════════════════════════════════════════════ */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/95 px-4 py-3 shadow-lg backdrop-blur lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 lg:max-w-none lg:justify-end">
+          <span className="hidden text-sm text-muted sm:inline lg:me-auto">
+            {attachments.length} {tf('meetings.documentation.attachmentsCount', 'attachments')}
+          </span>
+          <Button
+            type="button"
+            icon={Save}
+            fullWidth
+            className="lg:w-auto"
+            onClick={handleSave}
+            loading={saveDocumentationMutation.isPending}
+            disabled={!selectedDate || isUploadingAny}
+          >
+            {t('common.actions.save')}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

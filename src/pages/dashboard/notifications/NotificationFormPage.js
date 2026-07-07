@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, FileText, Image as ImageIcon, ImagePlus, ListTree, PlusCircle, Save, Trash2, Tag } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Circle, FileText, Image as ImageIcon, ImagePlus, ListTree, PlusCircle, Save, Trash2, Tag } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -16,6 +16,7 @@ import Select from '../../../components/ui/Select';
 import TextArea from '../../../components/ui/TextArea';
 import Badge from '../../../components/ui/Badge';
 import PageHeader from '../../../components/ui/PageHeader';
+import Skeleton from '../../../components/ui/Skeleton';
 import { PERMISSION_LABELS } from '../../../constants/permissions';
 import { useI18n } from '../../../i18n/i18n';
 import { localizeNotificationTypeName } from '../../../utils/notificationTypeLocalization';
@@ -529,7 +530,18 @@ export default function NotificationFormPage() {
   };
 
   if (isEdit && loadingNotification) {
-    return <div className="py-10 text-sm text-muted">{t('common.loading')}</div>;
+    return (
+      <div className="animate-fade-in space-y-8 pb-10">
+        <Skeleton className="h-4 w-72" />
+        <div className="space-y-3 border-b border-border pb-6">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-96 max-w-full" />
+        </div>
+        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-xl" />
+      </div>
+    );
   }
 
   return (
@@ -595,6 +607,8 @@ export default function NotificationFormPage() {
             <div className="flex items-end">
               <Button
                 type="button"
+                fullWidth
+                icon={form.isActive ? CheckCircle2 : Circle}
                 variant={form.isActive ? 'success' : 'outline'}
                 onClick={() => updateField('isActive', !form.isActive)}
               >
@@ -783,7 +797,7 @@ export default function NotificationFormPage() {
           </div>
         </Card>
 
-        <div className="flex flex-col-reverse gap-2 rounded-xl border border-border bg-surface p-4 shadow-card sm:flex-row sm:justify-end">
+        <div className="sticky bottom-0 z-20 -mx-1 flex flex-col-reverse gap-2 rounded-2xl border border-border bg-surface/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-surface/80 sm:flex-row sm:items-center sm:justify-end">
           <Button
             type="button"
             variant="ghost"

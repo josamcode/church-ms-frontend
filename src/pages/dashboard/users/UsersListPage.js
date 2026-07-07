@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus, Eye, Edit, Lock, Unlock, Trash2,
-  Users, UserCheck, Flame, LayoutGrid, TableProperties,
+  Users, UserCheck, Flame, LayoutGrid, TableProperties, SlidersHorizontal,
 } from 'lucide-react';
 import { usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
@@ -18,6 +18,9 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Modal from '../../../components/ui/Modal';
 import PageHeader from '../../../components/ui/PageHeader';
 import EmptyState from '../../../components/ui/EmptyState';
+import Card from '../../../components/ui/Card';
+import StatCard from '../../../components/ui/StatCard';
+import Badge from '../../../components/ui/Badge';
 import toast from 'react-hot-toast';
 import { AGE_GROUPS, formatAgeFromBirthDate, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
 import { AGE_GROUP_VALUES } from '../../../constants/householdProfiles';
@@ -172,19 +175,19 @@ function AgeGroupBadge({ ageGroup }) {
   );
 }
 
-function UserMemberCard({ user, actions, onOpen, emptyValue }) {
+function UserMemberCard({ user, actions, onOpen, emptyValue, t }) {
   const phone = getUserPhone(user);
   const avatarClassName = getAvatarToneClass(user.gender);
 
   return (
     <article
       dir="rtl"
-      className="group flex min-h-[84px] items-center gap-3 rounded-2xl border border-border/80 bg-white px-3 py-2.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-card"
+      className="group flex min-h-[84px] items-center gap-3 rounded-2xl border border-border/80 bg-surface px-3 py-2.5 shadow-card transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md"
     >
       <button
         type="button"
         onClick={onOpen}
-        className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 text-sm font-bold ring-2 ring-offset-2 ring-offset-white transition-colors ${avatarClassName}`}
+        className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 text-sm font-bold ring-2 ring-offset-2 ring-offset-surface transition-colors ${avatarClassName}`}
         aria-label={user.fullName || emptyValue}
       >
         {user.avatar?.url ? (
@@ -197,6 +200,11 @@ function UserMemberCard({ user, actions, onOpen, emptyValue }) {
         ) : (
           <span aria-hidden="true">{getInitial(user.fullName)}</span>
         )}
+        {user.isLocked ? (
+          <span className="absolute -bottom-0.5 -left-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-white ring-2 ring-surface">
+            <Lock className="h-2.5 w-2.5" aria-hidden="true" />
+          </span>
+        ) : null}
       </button>
 
       <button
@@ -215,7 +223,12 @@ function UserMemberCard({ user, actions, onOpen, emptyValue }) {
         </p>
       </button>
 
-      <AgeGroupBadge ageGroup={user.ageGroup} />
+      <div className="flex shrink-0 flex-col items-center gap-1.5">
+        <AgeGroupBadge ageGroup={user.ageGroup} />
+        <Badge variant={user.isLocked ? 'danger' : 'success'} size="sm" dot>
+          {user.isLocked ? t('common.status.locked') : t('common.status.active')}
+        </Badge>
+      </div>
 
       <div className="shrink-0">
         <RowActions actions={actions} />
@@ -234,10 +247,11 @@ function UsersCardsGrid({
   getActions,
   onOpenUser,
   emptyValue,
+  t,
 }) {
   if (!loading && users.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-surface">
+      <div className="rounded-xl border border-border bg-surface shadow-card">
         <EmptyState title={emptyTitle} description={emptyDescription} icon={emptyIcon} />
       </div>
     );
@@ -249,7 +263,7 @@ function UsersCardsGrid({
         ? Array.from({ length: skeletonRows }).map((_, index) => (
           <div
             key={index}
-            className="flex min-h-[84px] animate-pulse items-center gap-3 rounded-2xl border border-border/80 bg-white px-3 py-2.5 shadow-sm"
+            className="flex min-h-[84px] animate-pulse items-center gap-3 rounded-2xl border border-border/80 bg-surface px-3 py-2.5 shadow-card"
           >
             <div className="h-12 w-12 shrink-0 rounded-full bg-surface-alt" />
             <div className="min-w-0 flex-1 space-y-2">
@@ -268,6 +282,7 @@ function UsersCardsGrid({
             actions={getActions(user)}
             onOpen={() => onOpenUser(user)}
             emptyValue={emptyValue}
+            t={t}
           />
         ))}
     </div>
@@ -281,7 +296,7 @@ function UsersCardsGrid({
 export default function UsersListPage() {
   const visibleAccountStatus = 'approved';
   const { hasPermission } = useAuth();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const navigate = useNavigate();
 
   const [filters, setFilters] = useState({ fullName: '', ageGroup: '', gender: '', role: '' });
@@ -417,17 +432,24 @@ export default function UsersListPage() {
       label: t('usersListPage.columns.name'),
       render: (row) => (
         <div className="flex items-center gap-3">
-          {row.avatar?.url ? (
-            <img
-              src={row.avatar.url}
-              alt=""
-              className="h-8 w-8 rounded-full border border-border object-cover"
-            />
-          ) : (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-              {getInitial(row.fullName)}
-            </div>
-          )}
+          <div className="relative shrink-0">
+            {row.avatar?.url ? (
+              <img
+                src={row.avatar.url}
+                alt=""
+                className="h-9 w-9 rounded-full border border-border object-cover"
+              />
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                {getInitial(row.fullName)}
+              </div>
+            )}
+            {row.isLocked ? (
+              <span className="absolute -bottom-0.5 -left-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-white ring-2 ring-surface">
+                <Lock className="h-2.5 w-2.5" aria-hidden="true" />
+              </span>
+            ) : null}
+          </div>
           <div className="min-w-0">
             <p className="truncate font-medium text-heading">
               {row.fullName || t('common.placeholder.empty')}
@@ -467,6 +489,15 @@ export default function UsersListPage() {
       render: (row) => (row.familyName || "---"),
     },
     {
+      key: 'status',
+      label: t('usersListPage.columns.status'),
+      render: (row) => (
+        <Badge variant={row.isLocked ? 'danger' : 'success'} dot>
+          {row.isLocked ? t('common.status.locked') : t('common.status.active')}
+        </Badge>
+      ),
+    },
+    {
       key: 'actions',
       label: '',
       cellClassName: 'w-10',
@@ -502,64 +533,53 @@ export default function UsersListPage() {
         }
       />
 
-      {/* ══ KPI TILES ═════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {/* total on page */}
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-              {t('usersListPage.stats.usersOnPage')}
-            </p>
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-alt text-muted">
-              <Users className="h-4 w-4" />
-            </span>
-          </div>
-          <p className="mt-4 text-4xl font-bold tracking-tight text-heading">{users.length}</p>
-          <div className="mt-4 h-0.5 w-10 rounded-full bg-border" />
-        </div>
-
-        {/* active */}
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-              {t('usersListPage.stats.activeAccounts')}
-            </p>
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-success-light text-success">
-              <UserCheck className="h-4 w-4" />
-            </span>
-          </div>
-          <p className="mt-4 text-4xl font-bold tracking-tight text-success">{activeCount}</p>
-          <div className="mt-4 h-0.5 w-10 rounded-full bg-success/40" />
-        </div>
-
-        {/* total users */}
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-              {t('usersListPage.stats.totalUsers')}
-            </p>
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Users className="h-4 w-4" />
-            </span>
-          </div>
-          <p className="mt-4 text-4xl font-bold tracking-tight text-primary">
-            {totalUsersCount}
-          </p>
-          <div className="mt-4 h-0.5 w-10 rounded-full bg-primary/40" />
-        </div>
+      {/* ══ KPI STRIP ═════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <StatCard
+          icon={Users}
+          label={t('usersListPage.stats.totalUsers')}
+          value={totalUsersCount}
+          tone="primary"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={UserCheck}
+          label={t('usersListPage.stats.activeAccounts')}
+          value={activeCount}
+          tone="success"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Lock}
+          label={t('usersListPage.stats.lockedAccounts')}
+          value={lockedCount}
+          tone={lockedCount > 0 ? 'danger' : 'default'}
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={LayoutGrid}
+          label={t('usersListPage.stats.usersOnPage')}
+          value={users.length}
+          tone="gold"
+          isRTL={isRTL}
+        />
       </div>
 
       {/* ══ FILTERS ═══════════════════════════════════════════════════════ */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <SectionLabel>{t('usersListPage.filters.title')}</SectionLabel>
+      <Card tone="muted" className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <SlidersHorizontal className="h-4 w-4" />
+            </span>
+            <span className="text-sm font-semibold text-heading">
+              {t('usersListPage.filters.title')}
+            </span>
+          </div>
           {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="text-xs font-medium text-primary hover:underline"
-            >
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
               {t('usersListPage.filters.clear')}
-            </button>
+            </Button>
           )}
         </div>
 
@@ -591,26 +611,26 @@ export default function UsersListPage() {
             containerClassName="!mb-0"
           />
         </div>
-      </section>
+      </Card>
 
       {/* ══ TABLE ═════════════════════════════════════════════════════════ */}
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <SectionLabel>{t('usersListPage.table.title')}</SectionLabel>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-muted">
+            <Badge variant="secondary">
               {t('usersListPage.table.results', { count: meta?.count ?? users.length })}
-            </span>
+            </Badge>
             <ViewModeToggle value={viewMode} onChange={handleViewModeChange} t={t} />
           </div>
         </div>
 
-        <div className="overflow-hidden">
+        <div>
           {viewMode === 'cards' ? (
             <UsersCardsGrid
               users={users}
               loading={isLoading}
-              skeletonRows={5}
+              skeletonRows={6}
               emptyTitle={t('usersListPage.empty.title')}
               emptyDescription={
                 hasActiveFilters
@@ -621,6 +641,7 @@ export default function UsersListPage() {
               getActions={getUserActions}
               onOpenUser={(user) => navigate(`/dashboard/users/${user._id}`)}
               emptyValue={emptyValue}
+              t={t}
             />
           ) : (
             <Table
@@ -638,7 +659,7 @@ export default function UsersListPage() {
             />
           )}
 
-          <div className="border-t border-border px-4 pb-4 pt-2">
+          <div className="mt-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-card">
             <Pagination
               meta={meta}
               onLoadMore={handleNext}

@@ -1,15 +1,15 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Home, Save } from 'lucide-react';
+import { CalendarClock, Home, Save, StickyNote } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { usersApi, visitationsApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
 import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
 
@@ -27,24 +27,13 @@ function toIsoDateTime(value) {
   return parsed.toISOString();
 }
 
-/* ── primitives ──────────────────────────────────────────────────────────── */
-
-function SectionLabel({ children }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-        {children}
-      </span>
-      <div className="h-px flex-1 bg-border/60" />
-    </div>
-  );
-}
+/* ── step badge ──────────────────────────────────────────────────────────── */
 
 function StepBadge({ n }) {
   return (
-    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
       {n}
-    </div>
+    </span>
   );
 }
 
@@ -198,7 +187,7 @@ export default function PastoralVisitationCreatePage() {
 
   /* ── render ── */
   return (
-    <div className="animate-fade-in space-y-8 pb-10">
+    <div className="animate-fade-in space-y-6 pb-10">
 
       <Breadcrumbs
         items={[
@@ -218,85 +207,91 @@ export default function PastoralVisitationCreatePage() {
 
       {/* ══ FORM ════════════════════════════════════════════════════════ */}
       <form onSubmit={handleSubmit} noValidate>
-        <div className="mx-auto max-w-7xl space-y-8">
+        <div className="mx-auto max-w-3xl space-y-6">
 
           {/* ── STEP 1 · House ────────────────────────────────────────── */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <StepBadge n={1} />
-              <SectionLabel>{t('visitations.create.houseName')}</SectionLabel>
-            </div>
-
-            <Card>
-              <HouseNameCombobox
-                label={t('visitations.create.houseName')}
-                value={form.houseName}
-                onChange={(val) => updateField('houseName', val)}
-                options={houseNames}
-                error={errors.houseName}
-                placeholder={t('visitations.create.houseNamePlaceholder')}
-              />
-            </Card>
-          </section>
+          <Section
+            icon={Home}
+            title={
+              <span className="flex items-center gap-2.5">
+                <StepBadge n={1} />
+                {t('visitations.create.houseName')}
+              </span>
+            }
+            description={t('visitations.create.houseNamePlaceholder')}
+          >
+            <HouseNameCombobox
+              label={t('visitations.create.houseName')}
+              value={form.houseName}
+              onChange={(val) => updateField('houseName', val)}
+              options={houseNames}
+              error={errors.houseName}
+              placeholder={t('visitations.create.houseNamePlaceholder')}
+            />
+          </Section>
 
           {/* ── STEP 2 · Schedule ─────────────────────────────────────── */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <StepBadge n={2} />
-              <SectionLabel>{t('visitations.create.visitedAt')}</SectionLabel>
-            </div>
-
-            <Card>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input
-                  label={t('visitations.create.visitedAt')}
-                  required
-                  type="datetime-local"
-                  dir="ltr"
-                  className="text-left"
-                  value={form.visitedAt}
-                  onChange={(e) => updateField('visitedAt', e.target.value)}
-                  error={errors.visitedAt}
-                  containerClassName="!mb-0"
-                />
-                <Input
-                  label={t('visitations.create.durationMinutes')}
-                  type="number"
-                  min="1"
-                  required
-                  value={form.durationMinutes}
-                  onChange={(e) => updateField('durationMinutes', e.target.value)}
-                  error={errors.durationMinutes}
-                  containerClassName="!mb-0"
-                />
-              </div>
-            </Card>
-          </section>
-
-          {/* ── STEP 3 · Notes ────────────────────────────────────────── */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <StepBadge n={3} />
-              <SectionLabel>{t('visitations.create.notes')}</SectionLabel>
-            </div>
-
-            <Card>
-              <TextArea
-                label={t('visitations.create.notes')}
-                value={form.notes}
-                onChange={(e) => updateField('notes', e.target.value)}
-                placeholder={t('visitations.create.notesPlaceholder')}
+          <Section
+            icon={CalendarClock}
+            title={
+              <span className="flex items-center gap-2.5">
+                <StepBadge n={2} />
+                {t('visitations.create.visitedAt')}
+              </span>
+            }
+          >
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input
+                label={t('visitations.create.visitedAt')}
+                required
+                type="datetime-local"
+                dir="ltr"
+                className="text-left"
+                value={form.visitedAt}
+                onChange={(e) => updateField('visitedAt', e.target.value)}
+                error={errors.visitedAt}
                 containerClassName="!mb-0"
               />
-            </Card>
-          </section>
+              <Input
+                label={t('visitations.create.durationMinutes')}
+                type="number"
+                min="1"
+                required
+                value={form.durationMinutes}
+                onChange={(e) => updateField('durationMinutes', e.target.value)}
+                error={errors.durationMinutes}
+                containerClassName="!mb-0"
+              />
+            </div>
+          </Section>
+
+          {/* ── STEP 3 · Notes ────────────────────────────────────────── */}
+          <Section
+            icon={StickyNote}
+            title={
+              <span className="flex items-center gap-2.5">
+                <StepBadge n={3} />
+                {t('visitations.create.notes')}
+              </span>
+            }
+          >
+            <TextArea
+              label={t('visitations.create.notes')}
+              value={form.notes}
+              onChange={(e) => updateField('notes', e.target.value)}
+              placeholder={t('visitations.create.notesPlaceholder')}
+              containerClassName="!mb-0"
+            />
+          </Section>
 
           {/* ── ACTIONS ───────────────────────────────────────────────── */}
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div className="sticky bottom-0 z-10 -mx-1 flex flex-col-reverse gap-3 rounded-xl border border-border bg-surface/95 p-3 shadow-card backdrop-blur sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
             <Button
               type="button"
               variant="ghost"
+              fullWidth
               onClick={() => navigate('/dashboard/visitations')}
+              className="sm:w-auto"
             >
               {t('common.actions.cancel')}
             </Button>

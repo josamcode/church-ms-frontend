@@ -1,18 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarDays, Save, Search, Users } from 'lucide-react';
+import { AlertCircle, CalendarDays, Check, CheckSquare, Clock, Search, UserCheck, UserPlus, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
 
 import { divineLiturgiesApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
+import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
+import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
 import Select from '../../../components/ui/Select';
+import Skeleton from '../../../components/ui/Skeleton';
+import StatCard from '../../../components/ui/StatCard';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDate, formatDateTime } from '../../../utils/formatters';
 import { getDayLabel } from '../meetings/meetingsForm.utils';
@@ -51,14 +55,28 @@ function UserAttendanceCard({ user, selected = false, onToggle }) {
     <button
       type="button"
       onClick={() => onToggle(user.id)}
+      aria-pressed={selected}
       className={[
-        'rounded-2xl border px-4 py-3 text-start transition-all duration-150',
+        'flex w-full items-center justify-between gap-2 rounded-2xl border px-3.5 py-3 text-start transition-all duration-150 active:scale-[0.99]',
         selected
-          ? 'border-primary bg-primary/8 text-primary'
+          ? 'border-success/40 bg-success-light shadow-sm'
           : 'border-border bg-surface hover:border-primary/30 hover:shadow-sm',
       ].join(' ')}
     >
-      <p className="text-sm font-semibold text-heading">{user.fullName || EMPTY}</p>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span
+          className={[
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold',
+            selected ? 'bg-success/15 text-success' : 'bg-primary/10 text-primary',
+          ].join(' ')}
+        >
+          {getUserInitial(user)}
+        </span>
+        <p className="truncate text-sm font-semibold text-heading">{user.fullName || EMPTY}</p>
+      </div>
+      <span className={selected ? 'shrink-0 text-success' : 'shrink-0 text-muted'}>
+        {selected ? <Check className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+      </span>
     </button>
   );
 }
@@ -93,7 +111,7 @@ function UserAttendanceGroups({ groups = [], selected = false, onToggle }) {
 export default function DivineLiturgyAttendanceCheckInPage() {
   const { entryType, id } = useParams();
   const queryClient = useQueryClient();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const tf = (key, fallback) => {
     const value = t(key);
     return value === key ? fallback : value;
@@ -212,6 +230,10 @@ export default function DivineLiturgyAttendanceCheckInPage() {
     ));
   };
 
+  const totalUsers = users.length;
+  const checkedInCount = selectedUserIds.length;
+  const remainingCount = Math.max(totalUsers - checkedInCount, 0);
+
   const serviceScheduleLabel = service?.entryType === 'exception'
     ? formatDate(service?.date)
     : getDayLabel(service?.dayOfWeek, t);
@@ -236,7 +258,19 @@ export default function DivineLiturgyAttendanceCheckInPage() {
     return (
       <div className="animate-fade-in space-y-6">
         <Breadcrumbs items={breadcrumbs} />
-        <p className="text-sm text-muted">{t('common.loading')}</p>
+        <Card>
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+        </Card>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-24 rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-40 rounded-xl" />
       </div>
     );
   }
@@ -307,10 +341,13 @@ export default function DivineLiturgyAttendanceCheckInPage() {
     );
   }
 
+  const isBusy = attendanceQuery.isLoading;
+
   return (
-    <div className="animate-fade-in space-y-8 pb-10">
+    <div className="animate-fade-in space-y-6 pb-28 lg:pb-10">
       <Breadcrumbs items={breadcrumbs} />
 
+      {/* ══ HEADER / TOOLBAR ══════════════════════════════════════════════ */}
       <Card padding="lg" tone="primary">
         <PageHeader
           contentOnly
@@ -321,20 +358,18 @@ export default function DivineLiturgyAttendanceCheckInPage() {
             'Choose a valid past service date, then check in the users who attended.'
           )}
         />
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/8 px-3 py-1">
-            <CalendarDays className="h-3.5 w-3.5 text-primary" />
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Badge variant="primary" dot>
+            <CalendarDays className="h-3.5 w-3.5" />
             {serviceScheduleLabel || EMPTY}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-1">
+          </Badge>
+          <Badge variant="neutral">
             <Users className="h-3.5 w-3.5" />
-            {selectedUserIds.length} {tf('divineLiturgies.attendance.selectedCount', 'checked in')}
-          </span>
+            {checkedInCount} {tf('divineLiturgies.attendance.selectedCount', 'checked in')}
+          </Badge>
         </div>
-      </Card>
 
-      <Card className="rounded-2xl">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,260px)_minmax(0,240px)_1fr_auto] lg:items-start">
+        <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,220px)_minmax(0,220px)_1fr_auto] lg:items-end">
           <Select
             label={tf('divineLiturgies.attendance.dateLabel', 'Service Date')}
             options={dateOptions}
@@ -358,78 +393,140 @@ export default function DivineLiturgyAttendanceCheckInPage() {
             icon={Search}
             containerClassName="!mb-0"
           />
-          <div className="flex items-end">
-            <Button
-              type="button"
-              icon={Save}
-              onClick={() => saveAttendanceMutation.mutate()}
-              loading={saveAttendanceMutation.isPending}
-              disabled={!selectedDate}
-            >
-              {t('common.actions.save')}
-            </Button>
-          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            icon={CheckSquare}
+            className="lg:mb-px"
+            onClick={() => setSelectedUserIds(users.map((user) => user.id))}
+            disabled={isBusy || remainingCount === 0}
+          >
+            {tf('divineLiturgies.attendance.filters.all', 'All users')}
+          </Button>
         </div>
 
         {attendanceQuery.error ? (
-          <p className="mt-3 text-sm text-danger">{normalizeApiError(attendanceQuery.error).message}</p>
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-danger/20 bg-danger-light px-3 py-2 text-sm text-danger">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{normalizeApiError(attendanceQuery.error).message}</span>
+          </div>
         ) : null}
 
         {attendanceQuery.data?.viewerUpdatedAt ? (
-          <p className="mt-3 text-xs text-muted">
+          <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">
+            <Clock className="h-3.5 w-3.5" />
             {tf('divineLiturgies.attendance.lastUpdated', 'Last updated')}: {formatDateTime(attendanceQuery.data.viewerUpdatedAt)} ·{' '}
             {attendanceQuery.data.viewerUpdatedBy?.fullName || EMPTY}
           </p>
         ) : null}
       </Card>
 
-      {attendanceQuery.isLoading ? (
-        <Card padding="lg">
-          <p className="text-sm text-muted">{t('common.loading')}</p>
+      {/* ══ SUMMARY ═══════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard
+          icon={UserCheck}
+          label={tf('divineLiturgies.attendance.selectedTitle', 'Checked-in Users')}
+          value={checkedInCount}
+          tone="success"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={UserPlus}
+          label={tf('divineLiturgies.attendance.availableTitle', 'Available Users')}
+          value={remainingCount}
+          tone="primary"
+          isRTL={isRTL}
+        />
+        <StatCard
+          icon={Users}
+          label={tf('divineLiturgies.attendance.filters.all', 'All users')}
+          value={totalUsers}
+          tone="gold"
+          isRTL={isRTL}
+        />
+      </div>
+
+      {/* ══ ATTENDEE LISTS ════════════════════════════════════════════════ */}
+      {isBusy ? (
+        <Card padding="none">
+          <div className="border-b border-border/60 px-5 py-3.5">
+            <Skeleton className="h-5 w-40" />
+          </div>
+          <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Skeleton key={index} className="h-14 rounded-2xl" />
+            ))}
+          </div>
         </Card>
       ) : (
         <>
           {statusFilter !== 'selected' && (
-            <Card className="rounded-2xl">
-              <CardHeader
-                title={tf('divineLiturgies.attendance.availableTitle', 'Available Users')}
-                subtitle={tf(
-                  'divineLiturgies.attendance.availableSubtitle',
-                  'Users are arranged alphabetically. Click any name to move it to the checked-in list.'
-                )}
-              />
-
+            <Section
+              icon={UserPlus}
+              title={tf('divineLiturgies.attendance.availableTitle', 'Available Users')}
+              description={tf(
+                'divineLiturgies.attendance.availableSubtitle',
+                'Users are arranged alphabetically. Click any name to move it to the checked-in list.'
+              )}
+              actions={<Badge variant="neutral">{availableUsers.length}</Badge>}
+            >
               {availableUsers.length === 0 ? (
-                <p className="text-sm text-muted">
-                  {tf('divineLiturgies.attendance.noAvailableUsers', 'No users match the current search or filter.')}
-                </p>
+                <EmptyState
+                  compact
+                  icon={Search}
+                  title={tf('divineLiturgies.attendance.noAvailableUsers', 'No users match the current search or filter.')}
+                />
               ) : (
                 <UserAttendanceGroups groups={availableUserGroups} onToggle={toggleUser} />
               )}
-            </Card>
+            </Section>
           )}
 
           {statusFilter !== 'available' && (
-            <Card className="rounded-2xl border-primary/20">
-              <CardHeader
-                title={tf('divineLiturgies.attendance.selectedTitle', 'Checked-in Users')}
-                subtitle={tf(
-                  'divineLiturgies.attendance.selectedSubtitle',
-                  'Click any checked-in name to remove it from attendance and return it to the available list.'
-                )}
-              />
-
+            <Section
+              icon={UserCheck}
+              title={tf('divineLiturgies.attendance.selectedTitle', 'Checked-in Users')}
+              description={tf(
+                'divineLiturgies.attendance.selectedSubtitle',
+                'Click any checked-in name to remove it from attendance and return it to the available list.'
+              )}
+              actions={<Badge variant="success">{selectedUsers.length}</Badge>}
+              className="border-success/20"
+            >
               {selectedUsers.length === 0 ? (
-                <p className="text-sm text-muted">
-                  {tf('divineLiturgies.attendance.noSelectedUsers', 'No users are checked in for this date yet.')}
-                </p>
+                <EmptyState
+                  compact
+                  icon={UserCheck}
+                  title={tf('divineLiturgies.attendance.noSelectedUsers', 'No users are checked in for this date yet.')}
+                />
               ) : (
                 <UserAttendanceGroups groups={selectedUserGroups} selected onToggle={toggleUser} />
               )}
-            </Card>
+            </Section>
           )}
         </>
       )}
+
+      {/* ══ STICKY SAVE ═══════════════════════════════════════════════════ */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/95 px-4 py-3 shadow-lg backdrop-blur lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 lg:max-w-none lg:justify-end">
+          <span className="hidden text-sm text-muted sm:inline lg:me-auto">
+            {checkedInCount} / {totalUsers} {tf('divineLiturgies.attendance.selectedCount', 'checked in')}
+          </span>
+          <Button
+            type="button"
+            icon={CheckSquare}
+            fullWidth
+            className="lg:w-auto"
+            onClick={() => saveAttendanceMutation.mutate()}
+            loading={saveAttendanceMutation.isPending}
+            disabled={!selectedDate}
+          >
+            {t('common.actions.save')}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

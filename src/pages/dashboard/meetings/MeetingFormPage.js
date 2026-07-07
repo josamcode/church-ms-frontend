@@ -2,7 +2,21 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Loader, Plus, Save, Trash2, Upload, X } from 'lucide-react';
+import {
+  CalendarClock,
+  ClipboardList,
+  Image as ImageIcon,
+  Info,
+  Plus,
+  Save,
+  Sparkles,
+  Trash2,
+  Upload,
+  UserCog,
+  Users,
+  UsersRound,
+  X,
+} from 'lucide-react';
 import { mapFieldErrors, normalizeApiError } from '../../../api/errors';
 import { meetingsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
@@ -13,7 +27,9 @@ import Card from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
 import Select from '../../../components/ui/Select';
+import Skeleton from '../../../components/ui/Skeleton';
 import TagInput from '../../../components/ui/TagInput';
 import TextArea from '../../../components/ui/TextArea';
 import { useI18n } from '../../../i18n/i18n';
@@ -56,20 +72,11 @@ function UserPill({ user, onRemove, disabled = false }) {
   );
 }
 
-function FormSection({ title, subtitle, action, children }) {
+function FormSection({ title, subtitle, action, icon, children }) {
   return (
-    <Card padding={false} className="overflow-hidden">
-      <div className="border-b border-border bg-surface-alt/40 px-5 py-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 className="text-base font-semibold text-heading">{title}</h3>
-            {subtitle && <p className="mt-1 text-xs text-muted">{subtitle}</p>}
-          </div>
-          {action && <div className="shrink-0">{action}</div>}
-        </div>
-      </div>
-      <div className="px-5 py-5">{children}</div>
-    </Card>
+    <Section icon={icon} title={title} description={subtitle} actions={action}>
+      {children}
+    </Section>
   );
 }
 
@@ -329,16 +336,30 @@ export default function MeetingFormPage() {
             { label: t('meetings.actions.editMeetingPage') },
           ]}
         />
-        <Card className="flex items-center gap-3">
-          <Loader className="h-4 w-4 animate-spin text-primary" />
-          <p className="text-sm text-muted">{t('common.loading')}</p>
-        </Card>
+        <div className="rounded-xl border border-border bg-surface p-6 shadow-card">
+          <Skeleton className="h-7 w-56" />
+          <Skeleton className="mt-2 h-4 w-72" />
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="h-14 w-full" />
+            ))}
+          </div>
+        </div>
+        {Array.from({ length: 2 }).map((_, index) => (
+          <div key={index} className="rounded-xl border border-border bg-surface p-5 shadow-card">
+            <Skeleton className="h-5 w-40" />
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Skeleton className="h-11 w-full" />
+              <Skeleton className="h-11 w-full" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="animate-fade-in space-y-6 pb-10">
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
@@ -347,44 +368,69 @@ export default function MeetingFormPage() {
         ]}
       />
 
-      <Card className="overflow-hidden">
-        <div className="border-b border-border bg-gradient-to-br from-surface to-surface-alt/60 px-6 py-5">
+      <Card padding={false} className="overflow-hidden">
+        <div className="bg-gradient-to-br from-surface to-surface-alt/60 px-6 py-5">
           <PageHeader
             contentOnly
+            eyebrow={t('meetings.meetingsPageTitle')}
             title={isEdit ? t('meetings.actions.editMeetingPage') : t('meetings.actions.createMeetingPage')}
             subtitle={t('meetings.sections.meetingsSubtitle')}
-            titleClassName="mt-0 text-xl font-bold text-heading"
+            titleClassName="mt-1.5 text-2xl font-bold text-heading"
           />
 
           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-lg border border-border bg-surface px-3 py-2">
-              <p className="text-[11px] uppercase tracking-wide text-muted">{t('meetings.fields.sector')}</p>
-              <p className="truncate text-sm font-semibold text-heading">{selectedSectorName}</p>
+            <div className="flex items-center gap-2.5 rounded-lg border border-border bg-surface px-3 py-2">
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <UsersRound className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-muted">{t('meetings.fields.sector')}</p>
+                <p className="truncate text-sm font-semibold text-heading">{selectedSectorName}</p>
+              </div>
             </div>
-            <div className="rounded-lg border border-border bg-surface px-3 py-2">
-              <p className="text-[11px] uppercase tracking-wide text-muted">{t('meetings.columns.schedule')}</p>
-              <p className="text-sm font-semibold text-heading">
-                {getDayLabel(form.day, t)}
-                {form.time ? ` - ${form.time}` : ''}
-              </p>
+            <div className="flex items-center gap-2.5 rounded-lg border border-border bg-surface px-3 py-2">
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
+                <CalendarClock className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-muted">{t('meetings.columns.schedule')}</p>
+                <p className="text-sm font-semibold text-heading">
+                  {getDayLabel(form.day, t)}
+                  {form.time ? ` - ${form.time}` : ''}
+                </p>
+              </div>
             </div>
-            <div className="rounded-lg border border-border bg-surface px-3 py-2">
-              <p className="text-[11px] uppercase tracking-wide text-muted">{t('meetings.fields.groups')}</p>
-              <p className="text-sm font-semibold text-heading">{form.groups.length}</p>
+            <div className="flex items-center gap-2.5 rounded-lg border border-border bg-surface px-3 py-2">
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-info/10 text-info">
+                <UsersRound className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-muted">{t('meetings.fields.groups')}</p>
+                <p className="text-sm font-semibold text-heading">{form.groups.length}</p>
+              </div>
             </div>
-            <div className="rounded-lg border border-border bg-surface px-3 py-2">
-              <p className="text-[11px] uppercase tracking-wide text-muted">{t('meetings.fields.servedUsers')}</p>
-              <p className="text-sm font-semibold text-heading">{form.servedUsers.length}</p>
+            <div className="flex items-center gap-2.5 rounded-lg border border-border bg-surface px-3 py-2">
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
+                <Users className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-muted">{t('meetings.fields.servedUsers')}</p>
+                <p className="text-sm font-semibold text-heading">{form.servedUsers.length}</p>
+              </div>
             </div>
           </div>
         </div>
+      </Card>
 
-        <form onSubmit={handleSubmit} className="space-y-6 px-6 py-6">
-          <FormSection title={t('meetings.sections.basicInfo')}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+          <FormSection icon={Info} title={t('meetings.sections.basicInfo')}>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <div className="rounded-xl border border-border bg-surface-alt/40 p-4">
-                <h4 className="text-sm font-semibold text-heading mb-2">{t('meetings.fields.avatar')}</h4>
+                <div className="mb-2 flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4 text-secondary" />
+                  <h4 className="text-sm font-semibold text-heading">{t('meetings.fields.avatar')}</h4>
+                </div>
                 <p className="text-xs text-muted mb-4">{t('meetings.fields.avatarHint')}</p>
 
                 <div className="flex items-center gap-4 flex-wrap">
@@ -519,7 +565,7 @@ export default function MeetingFormPage() {
             )}
           </FormSection>
 
-          <FormSection title={t('meetings.sections.leadership')}>
+          <FormSection icon={UserCog} title={t('meetings.sections.leadership')}>
             <UserSearchSelect
               label={t('meetings.fields.serviceSecretary')}
               value={form.serviceSecretaryUser}
@@ -605,7 +651,7 @@ export default function MeetingFormPage() {
             </div>
           </FormSection>
 
-          <FormSection title={t('meetings.fields.groups')}>
+          <FormSection icon={UsersRound} title={t('meetings.fields.groups')}>
             <div className="rounded-lg border border-border bg-surface-alt/20 p-4">
               <TagInput
                 label={t('meetings.fields.groups')}
@@ -679,7 +725,7 @@ export default function MeetingFormPage() {
             </div>
           </FormSection>
 
-          <FormSection title={t('meetings.fields.servedUsers')}>
+          <FormSection icon={Users} title={t('meetings.fields.servedUsers')}>
             <div className="rounded-lg border border-border bg-surface-alt/20 p-4">
               <UserSearchSelect
                 label={t('meetings.actions.addServedUser')}
@@ -717,6 +763,7 @@ export default function MeetingFormPage() {
 
           {canManageServants && (
             <FormSection
+              icon={UserCog}
               title={t('meetings.sections.servants')}
               action={
                 <Button
@@ -819,6 +866,7 @@ export default function MeetingFormPage() {
 
           {canManageCommittees && (
             <FormSection
+              icon={ClipboardList}
               title={t('meetings.sections.committees')}
               action={
                 <Button
@@ -899,6 +947,7 @@ export default function MeetingFormPage() {
           )}
           {canManageActivities && (
             <FormSection
+              icon={Sparkles}
               title={t('meetings.sections.activities')}
               action={
                 <Button
@@ -979,18 +1028,29 @@ export default function MeetingFormPage() {
                 {t('meetings.messages.fixValidationErrors')}
               </p>
             )}
+          </div>
 
-            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button type="button" variant="ghost" onClick={() => navigate('/dashboard/meetings/list')}>
-                {t('common.actions.cancel')}
-              </Button>
-              <Button type="submit" icon={Save} loading={saveMutation.isPending}>
-                {t('common.actions.save')}
-              </Button>
-            </div>
+          <div className="sticky bottom-0 z-10 -mx-1 flex flex-col-reverse gap-3 rounded-xl border border-border bg-surface/95 p-3 shadow-card backdrop-blur sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
+            <Button
+              type="button"
+              variant="ghost"
+              fullWidth
+              onClick={() => navigate('/dashboard/meetings/list')}
+              className="sm:w-auto"
+            >
+              {t('common.actions.cancel')}
+            </Button>
+            <Button
+              type="submit"
+              icon={Save}
+              loading={saveMutation.isPending}
+              fullWidth
+              className="sm:w-auto"
+            >
+              {t('common.actions.save')}
+            </Button>
           </div>
         </form>
-      </Card>
     </div>
   );
 }
