@@ -19,7 +19,7 @@ import { useI18n } from '../../../i18n/i18n';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
+import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import SearchInput from '../../../components/ui/SearchInput';
@@ -219,11 +219,6 @@ function CategorySummaryCard({ category, copy, maxCount = 0, totalCount = 0, lan
       className="relative overflow-hidden rounded-2xl border bg-surface p-5 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-md"
       style={{ borderColor: `${color}33` }}
     >
-      <span
-        className="pointer-events-none absolute inset-0 -z-0"
-        style={{ background: `linear-gradient(135deg, ${color}14 0%, transparent 60%)` }}
-        aria-hidden
-      />
       <span
         className="pointer-events-none absolute inset-x-0 top-0 h-1"
         style={{ backgroundColor: color }}
@@ -539,36 +534,43 @@ export default function HouseholdClassificationResultsPage() {
             }}
             containerClassName="!mb-0"
           />
-          <div className="flex items-end">
-            <div className="rounded-xl border border-border bg-surface-alt/50 px-4 py-3">
-              <Switch
-                checked={includeUnclassified}
-                onChange={(checked) => {
-                  setIncludeUnclassified(checked);
-                  setPage(1);
-                }}
-                label={copy.includeUnclassified}
-              />
-            </div>
+          <div className="flex items-center pb-1 lg:h-10">
+            <Switch
+              checked={includeUnclassified}
+              onChange={(checked) => {
+                setIncludeUnclassified(checked);
+                setPage(1);
+              }}
+              label={copy.includeUnclassified}
+            />
           </div>
         </div>
       </Card>
 
-      <Card className="space-y-4" padding="lg">
-        <CardHeader
-          icon={Building2}
-          title={copy.categoryCardsTitle}
-          subtitle={copy.categoryCardsSubtitle}
-          className="mb-0"
-          action={<Badge variant="secondary">{formatCount(categorySummaryCards.length)}</Badge>}
-        />
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-2.5">
+            <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Building2 className="h-[18px] w-[18px]" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-base font-bold leading-tight text-heading">
+                {copy.categoryCardsTitle}
+              </h2>
+              <p className="mt-0.5 text-sm text-muted">{copy.categoryCardsSubtitle}</p>
+            </div>
+          </div>
+          <Badge variant="secondary">{formatCount(categorySummaryCards.length)}</Badge>
+        </div>
 
         {categorySummaryRows.length === 0 ? (
-          <EmptyState
-            icon={Building2}
-            title={copy.categoryCardsTitle}
-            description={copy.noCategoryCards}
-          />
+          <Card tone="muted">
+            <EmptyState
+              icon={Building2}
+              title={copy.categoryCardsTitle}
+              description={copy.noCategoryCards}
+            />
+          </Card>
         ) : (
           <div className="space-y-4">
             {categorySummaryRows.map((row, index) => (
@@ -590,7 +592,7 @@ export default function HouseholdClassificationResultsPage() {
             ))}
           </div>
         )}
-      </Card>
+      </section>
 
       {errorMessage ? (
         <Card tone="muted">
@@ -611,23 +613,24 @@ export default function HouseholdClassificationResultsPage() {
           />
         </Card>
       ) : (
-        <Card className="space-y-4" padding="lg">
-          <CardHeader
-            icon={Users}
-            title={copy.title}
-            subtitle={copy.tableResults.replace(
-              '{count}',
-              String(meta.totalCount || households.length)
-            )}
-            className="mb-0"
-            action={
-              !householdsQuery.isLoading && households.length ? (
-                <Badge variant="secondary">
-                  {formatCount(meta.totalCount || households.length)}
-                </Badge>
-              ) : null
-            }
-          />
+        <section className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Users className="h-[18px] w-[18px]" />
+              </span>
+              <h2 className="text-base font-bold leading-tight text-heading">{copy.title}</h2>
+            </div>
+            {!householdsQuery.isLoading && households.length ? (
+              <Badge variant="secondary">
+                {copy.tableResults.replace(
+                  '{count}',
+                  formatCount(meta.totalCount || households.length)
+                )}
+              </Badge>
+            ) : null}
+          </div>
+
           <Table
             columns={columns}
             data={households}
@@ -635,9 +638,10 @@ export default function HouseholdClassificationResultsPage() {
             emptyTitle={copy.noDataTitle}
             emptyDescription={copy.noDataDescription}
             emptyIcon={Building2}
+            renderMode="auto"
           />
 
-          <div className="flex items-center justify-between gap-3 border-t border-border/70 pt-4">
+          <div className="flex items-center justify-between gap-3 pt-1">
             <Button
               variant="outline"
               size="sm"
@@ -658,7 +662,7 @@ export default function HouseholdClassificationResultsPage() {
               {copy.next}
             </Button>
           </div>
-        </Card>
+        </section>
       )}
     </div>
   );

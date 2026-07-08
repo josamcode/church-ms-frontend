@@ -21,6 +21,7 @@ import Card from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import PageHeader from '../../../components/ui/PageHeader';
+import Section from '../../../components/ui/Section';
 import Select from '../../../components/ui/Select';
 import Table from '../../../components/ui/Table';
 import CreatableComboboxInput from '../../../components/ui/CreatableComboboxInput';
@@ -349,21 +350,15 @@ export default function LordsBrethrenAidPage() {
       />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
-        
-        {/* LEFT COLUMN: Filters & Table */}
-        <div className="space-y-6">
-          <Card className="space-y-5" padding="lg">
-            <div className="flex items-start gap-3 border-b border-border pb-4">
-              <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Filter className="h-[18px] w-[18px]" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-base font-bold leading-tight text-heading">{copy.filtersTitle}</p>
-                <p className="mt-0.5 text-xs text-muted">{copy.filterSection}</p>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* LEFT COLUMN: Filters & Households list */}
+        <div className="space-y-6">
+          <Section
+            icon={Filter}
+            title={copy.filtersTitle}
+            description={copy.filterSection}
+            bodyClassName="grid grid-cols-1 gap-4 sm:grid-cols-2"
+          >
               <MultiSelectChips
                 label={copy.filterGenders}
                 options={filterOptions.genderOptions}
@@ -413,7 +408,7 @@ export default function LordsBrethrenAidPage() {
                 onChange={(e) => setMemberFilters({ ...memberFilters, diseaseMatchMode: e.target.value })}
                 containerClassName="!mb-0"
               />
-              <div className="grid grid-cols-2 gap-3 lg:col-span-2">
+              <div className="grid grid-cols-2 gap-3 sm:col-span-2">
                 <Input
                   label={copy.filterMinIncome}
                   type="number"
@@ -439,16 +434,16 @@ export default function LordsBrethrenAidPage() {
                   containerClassName="!mb-0"
                 />
               </div>
-            </div>
-          </Card>
+          </Section>
 
-          <Card className="space-y-4" padding="lg">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-              <div className="flex items-center gap-3">
+          {/* Households list — plain header row above Table (no Card wrapper) */}
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
                 <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Users className="h-[18px] w-[18px]" />
                 </span>
-                <p className="text-base font-bold leading-tight text-heading">{copy.householdsTable}</p>
+                <h2 className="text-base font-bold leading-tight text-heading">{copy.householdsTable}</h2>
                 <Badge variant="secondary">{households.length}</Badge>
               </div>
               {households.length > 0 && (
@@ -459,6 +454,7 @@ export default function LordsBrethrenAidPage() {
             </div>
 
             <Table
+              renderMode="auto"
               columns={[
                 {
                   key: 'select',
@@ -510,10 +506,10 @@ export default function LordsBrethrenAidPage() {
               emptyDescription={copy.searchDesc}
               emptyIcon={Building2}
             />
-          </Card>
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: Aid Configuration */}
+        {/* RIGHT COLUMN: Aid configuration — single gold Card, plain grouped content */}
         <div>
           <Card className="sticky top-20 space-y-5" tone="gold" padding="lg">
             <div className="flex items-start gap-3 border-b border-secondary/20 pb-4">
@@ -526,7 +522,7 @@ export default function LordsBrethrenAidPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-secondary/20 bg-surface/70 px-3.5 py-2.5">
+            <div className="flex items-center justify-between rounded-xl bg-surface-alt/40 px-3.5 py-2.5">
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-heading">
                 <Users className="h-3.5 w-3.5 text-secondary" />
                 {copy.filterSection}

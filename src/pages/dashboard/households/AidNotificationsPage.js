@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { notificationsApi } from '../../../api/endpoints';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
@@ -99,61 +100,58 @@ function AidReminderCard({ notification, onOpen, t, copy, language }) {
     : notification.summary;
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-border bg-surface shadow-card transition-all hover:border-primary/30 hover:shadow-lg">
-      <div className="h-2 bg-gradient-to-r from-primary via-accent to-primary/60" />
-      <div className="space-y-4 p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="primary">{localizeNotificationTypeName(notification.type?.name, t)}</Badge>
-          <Badge variant={notification.isActive ? 'success' : 'default'}>
-            {notification.isActive ? t('notifications.status.active') : t('notifications.status.inactive')}
-          </Badge>
-          <span className="text-xs text-muted">
-            <CalendarDays className="mb-0.5 me-1 inline h-3 w-3" />
-            {notification.eventDate ? formatDateTime(notification.eventDate) : formatDateTime(notification.createdAt)}
-          </span>
-        </div>
-
-        <div>
-          <h3 className="text-xl font-bold leading-snug text-heading">{reminderTitle}</h3>
-          {reminderSummary ? <p className="mt-2 text-sm text-muted">{reminderSummary}</p> : null}
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 rounded-2xl bg-surface-alt/70 p-4 text-sm sm:grid-cols-3">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{copy.originalDate}</p>
-            <div className="flex items-center gap-2 text-heading">
-              <CalendarDays className="h-4 w-4 text-primary" />
-              <span>{formatDateLabel(sourceData.originalDate, language)}</span>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{copy.dueDate}</p>
-            <div className="flex items-center gap-2 text-heading">
-              <CalendarClock className="h-4 w-4 text-primary" />
-              <span>{formatDateLabel(sourceData.dueDate || notification.eventDate, language)}</span>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{copy.nextRepeat}</p>
-            <div className="flex items-center gap-2 text-heading">
-              <RotateCw className="h-4 w-4 text-primary" />
-              <span>{formatDateLabel(sourceData.nextDueDate, language)}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-3 text-xs text-muted">
-          <span>
-            {t('notifications.columns.detailsCount')}: {detailsCount}
-          </span>
-          <span>{formatDateTime(notification.updatedAt)}</span>
-        </div>
-
-        <Button type="button" size="sm" icon={Eye} onClick={onOpen}>
-          {t('notifications.actions.readFull')}
-        </Button>
+    <Card className="flex flex-col gap-4" hover>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="primary">{localizeNotificationTypeName(notification.type?.name, t)}</Badge>
+        <Badge variant={notification.isActive ? 'success' : 'default'}>
+          {notification.isActive ? t('notifications.status.active') : t('notifications.status.inactive')}
+        </Badge>
+        <span className="text-xs text-muted">
+          <CalendarDays className="mb-0.5 me-1 inline h-3 w-3" />
+          {notification.eventDate ? formatDateTime(notification.eventDate) : formatDateTime(notification.createdAt)}
+        </span>
       </div>
-    </article>
+
+      <div>
+        <h3 className="text-lg font-bold leading-snug text-heading">{reminderTitle}</h3>
+        {reminderSummary ? <p className="mt-2 text-sm text-muted">{reminderSummary}</p> : null}
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 rounded-xl bg-surface-alt/40 p-4 text-sm sm:grid-cols-3">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{copy.originalDate}</p>
+          <div className="flex items-center gap-2 text-heading">
+            <CalendarDays className="h-4 w-4 text-muted" />
+            <span>{formatDateLabel(sourceData.originalDate, language)}</span>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{copy.dueDate}</p>
+          <div className="flex items-center gap-2 text-heading">
+            <CalendarClock className="h-4 w-4 text-muted" />
+            <span>{formatDateLabel(sourceData.dueDate || notification.eventDate, language)}</span>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{copy.nextRepeat}</p>
+          <div className="flex items-center gap-2 text-heading">
+            <RotateCw className="h-4 w-4 text-muted" />
+            <span>{formatDateLabel(sourceData.nextDueDate, language)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-auto flex items-center justify-between gap-3 text-xs text-muted">
+        <span>
+          {t('notifications.columns.detailsCount')}: {detailsCount}
+        </span>
+        <span>{formatDateTime(notification.updatedAt)}</span>
+      </div>
+
+      <Button type="button" size="sm" icon={Eye} onClick={onOpen}>
+        {t('notifications.actions.readFull')}
+      </Button>
+    </Card>
   );
 }
 
@@ -380,15 +378,17 @@ export default function AidNotificationsPage() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-border bg-surface-alt/40 px-4 pb-4 pt-3">
-          <Pagination
-            meta={meta}
-            onLoadMore={handleNext}
-            onPrev={handlePrev}
-            cursors={cursorStack}
-            loading={isLoading}
-          />
-        </div>
+        {notifications.length > 0 ? (
+          <div className="border-t border-border/70 pt-4">
+            <Pagination
+              meta={meta}
+              onLoadMore={handleNext}
+              onPrev={handlePrev}
+              cursors={cursorStack}
+              loading={isLoading}
+            />
+          </div>
+        ) : null}
       </Section>
 
       <div className="flex justify-end">

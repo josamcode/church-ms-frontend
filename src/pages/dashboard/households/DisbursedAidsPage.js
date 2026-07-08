@@ -7,7 +7,7 @@ import { useAuth } from '../../../auth/auth.hooks';
 import { useI18n } from '../../../i18n/i18n';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
-import Card, { CardHeader } from '../../../components/ui/Card';
+import Card from '../../../components/ui/Card';
 import PageHeader from '../../../components/ui/PageHeader';
 import Pagination from '../../../components/ui/Pagination';
 import StatCard from '../../../components/ui/StatCard';
@@ -216,17 +216,18 @@ export default function DisbursedAidsPage() {
         </div>
       </Card>
 
-      <Card className="space-y-4" padding="lg">
-        <CardHeader
-          icon={History}
-          title={copy.title}
-          className="mb-0"
-          action={
-            !isLoading && items.length ? (
-              <Badge variant="secondary">{formatCount(items.length)}</Badge>
-            ) : null
-          }
-        />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <History className="h-[18px] w-[18px]" />
+            </span>
+            <h2 className="truncate text-lg font-bold leading-tight text-heading">{copy.title}</h2>
+          </div>
+          {!isLoading && items.length ? (
+            <Badge variant="secondary">{formatCount(items.length)}</Badge>
+          ) : null}
+        </div>
         <Table
           columns={[
             {
@@ -284,7 +285,7 @@ export default function DisbursedAidsPage() {
         />
 
         {meta.totalPages > 1 && (
-          <div className="border-t border-border/70 pt-4">
+          <div className="pt-1">
             <Pagination
               page={page}
               totalPages={meta.totalPages}
@@ -292,7 +293,7 @@ export default function DisbursedAidsPage() {
             />
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

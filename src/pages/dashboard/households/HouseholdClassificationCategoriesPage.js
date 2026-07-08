@@ -16,6 +16,7 @@ import { mapFieldErrors, normalizeApiError } from '../../../api/errors';
 import { useI18n } from '../../../i18n/i18n';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import MultiSelectChips from '../../../components/ui/MultiSelectChips';
@@ -374,7 +375,7 @@ export default function HouseholdClassificationCategoriesPage() {
               ))}
             </div>
           ) : categoriesQuery.isError ? (
-            <div className="rounded-2xl border border-danger/20 bg-danger-light px-4 py-5 text-center">
+            <div className="rounded-xl bg-danger-light px-4 py-5 text-center">
               <AlertCircle className="mx-auto mb-2 h-6 w-6 text-danger" />
               <p className="text-sm text-danger">{normalizeApiError(categoriesQuery.error).message}</p>
               <div className="mt-3">
@@ -410,19 +411,12 @@ export default function HouseholdClassificationCategoriesPage() {
 
         {/* ══ RULE EDITOR ═════════════════════════════════════════════════ */}
         <div className="space-y-6">
-          {/* editor intro banner */}
-          <div className="flex items-start gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
-            <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <SlidersHorizontal className="h-[18px] w-[18px]" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-heading">{copy.editorTitle}</p>
-              <p className="mt-1 text-xs text-muted">{copy.criteriaHint}</p>
-            </div>
-          </div>
-
           {/* general details */}
-          <Section icon={Settings2} title={copy.editorTitle} divided={false} bodyClassName="pt-0">
+          <Section
+            icon={SlidersHorizontal}
+            title={copy.editorTitle}
+            description={copy.criteriaHint}
+          >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label={copy.name}
@@ -446,7 +440,7 @@ export default function HouseholdClassificationCategoriesPage() {
                 onChange={(event) => updateDraft('priority', event.target.value)}
                 containerClassName="!mb-0"
               />
-              <div className="rounded-xl flex flex-col gap-2 border border-border bg-surface-alt/40 px-4 py-3">
+              <div className="flex flex-col justify-center gap-3 rounded-xl bg-surface-alt/50 px-4 py-3">
                 <Switch
                   checked={draft.isActive}
                   onChange={(checked) => updateDraft('isActive', checked)}
@@ -489,7 +483,7 @@ export default function HouseholdClassificationCategoriesPage() {
               const isBooleanMetric = metricUsesBooleanOperator(criterion.metric);
 
               return (
-                <div key={criterion.id} className="rounded-2xl border border-border bg-surface-alt/30 p-4">
+                <div key={criterion.id} className="rounded-xl bg-surface-alt/40 p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
                       <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
@@ -502,13 +496,15 @@ export default function HouseholdClassificationCategoriesPage() {
                         <Badge variant="primary" size="sm">{copy.required}</Badge>
                       ) : null}
                     </div>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="xs"
+                      icon={Trash2}
                       onClick={() => removeCriterion(criterion.id)}
-                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-border text-muted transition-colors hover:border-danger/30 hover:bg-danger-light hover:text-danger"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                      className="!p-2 text-muted hover:bg-danger-light hover:text-danger"
+                      aria-label={copy.delete}
+                    />
                   </div>
 
                   <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -520,7 +516,7 @@ export default function HouseholdClassificationCategoriesPage() {
                       }
                       containerClassName="!mb-0"
                     />
-                    <div className="flex items-center rounded-xl border border-border bg-surface-alt/40 px-4 py-3">
+                    <div className="flex items-center rounded-xl bg-surface/70 px-4 py-3">
                       <Switch
                         checked={criterion.isRequired}
                         onChange={(checked) =>
@@ -590,7 +586,7 @@ export default function HouseholdClassificationCategoriesPage() {
                   </div>
 
                   {showFilters ? (
-                    <div className="mt-5 space-y-4 rounded-2xl border border-border bg-surface p-4">
+                    <div className="mt-5 space-y-4 border-t border-border/60 pt-4">
                       <div className="flex items-center gap-2">
                         <ListFilter className="h-4 w-4 text-primary" />
                         <p className="text-sm font-semibold text-heading">{copy.filtersTitle}</p>
@@ -738,8 +734,11 @@ export default function HouseholdClassificationCategoriesPage() {
             })}
           </Section>
 
-          {/* save / delete bar */}
-          <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface/95 px-4 py-3 shadow-md backdrop-blur">
+          {/* save / delete action bar */}
+          <Card
+            padding="sm"
+            className="sticky bottom-0 z-10 flex items-center justify-between gap-3 shadow-md"
+          >
             <div>
               {draft.id ? (
                 <Button
@@ -755,7 +754,7 @@ export default function HouseholdClassificationCategoriesPage() {
             <Button icon={Save} onClick={handleSave} loading={saveMutation.isPending}>
               {copy.save}
             </Button>
-          </div>
+          </Card>
         </div>
       </div>
     </div>

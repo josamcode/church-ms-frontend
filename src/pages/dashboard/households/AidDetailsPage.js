@@ -336,7 +336,7 @@ export default function AidDetailsPage() {
               </div>
 
               {groupNotes ? (
-                <div className="rounded-xl border border-border bg-surface-alt/40 p-3">
+                <div className="rounded-xl bg-surface-alt/50 p-3">
                   <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted">
                     <StickyNote className="h-3.5 w-3.5" />
                     {copy.fields.notes}
@@ -392,7 +392,7 @@ export default function AidDetailsPage() {
                 ]}
               />
 
-              <div className="space-y-3 rounded-2xl border border-border/70 bg-surface/90 p-4">
+              <div className="space-y-3 rounded-xl bg-surface-alt/40 p-4">
                 <p className="text-sm text-heading">{copy.readyToApprove}</p>
                 <p className="text-sm text-muted">{copy.keepPending}</p>
 

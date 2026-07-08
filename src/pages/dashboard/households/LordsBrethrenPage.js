@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   Coins,
   Eye,
-  Filter,
   HeartHandshake,
   RefreshCw,
   ShieldCheck,
@@ -18,7 +17,7 @@ import { useI18n } from '../../../i18n/i18n';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
+import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import SearchInput from '../../../components/ui/SearchInput';
@@ -313,21 +312,15 @@ export default function LordsBrethrenPage() {
         />
       </div>
 
-      <Card className="space-y-4" tone="muted">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-primary" />
-          <p className="text-sm font-semibold text-heading">{copy.filtersTitle}</p>
-        </div>
-        <SearchInput
-          value={search}
-          onChange={(next) => {
-            setSearch(next);
-            setPage(1);
-          }}
-          placeholder={copy.searchPlaceholder}
-          className="w-full"
-        />
-      </Card>
+      <SearchInput
+        value={search}
+        onChange={(next) => {
+          setSearch(next);
+          setPage(1);
+        }}
+        placeholder={copy.searchPlaceholder}
+        className="w-full"
+      />
 
       {errorMessage ? (
         <Card tone="muted">
@@ -348,23 +341,24 @@ export default function LordsBrethrenPage() {
           />
         </Card>
       ) : (
-        <Card className="space-y-4" padding="lg">
-          <CardHeader
-            icon={Users}
-            title={copy.title}
-            subtitle={copy.tableResults.replace(
-              '{count}',
-              String(meta.totalCount || households.length)
-            )}
-            className="mb-0"
-            action={
-              !householdsQuery.isLoading && households.length ? (
-                <Badge variant="secondary">
-                  {formatCount(meta.totalCount || households.length)}
-                </Badge>
-              ) : null
-            }
-          />
+        <section className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Users className="h-[18px] w-[18px]" />
+              </span>
+              <h2 className="text-base font-bold leading-tight text-heading">{copy.title}</h2>
+            </div>
+            {!householdsQuery.isLoading && households.length ? (
+              <Badge variant="secondary">
+                {copy.tableResults.replace(
+                  '{count}',
+                  formatCount(meta.totalCount || households.length)
+                )}
+              </Badge>
+            ) : null}
+          </div>
+
           <Table
             columns={columns}
             data={households}
@@ -372,9 +366,10 @@ export default function LordsBrethrenPage() {
             emptyTitle={copy.noDataTitle}
             emptyDescription={copy.noDataDescription}
             emptyIcon={Users}
+            renderMode="auto"
           />
 
-          <div className="flex items-center justify-between gap-3 border-t border-border/70 pt-4">
+          <div className="flex items-center justify-between gap-3 pt-1">
             <Button
               variant="outline"
               size="sm"
@@ -395,7 +390,7 @@ export default function LordsBrethrenPage() {
               {copy.next}
             </Button>
           </div>
-        </Card>
+        </section>
       )}
     </div>
   );
