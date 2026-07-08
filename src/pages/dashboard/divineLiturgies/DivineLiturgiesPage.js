@@ -704,34 +704,32 @@ export default function DivineLiturgiesPage() {
           </div>
         )}
 
-        <Card padding={false} className="overflow-hidden">
-          <Table
-            columns={recurringColumns(
-              true,
-              (row) => {
-                setDivineEditId(row.id);
-                setDivineForm({
-                  serviceType: DIVINE_SERVICE_TYPE,
-                  dayOfWeek: row.dayOfWeek,
-                  startTime: row.startTime || '',
-                  endTime: row.endTime || '',
-                  name: row.name || '',
-                  priestUserIds: (row.priests || []).map((entry) => entry.id).filter(Boolean),
-                });
-                setShowDivineForm(true);
-              },
-              (id) => {
-                if (!window.confirm(t('divineLiturgies.confirmations.deleteRecurring'))) return;
-                deleteRecurringMutation.mutate(id);
-              }
-            )}
-            data={recurringDivine}
-            loading={overviewQuery.isLoading}
-            emptyTitle={t('divineLiturgies.empty.recurringDivine')}
-            emptyDescription={t('common.placeholder.empty')}
-            emptyIcon={Church}
-          />
-        </Card>
+        <Table
+          columns={recurringColumns(
+            true,
+            (row) => {
+              setDivineEditId(row.id);
+              setDivineForm({
+                serviceType: DIVINE_SERVICE_TYPE,
+                dayOfWeek: row.dayOfWeek,
+                startTime: row.startTime || '',
+                endTime: row.endTime || '',
+                name: row.name || '',
+                priestUserIds: (row.priests || []).map((entry) => entry.id).filter(Boolean),
+              });
+              setShowDivineForm(true);
+            },
+            (id) => {
+              if (!window.confirm(t('divineLiturgies.confirmations.deleteRecurring'))) return;
+              deleteRecurringMutation.mutate(id);
+            }
+          )}
+          data={recurringDivine}
+          loading={overviewQuery.isLoading}
+          emptyTitle={t('divineLiturgies.empty.recurringDivine')}
+          emptyDescription={t('common.placeholder.empty')}
+          emptyIcon={Church}
+        />
       </section>
             ),
           },
@@ -842,34 +840,32 @@ export default function DivineLiturgiesPage() {
         )}
 
         {recurringVespers.length > 0 && (
-          <Card padding={false} className="overflow-hidden">
-            <Table
-              columns={recurringColumns(
-                false,
-                (row) => {
-                  setVespersEditId(row.id);
-                  setVespersForm({
-                    serviceType: VESPERS_SERVICE_TYPE,
-                    dayOfWeek: row.dayOfWeek,
-                    startTime: row.startTime || '',
-                    endTime: row.endTime || '',
-                    name: row.name || '',
-                    priestUserIds: [],
-                  });
-                  setShowVespersForm(true);
-                },
-                (id) => {
-                  if (!window.confirm(t('divineLiturgies.confirmations.deleteRecurring'))) return;
-                  deleteRecurringMutation.mutate(id);
-                }
-              )}
-              data={recurringVespers}
-              loading={overviewQuery.isLoading}
-              emptyTitle={t('divineLiturgies.empty.recurringVespers')}
-              emptyDescription={t('common.placeholder.empty')}
-              emptyIcon={Sunrise}
-            />
-          </Card>
+          <Table
+            columns={recurringColumns(
+              false,
+              (row) => {
+                setVespersEditId(row.id);
+                setVespersForm({
+                  serviceType: VESPERS_SERVICE_TYPE,
+                  dayOfWeek: row.dayOfWeek,
+                  startTime: row.startTime || '',
+                  endTime: row.endTime || '',
+                  name: row.name || '',
+                  priestUserIds: [],
+                });
+                setShowVespersForm(true);
+              },
+              (id) => {
+                if (!window.confirm(t('divineLiturgies.confirmations.deleteRecurring'))) return;
+                deleteRecurringMutation.mutate(id);
+              }
+            )}
+            data={recurringVespers}
+            loading={overviewQuery.isLoading}
+            emptyTitle={t('divineLiturgies.empty.recurringVespers')}
+            emptyDescription={t('common.placeholder.empty')}
+            emptyIcon={Sunrise}
+          />
         )}
       </section>
             ),
@@ -994,16 +990,14 @@ export default function DivineLiturgiesPage() {
         )}
 
         {exceptionalCases.length > 0 && (
-          <Card padding={false} className="overflow-hidden">
-            <Table
-              columns={exceptionColumns}
-              data={exceptionalCases}
-              loading={overviewQuery.isLoading}
-              emptyTitle={t('divineLiturgies.empty.exceptions')}
-              emptyDescription={t('common.placeholder.empty')}
-              emptyIcon={CalendarClock}
-            />
-          </Card>
+          <Table
+            columns={exceptionColumns}
+            data={exceptionalCases}
+            loading={overviewQuery.isLoading}
+            emptyTitle={t('divineLiturgies.empty.exceptions')}
+            emptyDescription={t('common.placeholder.empty')}
+            emptyIcon={CalendarClock}
+          />
         )}
       </section>
             ),

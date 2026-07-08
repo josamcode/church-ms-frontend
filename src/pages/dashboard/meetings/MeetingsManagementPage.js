@@ -397,16 +397,14 @@ export default function MeetingsManagementPage() {
               />
             </Card>
           ) : (
-            <Card padding={false} className="overflow-hidden">
-              <Table
-                columns={meetingColumns}
-                data={meetings}
-                loading={meetingsQuery.isLoading}
-                emptyTitle={t('meetings.empty.meetingsTitle')}
-                emptyDescription={t('meetings.empty.meetingsDescription')}
-                emptyIcon={CalendarClock}
-              />
-            </Card>
+            <Table
+              columns={meetingColumns}
+              data={meetings}
+              loading={meetingsQuery.isLoading}
+              emptyTitle={t('meetings.empty.meetingsTitle')}
+              emptyDescription={t('meetings.empty.meetingsDescription')}
+              emptyIcon={CalendarClock}
+            />
           )}
         </section>
       ) : (

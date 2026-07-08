@@ -315,16 +315,14 @@ export default function SectorsManagementPage() {
               />
             </Card>
           ) : (
-            <Card padding={false} className="overflow-hidden">
-              <Table
-                columns={sectorColumns}
-                data={sectors}
-                loading={sectorsQuery.isLoading || (canViewMeetings && meetingsQuery.isLoading)}
-                emptyTitle={t('meetings.empty.sectorsTitle')}
-                emptyDescription={t('meetings.empty.sectorsDescription')}
-                emptyIcon={Layers3}
-              />
-            </Card>
+            <Table
+              columns={sectorColumns}
+              data={sectors}
+              loading={sectorsQuery.isLoading || (canViewMeetings && meetingsQuery.isLoading)}
+              emptyTitle={t('meetings.empty.sectorsTitle')}
+              emptyDescription={t('meetings.empty.sectorsDescription')}
+              emptyIcon={Layers3}
+            />
           )}
         </section>
       ) : (

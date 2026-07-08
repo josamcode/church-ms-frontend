@@ -483,6 +483,7 @@ export default function FamilyHouseAnalyticsPage() {
                 )}
               />
               <Table
+                flush
                 columns={familyRankColumns}
                 data={familyRanks}
                 loading={false}
@@ -499,6 +500,7 @@ export default function FamilyHouseAnalyticsPage() {
                 subtitle={tr('familyHouseAnalytics.sections.houseRankHint')}
               />
               <Table
+                flush
                 columns={houseRankColumns}
                 data={houseRanks}
                 loading={false}

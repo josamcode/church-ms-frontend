@@ -88,6 +88,7 @@ export default function Table({
   sortOrder,
   onSort,
   renderMode = 'auto',
+  flush = false,
 }) {
   const { isRTL, t } = useI18n();
   const isSmallScreen = useIsSmallScreen();
@@ -168,7 +169,7 @@ export default function Table({
       )}
 
       {!loading && data.length === 0 ? (
-        <div className="rounded-lg border border-border bg-surface">
+        <div className={flush ? '' : 'rounded-lg border border-border bg-surface'}>
           <EmptyState title={emptyTitle} description={emptyDescription} icon={emptyIcon} />
         </div>
       ) : showCardView ? (
@@ -191,7 +192,7 @@ export default function Table({
             ))}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-card">
+        <div className={`overflow-x-auto ${flush ? '' : 'rounded-xl border border-border bg-surface shadow-card'}`}>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-surface-alt/60 border-b border-border">

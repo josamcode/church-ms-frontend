@@ -424,6 +424,7 @@ export default function PastoralVisitationAnalyticsPage() {
             />
             <div className="overflow-hidden tttable">
               <Table
+                flush
                 columns={topRecordersColumns}
                 data={topRecorders}
                 loading={isLoading}

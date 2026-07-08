@@ -1821,6 +1821,7 @@ export default function UsersExplorerPage() {
               </div>
             </div>
             <Table
+              flush
               columns={columns}
               data={pagedUsers}
               loading={isFilterPending}

@@ -396,6 +396,7 @@ export default function ConfessionAnalyticsPage() {
             />
             <div className="overflow-hidden tttable">
               <Table
+                flush
                 columns={topAttendeesColumns}
                 data={topAttendees}
                 loading={isLoading}

@@ -842,6 +842,7 @@ export default function FamilyHouseLookupPage() {
         ) : (
           <div className="p-2 sm:p-3">
             <Table
+              flush
               columns={columns}
               data={sortedMembers}
               loading={membersLoading || membersFetching}
@@ -876,10 +877,10 @@ export default function FamilyHouseLookupPage() {
 
 function SummaryItem({ label, value }) {
   return (
-    <Card tone="muted" padding="sm">
+    <div className="rounded-xl bg-surface-alt/40 p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
       <p className="mt-1 text-lg font-semibold text-heading">{value || 0}</p>
-    </Card>
+    </div>
   );
 }
 
@@ -1029,10 +1030,10 @@ function HouseholdClassificationPanel({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
             {Array.from({ length: 6 }).map((_, index) => (
-              <Card key={index} tone="muted" padding="sm" className="space-y-3">
+              <div key={index} className="space-y-3 rounded-xl bg-surface-alt/40 p-4">
                 <Skeleton className="h-3 w-2/3" />
                 <Skeleton className="h-5 w-1/2" />
-              </Card>
+              </div>
             ))}
           </div>
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -1076,7 +1077,7 @@ function HouseholdClassificationPanel({
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <Card padding="sm">
+            <div className="rounded-xl bg-surface-alt/40 p-4">
               <p className="text-sm font-semibold text-heading">{copy.primaryClassification}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <HouseholdStatusBadge
@@ -1087,9 +1088,9 @@ function HouseholdClassificationPanel({
                   {household.isPrimaryClassificationManual ? copy.manualOverride : copy.computedMode}
                 </Badge>
               </div>
-            </Card>
+            </div>
 
-            <Card padding="sm">
+            <div className="rounded-xl bg-surface-alt/40 p-4">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm font-semibold text-heading">{copy.incomeSources}</p>
                 <Badge variant="default">{household.incomeSources?.length || 0}</Badge>
@@ -1105,7 +1106,7 @@ function HouseholdClassificationPanel({
               ) : (
                 <p className="mt-3 text-sm text-muted">{copy.noIncomeSources}</p>
               )}
-            </Card>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -1218,7 +1219,7 @@ function RankedBars({ title, items, loading, emptyLabel, linkType }) {
   const maxValue = Math.max(...items.map((item) => item.count || 0), 1);
 
   return (
-    <Card padding="sm">
+    <div className="rounded-xl bg-surface-alt/40 p-4">
       <h3 className="text-sm font-semibold text-heading">{title}</h3>
       {loading ? (
         <div className="mt-4 space-y-3">
@@ -1264,7 +1265,7 @@ function RankedBars({ title, items, loading, emptyLabel, linkType }) {
           })}
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 

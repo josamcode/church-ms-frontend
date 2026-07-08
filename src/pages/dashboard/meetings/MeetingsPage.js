@@ -8,7 +8,6 @@ import { meetingsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
@@ -208,11 +207,13 @@ export default function MeetingsPage() {
       />
 
       {canViewSectors && (
-        <Card>
-          <CardHeader
-            title={t('meetings.sections.sectors')}
-            subtitle={t('meetings.sections.sectorsSubtitle')}
-          />
+        <section className="space-y-3">
+          <div>
+            <h3 className="text-lg font-bold text-heading leading-tight">
+              {t('meetings.sections.sectors')}
+            </h3>
+            <p className="text-sm text-muted mt-0.5">{t('meetings.sections.sectorsSubtitle')}</p>
+          </div>
           <Table
             columns={sectorColumns}
             data={sectors}
@@ -220,15 +221,17 @@ export default function MeetingsPage() {
             emptyTitle={t('meetings.empty.sectorsTitle')}
             emptyDescription={t('meetings.empty.sectorsDescription')}
           />
-        </Card>
+        </section>
       )}
 
       {canViewMeetings ? (
-        <Card>
-          <CardHeader
-            title={t('meetings.sections.meetings')}
-            subtitle={t('meetings.sections.meetingsSubtitle')}
-          />
+        <section className="space-y-4">
+          <div>
+            <h3 className="text-lg font-bold text-heading leading-tight">
+              {t('meetings.sections.meetings')}
+            </h3>
+            <p className="text-sm text-muted mt-0.5">{t('meetings.sections.meetingsSubtitle')}</p>
+          </div>
           <div className="grid gap-3 rounded-lg border border-border bg-surface-alt/40 p-3 md:grid-cols-3">
             <Select
               label={t('meetings.filters.sector')}
@@ -253,16 +256,14 @@ export default function MeetingsPage() {
             />
           </div>
 
-          <div className="mt-4">
-            <Table
-              columns={meetingColumns}
-              data={meetings}
-              loading={meetingsQuery.isLoading}
-              emptyTitle={t('meetings.empty.meetingsTitle')}
-              emptyDescription={t('meetings.empty.meetingsDescription')}
-            />
-          </div>
-        </Card>
+          <Table
+            columns={meetingColumns}
+            data={meetings}
+            loading={meetingsQuery.isLoading}
+            emptyTitle={t('meetings.empty.meetingsTitle')}
+            emptyDescription={t('meetings.empty.meetingsDescription')}
+          />
+        </section>
       ) : (
         <EmptyState
           title={t('meetings.empty.noMeetingsPermissionTitle')}

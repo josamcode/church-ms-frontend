@@ -486,7 +486,7 @@ export default function UsersRequestsListPage() {
 
         <div className="p-4 sm:p-5">
           {isError ? (
-            <Card tone="muted">
+            <div className="rounded-xl bg-surface-alt/40 p-6">
               <EmptyState
                 icon={AlertTriangle}
                 title="تعذّر تحميل الطلبات"
@@ -502,7 +502,7 @@ export default function UsersRequestsListPage() {
                   </Button>
                 }
               />
-            </Card>
+            </div>
           ) : isInitialLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, index) => (
