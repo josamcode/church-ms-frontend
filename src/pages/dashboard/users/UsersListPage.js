@@ -2,8 +2,8 @@ import { useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Plus, Eye, Edit, Lock, Unlock, Trash2,
-  Users, UserCheck, Flame, LayoutGrid, TableProperties, SlidersHorizontal,
+  Plus, Eye, Edit, Lock, Unlock, Trash2, X,
+  Users, UserCheck, Flame, LayoutGrid, TableProperties, SlidersHorizontal, Phone,
 } from 'lucide-react';
 import { usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
@@ -16,10 +16,7 @@ import Select from '../../../components/ui/Select';
 import Pagination from '../../../components/ui/Pagination';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Modal from '../../../components/ui/Modal';
-import PageHeader from '../../../components/ui/PageHeader';
 import EmptyState from '../../../components/ui/EmptyState';
-import Card from '../../../components/ui/Card';
-import StatCard from '../../../components/ui/StatCard';
 import Badge from '../../../components/ui/Badge';
 import toast from 'react-hot-toast';
 import { AGE_GROUPS, formatAgeFromBirthDate, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
@@ -116,13 +113,25 @@ function getUserPhone(user) {
   return user.phonePrimary || user.phone || user.mobile || user.mobileNumber || '';
 }
 
-/** Thin overline section label — shared pattern across redesigned pages */
-function SectionLabel({ children }) {
+/** Compact inline KPI pill — lives in the header so it never eats the first mobile screen. */
+function StatPill({ icon: Icon, label, value, tone = 'default' }) {
+  const tones = {
+    default: 'bg-surface-alt/70 text-muted ring-border/60',
+    primary: 'bg-primary/10 text-primary ring-primary/15',
+    success: 'bg-success-light text-success ring-success/20',
+    danger: 'bg-danger-light text-danger ring-danger/20',
+    gold: 'bg-secondary/10 text-secondary ring-secondary/20',
+  };
+
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{children}</span>
-      <div className="h-px flex-1 bg-border/60" />
-    </div>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${tones[tone] || tones.default}`}
+      title={label}
+    >
+      {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
+      <span className="tabular-nums">{value}</span>
+      <span className="font-medium opacity-80">{label}</span>
+    </span>
   );
 }
 
@@ -182,12 +191,12 @@ function UserMemberCard({ user, actions, onOpen, emptyValue, t }) {
   return (
     <article
       dir="rtl"
-      className="group flex min-h-[84px] items-center gap-3 rounded-2xl border border-border/80 bg-surface px-3 py-2.5 shadow-card transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md"
+      className="group relative flex items-center gap-3 rounded-2xl border border-border/80 bg-surface p-3 shadow-card transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md"
     >
       <button
         type="button"
         onClick={onOpen}
-        className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 text-sm font-bold ring-2 ring-offset-2 ring-offset-surface transition-colors ${avatarClassName}`}
+        className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 text-sm font-bold ring-2 ring-offset-2 ring-offset-surface transition-colors ${avatarClassName}`}
         aria-label={user.fullName || emptyValue}
       >
         {user.avatar?.url ? (
@@ -210,27 +219,27 @@ function UserMemberCard({ user, actions, onOpen, emptyValue, t }) {
       <button
         type="button"
         onClick={onOpen}
-        className="min-w-0 flex-1 text-right"
+        className="min-w-0 flex-1 text-start"
       >
-        <p className="truncate text-sm font-bold leading-5 text-heading transition-colors group-hover:text-primary">
-          {user.fullName || emptyValue}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="truncate text-sm font-bold leading-5 text-heading transition-colors group-hover:text-primary">
+            {user.fullName || emptyValue}
+          </p>
+          <Badge variant={user.isLocked ? 'danger' : 'success'} size="sm" dot>
+            {user.isLocked ? t('common.status.locked') : t('common.status.active')}
+          </Badge>
+        </div>
         <p className="mt-0.5 truncate text-xs font-medium leading-4 text-muted">
           {user.familyName || emptyValue}
         </p>
-        <p dir="ltr" className="mt-0.5 truncate text-right text-[11px] font-medium leading-4 text-muted/90">
-          {phone || emptyValue}
-        </p>
+        <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium leading-4 text-muted/90">
+          <Phone className="h-3 w-3 shrink-0" aria-hidden="true" />
+          <span dir="ltr" className="truncate">{phone || emptyValue}</span>
+        </div>
       </button>
 
-      <div className="flex shrink-0 flex-col items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1.5">
         <AgeGroupBadge ageGroup={user.ageGroup} />
-        <Badge variant={user.isLocked ? 'danger' : 'success'} size="sm" dot>
-          {user.isLocked ? t('common.status.locked') : t('common.status.active')}
-        </Badge>
-      </div>
-
-      <div className="shrink-0">
         <RowActions actions={actions} />
       </div>
     </article>
@@ -251,7 +260,7 @@ function UsersCardsGrid({
 }) {
   if (!loading && users.length === 0) {
     return (
-      <div className="rounded-xl border border-border bg-surface shadow-card">
+      <div className="rounded-2xl border border-border bg-surface shadow-card">
         <EmptyState title={emptyTitle} description={emptyDescription} icon={emptyIcon} />
       </div>
     );
@@ -263,9 +272,9 @@ function UsersCardsGrid({
         ? Array.from({ length: skeletonRows }).map((_, index) => (
           <div
             key={index}
-            className="flex min-h-[84px] animate-pulse items-center gap-3 rounded-2xl border border-border/80 bg-surface px-3 py-2.5 shadow-card"
+            className="flex animate-pulse items-center gap-3 rounded-2xl border border-border/80 bg-surface p-3 shadow-card"
           >
-            <div className="h-12 w-12 shrink-0 rounded-full bg-surface-alt" />
+            <div className="h-12 w-12 shrink-0 rounded-2xl bg-surface-alt" />
             <div className="min-w-0 flex-1 space-y-2">
               <div className="h-4 w-2/3 rounded bg-surface-alt" />
               <div className="h-3 w-1/2 rounded bg-surface-alt" />
@@ -296,7 +305,7 @@ function UsersCardsGrid({
 export default function UsersListPage() {
   const visibleAccountStatus = 'approved';
   const { hasPermission } = useAuth();
-  const { t, isRTL } = useI18n();
+  const { t } = useI18n();
   const navigate = useNavigate();
 
   const [filters, setFilters] = useState({ fullName: '', ageGroup: '', gender: '', role: '' });
@@ -306,6 +315,7 @@ export default function UsersListPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [viewMode, setViewMode] = useState(getDefaultUsersViewMode);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const queryParams = {
     limit, sort: 'createdAt', order: 'desc',
@@ -410,6 +420,10 @@ export default function UsersListPage() {
       : []),
   ], [hasPermission, navigate, t]);
 
+  const activeFilterCount = useMemo(
+    () => [filters.ageGroup, filters.gender, filters.role].filter(Boolean).length,
+    [filters.ageGroup, filters.gender, filters.role],
+  );
   const hasActiveFilters = useMemo(() => Object.values(filters).some(Boolean), [filters]);
   const lockedCount = useMemo(() => users.filter((r) => r.isLocked).length, [users]);
   const activeCount = users.length - lockedCount;
@@ -425,6 +439,21 @@ export default function UsersListPage() {
     { value: 'male', label: getGenderLabel('male') },
     { value: 'female', label: getGenderLabel('female') },
   ];
+
+  /** Active secondary filters rendered as removable chips under the search bar. */
+  const activeFilterChips = useMemo(() => {
+    const chips = [];
+    if (filters.ageGroup) {
+      chips.push({ key: 'ageGroup', label: `${t('usersListPage.filters.ageGroup')}: ${filters.ageGroup}` });
+    }
+    if (filters.gender) {
+      chips.push({ key: 'gender', label: `${t('usersListPage.filters.gender')}: ${getGenderLabel(filters.gender)}` });
+    }
+    if (filters.role) {
+      chips.push({ key: 'role', label: `${t('usersListPage.filters.role')}: ${getRoleLabel(filters.role)}` });
+    }
+    return chips;
+  }, [filters.ageGroup, filters.gender, filters.role, t]);
 
   const columns = useMemo(() => [
     {
@@ -463,11 +492,6 @@ export default function UsersListPage() {
       onClick: (row) => navigate(`/dashboard/users/${row._id}`),
       cellClassName: 'cursor-pointer',
     },
-    // {
-    //   key: 'role',
-    //   label: t('usersListPage.columns.role'),
-    //   render: (row) => <Badge variant="primary">{getRoleLabel(row.role)}</Badge>,
-    // },
     {
       key: 'ageGroup',
       label: t('usersListPage.columns.ageGroup'),
@@ -509,120 +533,103 @@ export default function UsersListPage() {
 
   /* ── render ── */
   return (
-    <div className="animate-fade-in space-y-8 pb-10">
+    <div className="animate-fade-in space-y-5 pb-24 sm:space-y-6 sm:pb-10">
 
-      {/* ── Breadcrumbs ── */}
-      <Breadcrumbs
-        items={[
-          { label: t('shared.dashboard'), href: '/dashboard' },
-          { label: t('shared.users') },
-        ]}
-      />
+      {/* ══ HEADER — title, KPI pills, primary action (compact, first-screen) ═══ */}
+      <header className="space-y-3">
+        <Breadcrumbs
+          items={[
+            { label: t('shared.dashboard'), href: '/dashboard' },
+            { label: t('shared.users') },
+          ]}
+        />
 
-      {/* ══ PAGE HEADER ═══════════════════════════════════════════════════ */}
-      <PageHeader
-        className="border-b border-border pb-6"
-        title={t('shared.users')}
-        subtitle={t('usersListPage.hero.description')}
-        actions={
-          hasPermission('USERS_CREATE') ? (
-            <Link to="/dashboard/users/new">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-heading sm:text-3xl">
+              {t('shared.users')}
+            </h1>
+            <p className="mt-1 text-sm text-muted">{t('usersListPage.hero.description')}</p>
+          </div>
+
+          {hasPermission('USERS_CREATE') ? (
+            <Link to="/dashboard/users/new" className="hidden shrink-0 sm:block">
               <Button icon={Plus}>{t('usersListPage.actions.addUser')}</Button>
             </Link>
-          ) : null
-        }
-      />
-
-      {/* ══ KPI STRIP ═════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <StatCard
-          icon={Users}
-          label={t('usersListPage.stats.totalUsers')}
-          value={totalUsersCount}
-          tone="primary"
-          isRTL={isRTL}
-        />
-        <StatCard
-          icon={UserCheck}
-          label={t('usersListPage.stats.activeAccounts')}
-          value={activeCount}
-          tone="success"
-          isRTL={isRTL}
-        />
-        <StatCard
-          icon={Lock}
-          label={t('usersListPage.stats.lockedAccounts')}
-          value={lockedCount}
-          tone={lockedCount > 0 ? 'danger' : 'default'}
-          isRTL={isRTL}
-        />
-        <StatCard
-          icon={LayoutGrid}
-          label={t('usersListPage.stats.usersOnPage')}
-          value={users.length}
-          tone="gold"
-          isRTL={isRTL}
-        />
-      </div>
-
-      {/* ══ FILTERS ═══════════════════════════════════════════════════════ */}
-      <Card tone="muted" className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <SlidersHorizontal className="h-4 w-4" />
-            </span>
-            <span className="text-sm font-semibold text-heading">
-              {t('usersListPage.filters.title')}
-            </span>
-          </div>
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
-              {t('usersListPage.filters.clear')}
-            </Button>
-          )}
+          ) : null}
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {/* KPI pills — numbers without eating the first mobile screen */}
+        <div className="flex flex-wrap items-center gap-2">
+          <StatPill icon={Users} label={t('usersListPage.stats.totalUsers')} value={totalUsersCount} tone="primary" />
+          <StatPill icon={UserCheck} label={t('usersListPage.stats.activeAccounts')} value={activeCount} tone="success" />
+          <StatPill icon={Lock} label={t('usersListPage.stats.lockedAccounts')} value={lockedCount} tone={lockedCount > 0 ? 'danger' : 'default'} />
+          <StatPill icon={LayoutGrid} label={t('usersListPage.stats.usersOnPage')} value={users.length} tone="gold" />
+        </div>
+      </header>
+
+      {/* ══ CONTROL BAR — prominent search + compact filters + view toggle ════ */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
           <SearchInput
             value={filters.fullName}
             onChange={(v) => handleFilterChange('fullName', v)}
             placeholder={t('usersListPage.filters.searchByName')}
+            className="flex-1"
           />
-          <Select
-            options={AGE_GROUPS.map((g) => ({ value: g, label: g }))}
-            value={filters.ageGroup}
-            onChange={(e) => handleFilterChange('ageGroup', e.target.value)}
-            placeholder={t('usersListPage.filters.ageGroup')}
-            containerClassName="!mb-0"
-          />
-          <Select
-            options={genderOptions}
-            value={filters.gender}
-            onChange={(e) => handleFilterChange('gender', e.target.value)}
-            placeholder={t('usersListPage.filters.gender')}
-            containerClassName="!mb-0"
-          />
-          <Select
-            options={roleOptions}
-            value={filters.role}
-            onChange={(e) => handleFilterChange('role', e.target.value)}
-            placeholder={t('usersListPage.filters.role')}
-            containerClassName="!mb-0"
-          />
-        </div>
-      </Card>
 
-      {/* ══ TABLE ═════════════════════════════════════════════════════════ */}
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <SectionLabel>{t('usersListPage.table.title')}</SectionLabel>
-          <div className="flex items-center gap-3">
-            <Badge variant="secondary">
-              {t('usersListPage.table.results', { count: meta?.count ?? users.length })}
-            </Badge>
+          <Button
+            variant="outline"
+            icon={SlidersHorizontal}
+            onClick={() => setFiltersOpen(true)}
+            className="relative shrink-0"
+            aria-label={t('usersListPage.filters.title')}
+          >
+            <span className="hidden sm:inline">{t('usersListPage.filters.title')}</span>
+            {activeFilterCount > 0 ? (
+              <span className="ms-0.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-white">
+                {activeFilterCount}
+              </span>
+            ) : null}
+          </Button>
+
+          <div className="hidden sm:block">
             <ViewModeToggle value={viewMode} onChange={handleViewModeChange} t={t} />
           </div>
+        </div>
+
+        {/* Active filter chips — visible state without opening the panel */}
+        {activeFilterChips.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {activeFilterChips.map((chip) => (
+              <Badge
+                key={chip.key}
+                variant="primary"
+                removable
+                onRemove={() => handleFilterChange(chip.key, '')}
+              >
+                {chip.label}
+              </Badge>
+            ))}
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-muted transition-colors hover:text-danger"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+              {t('usersListPage.filters.clear')}
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      {/* ══ LIST ══════════════════════════════════════════════════════════════ */}
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-bold text-heading">{t('usersListPage.table.title')}</h2>
+          <Badge variant="secondary">
+            {t('usersListPage.table.results', { count: meta?.count ?? users.length })}
+          </Badge>
         </div>
 
         <div>
@@ -671,7 +678,67 @@ export default function UsersListPage() {
         </div>
       </section>
 
-      {/* ══ DELETE MODAL ══════════════════════════════════════════════════ */}
+      {/* ══ MOBILE STICKY "ADD USER" ══════════════════════════════════════════ */}
+      {hasPermission('USERS_CREATE') ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 shadow-lg backdrop-blur-sm sm:hidden">
+          <Link to="/dashboard/users/new" className="block">
+            <Button icon={Plus} fullWidth size="lg">{t('usersListPage.actions.addUser')}</Button>
+          </Link>
+        </div>
+      ) : null}
+
+      {/* ══ FILTERS MODAL — secondary filters behind a compact control ════════ */}
+      <Modal
+        isOpen={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        title={t('usersListPage.filters.title')}
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={clearFilters}>
+              {t('usersListPage.filters.clear')}
+            </Button>
+            <Button onClick={() => setFiltersOpen(false)}>
+              {t('common.actions.close')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Select
+            label={t('usersListPage.filters.ageGroup')}
+            options={AGE_GROUPS.map((g) => ({ value: g, label: g }))}
+            value={filters.ageGroup}
+            onChange={(e) => handleFilterChange('ageGroup', e.target.value)}
+            placeholder={t('usersListPage.filters.ageGroup')}
+            containerClassName="!mb-0"
+          />
+          <Select
+            label={t('usersListPage.filters.gender')}
+            options={genderOptions}
+            value={filters.gender}
+            onChange={(e) => handleFilterChange('gender', e.target.value)}
+            placeholder={t('usersListPage.filters.gender')}
+            containerClassName="!mb-0"
+          />
+          <Select
+            label={t('usersListPage.filters.role')}
+            options={roleOptions}
+            value={filters.role}
+            onChange={(e) => handleFilterChange('role', e.target.value)}
+            placeholder={t('usersListPage.filters.role')}
+            containerClassName="!mb-0"
+          />
+
+          {/* View mode toggle lives here too, so mobile users can switch layout */}
+          <div className="flex items-center justify-between border-t border-border pt-4 sm:hidden">
+            <span className="text-sm font-medium text-heading">{t('common.table.tableView')} / {t('common.table.cardsView')}</span>
+            <ViewModeToggle value={viewMode} onChange={handleViewModeChange} t={t} />
+          </div>
+        </div>
+      </Modal>
+
+      {/* ══ DELETE MODAL ══════════════════════════════════════════════════════ */}
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}

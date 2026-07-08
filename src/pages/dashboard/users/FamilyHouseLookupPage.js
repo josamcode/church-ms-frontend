@@ -11,6 +11,7 @@ import {
   Search,
   ShieldCheck,
   Users as UsersIcon,
+  X,
 } from 'lucide-react';
 import { aidsApi, householdClassificationsApi, usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
@@ -22,7 +23,6 @@ import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
-import Select from '../../../components/ui/Select';
 import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import FamilyHouseProfileInsights from '../../../components/users/FamilyHouseProfileInsights';
@@ -533,75 +533,123 @@ export default function FamilyHouseLookupPage() {
         }
       />
 
-      <Card tone="muted" className="space-y-4">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[200px_minmax(0,1fr)_auto]">
-          <Select
-            label={t('familyHouseLookup.filters.searchType')}
-            value={lookupType}
-            onChange={(event) => {
-              setLookupType(event.target.value);
-              setLookupName('');
-              setSubmittedLookupName('');
-              setLookupDropdownOpen(false);
-            }}
-            options={[
-              {
-                value: 'familyName',
-                label: t('familyHouseLookup.filters.familyName'),
-              },
-              {
-                value: 'houseName',
-                label: t('familyHouseLookup.filters.houseName'),
-              },
-            ]}
-            containerClassName="!mb-0"
-          />
+      <Card tone="primary" className="space-y-4 sm:space-y-5">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Search className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-base font-bold leading-tight text-heading">
+              {t('familyHouseLookup.title')}
+            </h2>
+            <p className="mt-0.5 text-sm text-muted">
+              {t('familyHouseLookup.subtitle')}
+            </p>
+          </div>
+        </div>
 
+        {/* Search-type segmented toggle — prominent, thumb-friendly on mobile */}
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted">
+            {t('familyHouseLookup.filters.searchType')}
+          </label>
+          <div
+            role="tablist"
+            className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-surface p-1"
+          >
+            {[
+              { value: 'familyName', label: t('familyHouseLookup.filters.familyName'), icon: UsersIcon },
+              { value: 'houseName', label: t('familyHouseLookup.filters.houseName'), icon: Building2 },
+            ].map((option) => {
+              const active = lookupType === option.value;
+              const OptionIcon = option.icon;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => {
+                    setLookupType(option.value);
+                    setLookupName('');
+                    setSubmittedLookupName('');
+                    setLookupDropdownOpen(false);
+                  }}
+                  className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all ${active
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-muted hover:bg-surface-alt hover:text-heading'
+                    }`}
+                >
+                  <OptionIcon className="h-4 w-4" />
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Primary action: the lookup search field with autocomplete */}
+        <div className="relative">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted">
+            {t('familyHouseLookup.filters.lookupName')}
+          </label>
           <div className="relative">
-            <label className="block text-sm font-medium text-base mb-1.5">
-              {t('familyHouseLookup.filters.lookupName')}
-            </label>
-            <div className="relative">
-              <Search
-                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted pointer-events-none ${isRTL ? 'right-3' : 'left-3'
+            <Search
+              className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted pointer-events-none ${isRTL ? 'right-3.5' : 'left-3.5'
+                }`}
+            />
+            <input
+              ref={lookupInputRef}
+              type="text"
+              value={lookupName}
+              onChange={(event) => {
+                setLookupName(event.target.value);
+                setLookupDropdownOpen(true);
+              }}
+              onFocus={() => setLookupDropdownOpen(true)}
+              onBlur={() => setTimeout(() => setLookupDropdownOpen(false), 150)}
+              placeholder={t(
+                isFamilyLookup
+                  ? 'familyHouseLookup.filters.familyNamePlaceholder'
+                  : 'familyHouseLookup.filters.houseNamePlaceholder'
+              )}
+              className={`input-base h-12 w-full text-base ${isRTL ? 'pr-11 pl-11' : 'pl-11 pr-11'}`}
+            />
+            {(lookupName || submittedLookupName) ? (
+              <button
+                type="button"
+                onClick={handleClear}
+                aria-label={t('familyHouseLookup.filters.clear')}
+                className={`absolute top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-alt hover:text-heading ${isRTL ? 'left-3' : 'right-3'
                   }`}
-              />
-              <input
-                ref={lookupInputRef}
-                type="text"
-                value={lookupName}
-                onChange={(event) => {
-                  setLookupName(event.target.value);
-                  setLookupDropdownOpen(true);
-                }}
-                onFocus={() => setLookupDropdownOpen(true)}
-                onBlur={() => setTimeout(() => setLookupDropdownOpen(false), 150)}
-                placeholder={t(
-                  isFamilyLookup
-                    ? 'familyHouseLookup.filters.familyNamePlaceholder'
-                    : 'familyHouseLookup.filters.houseNamePlaceholder'
-                )}
-                className={`input-base w-full ${isRTL ? 'pr-10' : 'pl-10'}`}
-              />
-            </div>
-            {lookupDropdownOpen && (
-              <ul
-                className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-md border border-border bg-surface shadow-lg py-1"
-                role="listbox"
               >
-                {lookupNamesLoading ? (
-                  <li className="px-3 py-2 text-sm text-muted">
-                    {t('familyHouseLookup.filters.loadingNames')}
-                  </li>
-                ) : filteredLookupNames.length === 0 ? (
-                  <li className="px-3 py-2 text-sm text-muted">{t('common.search.noResults')}</li>
-                ) : (
-                  filteredLookupNames.map((name) => (
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+          {lookupDropdownOpen && (
+            <ul
+              className="absolute z-20 mt-1.5 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface shadow-dropdown py-1"
+              role="listbox"
+            >
+              {lookupNamesLoading ? (
+                <li className="px-3.5 py-2.5 text-sm text-muted">
+                  {t('familyHouseLookup.filters.loadingNames')}
+                </li>
+              ) : filteredLookupNames.length === 0 ? (
+                <li className="px-3.5 py-2.5 text-sm text-muted">{t('common.search.noResults')}</li>
+              ) : (
+                filteredLookupNames.map((name) => {
+                  const selected = lookupName === name;
+                  return (
                     <li
                       key={name}
                       role="option"
-                      aria-selected={lookupName === name}
-                      className="px-3 py-2 text-sm cursor-pointer text-base hover:bg-surface-alt focus:bg-surface-alt"
+                      aria-selected={selected}
+                      className={`flex cursor-pointer items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors ${selected
+                        ? 'bg-primary/8 text-primary'
+                        : 'text-heading hover:bg-surface-alt'
+                        }`}
                       onMouseDown={(event) => {
                         event.preventDefault();
                         setLookupName(name);
@@ -609,21 +657,18 @@ export default function FamilyHouseLookupPage() {
                         setLookupDropdownOpen(false);
                       }}
                     >
-                      {name}
+                      {isFamilyLookup ? (
+                        <UsersIcon className="h-3.5 w-3.5 flex-shrink-0 text-muted" />
+                      ) : (
+                        <Building2 className="h-3.5 w-3.5 flex-shrink-0 text-muted" />
+                      )}
+                      <span className="truncate">{name}</span>
                     </li>
-                  ))
-                )}
-              </ul>
-            )}
-          </div>
-
-          <div className={`flex items-end gap-2 ${isRTL ? 'lg:justify-start' : 'lg:justify-end'}`}>
-            {(lookupName || submittedLookupName) && (
-              <Button variant="ghost" onClick={handleClear}>
-                {t('familyHouseLookup.filters.clear')}
-              </Button>
-            )}
-          </div>
+                  );
+                })
+              )}
+            </ul>
+          )}
         </div>
       </Card>
 
@@ -637,95 +682,121 @@ export default function FamilyHouseLookupPage() {
         </Card>
       ) : null}
 
-      <Card className="space-y-5">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-heading">
-            {t('familyHouseLookup.analytics.selectedTitle')}
-          </h2>
-          <Badge variant={isFamilyLookup ? 'primary' : 'secondary'}>
-            {t(
-              isFamilyLookup
-                ? 'familyHouseLookup.filters.familyName'
-                : 'familyHouseLookup.filters.houseName'
-            )}
-          </Badge>
-        </div>
-
-        {!normalizedSubmittedName ? (
+      {!normalizedSubmittedName ? (
+        <Card>
           <EmptyState
             icon={Search}
             title={t('familyHouseLookup.detailsPage.noSelectionTitle')}
             description={t('familyHouseLookup.detailsPage.noSelectionDescription')}
           />
-        ) : membersErrorMessage ? (
+        </Card>
+      ) : membersErrorMessage ? (
+        <Card>
           <EmptyState
             icon={UsersIcon}
             title={t('familyHouseLookup.empty.errorTitle')}
             description={membersErrorMessage}
           />
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatCard
-                icon={UsersIcon}
-                label={t('familyHouseLookup.summary.membersCount')}
-                value={members.length}
-                tone="primary"
-                isRTL={isRTL}
-              />
-              <StatCard
-                icon={LockKeyhole}
-                label={t('familyHouseLookup.summary.lockedCount')}
-                value={selectedLockedMembers}
-                tone={selectedLockedMembers > 0 ? 'danger' : 'success'}
-                isRTL={isRTL}
-              />
-              <StatCard
-                icon={Building2}
-                label={t('familyHouseLookup.summary.relatedOtherGroup', {
-                  group: t(
+        </Card>
+      ) : (
+        <Card className="space-y-5">
+          {/* Strong summary header: selected family/house name + type */}
+          <div className="flex items-start gap-3.5">
+            <span
+              className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${isFamilyLookup ? 'bg-primary/10 text-primary' : 'bg-secondary/12 text-secondary'
+                }`}
+            >
+              {isFamilyLookup ? (
+                <UsersIcon className="h-6 w-6" />
+              ) : (
+                <Building2 className="h-6 w-6" />
+              )}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={isFamilyLookup ? 'primary' : 'gold'} dot>
+                  {t(
                     isFamilyLookup
-                      ? 'familyHouseLookup.filters.houseName'
-                      : 'familyHouseLookup.filters.familyName'
-                  ),
-                })}
-                value={selectedRelatedRanks.length}
-                tone="gold"
-                isRTL={isRTL}
-              />
-              <StatCard
-                icon={ShieldCheck}
-                label={t('familyHouseLookup.analytics.coverage')}
-                value={`${selectedCoveragePct.toFixed(1)}%`}
-                tone="info"
-                isRTL={isRTL}
-              />
+                      ? 'familyHouseLookup.filters.familyName'
+                      : 'familyHouseLookup.filters.houseName'
+                  )}
+                </Badge>
+                {membersFetching ? (
+                  <span className="text-xs text-muted">
+                    {t('familyHouseLookup.filters.loadingNames')}
+                  </span>
+                ) : null}
+              </div>
+              <h2 className="mt-1.5 break-words text-2xl font-bold leading-tight tracking-tight text-heading">
+                {submittedLookupName}
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                {t('familyHouseLookup.table.results', { count: members.length })}
+              </p>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-              <RankedBars
-                title={t('familyHouseLookup.analytics.relatedDistribution')}
-                items={selectedRelatedRanks.slice(0, RANK_LIMIT)}
-                loading={membersLoading || membersFetching}
-                emptyLabel={t('familyHouseLookup.analytics.noRelatedGroups')}
-                linkType={relatedLookupType}
-              />
-              <RankedBars
-                title={t('familyHouseLookup.analytics.ageBreakdown')}
-                items={selectedAgeBreakdown}
-                loading={membersLoading || membersFetching}
-                emptyLabel={t('familyHouseLookup.analytics.noAgeData')}
-              />
-              <RankedBars
-                title={t('familyHouseLookup.analytics.genderBreakdown')}
-                items={selectedGenderBreakdown}
-                loading={membersLoading || membersFetching}
-                emptyLabel={t('familyHouseLookup.analytics.noGenderData')}
-              />
-            </div>
-          </>
-        )}
-      </Card>
+          {/* Key stats — scannable strip, 2-up on mobile / 4-up on desktop */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard
+              icon={UsersIcon}
+              label={t('familyHouseLookup.summary.membersCount')}
+              value={members.length}
+              tone="primary"
+              isRTL={isRTL}
+            />
+            <StatCard
+              icon={LockKeyhole}
+              label={t('familyHouseLookup.summary.lockedCount')}
+              value={selectedLockedMembers}
+              tone={selectedLockedMembers > 0 ? 'danger' : 'success'}
+              isRTL={isRTL}
+            />
+            <StatCard
+              icon={Building2}
+              label={t('familyHouseLookup.summary.relatedOtherGroup', {
+                group: t(
+                  isFamilyLookup
+                    ? 'familyHouseLookup.filters.houseName'
+                    : 'familyHouseLookup.filters.familyName'
+                ),
+              })}
+              value={selectedRelatedRanks.length}
+              tone="gold"
+              isRTL={isRTL}
+            />
+            <StatCard
+              icon={ShieldCheck}
+              label={t('familyHouseLookup.analytics.coverage')}
+              value={`${selectedCoveragePct.toFixed(1)}%`}
+              tone="info"
+              isRTL={isRTL}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <RankedBars
+              title={t('familyHouseLookup.analytics.relatedDistribution')}
+              items={selectedRelatedRanks.slice(0, RANK_LIMIT)}
+              loading={membersLoading || membersFetching}
+              emptyLabel={t('familyHouseLookup.analytics.noRelatedGroups')}
+              linkType={relatedLookupType}
+            />
+            <RankedBars
+              title={t('familyHouseLookup.analytics.ageBreakdown')}
+              items={selectedAgeBreakdown}
+              loading={membersLoading || membersFetching}
+              emptyLabel={t('familyHouseLookup.analytics.noAgeData')}
+            />
+            <RankedBars
+              title={t('familyHouseLookup.analytics.genderBreakdown')}
+              items={selectedGenderBreakdown}
+              loading={membersLoading || membersFetching}
+              emptyLabel={t('familyHouseLookup.analytics.noGenderData')}
+            />
+          </div>
+        </Card>
+      )}
 
       {normalizedSubmittedName && canViewHouseholdClassification && isFamilyLookup ? (
         <FamilyClassificationHint
@@ -769,12 +840,17 @@ export default function FamilyHouseLookupPage() {
       <Card padding={false} className="overflow-hidden">
         <div className="border-b border-border px-5 py-4 sm:px-6">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-heading">
-              {t('familyHouseLookup.table.title')}
-            </h2>
-            <span className="text-sm text-muted">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <UsersIcon className="h-[18px] w-[18px]" />
+              </span>
+              <h2 className="text-lg font-bold leading-tight text-heading">
+                {t('familyHouseLookup.table.title')}
+              </h2>
+            </div>
+            <Badge variant="primary">
               {t('familyHouseLookup.table.results', { count: members.length })}
-            </span>
+            </Badge>
           </div>
         </div>
 
@@ -792,6 +868,7 @@ export default function FamilyHouseLookupPage() {
               columns={columns}
               data={sortedMembers}
               loading={membersLoading || membersFetching}
+              renderMode="auto"
               emptyTitle={t(
                 normalizedSubmittedName
                   ? 'familyHouseLookup.empty.resultsTitle'

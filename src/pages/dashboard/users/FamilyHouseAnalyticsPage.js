@@ -241,27 +241,26 @@ export default function FamilyHouseAnalyticsPage() {
     [summary, totalMembers, registrationSeries, registrationTrend, tr]
   );
 
+  // Rank badge folded into the name cell so the family/house NAME is the primary
+  // (first non-action) column — on mobile the Table renders that as the card
+  // header, keeping the ranked list scannable instead of leading with a number.
   const familyRankColumns = useMemo(
     () => [
       {
-        key: 'rank',
-        label: '#',
-        render: (_row, index) => (
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-surface-alt text-xs font-semibold text-muted">
-            {index + 1}
-          </span>
-        ),
-      },
-      {
         key: 'name',
         label: tr('familyHouseAnalytics.table.family'),
-        render: (row) => (
-          <Link
-            to={`${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery('familyName', row.name)}`}
-            className="font-semibold text-heading hover:text-primary"
-          >
-            {row.name}
-          </Link>
+        render: (row, index) => (
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-surface-alt text-xs font-semibold text-muted tabular-nums">
+              {formatNumber(index + 1)}
+            </span>
+            <Link
+              to={`${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery('familyName', row.name)}`}
+              className="truncate font-semibold text-heading hover:text-primary"
+            >
+              {row.name}
+            </Link>
+          </div>
         ),
       },
       {
@@ -286,24 +285,20 @@ export default function FamilyHouseAnalyticsPage() {
   const houseRankColumns = useMemo(
     () => [
       {
-        key: 'rank',
-        label: '#',
-        render: (_row, index) => (
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-surface-alt text-xs font-semibold text-muted">
-            {index + 1}
-          </span>
-        ),
-      },
-      {
         key: 'name',
         label: tr('familyHouseAnalytics.table.house'),
-        render: (row) => (
-          <Link
-            to={`${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery('houseName', row.name)}`}
-            className="font-semibold text-heading hover:text-primary"
-          >
-            {row.name}
-          </Link>
+        render: (row, index) => (
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-surface-alt text-xs font-semibold text-muted tabular-nums">
+              {formatNumber(index + 1)}
+            </span>
+            <Link
+              to={`${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery('houseName', row.name)}`}
+              className="truncate font-semibold text-heading hover:text-primary"
+            >
+              {row.name}
+            </Link>
+          </div>
         ),
       },
       {
@@ -392,7 +387,7 @@ export default function FamilyHouseAnalyticsPage() {
                 spark={item.spark}
                 trend={item.trend}
                 trendLabel={
-                  typeof item.trend === 'number' ? `${Math.abs(item.trend)}%` : undefined
+                  typeof item.trend === 'number' ? `${formatNumber(Math.abs(item.trend))}%` : undefined
                 }
                 isRTL={isRTL}
               />
@@ -627,9 +622,20 @@ function RegistrationTrendCard({ items, series, latest, trend, totalLabel, empty
     ? `${line} L ${points[points.length - 1].x.toFixed(1)} ${baseY} L ${points[0].x.toFixed(1)} ${baseY} Z`
     : '';
 
+  // Only the first & last points get a marker. With preserveAspectRatio="none"
+  // the viewBox stretches horizontally, so dense mid-dots smear into ovals on a
+  // narrow screen — endpoints keep the "current value" legible and clean.
+  const markerPoints = points.length > 1 ? [points[0], points[points.length - 1]] : points;
+
+  // Thin the x-axis labels so 12 months never crush together on a 375px screen:
+  // always show first & last, then step through the rest. Full month stays in
+  // the title attribute for tap/hover.
+  const labelStep = points.length > 7 ? Math.ceil(points.length / 6) : 1;
+  const peak = points.reduce((best, p) => (p.count > best.count ? p : best), points[0]);
+
   return (
-    <div className="space-y-5">
-      {/* value readout */}
+    <div className="space-y-4">
+      {/* value readout — latest month + peak for quick context */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{totalLabel}</p>
@@ -638,16 +644,21 @@ function RegistrationTrendCard({ items, series, latest, trend, totalLabel, empty
           </p>
         </div>
         {typeof trend === 'number' && TrendIcon ? (
-          <span className={`inline-flex items-center gap-1 text-sm font-semibold ${trendColor}`}>
+          <span className={`inline-flex items-center gap-1 rounded-full bg-surface-alt px-2.5 py-1 text-sm font-semibold ${trendColor}`}>
             <TrendIcon className="h-4 w-4" />
-            {Math.abs(trend)}%
+            {formatNumber(Math.abs(trend))}%
           </span>
         ) : null}
       </div>
 
       {/* area/line chart */}
       <div className="rounded-xl border border-border bg-surface-alt/30 p-3">
-        <svg viewBox={`0 0 ${width} ${height}`} className="h-44 w-full" preserveAspectRatio="none">
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="h-40 w-full sm:h-44"
+          preserveAspectRatio="none"
+          role="img"
+        >
           <defs>
             <linearGradient id="familyTrendArea" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.22" />
@@ -679,32 +690,43 @@ function RegistrationTrendCard({ items, series, latest, trend, totalLabel, empty
             strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
           />
-          {points.map((p) => (
+          {markerPoints.map((p) => (
             <circle
               key={`${p.label}-dot`}
               cx={p.x}
               cy={p.y}
-              r="3.5"
+              r="4"
               fill="var(--color-surface)"
               stroke="var(--color-primary)"
-              strokeWidth="2"
+              strokeWidth="2.5"
               vectorEffect="non-scaling-stroke"
             />
           ))}
         </svg>
-        {/* month labels + inline sparkline echo for continuity with KPI band */}
-        <div className="mt-2 flex items-center justify-between gap-1">
-          {points.map((p) => (
-            <span
-              key={`${p.label}-lbl`}
-              className="flex-1 truncate text-center text-[10px] font-medium text-muted"
-              title={`${p.label}: ${formatNumber(p.count)}`}
-            >
-              {p.label.length > 5 ? p.label.slice(5) : p.label}
-            </span>
-          ))}
+        {/* thinned month labels — legible on narrow screens, full value in title */}
+        <div className="mt-2 flex items-stretch justify-between gap-1">
+          {points.map((p, index) => {
+            const show = index === 0 || index === points.length - 1 || index % labelStep === 0;
+            return (
+              <span
+                key={`${p.label}-lbl`}
+                className="flex-1 truncate text-center text-[10px] font-medium text-muted"
+                title={`${p.label}: ${formatNumber(p.count)}`}
+              >
+                {show ? (p.label.length > 5 ? p.label.slice(5) : p.label) : ' '}
+              </span>
+            );
+          })}
         </div>
       </div>
+
+      {/* peak-month readout keeps a second insight on-screen without a wide chart */}
+      {points.length > 1 ? (
+        <div className="flex items-center justify-between rounded-lg bg-surface-alt/40 px-3 py-2 text-xs">
+          <span className="text-muted">{peak.label}</span>
+          <span className="font-bold tabular-nums text-primary">{formatNumber(peak.count)}</span>
+        </div>
+      ) : null}
 
       {series.length > 1 ? (
         <div className="-mb-1">
@@ -750,6 +772,7 @@ function CoveragePanel({ rows, total }) {
 function BarBreakdown({ title, items = [], maxItems = 8 }) {
   const rows = toRows(items, maxItems);
   const maxValue = Math.max(...rows.map((item) => item.count || 0), 1);
+  const total = rows.reduce((sum, item) => sum + Number(item.count || 0), 0);
 
   return (
     <div className="space-y-4">
@@ -757,19 +780,21 @@ function BarBreakdown({ title, items = [], maxItems = 8 }) {
       {!rows.length ? (
         <EmptyState compact icon={BarChart3} title="---" className="!py-8" />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3.5">
           {rows.map((item, index) => {
             const pct = Math.max((item.count / maxValue) * 100, 2);
+            const share = getPercent(item.count, total);
             const color = BAR_TRACKS[index % BAR_TRACKS.length];
             return (
               <div key={`${item.name}-${index}`}>
                 <div className="mb-1.5 flex items-center justify-between gap-3">
-                  <span className="truncate text-xs font-medium text-heading">{item.name}</span>
-                  <span className="text-xs font-bold tabular-nums text-primary">
-                    {formatNumber(item.count)}
+                  <span className="min-w-0 truncate text-xs font-medium text-heading">{item.name}</span>
+                  <span className="flex flex-shrink-0 items-baseline gap-1.5 tabular-nums">
+                    <span className="text-xs font-bold text-primary">{formatNumber(item.count)}</span>
+                    <span className="text-[10px] font-medium text-muted">{formatPercent(share)}</span>
                   </span>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-surface-alt">
+                <div className="h-2 overflow-hidden rounded-full bg-surface-alt">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${color}`}
                     style={{ width: `${pct}%` }}

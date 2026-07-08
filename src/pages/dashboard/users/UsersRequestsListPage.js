@@ -1,7 +1,24 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, CheckCheck, Eye, FileClock, ListFilter, Pencil, SlidersHorizontal, Users as UsersIcon, XCircle } from 'lucide-react';
+import {
+  AlertTriangle,
+  CalendarClock,
+  CheckCheck,
+  CheckCircle2,
+  Eye,
+  FileClock,
+  Home,
+  Inbox,
+  ListFilter,
+  Pencil,
+  Phone,
+  RotateCcw,
+  SlidersHorizontal,
+  Sparkles,
+  Users as UsersIcon,
+  XCircle,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { usersApi } from '../../../api/endpoints';
@@ -11,15 +28,21 @@ import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
+import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import Pagination from '../../../components/ui/Pagination';
 import SearchInput from '../../../components/ui/SearchInput';
 import Section from '../../../components/ui/Section';
 import Select from '../../../components/ui/Select';
+import Skeleton from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
-import Table, { RowActions } from '../../../components/ui/Table';
+import { RowActions } from '../../../components/ui/Table';
 import { useI18n } from '../../../i18n/i18n';
-import { formatDate, getAccountStatusLabel } from '../../../utils/formatters';
+import {
+  formatAgeFromBirthDate,
+  formatDate,
+  getAccountStatusLabel,
+} from '../../../utils/formatters';
 
 const ACCOUNT_STATUS_VARIANT = {
   approved: 'success',
@@ -27,11 +50,170 @@ const ACCOUNT_STATUS_VARIANT = {
   pending: 'warning',
 };
 
+// Presentation-only urgency ranking so pending requests always float to the top.
+const STATUS_ORDER = { pending: 0, rejected: 1, approved: 2 };
+
 function StatusPill({ value }) {
   return (
     <Badge variant={ACCOUNT_STATUS_VARIANT[value] || 'warning'} dot>
       {getAccountStatusLabel(value)}
     </Badge>
+  );
+}
+
+// One compact attribute chip inside a request card (icon + value).
+function AttributeChip({ icon: Icon, value, ltr = false }) {
+  if (!value || value === '---') return null;
+  return (
+    <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-border/70 bg-surface-alt/50 px-2.5 py-1 text-xs text-heading/80">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-muted" />
+      <span className={`truncate ${ltr ? 'direction-ltr' : ''}`}>{value}</span>
+    </span>
+  );
+}
+
+function RequestCard({
+  row,
+  canReview,
+  busy,
+  actionsLocked,
+  onApprove,
+  onReject,
+  rowActions,
+}) {
+  const status = row.accountStatus || 'pending';
+  const initial = String(row.fullName || 'U').trim().charAt(0).toUpperCase();
+  const isPending = status === 'pending';
+  const age = formatAgeFromBirthDate(row.birthDate);
+
+  const avatarTone =
+    status === 'approved'
+      ? 'bg-success/12 text-success'
+      : status === 'rejected'
+        ? 'bg-danger/12 text-danger'
+        : 'bg-warning/12 text-warning';
+
+  return (
+    <article
+      className={`group relative overflow-hidden rounded-2xl border bg-surface shadow-card transition-all hover:shadow-md ${
+        isPending ? 'border-warning/25' : 'border-border'
+      }`}
+    >
+      {/* Urgency rail — highlights pending items at a glance (RTL-safe: logical inline-start). */}
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute inset-y-0 start-0 w-1 ${
+          isPending ? 'bg-warning/70' : 'bg-transparent'
+        }`}
+      />
+
+      <div className="flex items-start gap-3 p-4">
+        {/* Identity */}
+        {row.avatar?.url ? (
+          <img
+            src={row.avatar.url}
+            alt=""
+            className="h-11 w-11 shrink-0 rounded-full border border-border object-cover"
+          />
+        ) : (
+          <div
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold ${avatarTone}`}
+          >
+            {initial}
+          </div>
+        )}
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <Link
+                to={`/dashboard/users/${row._id}`}
+                className="block truncate font-semibold text-heading transition-colors hover:text-primary"
+              >
+                {row.fullName || '---'}
+              </Link>
+              <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
+                <CalendarClock className="h-3.5 w-3.5" />
+                <span>{formatDate(row.createdAt)}</span>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <StatusPill value={status} />
+              {rowActions}
+            </div>
+          </div>
+
+          {/* Key attributes */}
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <AttributeChip icon={UsersIcon} value={row.familyName} />
+            <AttributeChip icon={Home} value={row.houseName} />
+            <AttributeChip icon={Sparkles} value={row.ageGroup} />
+            {age && age !== '---' ? (
+              <AttributeChip icon={CalendarClock} value={`${age} سنة`} />
+            ) : null}
+            <AttributeChip
+              icon={Phone}
+              value={row.phonePrimary || row.email}
+              ltr={Boolean(row.phonePrimary)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Inline decision actions — a single status always leaves at least one action available. */}
+      {canReview ? (
+        <div className="flex items-center gap-2 border-t border-border/70 bg-surface-alt/25 px-4 py-3">
+          {status !== 'approved' ? (
+            <Button
+              size="sm"
+              variant="success"
+              icon={CheckCircle2}
+              loading={busy}
+              disabled={actionsLocked}
+              fullWidth
+              onClick={() => onApprove(row._id)}
+            >
+              اعتماد
+            </Button>
+          ) : null}
+          {status !== 'rejected' ? (
+            <Button
+              size="sm"
+              variant="outline"
+              icon={XCircle}
+              disabled={actionsLocked}
+              fullWidth
+              onClick={() => onReject(row._id)}
+            >
+              رفض
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function RequestCardSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
+      <div className="flex items-start gap-3 p-4">
+        <Skeleton variant="circle" className="h-11 w-11" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-2/5" />
+          <Skeleton className="h-3 w-1/4" />
+          <div className="mt-3 flex gap-1.5">
+            <Skeleton className="h-6 w-20 rounded-lg" />
+            <Skeleton className="h-6 w-24 rounded-lg" />
+            <Skeleton className="h-6 w-16 rounded-lg" />
+          </div>
+        </div>
+      </div>
+      <div className="flex gap-2 border-t border-border/70 px-4 py-3">
+        <Skeleton className="h-8 flex-1 rounded-lg" />
+        <Skeleton className="h-8 flex-1 rounded-lg" />
+      </div>
+    </div>
   );
 }
 
@@ -43,6 +225,7 @@ export default function UsersRequestsListPage() {
   const [filters, setFilters] = useState({ fullName: '', accountStatus: 'pending' });
   const [cursor, setCursor] = useState(null);
   const [cursorStack, setCursorStack] = useState([null]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const queryParams = {
     limit: 10,
@@ -85,7 +268,22 @@ export default function UsersRequestsListPage() {
     () => rows.filter((row) => (row.accountStatus || 'pending') === 'pending').length,
     [rows]
   );
+
+  // Presentation-only: surface most-urgent (pending) requests first without mutating source order.
+  const sortedRows = useMemo(() => {
+    return [...rows]
+      .map((row, index) => ({ row, index }))
+      .sort((a, b) => {
+        const sa = STATUS_ORDER[a.row.accountStatus || 'pending'] ?? 0;
+        const sb = STATUS_ORDER[b.row.accountStatus || 'pending'] ?? 0;
+        if (sa !== sb) return sa - sb;
+        return a.index - b.index;
+      })
+      .map((entry) => entry.row);
+  }, [rows]);
+
   const mutatingId = actionMutation.isLoading ? actionMutation.variables?.id : null;
+  const hasActiveFilters = Boolean(filters.fullName) || filters.accountStatus !== 'pending';
 
   const approve = useCallback(
     (id) => actionMutation.mutate({ id, accountStatus: 'approved' }),
@@ -96,116 +294,65 @@ export default function UsersRequestsListPage() {
     [actionMutation]
   );
 
-  const columns = useMemo(
-    () => [
-      {
-        key: 'fullName',
-        label: 'الطلب',
-        render: (row) => {
-          const status = row.accountStatus || 'pending';
-          const initial = String(row.fullName || 'U').trim().charAt(0).toUpperCase();
-          return (
-            <div className="flex items-center gap-3">
-              {row.avatar?.url ? (
-                <img
-                  src={row.avatar.url}
-                  alt=""
-                  className="h-9 w-9 rounded-full border border-border object-cover"
-                />
-              ) : (
-                <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                    status === 'pending'
-                      ? 'bg-warning/12 text-warning'
-                      : status === 'approved'
-                        ? 'bg-success/12 text-success'
-                        : 'bg-danger/12 text-danger'
-                  }`}
-                >
-                  {initial}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="truncate font-medium text-heading">{row.fullName || '---'}</p>
-                <p className="truncate text-xs text-muted direction-ltr text-left">{row.phonePrimary || row.email || '---'}</p>
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        key: 'createdAt',
-        label: 'تاريخ الإرسال',
-        render: (row) => formatDate(row.createdAt),
-      },
-      {
-        key: 'accountStatus',
-        label: 'الحالة',
-        render: (row) => <StatusPill value={row.accountStatus || 'pending'} />,
-      },
-      {
-        key: 'review',
-        label: 'المراجعة',
-        render: (row) => {
-          if (!canReview) return <span className="text-xs text-muted">---</span>;
-          const status = row.accountStatus || 'pending';
-          const busy = mutatingId === row._id;
-          return (
-            <div className="flex items-center gap-2">
-              {status !== 'approved' ? (
-                <Button
-                  size="sm"
-                  variant="success"
-                  icon={CheckCircle2}
-                  loading={busy}
-                  disabled={actionMutation.isLoading}
-                  onClick={() => approve(row._id)}
-                >
-                  اعتماد
-                </Button>
-              ) : null}
-              {status !== 'rejected' ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  icon={XCircle}
-                  disabled={actionMutation.isLoading}
-                  onClick={() => reject(row._id)}
-                >
-                  رفض
-                </Button>
-              ) : null}
-            </div>
-          );
-        },
-      },
-      {
-        key: 'actions',
-        label: '',
-        cellClassName: 'w-10',
-        render: (row) => (
-          <RowActions
-            actions={[
-              { label: t('common.actions.view'), icon: Eye, onClick: () => navigate(`/dashboard/users/${row._id}`) },
-              ...(hasPermission('USERS_UPDATE')
-                ? [{ label: t('common.actions.edit'), icon: Pencil, onClick: () => navigate(`/dashboard/users/${row._id}/edit`) }]
-                : []),
-              ...(hasPermission('USERS_UPDATE') && row.accountStatus !== 'approved'
-                ? [{ label: 'اعتماد', icon: CheckCircle2, onClick: () => actionMutation.mutate({ id: row._id, accountStatus: 'approved' }) }]
-                : []),
-              ...(hasPermission('USERS_UPDATE') && row.accountStatus !== 'rejected'
-                ? [{ label: 'رفض', icon: XCircle, danger: true, onClick: () => actionMutation.mutate({ id: row._id, accountStatus: 'rejected' }) }]
-                : []),
-            ]}
-          />
-        ),
-      },
-    ],
-    [actionMutation, approve, canReview, hasPermission, mutatingId, navigate, reject, t]
+  const resetPaging = useCallback(() => {
+    setCursor(null);
+    setCursorStack([null]);
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setFilters({ fullName: '', accountStatus: 'pending' });
+    resetPaging();
+  }, [resetPaging]);
+
+  const buildRowActions = useCallback(
+    (row) => (
+      <RowActions
+        actions={[
+          {
+            label: t('common.actions.view'),
+            icon: Eye,
+            onClick: () => navigate(`/dashboard/users/${row._id}`),
+          },
+          ...(hasPermission('USERS_UPDATE')
+            ? [
+                {
+                  label: t('common.actions.edit'),
+                  icon: Pencil,
+                  onClick: () => navigate(`/dashboard/users/${row._id}/edit`),
+                },
+              ]
+            : []),
+          ...(hasPermission('USERS_UPDATE') && row.accountStatus !== 'approved'
+            ? [
+                {
+                  label: 'اعتماد',
+                  icon: CheckCircle2,
+                  onClick: () => actionMutation.mutate({ id: row._id, accountStatus: 'approved' }),
+                },
+              ]
+            : []),
+          ...(hasPermission('USERS_UPDATE') && row.accountStatus !== 'rejected'
+            ? [
+                {
+                  label: 'رفض',
+                  icon: XCircle,
+                  danger: true,
+                  onClick: () => actionMutation.mutate({ id: row._id, accountStatus: 'rejected' }),
+                },
+              ]
+            : []),
+        ]}
+      />
+    ),
+    [actionMutation, hasPermission, navigate, t]
   );
 
+  const isInitialLoading = requestsQuery.isLoading;
+  const isError = requestsQuery.isError && !requestsQuery.isLoading;
+  const isEmpty = !isInitialLoading && !isError && sortedRows.length === 0;
+
   return (
-    <div className="animate-fade-in space-y-8 pb-10">
+    <div className="animate-fade-in space-y-6 pb-10">
       <Breadcrumbs
         items={[
           { label: t('shared.dashboard'), href: '/dashboard' },
@@ -214,17 +361,49 @@ export default function UsersRequestsListPage() {
         ]}
       />
 
-      <PageHeader
-        className="border-b border-border pb-6"
-        title="طلبات المستخدمين"
-        subtitle="راجع طلبات التسجيل الجديدة، ثم افتح الطلب للتعديل أو اعتمده أو ارفضه مباشرة."
-        actions={
-          <Link to="/dashboard/users">
-            <Button variant="outline">العودة إلى المستخدمين</Button>
-          </Link>
-        }
-      />
+      {/* ── Hero: this IS an actionable inbox ───────────────────────────── */}
+      <Card
+        padding={false}
+        className="relative overflow-hidden border-warning/20 bg-gradient-to-bl from-warning/[0.06] via-surface to-surface"
+      >
+        <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex items-start gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-warning/12 text-warning shadow-sm">
+              <Inbox className="h-7 w-7" />
+            </span>
+            <div className="min-w-0">
+              <PageHeader
+                contentOnly
+                eyebrow="مركز المراجعة"
+                title="طلبات المستخدمين"
+                subtitle="راجع طلبات التسجيل الجديدة، ثم اعتمدها أو ارفضها مباشرة."
+                titleClassName="!text-2xl sm:!text-3xl"
+              />
+            </div>
+          </div>
 
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 rounded-2xl border border-warning/20 bg-surface/80 px-4 py-3 shadow-sm">
+              <div className="text-end">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
+                  قيد المراجعة
+                </p>
+                <p className="text-3xl font-bold leading-none tracking-tight text-warning">
+                  {pendingCount}
+                </p>
+              </div>
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/12 text-warning">
+                <FileClock className="h-5 w-5" />
+              </span>
+            </div>
+            <Link to="/dashboard/users" className="hidden sm:block">
+              <Button variant="outline">العودة إلى المستخدمين</Button>
+            </Link>
+          </div>
+        </div>
+      </Card>
+
+      {/* ── Compact stat strip (kept, condensed on mobile) ──────────────── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard
           icon={FileClock}
@@ -242,6 +421,7 @@ export default function UsersRequestsListPage() {
           isRTL={isRTL}
         />
         <StatCard
+          className="col-span-2 sm:col-span-1"
           icon={ListFilter}
           label="الفلاتر الحالية"
           value={filters.accountStatus ? getAccountStatusLabel(filters.accountStatus) : 'كل الحالات'}
@@ -250,30 +430,36 @@ export default function UsersRequestsListPage() {
         />
       </div>
 
+      {/* ── Filters: compact toggle on mobile, inline on desktop ────────── */}
       <Section
-        title="كيف تريد فلترة الطلبات؟"
+        title="فلترة الطلبات"
         icon={SlidersHorizontal}
         actions={
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setFilters({ fullName: '', accountStatus: 'pending' });
-              setCursor(null);
-              setCursorStack([null]);
-            }}
-          >
-            إعادة التعيين
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={SlidersHorizontal}
+              className="sm:hidden"
+              onClick={() => setFiltersOpen((open) => !open)}
+            >
+              {filtersOpen ? 'إخفاء' : 'الفلاتر'}
+            </Button>
+            {hasActiveFilters ? (
+              <Button variant="ghost" size="sm" icon={RotateCcw} onClick={resetFilters}>
+                إعادة التعيين
+              </Button>
+            ) : null}
+          </div>
         }
+        bodyClassName={filtersOpen ? '' : 'hidden sm:block'}
       >
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <SearchInput
             value={filters.fullName}
             onChange={(value) => {
               setFilters((prev) => ({ ...prev, fullName: value }));
-              setCursor(null);
-              setCursorStack([null]);
+              resetPaging();
             }}
             placeholder="ابحث بالاسم"
           />
@@ -286,8 +472,7 @@ export default function UsersRequestsListPage() {
             value={filters.accountStatus}
             onChange={(event) => {
               setFilters((prev) => ({ ...prev, accountStatus: event.target.value }));
-              setCursor(null);
-              setCursorStack([null]);
+              resetPaging();
             }}
             placeholder="اختر الحالة"
             containerClassName="!mb-0"
@@ -295,12 +480,13 @@ export default function UsersRequestsListPage() {
         </div>
       </Section>
 
+      {/* ── The inbox ───────────────────────────────────────────────────── */}
       <Card padding={false} className="overflow-hidden">
         <div className="px-5 pt-5 sm:px-6">
           <CardHeader
             icon={FileClock}
-            title="ما الطلبات التي تحتاج إلى مراجعة الآن؟"
-            subtitle="يمكنك الاعتماد أو الرفض مباشرة من القائمة"
+            title="الطلبات التي تحتاج إلى مراجعة"
+            subtitle="يمكنك الاعتماد أو الرفض مباشرة من كل طلب"
             className="mb-0"
             action={
               pendingCount > 0 ? (
@@ -317,15 +503,66 @@ export default function UsersRequestsListPage() {
           />
         </div>
 
-        <div className="p-2 sm:p-3">
-          <Table
-            columns={columns}
-            data={rows}
-            loading={requestsQuery.isLoading}
-            emptyTitle="لا توجد طلبات حالياً"
-            emptyDescription="جرّب تغيير الفلاتر أو انتظر حتى تصل طلبات تسجيل جديدة."
-            emptyIcon={FileClock}
-          />
+        <div className="p-4 sm:p-5">
+          {isError ? (
+            <div className="rounded-2xl border border-danger/20 bg-danger-light/50">
+              <EmptyState
+                icon={AlertTriangle}
+                title="تعذّر تحميل الطلبات"
+                description={normalizeApiError(requestsQuery.error).message}
+                action={
+                  <Button
+                    variant="outline"
+                    icon={RotateCcw}
+                    onClick={() => requestsQuery.refetch()}
+                    loading={requestsQuery.isFetching}
+                  >
+                    إعادة المحاولة
+                  </Button>
+                }
+              />
+            </div>
+          ) : isInitialLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <RequestCardSkeleton key={index} />
+              ))}
+            </div>
+          ) : isEmpty ? (
+            <EmptyState
+              icon={CheckCheck}
+              title={
+                hasActiveFilters ? 'لا توجد طلبات مطابقة' : 'تمت مراجعة كل الطلبات'
+              }
+              description={
+                hasActiveFilters
+                  ? 'جرّب تغيير الفلاتر لعرض طلبات أخرى.'
+                  : 'رائع! لا توجد طلبات بانتظار المراجعة الآن.'
+              }
+              action={
+                hasActiveFilters ? (
+                  <Button variant="outline" icon={RotateCcw} onClick={resetFilters}>
+                    إعادة التعيين
+                  </Button>
+                ) : null
+              }
+            />
+          ) : (
+            <div className="space-y-3">
+              {sortedRows.map((row) => (
+                <RequestCard
+                  key={row._id}
+                  row={row}
+                  canReview={canReview}
+                  busy={mutatingId === row._id}
+                  actionsLocked={actionMutation.isLoading}
+                  onApprove={approve}
+                  onReject={reject}
+                  rowActions={buildRowActions(row)}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="border-t border-border px-4 pb-4 pt-3">
