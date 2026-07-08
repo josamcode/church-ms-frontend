@@ -99,6 +99,12 @@ export default function ChatsPage() {
   const currentUserId = user?._id || user?.id || null;
 
   const [selectedChatId, setSelectedChatId] = useState(null);
+  const [isDesktopChatLayout, setIsDesktopChatLayout] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(min-width: 1024px)').matches
+  );
   const [threadFilter, setThreadFilter] = useState('');
   const [composerText, setComposerText] = useState('');
   const [typingUsersByThread, setTypingUsersByThread] = useState({});
@@ -525,11 +531,26 @@ export default function ChatsPage() {
     });
   }, [chats, threadFilter]);
 
+  // Track desktop (two-pane) vs mobile (single-pane): only auto-open the first
+  // thread on desktop, so on mobile the back button can return to the list.
   useEffect(() => {
-    if (!selectedChatId && chats.length > 0 && !requestedChatId) {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    const handleChange = (event) => setIsDesktopChatLayout(event.matches);
+    setIsDesktopChatLayout(mediaQuery.matches);
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (isDesktopChatLayout && !selectedChatId && chats.length > 0 && !requestedChatId) {
       setSelectedChatId(chats[0].id);
     }
-  }, [chats, requestedChatId, selectedChatId]);
+  }, [chats, requestedChatId, selectedChatId, isDesktopChatLayout]);
 
   useEffect(() => {
     if (!requestedChatId || !chats.length) {
@@ -546,11 +567,11 @@ export default function ChatsPage() {
       return;
     }
 
-    if (!selectedChatId && chats.length > 0) {
+    if (isDesktopChatLayout && !selectedChatId && chats.length > 0) {
       appliedRequestedChatIdRef.current = requestedChatId;
       setSelectedChatId(chats[0].id);
     }
-  }, [chats, requestedChatId, selectedChatId]);
+  }, [chats, requestedChatId, selectedChatId, isDesktopChatLayout]);
 
   useEffect(() => {
     if (selectedChatId && chats.length > 0 && !chats.some((thread) => thread.id === selectedChatId)) {
@@ -1222,7 +1243,7 @@ export default function ChatsPage() {
     <div className="flex flex-col animate-fade-in h-[calc(100dvh-11rem)] lg:h-[calc(100dvh-7.5rem)]">
       <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
         <Card
-          className={`flex min-h-0 flex-col overflow-hidden ${activeThread ? 'hidden lg:flex' : 'flex'}`}
+          className={`flex min-h-0 flex-col overflow-hidden ${selectedChatId ? 'hidden lg:flex' : 'flex'}`}
           padding={false}
         >
           <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
@@ -1256,7 +1277,7 @@ export default function ChatsPage() {
         </Card>
 
         <Card
-          className={`min-h-0 flex-col overflow-hidden ${activeThread ? 'flex' : 'hidden lg:flex'}`}
+          className={`min-h-0 flex-col overflow-hidden ${selectedChatId ? 'flex' : 'hidden lg:flex'}`}
           padding={false}
         >
           {activeThread ? (
@@ -1266,7 +1287,15 @@ export default function ChatsPage() {
                   <div className="flex min-w-0 items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => setSelectedChatId(null)}
+                      onClick={() => {
+                        setSelectedChatId(null);
+                        appliedRequestedChatIdRef.current = '';
+                        if (searchParams.get('threadId')) {
+                          const nextParams = new URLSearchParams(searchParams);
+                          nextParams.delete('threadId');
+                          setSearchParams(nextParams, { replace: true });
+                        }
+                      }}
                       className="-ms-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-alt/60 hover:text-heading lg:hidden"
                       aria-label={t('common.actions.back')}
                     >

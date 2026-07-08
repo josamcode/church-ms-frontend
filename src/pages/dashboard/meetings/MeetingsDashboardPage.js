@@ -434,13 +434,17 @@ export default function MeetingsDashboardPage() {
       />
 
       {/* Hero summary line — a one-glance read of the state of meetings */}
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-gradient-to-br from-primary/[0.06] via-surface to-secondary/[0.05] px-5 py-4 shadow-card">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+      <div className="relative isolate flex flex-wrap items-center gap-3 overflow-hidden rounded-2xl border border-primary/20 px-5 py-5 shadow-md">
+        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
+          <img src="/images/church.webp" alt="" className="h-full w-full object-cover" loading="lazy" />
+          <div className="absolute inset-0 bg-gradient-to-t from-primary-dark/95 via-primary/85 to-primary/75" />
+        </div>
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/12 text-white">
           <CalendarClock className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-bold text-heading">{heroLine}</p>
-          <p className="mt-0.5 truncate text-xs text-muted">{t('meetings.dashboard.sections.meetingScheduleSubtitle')}</p>
+          <p className="truncate text-base font-bold text-white">{heroLine}</p>
+          <p className="mt-0.5 truncate text-xs text-white/80">{t('meetings.dashboard.sections.meetingScheduleSubtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canViewSectors ? (

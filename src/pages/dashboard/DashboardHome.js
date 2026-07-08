@@ -1016,28 +1016,31 @@ export default function DashboardHome() {
   return (
     <div className="animate-fade-in space-y-6 pb-10 sm:space-y-7">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/[0.09] via-surface to-surface-alt/50 p-6 shadow-card sm:p-7">
-        <div className="pointer-events-none absolute inset-0 -z-0 overflow-hidden" aria-hidden>
-          <div className={`absolute -top-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl ${isRTL ? '-left-12' : '-right-12'}`} />
-          <div className={`absolute -bottom-20 h-44 w-44 rounded-full bg-accent/10 blur-3xl ${isRTL ? 'right-1/3' : 'left-1/3'}`} />
+      <section className="relative overflow-hidden rounded-3xl border border-primary/20 p-6 shadow-md sm:p-8">
+        <div className="absolute inset-0" aria-hidden>
+          <img src="/images/church.webp" alt="" className="h-full w-full object-cover" loading="lazy" />
+          <div className="absolute inset-0 bg-gradient-to-t from-primary-dark/95 via-primary/85 to-primary/70" />
+          <div className={`pointer-events-none absolute -bottom-24 h-56 w-56 rounded-full bg-secondary/20 blur-3xl ${isRTL ? "left-0" : "right-0"}`} />
         </div>
-        <div className="relative flex flex-wrap items-start justify-between gap-5">
+        <div className="relative z-10 flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1 text-[11px] font-semibold text-muted backdrop-blur-sm">
-              <CalendarDays className="h-3.5 w-3.5 text-primary" />
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/90 backdrop-blur-sm">
+              <CalendarDays className="h-3.5 w-3.5" />
               {todayLabel}
             </div>
-            <h1 className="mt-3 text-2xl font-bold tracking-tight text-heading sm:text-3xl">
+            <h1 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl">
               {t('dashboardHome.welcome', { name: user?.fullName || '' })}
             </h1>
-            <p className="mt-1.5 max-w-xl text-sm leading-6 text-muted">
+            <p className="mt-1.5 max-w-xl text-sm leading-6 text-white/80">
               {systemMode
                 ? tx('Live church analytics built from your system data.', 'لوحة تحليلات حية مبنية من بيانات النظام.')
                 : tx('Your own church activity, requests, and household context.', 'نشاطك الشخصي وطلباتك وسياق البيت الخاص بك.')}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="primary">{getRoleLabel(user?.role)}</Badge>
+            <span className="inline-flex items-center rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+              {getRoleLabel(user?.role)}
+            </span>
           </div>
         </div>
       </section>
