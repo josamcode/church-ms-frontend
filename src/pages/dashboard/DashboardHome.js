@@ -354,11 +354,10 @@ function MonthlyActivityChart({ buckets, isRTL, loading, emptyLabel, periodLabel
                   setActiveKey(segment.key);
                   setHovered(null);
                 }}
-                className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                  isActive
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${isActive
                     ? 'bg-surface text-primary shadow-sm'
                     : 'text-muted hover:text-heading'
-                }`}
+                  }`}
               >
                 {segment.label}
               </button>
@@ -374,85 +373,85 @@ function MonthlyActivityChart({ buckets, isRTL, loading, emptyLabel, periodLabel
       {/* Chart */}
       <div className="relative">
         <div className="relative" style={{ height: CHART_PX_H }}>
-        <svg
-          viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-          className="block h-full w-full"
-          role="img"
-          preserveAspectRatio="none"
-        >
-          <defs>
+          <svg
+            viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+            className="block h-full w-full"
+            role="img"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              {computedSeries.map((series, index) => (
+                <linearGradient key={series.key} id={`${gradientBase}-${index}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={series.color} stopOpacity={single ? 0.28 : 0.16} />
+                  <stop offset="100%" stopColor={series.color} stopOpacity="0" />
+                </linearGradient>
+              ))}
+            </defs>
+
+            {/* Horizontal grid lines */}
+            {gridLines.map((ratio) => {
+              const y = PAD_TOP + innerH * ratio;
+              return (
+                <line
+                  key={ratio}
+                  x1={PAD_X}
+                  x2={CHART_W - PAD_X}
+                  y1={y}
+                  y2={y}
+                  stroke="var(--color-border)"
+                  strokeWidth="1"
+                  strokeDasharray={ratio === 1 ? '0' : '4 6'}
+                  opacity={ratio === 1 ? 0.9 : 0.5}
+                />
+              );
+            })}
+
+            {/* Area fills + lines */}
             {computedSeries.map((series, index) => (
-              <linearGradient key={series.key} id={`${gradientBase}-${index}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={series.color} stopOpacity={single ? 0.28 : 0.16} />
-                <stop offset="100%" stopColor={series.color} stopOpacity="0" />
-              </linearGradient>
+              <g key={series.key}>
+                <path d={series.area} fill={`url(#${gradientBase}-${index})`} />
+                <path
+                  d={series.line}
+                  fill="none"
+                  stroke={series.color}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </g>
             ))}
-          </defs>
 
-          {/* Horizontal grid lines */}
-          {gridLines.map((ratio) => {
-            const y = PAD_TOP + innerH * ratio;
-            return (
+            {/* Hover guide line */}
+            {hovered != null ? (
               <line
-                key={ratio}
-                x1={PAD_X}
-                x2={CHART_W - PAD_X}
-                y1={y}
-                y2={y}
-                stroke="var(--color-border)"
-                strokeWidth="1"
-                strokeDasharray={ratio === 1 ? '0' : '4 6'}
-                opacity={ratio === 1 ? 0.9 : 0.5}
+                x1={xFor(hovered)}
+                x2={xFor(hovered)}
+                y1={PAD_TOP}
+                y2={PAD_TOP + innerH}
+                stroke="var(--color-primary)"
+                strokeWidth="1.5"
+                strokeDasharray="3 4"
+                opacity="0.6"
               />
-            );
-          })}
+            ) : null}
 
-          {/* Area fills + lines */}
-          {computedSeries.map((series, index) => (
-            <g key={series.key}>
-              <path d={series.area} fill={`url(#${gradientBase}-${index})`} />
-              <path
-                d={series.line}
-                fill="none"
-                stroke={series.color}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </g>
-          ))}
-
-          {/* Hover guide line */}
-          {hovered != null ? (
-            <line
-              x1={xFor(hovered)}
-              x2={xFor(hovered)}
-              y1={PAD_TOP}
-              y2={PAD_TOP + innerH}
-              stroke="var(--color-primary)"
-              strokeWidth="1.5"
-              strokeDasharray="3 4"
-              opacity="0.6"
-            />
-          ) : null}
-
-          {/* Invisible hover bands */}
-          {ordered.map((bucket, index) => {
-            const bandW = innerW / Math.max(n - 1, 1);
-            return (
-              <rect
-                key={`band-${bucket.key}`}
-                x={xFor(index) - bandW / 2}
-                y={0}
-                width={bandW}
-                height={CHART_H}
-                fill="transparent"
-                onMouseEnter={() => setHovered(index)}
-                onMouseLeave={() => setHovered(null)}
-              />
-            );
-          })}
-        </svg>
+            {/* Invisible hover bands */}
+            {ordered.map((bucket, index) => {
+              const bandW = innerW / Math.max(n - 1, 1);
+              return (
+                <rect
+                  key={`band-${bucket.key}`}
+                  x={xFor(index) - bandW / 2}
+                  y={0}
+                  width={bandW}
+                  height={CHART_H}
+                  fill="transparent"
+                  onMouseEnter={() => setHovered(index)}
+                  onMouseLeave={() => setHovered(null)}
+                />
+              );
+            })}
+          </svg>
 
           {/* Data points (HTML overlay — perfectly round under the stretched SVG) */}
           {computedSeries.map((series) =>
@@ -480,9 +479,8 @@ function MonthlyActivityChart({ buckets, isRTL, loading, emptyLabel, periodLabel
           {ordered.map((bucket, index) => (
             <span
               key={bucket.key}
-              className={`absolute -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold transition-colors ${
-                hovered === index ? 'text-primary' : 'text-muted'
-              }`}
+              className={`absolute -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold transition-colors ${hovered === index ? 'text-primary' : 'text-muted'
+                }`}
               style={{ left: `${(xFor(index) / CHART_W) * 100}%` }}
             >
               {bucket.label}
@@ -530,9 +528,8 @@ function MonthlyActivityChart({ buckets, isRTL, loading, emptyLabel, periodLabel
           return (
             <span
               key={s.key}
-              className={`inline-flex items-center gap-2 text-xs font-medium transition-opacity ${
-                dimmed ? 'text-muted opacity-50' : 'text-heading'
-              }`}
+              className={`inline-flex items-center gap-2 text-xs font-medium transition-opacity ${dimmed ? 'text-muted opacity-50' : 'text-heading'
+                }`}
             >
               <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
               {s.label}
@@ -596,9 +593,8 @@ function QuickAction({ action, isRTL }) {
         <p className="mt-0.5 truncate text-xs leading-5 text-muted">{action.desc}</p>
       </div>
       <ArrowUpRight
-        className={`h-4 w-4 shrink-0 text-border transition-all group-hover:text-primary ${
-          isRTL ? 'group-hover:-translate-x-0.5' : 'group-hover:translate-x-0.5'
-        }`}
+        className={`h-4 w-4 shrink-0 text-border transition-all group-hover:text-primary ${isRTL ? 'group-hover:-translate-x-0.5' : 'group-hover:translate-x-0.5'
+          }`}
       />
     </Link>
   );
@@ -922,8 +918,6 @@ export default function DashboardHome() {
     canConfessions ? { href: '/dashboard/confessions', icon: CalendarCheck2, label: tx('Confessions', 'الاعترافات'), desc: tx('Open confession sessions and scheduling.', 'افتح الجلسات والجدولة الخاصة بها.'), metric: confSummary.upcomingSessions ?? 0, iconTone: actionTone(), variant: 'primary' } : null,
     canConfessionAlerts ? { href: '/dashboard/confessions/alerts', icon: BellRing, label: tx('Alerts', 'التنبيهات'), desc: tx('Review overdue confession follow-up.', 'راجع حالات المتابعة المتأخرة.'), metric: overdueAlerts, iconTone: actionTone(overdueAlerts > 0), variant: overdueAlerts > 0 ? 'warning' : 'success' } : null,
     canConfessionAnalytics ? { href: '/dashboard/confessions/analytics', icon: BarChart3, label: tx('Confession analytics', 'تحليلات الاعتراف'), desc: tx('Inspect confession volume and trends.', 'حلل الحجم والاتجاهات الحالية.'), metric: confSummary.sessionsInPeriod ?? 0, iconTone: actionTone() } : null,
-    canVisitations ? { href: '/dashboard/visitations', icon: Home, label: tx('Visitations', 'الزيارات'), desc: tx('Open the pastoral visitation records.', 'افتح سجلات الزيارات الرعوية.'), metric: visitSummary.visitationsInPeriod ?? 0, iconTone: actionTone() } : null,
-    canVisitationAnalytics ? { href: '/dashboard/visitations/analytics', icon: Building2, label: tx('Visitation analytics', 'تحليلات الزيارات'), desc: tx('Track houses and recorders.', 'تابع المنازل والمسجلين.'), metric: visitSummary.uniqueHouses ?? 0, iconTone: actionTone() } : null,
   ].filter(Boolean);
 
   const memberActions = [
@@ -998,7 +992,7 @@ export default function DashboardHome() {
   const activeBuckets = systemMode ? adminBuckets : memberBuckets;
   const chartLoading = systemMode
     ? (canConfessionAnalytics && confAnalyticsQuery.isLoading && !confAnalyticsQuery.data) ||
-      (canVisitationAnalytics && visitAnalyticsQuery.isLoading && !visitAnalyticsQuery.data)
+    (canVisitationAnalytics && visitAnalyticsQuery.isLoading && !visitAnalyticsQuery.data)
     : meQuery.isLoading && !meQuery.data;
   const actions = systemMode ? systemActions : memberActions;
   const periodLabel = tx('Last 6 months', 'آخر 6 أشهر');
@@ -1043,27 +1037,7 @@ export default function DashboardHome() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-success/20 bg-success-light px-3 py-1 text-xs font-semibold text-success">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success/60" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
-              </span>
-              {tx('System online', 'النظام يعمل')}
-            </span>
             <Badge variant="primary">{getRoleLabel(user?.role)}</Badge>
-            <Badge variant={user?.isLocked ? 'danger' : 'success'}>
-              {user?.isLocked ? t('common.status.locked') : t('common.status.active')}
-            </Badge>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs font-medium text-muted backdrop-blur-sm">
-              <ShieldCheck className="h-3 w-3" />
-              {systemMode ? tx('System analytics', 'تحليلات النظام') : tx('My analytics', 'تحليلاتي')}
-            </span>
-            {lastUpdated ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs font-medium text-muted backdrop-blur-sm">
-                <Clock className="h-3 w-3" />
-                {tx('Updated', 'آخر تحديث')} {lastUpdated}
-              </span>
-            ) : null}
           </div>
         </div>
       </section>

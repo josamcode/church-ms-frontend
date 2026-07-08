@@ -190,7 +190,7 @@ function MobileMoreSheet({ open, onClose, isRTL, toggleLanguage, t, onAbout }) {
           </button>
         </div>
         {/* Items */}
-        <div className="px-4 pb-4 space-y-2.5" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+        <div className="px-4 pb-4 space-y-2.5 flex flex-col" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
           {translatedItems.map((item, i) => (
             item.to ? (
               <Link key={i} to={item.to} onClick={onClose}>

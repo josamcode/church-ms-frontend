@@ -66,17 +66,9 @@ export default function StatCard({
     <Wrapper
       type={clickable ? 'button' : undefined}
       onClick={onClick}
-      className={`stat-card group text-start ${
-        clickable ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/25' : ''
-      } ${className}`}
+      className={`stat-card group text-start ${clickable ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/25' : ''
+        } ${className}`}
     >
-      {/* top accent bar */}
-      <span
-        className={`pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${t.accent} ${
-          isRTL ? 'bg-gradient-to-l' : ''
-        }`}
-        aria-hidden
-      />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-[13px] font-medium text-muted">{label}</p>
