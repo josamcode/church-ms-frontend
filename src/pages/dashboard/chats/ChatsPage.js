@@ -60,6 +60,15 @@ const MESSAGE_REFRESH_SUPPRESSION_MS = 1500;
 const TYPING_IDLE_MS = 3000;
 const TYPING_INDICATOR_TTL_MS = 3000;
 
+function useDebouncedValue(value, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
 const getThreadActivityTimestamp = (thread) => {
   const candidate = thread?.lastMessageAt || thread?.updatedAt || thread?.createdAt;
   if (!candidate) return 0;
@@ -106,6 +115,12 @@ export default function ChatsPage() {
   const [broadcastForm, setBroadcastForm] = useState(EMPTY_BROADCAST_FORM);
   const [broadcastUserSearch, setBroadcastUserSearch] = useState('');
   const broadcastAudience = broadcastForm.audience;
+
+  const debouncedDirectSearch = useDebouncedValue(directSearch, 300);
+  const debouncedGroupSearch = useDebouncedValue(groupSearch, 300);
+  const debouncedGroupSettingsSearch = useDebouncedValue(groupSettingsSearch, 300);
+  const debouncedBroadcastUserSearch = useDebouncedValue(broadcastUserSearch, 300);
+
   const lastAutoReadRef = useRef('');
   const lastReadNotificationThreadRef = useRef('');
   const messagesScrollRef = useRef(null);
@@ -130,6 +145,9 @@ export default function ChatsPage() {
       const { data } = await chatApi.list();
       return data.data || [];
     },
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const activeChatQuery = useQuery({
@@ -139,33 +157,40 @@ export default function ChatsPage() {
       const { data } = await chatApi.getById(selectedChatId);
       return data.data;
     },
+    placeholderData: (previousData) => previousData,
   });
 
   const directSearchQuery = useQuery({
-    queryKey: ['chats', 'search', 'direct', directSearch],
+    queryKey: ['chats', 'search', 'direct', debouncedDirectSearch],
     enabled: isDirectModalOpen,
     queryFn: async () => {
-      const { data } = await chatApi.searchUsers({ q: directSearch, limit: 20 });
+      const { data } = await chatApi.searchUsers({ q: debouncedDirectSearch, limit: 20 });
       return data.data || [];
     },
+    staleTime: 30000,
+    placeholderData: (previousData) => previousData,
   });
 
   const groupSearchQuery = useQuery({
-    queryKey: ['chats', 'search', 'group-members', groupSearch],
+    queryKey: ['chats', 'search', 'group-members', debouncedGroupSearch],
     enabled: isGroupModalOpen,
     queryFn: async () => {
-      const { data } = await chatApi.searchUsers({ q: groupSearch, limit: 20 });
+      const { data } = await chatApi.searchUsers({ q: debouncedGroupSearch, limit: 20 });
       return data.data || [];
     },
+    staleTime: 30000,
+    placeholderData: (previousData) => previousData,
   });
 
   const groupSettingsSearchQuery = useQuery({
-    queryKey: ['chats', 'search', 'group-settings-members', groupSettingsSearch],
+    queryKey: ['chats', 'search', 'group-settings-members', debouncedGroupSettingsSearch],
     enabled: isGroupSettingsOpen,
     queryFn: async () => {
-      const { data } = await chatApi.searchUsers({ q: groupSettingsSearch, limit: 20 });
+      const { data } = await chatApi.searchUsers({ q: debouncedGroupSettingsSearch, limit: 20 });
       return data.data || [];
     },
+    staleTime: 30000,
+    placeholderData: (previousData) => previousData,
   });
 
   const audienceOptionsQuery = useQuery({
@@ -182,7 +207,7 @@ export default function ChatsPage() {
       'chats',
       'search',
       'broadcast-users',
-      broadcastUserSearch,
+      debouncedBroadcastUserSearch,
       broadcastAudience.ageGroups,
       broadcastAudience.educationStages,
       broadcastAudience.tags,
@@ -197,7 +222,7 @@ export default function ChatsPage() {
     enabled: isBroadcastModalOpen,
     queryFn: async () => {
       const { data } = await chatApi.searchUsers({
-        q: broadcastUserSearch,
+        q: debouncedBroadcastUserSearch,
         limit: 20,
         forBroadcast: true,
         ageGroups: broadcastAudience.ageGroups,
@@ -213,13 +238,39 @@ export default function ChatsPage() {
       });
       return data.data || [];
     },
+    staleTime: 30000,
+    placeholderData: (previousData) => previousData,
   });
 
   const sendMessageMutation = useMutation({
     mutationFn: ({ chatId, text }) => chatApi.sendMessage(chatId, { text }),
-    onSuccess: (response, variables) => {
-      const message = response?.data?.data;
+    onMutate: ({ chatId, text }) => {
+      const tempId = `optimistic-${Date.now()}`;
+      const optimisticMessage = {
+        id: tempId,
+        threadId: chatId,
+        text,
+        sender: {
+          id: currentUserId,
+          fullName: user?.fullName || user?.name || '',
+          avatar: user?.avatar || null,
+        },
+        createdAt: new Date().toISOString(),
+        pending: true,
+      };
+
+      applyMessageToCaches(chatId, optimisticMessage);
       setComposerText('');
+      forceScrollToBottomRef.current = true;
+
+      return { tempId, chatId, text };
+    },
+    onSuccess: (response, variables, context) => {
+      const message = response?.data?.data;
+
+      if (context?.tempId) {
+        removeMessageFromCaches(context.chatId, context.tempId);
+      }
 
       if (message?.threadId) {
         applyMessageToCaches(message.threadId, message);
@@ -227,7 +278,11 @@ export default function ChatsPage() {
         noteRecentMessageSync(variables.chatId);
       }
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      if (context?.tempId) {
+        removeMessageFromCaches(context.chatId, context.tempId);
+        setComposerText(context.text);
+      }
       forceScrollToBottomRef.current = false;
       toast.error(normalizeApiError(error).message);
     },
@@ -414,6 +469,19 @@ export default function ChatsPage() {
     }
 
     return listUpdated;
+  };
+
+  const removeMessageFromCaches = (threadId, messageId) => {
+    if (!threadId || !messageId) return;
+
+    queryClient.setQueryData(getChatThreadQueryKey(threadId), (current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        messages: (current.messages || []).filter((message) => message.id !== messageId),
+      };
+    });
   };
 
   const removeTypingUser = (threadId, userId) => {
@@ -1115,7 +1183,7 @@ export default function ChatsPage() {
           return (
             <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-[80%] px-4 py-3 shadow-card ${isOwn
+                className={`max-w-[80%] px-4 py-3 shadow-card ${message.pending ? 'opacity-70' : ''} ${isOwn
                   ? 'rounded-3xl rounded-br-md bg-primary text-white'
                   : 'rounded-3xl rounded-bl-md border border-border bg-surface text-base'
                   }`}
