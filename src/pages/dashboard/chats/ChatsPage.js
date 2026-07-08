@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  ArrowLeft,
+  ArrowRight,
   Check,
   CheckCheck,
   Megaphone,
@@ -24,13 +26,11 @@ import {
   NOTIFICATION_UNREAD_COUNT_QUERY_KEY,
   USER_NOTIFICATIONS_LIST_ROOT_KEY,
 } from '../../../components/notifications/notificationCenter.shared';
-import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import Modal from '../../../components/ui/Modal';
-import PageHeader from '../../../components/ui/PageHeader';
 import Switch from '../../../components/ui/Switch';
 import TextArea from '../../../components/ui/TextArea';
 import useChatSocket from '../../../hooks/chat/useChatSocket';
@@ -73,7 +73,7 @@ const sortThreadsByActivity = (threads = []) =>
 export default function ChatsPage() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { t, language } = useI18n();
+  const { t, language, isRTL } = useI18n();
   const { user, isAuthenticated, hasPermission } = useAuth();
   const tf = (key, fallback) => {
     const value = t(key);
@@ -1151,23 +1151,13 @@ export default function ChatsPage() {
   };
 
   return (
-    <div className="animate-fade-in space-y-8 pb-8">
-      <Breadcrumbs
-        items={[
-          { label: t('shared.dashboard'), href: '/dashboard' },
-          { label: tf('dashboardLayout.menu.chats', 'Chats') },
-        ]}
-      />
-
-      <PageHeader
-        eyebrow={tf('dashboardLayout.section.communication', 'Communication')}
-        title={tf('dashboardLayout.menu.chats', 'Chats')}
-        subtitle={tf(
-          'chatPage.subtitle',
-          'Live direct chats, managed group conversations, and permission-based broadcast messaging.'
-        )}
-        actions={(
-          <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col animate-fade-in h-[calc(100dvh-11rem)] lg:h-[calc(100dvh-7.5rem)]">
+      <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
+        <Card
+          className={`flex min-h-0 flex-col overflow-hidden ${activeThread ? 'hidden lg:flex' : 'flex'}`}
+          padding={false}
+        >
+          <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
             {canStartChats ? (
               <Button type="button" variant="outline" size="sm" icon={Plus} onClick={() => setDirectModalOpen(true)}>
                 {tf('chatPage.actions.newChat', 'New chat')}
@@ -1184,11 +1174,6 @@ export default function ChatsPage() {
               </Button>
             ) : null}
           </div>
-        )}
-      />
-
-      <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <Card className="h-[72vh] overflow-hidden" padding={false}>
           <div className="border-b border-border p-4">
             <Input
               label={tf('chatPage.filters.search', 'Search chats')}
@@ -1199,15 +1184,26 @@ export default function ChatsPage() {
               placeholder={tf('chatPage.filters.placeholder', 'Search by name, group, or message preview')}
             />
           </div>
-          <div className="h-[calc(72vh-86px)] overflow-y-auto p-3">{renderThreadList()}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">{renderThreadList()}</div>
         </Card>
 
-        <Card className="h-[72vh] overflow-hidden" padding={false}>
+        <Card
+          className={`min-h-0 flex-col overflow-hidden ${activeThread ? 'flex' : 'hidden lg:flex'}`}
+          padding={false}
+        >
           {activeThread ? (
-            <div className="flex h-full flex-col">
+            <div className="flex h-full min-h-0 flex-col">
               <div className="border-b border-border bg-surface px-5 py-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex min-w-0 items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedChatId(null)}
+                      className="-ms-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-alt/60 hover:text-heading lg:hidden"
+                      aria-label={t('common.actions.back')}
+                    >
+                      {isRTL ? <ArrowRight className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
+                    </button>
                     <Avatar
                       name={activeThreadOtherUser?.fullName || activeThread.title}
                       avatarUrl={activeThreadOtherUser?.avatar?.url || ''}
@@ -1237,11 +1233,11 @@ export default function ChatsPage() {
                 </div>
               </div>
 
-              <div ref={messagesScrollRef} className="flex-1 overflow-y-auto bg-page/40 px-5 py-4">
+              <div ref={messagesScrollRef} className="min-h-0 flex-1 overflow-y-auto bg-page/40 px-5 py-4">
                 {renderMessages()}
               </div>
 
-              <div className="border-t border-border bg-surface px-5 py-4">
+              <div className="shrink-0 border-t border-border bg-surface px-5 py-4">
                 {!activeThread.canCurrentUserSendMessages ? (
                   <div className="mb-3 flex items-center gap-2 rounded-2xl border border-border bg-surface-alt/40 px-3 py-2 text-sm text-muted">
                     <Shield className="h-4 w-4 text-primary" />
