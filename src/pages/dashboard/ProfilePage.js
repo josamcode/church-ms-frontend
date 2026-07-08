@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { authApi } from '../../api/endpoints';
 import Badge from '../../components/ui/Badge';
 import Breadcrumbs from '../../components/ui/Breadcrumbs';
+import Card from '../../components/ui/Card';
 import Section from '../../components/ui/Section';
 import StatCard from '../../components/ui/StatCard';
 import Skeleton from '../../components/ui/Skeleton';
@@ -14,14 +15,14 @@ import {
 } from '../../utils/formatters';
 import { useI18n } from '../../i18n/i18n';
 import {
-  Calendar, CheckCircle2, Clock3, Home, Mail, MapPin, Phone,
-  ShieldCheck, Tag, User, UserCircle, Users,
+  Calendar, CheckCircle2, Clock3, Home, Phone,
+  ShieldCheck, Tag, User,
 } from 'lucide-react';
 
 /* ── primitives ──────────────────────────────────────────────────────────── */
 
 /** Overline label + value — the atomic key-fact row inside detail sections. */
-function Field({ icon: Icon, label, value, ltr = false, tone = 'default' }) {
+function Field({ label, value, ltr = false, tone = 'default' }) {
   const { t } = useI18n();
   const toneClass =
     tone === 'success' ? 'text-success' :
@@ -29,33 +30,11 @@ function Field({ icon: Icon, label, value, ltr = false, tone = 'default' }) {
         'text-heading';
 
   return (
-    <div className="flex items-start gap-3">
-      {Icon && (
-        <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-surface-alt text-muted">
-          <Icon className="h-[18px] w-[18px]" />
-        </span>
-      )}
-      <div className="min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{label}</p>
-        <p className={`mt-0.5 break-words text-sm font-semibold ${toneClass} ${ltr ? 'direction-ltr text-start' : ''}`}>
-          {value || t('common.placeholder.empty')}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/** Compact identity quick-fact — used inside the hero so the first screen carries key data. */
-function HeroFact({ icon: Icon, label, value, ltr = false }) {
-  return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-border/45 bg-surface/70 px-3 py-2.5 backdrop-blur-sm">
-      <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <Icon className="h-4 w-4" />
-      </span>
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">{label}</p>
-        <p className={`truncate text-sm font-bold text-heading ${ltr ? 'direction-ltr text-start' : ''}`}>{value}</p>
-      </div>
+    <div className="min-w-0">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{label}</p>
+      <p className={`mt-1 break-words text-sm font-semibold ${toneClass} ${ltr ? 'direction-ltr text-start' : ''}`}>
+        {value || t('common.placeholder.empty')}
+      </p>
     </div>
   );
 }
@@ -122,83 +101,66 @@ export default function ProfilePage() {
       />
 
       {/* ══ IDENTITY HERO ═══════════════════════════════════════════════════
-          First mobile screen: avatar + name + role/status badges + key facts. */}
-      <div className="relative overflow-hidden rounded-2xl border border-border/45 bg-surface shadow-card">
-        {/* tinted gradient backdrop */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-secondary/6" />
-        <div className="pointer-events-none absolute -top-16 end-[-3rem] h-48 w-48 rounded-full bg-primary/5 blur-3xl" />
+          First screen: avatar + name + role/status badges + key facts. */}
+      <Card padding="lg">
+        {/* identity row */}
+        <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-start">
+          {user?.avatar?.url ? (
+            <img
+              src={user.avatar.url}
+              alt=""
+              className="h-24 w-24 flex-shrink-0 rounded-2xl border border-border object-cover sm:h-28 sm:w-28"
+            />
+          ) : (
+            <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-2xl border border-border bg-primary/10 text-4xl font-bold text-primary sm:h-28 sm:w-28">
+              {initial}
+            </div>
+          )}
 
-        <div className="relative p-5 sm:p-7">
-          {/* identity row */}
-          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-start">
-            {user?.avatar?.url ? (
-              <img
-                src={user.avatar.url}
-                alt=""
-                className="h-24 w-24 flex-shrink-0 rounded-2xl border-2 border-border/45 object-cover shadow-lg sm:h-28 sm:w-28"
-              />
-            ) : (
-              <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-2xl border-2 border-border/45 bg-primary/10 text-4xl font-bold text-primary shadow-inner sm:h-28 sm:w-28">
-                {initial}
-              </div>
-            )}
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-heading sm:text-3xl">
+              {user?.fullName || empty}
+            </h1>
+            <p className="mt-1 break-all text-sm text-muted direction-ltr text-start sm:text-start">
+              {email}
+            </p>
 
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-primary/70">
-                {t('dashboardLayout.menu.profile')}
-              </p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-heading sm:text-3xl">
-                {user?.fullName || empty}
-              </h1>
-              <p className="mt-1 break-all text-sm text-muted direction-ltr text-start sm:text-start">
-                {email}
-              </p>
-
-              {/* role + account-status badges */}
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
-                <Badge variant="primary" dot>{roleLabel}</Badge>
-                <Badge variant={accountStatusVariant} dot>{accountStatusLabel}</Badge>
-                {user?.isLocked ? <Badge variant="danger">{t('common.status.locked')}</Badge> : null}
-                {user?.ageGroup && <Badge variant="gold">{user.ageGroup}</Badge>}
-              </div>
+            {/* role + account-status badges */}
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
+              <Badge variant="primary" dot>{roleLabel}</Badge>
+              <Badge variant={accountStatusVariant} dot>{accountStatusLabel}</Badge>
+              {user?.isLocked ? <Badge variant="danger">{t('common.status.locked')}</Badge> : null}
+              {user?.ageGroup && <Badge variant="gold">{user.ageGroup}</Badge>}
             </div>
           </div>
-
-          {/* quick facts — the most important data above the fold */}
-          <div className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-            <HeroFact icon={Users} label={t('profilePage.fields.familyName')} value={household} />
-            <HeroFact icon={Phone} label={t('profilePage.fields.primaryPhone')} value={primaryPhone} ltr />
-            <HeroFact icon={Calendar} label={t('profilePage.fields.joinedOn')} value={formatDate(user?.createdAt) || empty} />
-          </div>
         </div>
-      </div>
+
+        {/* quick facts — the most important data above the fold */}
+        <div className="mt-6 grid grid-cols-1 gap-x-8 gap-y-5 border-t border-border/70 pt-5 sm:grid-cols-2 lg:grid-cols-3">
+          <Field label={t('profilePage.fields.familyName')} value={household} />
+          <Field label={t('profilePage.fields.primaryPhone')} value={primaryPhone} ltr />
+          <Field label={t('profilePage.fields.joinedOn')} value={formatDate(user?.createdAt) || empty} />
+        </div>
+      </Card>
 
       {/* ══ DETAIL SECTIONS ═════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
 
         {/* ── Personal ─── */}
-        <Section
-          icon={User}
-          title={t('profilePage.sections.profileDetails.title')}
-          description={t('profilePage.sections.profileDetails.subtitle')}
-        >
+        <Section icon={User} title={t('profilePage.sections.profileDetails.title')}>
           <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-            <Field icon={Calendar} label={t('profilePage.fields.birthDate')} value={formatDate(user?.birthDate)} />
-            <Field icon={UserCircle} label={t('profilePage.fields.gender')} value={getGenderLabel(user?.gender)} />
-            <Field icon={ShieldCheck} label={t('profilePage.fields.role')} value={roleLabel} />
+            <Field label={t('profilePage.fields.birthDate')} value={formatDate(user?.birthDate)} />
+            <Field label={t('profilePage.fields.gender')} value={getGenderLabel(user?.gender)} />
+            <Field label={t('profilePage.fields.role')} value={roleLabel} />
           </div>
         </Section>
 
         {/* ── Contact ─── */}
-        <Section
-          icon={Phone}
-          title={t('profilePage.fields.primaryPhone')}
-          description={t('profilePage.sections.profileDetails.subtitle')}
-        >
+        <Section icon={Phone} title={t('profilePage.fields.primaryPhone')}>
           <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-            <Field icon={Phone} label={t('profilePage.fields.primaryPhone')} value={primaryPhone} ltr />
-            <Field icon={Phone} label={t('profilePage.fields.secondaryPhone')} value={secondaryPhone} ltr />
-            <Field icon={Mail} label={t('profilePage.fields.email')} value={email} ltr />
+            <Field label={t('profilePage.fields.primaryPhone')} value={primaryPhone} ltr />
+            <Field label={t('profilePage.fields.secondaryPhone')} value={secondaryPhone} ltr />
+            <Field label={t('profilePage.fields.email')} value={email} ltr />
           </div>
         </Section>
 
@@ -206,17 +168,16 @@ export default function ProfilePage() {
         <Section
           icon={Home}
           title={t('profilePage.sections.locationAndTags.title')}
-          description={t('profilePage.sections.locationAndTags.subtitle')}
           className="xl:col-span-2"
         >
           <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
-            <Field icon={Users} label={t('profilePage.fields.familyName')} value={user?.familyName || empty} />
-            <Field icon={Home} label={t('profilePage.fields.houseName')} value={user?.houseName || empty} />
-            <Field icon={MapPin} label={t('profilePage.fields.address')} value={addressValue} />
+            <Field label={t('profilePage.fields.familyName')} value={user?.familyName || empty} />
+            <Field label={t('profilePage.fields.houseName')} value={user?.houseName || empty} />
+            <Field label={t('profilePage.fields.address')} value={addressValue} />
           </div>
 
           {/* tags */}
-          <div className="mt-5 border-t border-border/50 pt-5">
+          <div className="mt-5 border-t border-border/70 pt-5">
             <div className="flex items-center gap-1.5">
               <Tag className="h-3.5 w-3.5 text-muted" />
               <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
@@ -244,7 +205,7 @@ export default function ProfilePage() {
           <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
             {t('profilePage.sections.accountSnapshot.title')}
           </span>
-          <div className="h-px flex-1 bg-border/30" />
+          <div className="h-px flex-1 bg-border/70" />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

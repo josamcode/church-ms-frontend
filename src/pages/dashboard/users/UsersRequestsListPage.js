@@ -3,19 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
-  CalendarClock,
   CheckCheck,
   CheckCircle2,
   Eye,
   FileClock,
-  Home,
   Inbox,
   ListFilter,
   Pencil,
-  Phone,
   RotateCcw,
   SlidersHorizontal,
-  Sparkles,
   Users as UsersIcon,
   XCircle,
 } from 'lucide-react';
@@ -61,13 +57,13 @@ function StatusPill({ value }) {
   );
 }
 
-// One compact attribute chip inside a request card (icon + value).
-function AttributeChip({ icon: Icon, value, ltr = false }) {
+// One quiet key/value chip inside a request card — muted label + value, no icon.
+function AttributeChip({ label, value, ltr = false }) {
   if (!value || value === '---') return null;
   return (
-    <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-border/70 bg-surface-alt/50 px-2.5 py-1 text-xs text-heading/80">
-      <Icon className="h-3.5 w-3.5 shrink-0 text-muted" />
-      <span className={`truncate ${ltr ? 'direction-ltr' : ''}`}>{value}</span>
+    <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-border/70 bg-surface-alt/50 px-2.5 py-1 text-xs">
+      <span className="shrink-0 text-muted">{label}</span>
+      <span className={`truncate text-heading/80 ${ltr ? 'direction-ltr' : ''}`}>{value}</span>
     </span>
   );
 }
@@ -94,10 +90,9 @@ function RequestCard({
         : 'bg-warning/12 text-warning';
 
   return (
-    <article
-      className={`group relative overflow-hidden rounded-2xl border bg-surface shadow-card transition-all hover:shadow-md ${
-        isPending ? 'border-warning/25' : 'border-border'
-      }`}
+    <Card
+      padding={false}
+      className={`relative overflow-hidden ${isPending ? '!border-warning/25' : ''}`}
     >
       {/* Urgency rail — highlights pending items at a glance (RTL-safe: logical inline-start). */}
       <span
@@ -132,10 +127,7 @@ function RequestCard({
               >
                 {row.fullName || '---'}
               </Link>
-              <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
-                <CalendarClock className="h-3.5 w-3.5" />
-                <span>{formatDate(row.createdAt)}</span>
-              </div>
+              <p className="mt-0.5 text-xs text-muted">{formatDate(row.createdAt)}</p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <StatusPill value={status} />
@@ -143,16 +135,16 @@ function RequestCard({
             </div>
           </div>
 
-          {/* Key attributes */}
+          {/* Key attributes — quiet label/value chips, no per-attribute icons */}
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <AttributeChip icon={UsersIcon} value={row.familyName} />
-            <AttributeChip icon={Home} value={row.houseName} />
-            <AttributeChip icon={Sparkles} value={row.ageGroup} />
+            <AttributeChip label="العائلة" value={row.familyName} />
+            <AttributeChip label="البيت" value={row.houseName} />
+            <AttributeChip label="الفئة" value={row.ageGroup} />
             {age && age !== '---' ? (
-              <AttributeChip icon={CalendarClock} value={`${age} سنة`} />
+              <AttributeChip label="السن" value={`${age} سنة`} />
             ) : null}
             <AttributeChip
-              icon={Phone}
+              label={row.phonePrimary ? 'الهاتف' : 'البريد'}
               value={row.phonePrimary || row.email}
               ltr={Boolean(row.phonePrimary)}
             />
@@ -162,7 +154,7 @@ function RequestCard({
 
       {/* Inline decision actions — a single status always leaves at least one action available. */}
       {canReview ? (
-        <div className="flex items-center gap-2 border-t border-border/70 bg-surface-alt/25 px-4 py-3">
+        <div className="flex items-center gap-2 border-t border-border/70 px-4 py-3">
           {status !== 'approved' ? (
             <Button
               size="sm"
@@ -190,13 +182,13 @@ function RequestCard({
           ) : null}
         </div>
       ) : null}
-    </article>
+    </Card>
   );
 }
 
 function RequestCardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
+    <Card padding={false} className="overflow-hidden">
       <div className="flex items-start gap-3 p-4">
         <Skeleton variant="circle" className="h-11 w-11" />
         <div className="flex-1 space-y-2">
@@ -213,7 +205,7 @@ function RequestCardSkeleton() {
         <Skeleton className="h-8 flex-1 rounded-lg" />
         <Skeleton className="h-8 flex-1 rounded-lg" />
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -362,39 +354,29 @@ export default function UsersRequestsListPage() {
       />
 
       {/* ── Hero: this IS an actionable inbox ───────────────────────────── */}
-      <Card
-        padding={false}
-        className="relative overflow-hidden border-warning/20 bg-gradient-to-bl from-warning/[0.06] via-surface to-surface"
-      >
+      <Card padding={false} className="overflow-hidden">
         <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="flex items-start gap-4">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-warning/12 text-warning shadow-sm">
-              <Inbox className="h-7 w-7" />
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Inbox className="h-6 w-6" />
             </span>
             <div className="min-w-0">
               <PageHeader
                 contentOnly
-                eyebrow="مركز المراجعة"
                 title="طلبات المستخدمين"
-                subtitle="راجع طلبات التسجيل الجديدة، ثم اعتمدها أو ارفضها مباشرة."
                 titleClassName="!text-2xl sm:!text-3xl"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3 rounded-2xl border border-warning/20 bg-surface/80 px-4 py-3 shadow-sm">
-              <div className="text-end">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
-                  قيد المراجعة
-                </p>
-                <p className="text-3xl font-bold leading-none tracking-tight text-warning">
-                  {pendingCount}
-                </p>
-              </div>
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/12 text-warning">
-                <FileClock className="h-5 w-5" />
-              </span>
+            <div className="text-end">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
+                قيد المراجعة
+              </p>
+              <p className="text-3xl font-bold leading-none tracking-tight text-warning">
+                {pendingCount}
+              </p>
             </div>
             <Link to="/dashboard/users" className="hidden sm:block">
               <Button variant="outline">العودة إلى المستخدمين</Button>
@@ -491,7 +473,6 @@ export default function UsersRequestsListPage() {
             action={
               pendingCount > 0 ? (
                 <Badge variant="warning" dot>
-                  <CheckCheck className="h-3.5 w-3.5" />
                   {pendingCount} قيد المراجعة
                 </Badge>
               ) : (
@@ -505,7 +486,7 @@ export default function UsersRequestsListPage() {
 
         <div className="p-4 sm:p-5">
           {isError ? (
-            <div className="rounded-2xl border border-danger/20 bg-danger-light/50">
+            <Card tone="muted">
               <EmptyState
                 icon={AlertTriangle}
                 title="تعذّر تحميل الطلبات"
@@ -521,7 +502,7 @@ export default function UsersRequestsListPage() {
                   </Button>
                 }
               />
-            </div>
+            </Card>
           ) : isInitialLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, index) => (

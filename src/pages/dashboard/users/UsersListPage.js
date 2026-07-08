@@ -2,14 +2,17 @@ import { useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Plus, Eye, Edit, Lock, Unlock, Trash2, X,
-  Users, UserCheck, Flame, LayoutGrid, TableProperties, SlidersHorizontal, Phone,
+  Plus, Eye, Edit, Lock, Unlock, Trash2,
+  Users, UserCheck, LayoutGrid, TableProperties, SlidersHorizontal,
 } from 'lucide-react';
 import { usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import { useI18n } from '../../../i18n/i18n';
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
+import PageHeader from '../../../components/ui/PageHeader';
+import StatCard from '../../../components/ui/StatCard';
 import Table, { RowActions } from '../../../components/ui/Table';
 import SearchInput from '../../../components/ui/SearchInput';
 import Select from '../../../components/ui/Select';
@@ -18,36 +21,12 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Modal from '../../../components/ui/Modal';
 import EmptyState from '../../../components/ui/EmptyState';
 import Badge from '../../../components/ui/Badge';
+import Skeleton from '../../../components/ui/Skeleton';
 import toast from 'react-hot-toast';
 import { AGE_GROUPS, formatAgeFromBirthDate, getGenderLabel, getRoleLabel } from '../../../utils/formatters';
-import { AGE_GROUP_VALUES } from '../../../constants/householdProfiles';
 
 const USERS_VIEW_MODE_STORAGE_KEY = 'users:viewMode';
 const DESKTOP_QUERY = '(min-width: 640px)';
-const AGE_GROUP_TONES = ['child', 'teenager', 'young', 'middleAge', 'senior'];
-
-const AGE_GROUP_BADGE_CLASSES = {
-  child: 'bg-slate-50 text-slate-500 ring-slate-200',
-  teenager: 'bg-violet-50 text-violet-600 ring-violet-200',
-  young: 'bg-emerald-50 text-emerald-600 ring-emerald-200',
-  middleAge: 'bg-amber-50 text-amber-600 ring-amber-200',
-  senior: 'bg-rose-50 text-rose-600 ring-rose-200',
-  unknown: 'bg-surface-alt text-muted ring-border',
-};
-
-const AGE_GROUP_FALLBACK_TONES = {
-  child: 'child',
-  children: 'child',
-  kid: 'child',
-  teenager: 'teenager',
-  teen: 'teenager',
-  young: 'young',
-  youth: 'young',
-  middle_age: 'middleAge',
-  middle_aged: 'middleAge',
-  senior: 'senior',
-  elderly: 'senior',
-};
 
 function normalizeViewMode(value) {
   return value === 'cards' ? 'cards' : 'table';
@@ -78,61 +57,8 @@ function getInitial(name) {
   return String(name).trim().charAt(0).toUpperCase();
 }
 
-function normalizeText(value) {
-  return String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
-}
-
-function getGenderTone(value) {
-  const normalized = normalizeText(value);
-  if (['male', 'm', 'ذكر', 'ولد', 'رجل'].includes(normalized)) return 'male';
-  if (['female', 'f', 'أنثى', 'انثى', 'بنت', 'سيدة'].includes(normalized)) return 'female';
-  return 'unknown';
-}
-
-function getAvatarToneClass(gender) {
-  const tone = getGenderTone(gender);
-  if (tone === 'male') return 'border-sky-200 ring-sky-200 bg-sky-50 text-sky-700';
-  if (tone === 'female') return 'border-pink-200 ring-pink-200 bg-pink-50 text-pink-700';
-  return 'border-border ring-border bg-surface-alt text-muted';
-}
-
-function getAgeGroupTone(ageGroup) {
-  const normalized = normalizeText(ageGroup);
-  if (!normalized) return 'unknown';
-
-  const existingValueIndex = AGE_GROUP_VALUES.findIndex((value) => normalizeText(value) === normalized);
-  if (existingValueIndex >= 0) return AGE_GROUP_TONES[existingValueIndex] || 'unknown';
-
-  const localizedValueIndex = AGE_GROUPS.findIndex((value) => normalizeText(value) === normalized);
-  if (localizedValueIndex >= 0) return AGE_GROUP_TONES[localizedValueIndex] || 'unknown';
-
-  return AGE_GROUP_FALLBACK_TONES[normalized] || 'unknown';
-}
-
 function getUserPhone(user) {
   return user.phonePrimary || user.phone || user.mobile || user.mobileNumber || '';
-}
-
-/** Compact inline KPI pill — lives in the header so it never eats the first mobile screen. */
-function StatPill({ icon: Icon, label, value, tone = 'default' }) {
-  const tones = {
-    default: 'bg-surface-alt/70 text-muted ring-border/60',
-    primary: 'bg-primary/10 text-primary ring-primary/15',
-    success: 'bg-success-light text-success ring-success/20',
-    danger: 'bg-danger-light text-danger ring-danger/20',
-    gold: 'bg-secondary/10 text-secondary ring-secondary/20',
-  };
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${tones[tone] || tones.default}`}
-      title={label}
-    >
-      {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
-      <span className="tabular-nums">{value}</span>
-      <span className="font-medium opacity-80">{label}</span>
-    </span>
-  );
 }
 
 function ViewModeToggle({ value, onChange, t }) {
@@ -142,61 +68,39 @@ function ViewModeToggle({ value, onChange, t }) {
   ];
 
   return (
-    <div dir="ltr" className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-border/80 bg-surface p-1 shadow-sm">
-      {options.map((option) => {
-        const Icon = option.icon;
-        const active = value === option.value;
-
-        return (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onChange(option.value)}
-            aria-pressed={active}
-            aria-label={option.label}
-            title={option.label}
-            className={`inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
-              active
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-muted hover:bg-surface-alt hover:text-heading'
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            <span className="sr-only">{option.label}</span>
-          </button>
-        );
-      })}
+    <div dir="ltr" className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-border bg-surface p-1">
+      {options.map((option) => (
+        <Button
+          key={option.value}
+          variant={value === option.value ? 'primary' : 'ghost'}
+          size="sm"
+          icon={option.icon}
+          onClick={() => onChange(option.value)}
+          aria-pressed={value === option.value}
+          aria-label={option.label}
+          title={option.label}
+          className="!px-2"
+        >
+          <span className="sr-only">{option.label}</span>
+        </Button>
+      ))}
     </div>
-  );
-}
-
-function AgeGroupBadge({ ageGroup }) {
-  const tone = getAgeGroupTone(ageGroup);
-
-  return (
-    <span
-      className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full ring-1 ${AGE_GROUP_BADGE_CLASSES[tone] || AGE_GROUP_BADGE_CLASSES.unknown}`}
-      aria-label={ageGroup || 'Unknown age group'}
-      title={ageGroup || 'Unknown age group'}
-    >
-      <Flame className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
-    </span>
   );
 }
 
 function UserMemberCard({ user, actions, onOpen, emptyValue, t }) {
   const phone = getUserPhone(user);
-  const avatarClassName = getAvatarToneClass(user.gender);
 
   return (
-    <article
+    <Card
       dir="rtl"
-      className="group relative flex items-center gap-3 rounded-2xl border border-border/80 bg-surface p-3 shadow-card transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md"
+      padding={false}
+      className="group flex items-center gap-3 p-3"
     >
       <button
         type="button"
         onClick={onOpen}
-        className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 text-sm font-bold ring-2 ring-offset-2 ring-offset-surface transition-colors ${avatarClassName}`}
+        className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary/10 text-sm font-bold text-primary"
         aria-label={user.fullName || emptyValue}
       >
         {user.avatar?.url ? (
@@ -232,17 +136,16 @@ function UserMemberCard({ user, actions, onOpen, emptyValue, t }) {
         <p className="mt-0.5 truncate text-xs font-medium leading-4 text-muted">
           {user.familyName || emptyValue}
         </p>
-        <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium leading-4 text-muted/90">
-          <Phone className="h-3 w-3 shrink-0" aria-hidden="true" />
-          <span dir="ltr" className="truncate">{phone || emptyValue}</span>
-        </div>
+        <p className="mt-1 truncate text-[11px] font-medium leading-4 text-muted">
+          <span dir="ltr">{phone || emptyValue}</span>
+          {user.ageGroup ? <span className="text-muted"> · {user.ageGroup}</span> : null}
+        </p>
       </button>
 
-      <div className="flex shrink-0 items-center gap-1.5">
-        <AgeGroupBadge ageGroup={user.ageGroup} />
+      <div className="shrink-0">
         <RowActions actions={actions} />
       </div>
-    </article>
+    </Card>
   );
 }
 
@@ -260,9 +163,9 @@ function UsersCardsGrid({
 }) {
   if (!loading && users.length === 0) {
     return (
-      <div className="rounded-2xl border border-border bg-surface shadow-card">
+      <Card padding={false}>
         <EmptyState title={emptyTitle} description={emptyDescription} icon={emptyIcon} />
-      </div>
+      </Card>
     );
   }
 
@@ -270,19 +173,15 @@ function UsersCardsGrid({
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
       {loading
         ? Array.from({ length: skeletonRows }).map((_, index) => (
-          <div
-            key={index}
-            className="flex animate-pulse items-center gap-3 rounded-2xl border border-border/80 bg-surface p-3 shadow-card"
-          >
-            <div className="h-12 w-12 shrink-0 rounded-2xl bg-surface-alt" />
+          <Card key={index} padding={false} className="flex items-center gap-3 p-3">
+            <Skeleton variant="circle" className="h-12 w-12 shrink-0 !rounded-2xl" />
             <div className="min-w-0 flex-1 space-y-2">
-              <div className="h-4 w-2/3 rounded bg-surface-alt" />
-              <div className="h-3 w-1/2 rounded bg-surface-alt" />
-              <div className="h-3 w-1/3 rounded bg-surface-alt" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-3 w-1/2" />
+              <Skeleton className="h-3 w-1/3" />
             </div>
-            <div className="h-7 w-7 shrink-0 rounded-full bg-surface-alt" />
-            <div className="h-8 w-8 shrink-0 rounded-md bg-surface-alt" />
-          </div>
+            <Skeleton className="h-8 w-8 shrink-0" />
+          </Card>
         ))
         : users.map((user) => (
           <UserMemberCard
@@ -305,7 +204,7 @@ function UsersCardsGrid({
 export default function UsersListPage() {
   const visibleAccountStatus = 'approved';
   const { hasPermission } = useAuth();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const navigate = useNavigate();
 
   const [filters, setFilters] = useState({ fullName: '', ageGroup: '', gender: '', role: '' });
@@ -535,8 +434,8 @@ export default function UsersListPage() {
   return (
     <div className="animate-fade-in space-y-5 pb-24 sm:space-y-6 sm:pb-10">
 
-      {/* ══ HEADER — title, KPI pills, primary action (compact, first-screen) ═══ */}
-      <header className="space-y-3">
+      {/* ══ HEADER — title, primary action, KPI stat cards ════════════════════ */}
+      <header className="space-y-5">
         <Breadcrumbs
           items={[
             { label: t('shared.dashboard'), href: '/dashboard' },
@@ -544,27 +443,24 @@ export default function UsersListPage() {
           ]}
         />
 
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-heading sm:text-3xl">
-              {t('shared.users')}
-            </h1>
-            <p className="mt-1 text-sm text-muted">{t('usersListPage.hero.description')}</p>
-          </div>
+        <PageHeader
+          title={t('shared.users')}
+          subtitle={t('usersListPage.hero.description')}
+          actions={
+            hasPermission('USERS_CREATE') ? (
+              <Link to="/dashboard/users/new" className="hidden shrink-0 sm:block">
+                <Button icon={Plus}>{t('usersListPage.actions.addUser')}</Button>
+              </Link>
+            ) : null
+          }
+        />
 
-          {hasPermission('USERS_CREATE') ? (
-            <Link to="/dashboard/users/new" className="hidden shrink-0 sm:block">
-              <Button icon={Plus}>{t('usersListPage.actions.addUser')}</Button>
-            </Link>
-          ) : null}
-        </div>
-
-        {/* KPI pills — numbers without eating the first mobile screen */}
-        <div className="flex flex-wrap items-center gap-2">
-          <StatPill icon={Users} label={t('usersListPage.stats.totalUsers')} value={totalUsersCount} tone="primary" />
-          <StatPill icon={UserCheck} label={t('usersListPage.stats.activeAccounts')} value={activeCount} tone="success" />
-          <StatPill icon={Lock} label={t('usersListPage.stats.lockedAccounts')} value={lockedCount} tone={lockedCount > 0 ? 'danger' : 'default'} />
-          <StatPill icon={LayoutGrid} label={t('usersListPage.stats.usersOnPage')} value={users.length} tone="gold" />
+        {/* KPI stat cards — one consistent treatment */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard icon={Users} label={t('usersListPage.stats.totalUsers')} value={totalUsersCount} tone="primary" isRTL={isRTL} />
+          <StatCard icon={UserCheck} label={t('usersListPage.stats.activeAccounts')} value={activeCount} tone="success" isRTL={isRTL} />
+          <StatCard icon={Lock} label={t('usersListPage.stats.lockedAccounts')} value={lockedCount} tone={lockedCount > 0 ? 'danger' : 'default'} isRTL={isRTL} />
+          <StatCard icon={LayoutGrid} label={t('usersListPage.stats.usersOnPage')} value={users.length} tone="gold" isRTL={isRTL} />
         </div>
       </header>
 
@@ -582,14 +478,12 @@ export default function UsersListPage() {
             variant="outline"
             icon={SlidersHorizontal}
             onClick={() => setFiltersOpen(true)}
-            className="relative shrink-0"
+            className="shrink-0"
             aria-label={t('usersListPage.filters.title')}
           >
             <span className="hidden sm:inline">{t('usersListPage.filters.title')}</span>
             {activeFilterCount > 0 ? (
-              <span className="ms-0.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-white">
-                {activeFilterCount}
-              </span>
+              <Badge variant="primary" size="sm">{activeFilterCount}</Badge>
             ) : null}
           </Button>
 
@@ -611,14 +505,9 @@ export default function UsersListPage() {
                 {chip.label}
               </Badge>
             ))}
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-muted transition-colors hover:text-danger"
-            >
-              <X className="h-3.5 w-3.5" aria-hidden="true" />
+            <Button variant="ghost" size="xs" onClick={clearFilters}>
               {t('usersListPage.filters.clear')}
-            </button>
+            </Button>
           </div>
         ) : null}
       </div>
@@ -627,7 +516,7 @@ export default function UsersListPage() {
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-bold text-heading">{t('usersListPage.table.title')}</h2>
-          <Badge variant="secondary">
+          <Badge variant="neutral">
             {t('usersListPage.table.results', { count: meta?.count ?? users.length })}
           </Badge>
         </div>
@@ -666,7 +555,7 @@ export default function UsersListPage() {
             />
           )}
 
-          <div className="mt-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-card">
+          <Card padding="sm" className="mt-3">
             <Pagination
               meta={meta}
               onLoadMore={handleNext}
@@ -674,13 +563,13 @@ export default function UsersListPage() {
               cursors={cursorStack}
               loading={isLoading}
             />
-          </div>
+          </Card>
         </div>
       </section>
 
       {/* ══ MOBILE STICKY "ADD USER" ══════════════════════════════════════════ */}
       {hasPermission('USERS_CREATE') ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 shadow-lg backdrop-blur-sm sm:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface p-3 shadow-card sm:hidden">
           <Link to="/dashboard/users/new" className="block">
             <Button icon={Plus} fullWidth size="lg">{t('usersListPage.actions.addUser')}</Button>
           </Link>

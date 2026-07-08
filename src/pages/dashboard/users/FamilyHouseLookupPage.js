@@ -20,9 +20,11 @@ import { useI18n } from '../../../i18n/i18n';
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
+import Card, { CardHeader } from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
+import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
+import Skeleton from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
 import FamilyHouseProfileInsights from '../../../components/users/FamilyHouseProfileInsights';
@@ -32,7 +34,6 @@ import { localizeAidOccurrence } from '../../../utils/aidOccurrenceLocalization'
 import {
   describeCriterionActualValue,
   formatCurrencyEGP,
-  getHouseholdSourceLabel,
   getStatusText,
 } from '../households/householdClassifications.shared';
 import {
@@ -534,21 +535,14 @@ export default function FamilyHouseLookupPage() {
       />
 
       <Card tone="primary" className="space-y-4 sm:space-y-5">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Search className="h-5 w-5" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="text-base font-bold leading-tight text-heading">
-              {t('familyHouseLookup.title')}
-            </h2>
-            <p className="mt-0.5 text-sm text-muted">
-              {t('familyHouseLookup.subtitle')}
-            </p>
-          </div>
-        </div>
+        <CardHeader
+          icon={Search}
+          title={t('familyHouseLookup.title')}
+          subtitle={t('familyHouseLookup.subtitle')}
+          className="!mb-0"
+        />
 
-        {/* Search-type segmented toggle — prominent, thumb-friendly on mobile */}
+        {/* Search-type segmented toggle — lightweight segmented control */}
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted">
             {t('familyHouseLookup.filters.searchType')}
@@ -558,11 +552,10 @@ export default function FamilyHouseLookupPage() {
             className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-surface p-1"
           >
             {[
-              { value: 'familyName', label: t('familyHouseLookup.filters.familyName'), icon: UsersIcon },
-              { value: 'houseName', label: t('familyHouseLookup.filters.houseName'), icon: Building2 },
+              { value: 'familyName', label: t('familyHouseLookup.filters.familyName') },
+              { value: 'houseName', label: t('familyHouseLookup.filters.houseName') },
             ].map((option) => {
               const active = lookupType === option.value;
-              const OptionIcon = option.icon;
               return (
                 <button
                   key={option.value}
@@ -580,7 +573,6 @@ export default function FamilyHouseLookupPage() {
                     : 'text-muted hover:bg-surface-alt hover:text-heading'
                     }`}
                 >
-                  <OptionIcon className="h-4 w-4" />
                   {option.label}
                 </button>
               );
@@ -590,43 +582,36 @@ export default function FamilyHouseLookupPage() {
 
         {/* Primary action: the lookup search field with autocomplete */}
         <div className="relative">
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted">
-            {t('familyHouseLookup.filters.lookupName')}
-          </label>
-          <div className="relative">
-            <Search
-              className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted pointer-events-none ${isRTL ? 'right-3.5' : 'left-3.5'
-                }`}
+          <Input
+            ref={lookupInputRef}
+            label={t('familyHouseLookup.filters.lookupName')}
+            icon={Search}
+            value={lookupName}
+            onChange={(event) => {
+              setLookupName(event.target.value);
+              setLookupDropdownOpen(true);
+            }}
+            onFocus={() => setLookupDropdownOpen(true)}
+            onBlur={() => setTimeout(() => setLookupDropdownOpen(false), 150)}
+            placeholder={t(
+              isFamilyLookup
+                ? 'familyHouseLookup.filters.familyNamePlaceholder'
+                : 'familyHouseLookup.filters.houseNamePlaceholder'
+            )}
+            containerClassName="!mb-0"
+            className={`h-12 text-base ${isRTL ? 'pl-11' : 'pr-11'}`}
+          />
+          {(lookupName || submittedLookupName) ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              icon={X}
+              onClick={handleClear}
+              aria-label={t('familyHouseLookup.filters.clear')}
+              className={`absolute bottom-1.5 !h-9 !w-9 !px-0 rounded-full ${isRTL ? 'left-1.5' : 'right-1.5'}`}
             />
-            <input
-              ref={lookupInputRef}
-              type="text"
-              value={lookupName}
-              onChange={(event) => {
-                setLookupName(event.target.value);
-                setLookupDropdownOpen(true);
-              }}
-              onFocus={() => setLookupDropdownOpen(true)}
-              onBlur={() => setTimeout(() => setLookupDropdownOpen(false), 150)}
-              placeholder={t(
-                isFamilyLookup
-                  ? 'familyHouseLookup.filters.familyNamePlaceholder'
-                  : 'familyHouseLookup.filters.houseNamePlaceholder'
-              )}
-              className={`input-base h-12 w-full text-base ${isRTL ? 'pr-11 pl-11' : 'pl-11 pr-11'}`}
-            />
-            {(lookupName || submittedLookupName) ? (
-              <button
-                type="button"
-                onClick={handleClear}
-                aria-label={t('familyHouseLookup.filters.clear')}
-                className={`absolute top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-alt hover:text-heading ${isRTL ? 'left-3' : 'right-3'
-                  }`}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            ) : null}
-          </div>
+          ) : null}
           {lookupDropdownOpen && (
             <ul
               className="absolute z-20 mt-1.5 w-full max-h-64 overflow-auto rounded-xl border border-border bg-surface shadow-dropdown py-1"
@@ -657,11 +642,6 @@ export default function FamilyHouseLookupPage() {
                         setLookupDropdownOpen(false);
                       }}
                     >
-                      {isFamilyLookup ? (
-                        <UsersIcon className="h-3.5 w-3.5 flex-shrink-0 text-muted" />
-                      ) : (
-                        <Building2 className="h-3.5 w-3.5 flex-shrink-0 text-muted" />
-                      )}
                       <span className="truncate">{name}</span>
                     </li>
                   );
@@ -839,19 +819,16 @@ export default function FamilyHouseLookupPage() {
 
       <Card padding={false} className="overflow-hidden">
         <div className="border-b border-border px-5 py-4 sm:px-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <UsersIcon className="h-[18px] w-[18px]" />
-              </span>
-              <h2 className="text-lg font-bold leading-tight text-heading">
-                {t('familyHouseLookup.table.title')}
-              </h2>
-            </div>
-            <Badge variant="primary">
-              {t('familyHouseLookup.table.results', { count: members.length })}
-            </Badge>
-          </div>
+          <CardHeader
+            icon={UsersIcon}
+            title={t('familyHouseLookup.table.title')}
+            action={
+              <Badge variant="primary">
+                {t('familyHouseLookup.table.results', { count: members.length })}
+              </Badge>
+            }
+            className="!mb-0"
+          />
         </div>
 
         {membersErrorMessage ? (
@@ -897,28 +874,25 @@ export default function FamilyHouseLookupPage() {
   );
 }
 
-function SummaryItem({ icon: Icon, label, value }) {
+function SummaryItem({ label, value }) {
   return (
-    <div className="rounded-xl border border-border bg-surface-alt/50 p-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
-        {Icon ? <Icon className="h-3.5 w-3.5 text-muted" /> : null}
-      </div>
+    <Card tone="muted" padding="sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
       <p className="mt-1 text-lg font-semibold text-heading">{value || 0}</p>
-    </div>
+    </Card>
   );
 }
 
 function FamilyClassificationHint({ copy, relatedHouses = [] }) {
   return (
     <Card className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-heading">{copy.familyHintTitle}</h2>
-          <p className="mt-1 text-sm text-muted">{copy.familyHintDescription}</p>
-        </div>
-        <Badge variant="secondary">{relatedHouses.length}</Badge>
-      </div>
+      <CardHeader
+        icon={Building2}
+        title={copy.familyHintTitle}
+        subtitle={copy.familyHintDescription}
+        action={<Badge variant="secondary">{relatedHouses.length}</Badge>}
+        className="!mb-0"
+      />
 
       {relatedHouses.length === 0 ? (
         <p className="text-sm text-muted">{copy.noClassificationData}</p>
@@ -944,20 +918,20 @@ function AidHistoryPanel({ items, loading, errorMessage, copy, language }) {
   return (
     items.length === 0 && (
       <Card className="space-y-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-heading">{copy.aidsHistoryTitle}</h2>
-            <p className="mt-1 text-sm text-muted">{copy.aidsHistorySubtitle}</p>
-          </div>
-          <Badge variant="secondary">{items.length}</Badge>
-        </div>
+        <CardHeader
+          icon={HandCoins}
+          title={copy.aidsHistoryTitle}
+          subtitle={copy.aidsHistorySubtitle}
+          action={<Badge variant="secondary">{items.length}</Badge>}
+          className="!mb-0"
+        />
 
         {errorMessage ? (
           <EmptyState icon={HandCoins} title={copy.aidsHistoryTitle} description={errorMessage} />
         ) : loading ? (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {Array.from({ length: 2 }).map((_, index) => (
-              <div key={index} className="h-44 animate-pulse rounded-2xl border border-border bg-surface-alt" />
+              <Skeleton key={index} className="h-44 w-full rounded-2xl" />
             ))}
           </div>
         ) : items.length === 0 ? (
@@ -975,7 +949,7 @@ function AidHistoryPanel({ items, loading, errorMessage, copy, language }) {
                 <Link
                   key={`${item.date}-${item.category}-${item.description}`}
                   to={`/dashboard/lords-brethren/aid-history/details?${params}`}
-                  className="group rounded-2xl border border-border bg-surface p-5 transition-all hover:border-primary/30 hover:bg-primary/5"
+                  className="group rounded-xl border border-border bg-surface p-5 shadow-card transition-colors hover:border-primary/40"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -1022,26 +996,28 @@ function HouseholdClassificationPanel({
 }) {
   return (
     <Card className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-heading">{copy.householdClassificationTitle}</h2>
-          <p className="mt-1 text-sm text-muted">{copy.householdClassificationSubtitle}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {canEditHousehold && household ? (
-            <Button type="button" variant="outline" size="sm" icon={Pencil} onClick={onEditHousehold}>
-              {copy.editHouse}
-            </Button>
-          ) : null}
-          {canManageHouseholdClassifications ? (
-            <Link to="/dashboard/households/classifications">
-              <Button type="button" variant="outline" size="sm" icon={ShieldCheck}>
-                {copy.manageRules}
+      <CardHeader
+        icon={Building2}
+        title={copy.householdClassificationTitle}
+        subtitle={copy.householdClassificationSubtitle}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            {canEditHousehold && household ? (
+              <Button type="button" variant="outline" size="sm" icon={Pencil} onClick={onEditHousehold}>
+                {copy.editHouse}
               </Button>
-            </Link>
-          ) : null}
-        </div>
-      </div>
+            ) : null}
+            {canManageHouseholdClassifications ? (
+              <Link to="/dashboard/households/classifications">
+                <Button type="button" variant="outline" size="sm" icon={ShieldCheck}>
+                  {copy.manageRules}
+                </Button>
+              </Link>
+            ) : null}
+          </div>
+        }
+        className="!mb-0"
+      />
 
       {errorMessage ? (
         <EmptyState
@@ -1053,15 +1029,15 @@ function HouseholdClassificationPanel({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
             {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="rounded-xl border border-border bg-surface-alt/50 p-3">
-                <div className="h-3 w-2/3 animate-pulse rounded bg-surface-alt" />
-                <div className="mt-3 h-5 w-1/2 animate-pulse rounded bg-surface-alt" />
-              </div>
+              <Card key={index} tone="muted" padding="sm" className="space-y-3">
+                <Skeleton className="h-3 w-2/3" />
+                <Skeleton className="h-5 w-1/2" />
+              </Card>
             ))}
           </div>
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {Array.from({ length: 2 }).map((_, index) => (
-              <div key={index} className="h-28 animate-pulse rounded-2xl border border-border bg-surface" />
+              <Skeleton key={index} className="h-28 w-full rounded-xl" />
             ))}
           </div>
         </div>
@@ -1100,24 +1076,20 @@ function HouseholdClassificationPanel({
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <div className="rounded-2xl border border-border bg-surface p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-heading">{copy.primaryClassification}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <HouseholdStatusBadge
-                      classification={household.primaryClassification}
-                      language={language}
-                    />
-                    <Badge variant={household.isPrimaryClassificationManual ? 'secondary' : 'default'}>
-                      {household.isPrimaryClassificationManual ? copy.manualOverride : copy.computedMode}
-                    </Badge>
-                  </div>
-                </div>
+            <Card padding="sm">
+              <p className="text-sm font-semibold text-heading">{copy.primaryClassification}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <HouseholdStatusBadge
+                  classification={household.primaryClassification}
+                  language={language}
+                />
+                <Badge variant={household.isPrimaryClassificationManual ? 'secondary' : 'default'}>
+                  {household.isPrimaryClassificationManual ? copy.manualOverride : copy.computedMode}
+                </Badge>
               </div>
-            </div>
+            </Card>
 
-            <div className="rounded-2xl border border-border bg-surface p-4">
+            <Card padding="sm">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm font-semibold text-heading">{copy.incomeSources}</p>
                 <Badge variant="default">{household.incomeSources?.length || 0}</Badge>
@@ -1133,7 +1105,7 @@ function HouseholdClassificationPanel({
               ) : (
                 <p className="mt-3 text-sm text-muted">{copy.noIncomeSources}</p>
               )}
-            </div>
+            </Card>
           </div>
 
           <div className="space-y-3">
@@ -1159,7 +1131,7 @@ function HouseholdClassificationPanel({
 
 function HouseholdEvaluationCard({ evaluation, language, copy }) {
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4">
+    <Card padding="sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-heading">{evaluation.name}</h3>
@@ -1186,13 +1158,13 @@ function HouseholdEvaluationCard({ evaluation, language, copy }) {
       ) : (
         <p className="mt-4 text-sm text-muted">{copy.noCriteria}</p>
       )}
-    </div>
+    </Card>
   );
 }
 
 function CriterionResultRow({ criterion, language, copy }) {
   return (
-    <div className="rounded-xl border border-border/70 bg-surface-alt/40 p-3">
+    <Card tone="muted" padding="sm">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-medium text-heading">
@@ -1212,7 +1184,7 @@ function CriterionResultRow({ criterion, language, copy }) {
           {copy.criteriaActualValue}: {describeCriterionActualValue(criterion, language)}
         </span>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -1246,22 +1218,17 @@ function RankedBars({ title, items, loading, emptyLabel, linkType }) {
   const maxValue = Math.max(...items.map((item) => item.count || 0), 1);
 
   return (
-    <div className="rounded-xl border border-border bg-surface p-4">
+    <Card padding="sm">
       <h3 className="text-sm font-semibold text-heading">{title}</h3>
       {loading ? (
         <div className="mt-4 space-y-3">
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="space-y-1.5">
               <div className="flex items-center justify-between gap-3">
-                <div className="h-3 w-24 animate-pulse rounded bg-surface-alt" />
-                <div className="h-4 w-6 animate-pulse rounded bg-surface-alt" />
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-4 w-6" />
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-surface-alt">
-                <div
-                  className="h-full animate-pulse rounded-full bg-border"
-                  style={{ width: `${70 - index * 15}%` }}
-                />
-              </div>
+              <Skeleton className="h-1.5 w-full !rounded-full" />
             </div>
           ))}
         </div>
@@ -1297,7 +1264,7 @@ function RankedBars({ title, items, loading, emptyLabel, linkType }) {
           })}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
