@@ -471,3 +471,118 @@ export function ServicePriestList({ priests, isRTL, t }) {
     </div>
   );
 }
+
+/* ════════════════════════════════════════════════════════════════
+   SANCTUARY DESIGN PRIMITIVES — shared across the public site
+   (landing, archive, meetings). Cinematic navy + antique gold.
+   ════════════════════════════════════════════════════════════════ */
+export const GOLD_TEXT = {
+  backgroundImage: 'linear-gradient(180deg,#f0d792 0%,#d5ab55 48%,#a9791f 100%)',
+  WebkitBackgroundClip: 'text',
+  backgroundClip: 'text',
+  color: 'transparent',
+};
+export const NAVY_BAND = 'linear-gradient(160deg,#0c1c30 0%,#12293f 46%,#0a1626 100%)';
+
+// A Coptic/Byzantine rounded-arch outline, drawn as a hairline.
+export function ArchOutline({ className = '' }) {
+  return (
+    <svg viewBox="0 0 300 180" fill="none" preserveAspectRatio="xMidYMin meet" className={className} aria-hidden="true">
+      <path
+        d="M6 178 L6 92 C6 34 66 6 150 6 C234 6 294 34 294 92 L294 178"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+// Gold hairline divider with a small cross at its center.
+export function GoldDivider({ light = false, className = '' }) {
+  const line = light ? 'via-white/35' : 'via-secondary/45';
+  const cross = light ? 'text-white/70' : 'text-secondary';
+  return (
+    <div className={`flex items-center justify-center gap-3 ${className}`}>
+      <span className={`h-px w-14 bg-gradient-to-r from-transparent ${line} to-transparent`} />
+      <Cross className={`h-3.5 w-3.5 ${cross}`} />
+      <span className={`h-px w-14 bg-gradient-to-l from-transparent ${line} to-transparent`} />
+    </div>
+  );
+}
+
+// Centered section header — ceremonial display type + gold eyebrow + divider.
+export function DesktopSectionHeader({ label, title, subtitle, tone = 'light' }) {
+  const dark = tone === 'dark';
+  return (
+    <Reveal>
+      <div className="mx-auto max-w-3xl text-center">
+        <div className="flex justify-center">
+          <span
+            className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.28em] ${
+              dark
+                ? 'border-white/15 bg-white/[0.06] text-secondary'
+                : 'border-secondary/25 bg-secondary/[0.08] text-secondary'
+            }`}
+          >
+            <Cross className="h-3 w-3" />
+            {label}
+          </span>
+        </div>
+        <h2
+          className={`font-display mt-6 text-3xl sm:text-4xl lg:text-[2.9rem] font-bold leading-[1.22] ${
+            dark ? 'text-white' : 'text-heading'
+          }`}
+        >
+          {title}
+        </h2>
+        {subtitle ? (
+          <p
+            className={`mx-auto mt-4 max-w-2xl text-sm sm:text-base lg:text-lg leading-relaxed ${
+              dark ? 'text-white/60' : 'text-muted'
+            }`}
+          >
+            {subtitle}
+          </p>
+        ) : null}
+        <GoldDivider light={dark} className="mt-7" />
+      </div>
+    </Reveal>
+  );
+}
+
+// Cinematic navy hero band for interior public pages (archive, meetings).
+export function SanctuaryPageHeader({ eyebrow, title, subtitle, icon: Icon = Cross }) {
+  return (
+    <section className="relative overflow-hidden text-white" style={{ background: NAVY_BAND }}>
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/50 to-transparent" />
+        <div
+          className="absolute inset-0 opacity-[0.05]"
+          style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }}
+        />
+        <div className="absolute -top-24 -end-24 h-96 w-96 rounded-full bg-secondary/10 blur-[110px]" />
+        <div className="absolute -bottom-24 -start-24 h-80 w-80 rounded-full bg-primary-light/10 blur-[90px]" />
+      </div>
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center">
+        <ArchOutline className="mt-10 w-[460px] max-w-[72%] text-secondary/25" />
+      </div>
+      <div className="page-container relative pb-16 pt-36 text-center">
+        <Reveal>
+          <span className="inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-white/[0.06] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.28em] text-secondary backdrop-blur-sm">
+            <Icon className="h-3.5 w-3.5" />
+            {eyebrow}
+          </span>
+          <h1 className="font-display mx-auto mt-6 max-w-3xl text-4xl font-bold leading-[1.2] text-white lg:text-5xl">
+            {title}
+          </h1>
+          {subtitle ? (
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/65 lg:text-base">{subtitle}</p>
+          ) : null}
+          <GoldDivider light className="mt-7" />
+        </Reveal>
+      </div>
+    </section>
+  );
+}

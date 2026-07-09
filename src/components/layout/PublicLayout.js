@@ -60,7 +60,7 @@ export default function PublicLayout() {
       { label: text('publicLayout.home'), href: '/' },
       { label: text('publicLayout.about'), href: '#about' },
       { label: text('publicLayout.priests'), href: '#priests' },
-      { label: text('publicLayout.verses'), href: '#verses' },
+      // { label: text('publicLayout.verses'), href: '#verses' },
       { label: getOptionalText('publicLayout.archive', 'Archive'), href: '/archive' },
       { label: getOptionalText('publicLayout.meetings', 'Meetings'), href: '/meetings' },
       { label: text('publicLayout.visit'), href: '#visit' },
@@ -91,6 +91,19 @@ export default function PublicLayout() {
   const brandPrimary = text('publicLayout.brandPrimary');
   const brandSecondary = text('publicLayout.brandSecondary');
 
+  // The landing hero and the archive/meetings page-header bands are dark, so the
+  // transparent header must render light until the user scrolls. Other public
+  // pages keep dark text.
+  const isLandingTop = location.pathname === '/' && !location.hash;
+  const hasDarkHeaderBand =
+    isLandingTop ||
+    location.pathname === '/archive' ||
+    location.pathname === '/meetings';
+  const overHero = hasDarkHeaderBand && !scrolled;
+  const ctaClass = overHero
+    ? '!rounded-xl !text-xs !font-bold !px-4 !bg-secondary !text-[#1c1305] hover:!bg-[#c69a41]'
+    : '!rounded-xl !text-xs !font-bold !px-4';
+
   const isLinkActive = (href) => {
     if (href === '/') return location.pathname === '/' && !location.hash;
     if (href.startsWith('/')) return location.pathname === href;
@@ -117,11 +130,14 @@ export default function PublicLayout() {
               <img src='/logo.png' />
             </div>
             <div className="hidden sm:block">
-              <span className="font-extrabold text-heading text-sm leading-tight block">
+              <span
+                className={`font-display font-extrabold text-sm leading-tight block ${overHero ? 'text-white' : 'text-heading'
+                  }`}
+              >
                 {brandPrimary}
               </span>
               <span
-                className={`text-[10px] font-medium leading-none ${scrolled ? 'text-muted' : 'text-muted/70'
+                className={`text-[10px] font-medium leading-none ${overHero ? 'text-white/70' : scrolled ? 'text-muted' : 'text-muted/70'
                   }`}
               >
                 {brandSecondary}
@@ -135,14 +151,17 @@ export default function PublicLayout() {
                 key={link.href}
                 href={link.href}
                 className={`relative px-3.5 py-2 text-[13px] font-semibold rounded-lg transition-all duration-300 ${isLinkActive(link.href)
-                  ? 'text-primary bg-primary/8'
-                  : `${scrolled ? 'text-muted' : 'text-muted/80'
-                  } hover:text-primary hover:bg-primary/5`
+                  ? overHero
+                    ? 'text-white bg-white/15'
+                    : 'text-primary bg-primary/8'
+                  : overHero
+                    ? 'text-white/85 hover:text-white hover:bg-white/10'
+                    : `${scrolled ? 'text-muted' : 'text-muted/80'} hover:text-primary hover:bg-primary/5`
                   }`}
               >
                 {link.label}
                 {isLinkActive(link.href) ? (
-                  <span className="absolute bottom-0 inset-x-3 h-0.5 bg-primary rounded-full" />
+                  <span className={`absolute bottom-0 inset-x-3 h-0.5 rounded-full ${overHero ? 'bg-secondary' : 'bg-primary'}`} />
                 ) : null}
               </a>
             ))}
@@ -152,13 +171,13 @@ export default function PublicLayout() {
             <LanguageSwitcher className="hidden sm:inline-flex" />
             {isAuthenticated ? (
               <Link to="/dashboard">
-                <Button size="sm" className="!rounded-xl !text-xs !font-bold !px-4">
+                <Button size="sm" className={ctaClass}>
                   {text('publicLayout.dashboard')}
                 </Button>
               </Link>
             ) : (
               <Link to="/auth/login">
-                <Button size="sm" icon={LogIn} className="!rounded-xl !text-xs !font-bold !px-4">
+                <Button size="sm" icon={LogIn} className={ctaClass}>
                   {text('publicLayout.login')}
                 </Button>
               </Link>
@@ -291,7 +310,7 @@ export default function PublicLayout() {
                   <img src='/logo.png' />
                 </div>
                 <div>
-                  <span className="font-extrabold text-heading text-sm block">{brandPrimary}</span>
+                  <span className="font-display font-extrabold text-heading text-sm block">{brandPrimary}</span>
                   <span className="text-[10px] text-muted">{brandSecondary}</span>
                 </div>
               </div>

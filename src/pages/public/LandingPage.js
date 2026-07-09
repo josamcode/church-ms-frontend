@@ -5,64 +5,84 @@ import {
   ArrowLeft, ArrowRight, BookOpen, Church, Clock3, Heart, HandHeart,
   Mail, MapPin, Phone, Quote, ShieldCheck, Sparkles, Users, UserCircle2,
   Cross, Star, Globe, Navigation, ExternalLink, CalendarClock, Library,
+  ChevronDown,
 } from 'lucide-react';
 import { settingsApi, divineLiturgiesApi, archiveApi, meetingsApi } from '../../api/endpoints';
 import { useAuth } from '../../auth/auth.hooks';
 import Button from '../../components/ui/Button';
-import Badge from '../../components/ui/Badge';
 import { useI18n } from '../../i18n/i18n';
 import { useLandingPublicContent } from '../../hooks/useLandingContent';
 import { getLocalizedValue } from '../../utils/landingContent';
 import LandingMobilePage from './LandingMobilePage';
 import {
   DEFAULT_DIRECTIONS_URL, buildDefaultMapEmbedUrl, useInView, useParallax,
-  useIsMobile, Reveal, StaggerChildren, AnimatedCounter, SectionHeader,
+  useIsMobile, Reveal, StaggerChildren, AnimatedCounter,
   GuestEntryOverlay, translateDayLabel, formatServiceTime, formatExceptionDate,
   ServicePriestList,
+  GOLD_TEXT, NAVY_BAND, ArchOutline, GoldDivider, DesktopSectionHeader,
 } from './LandingPage.shared';
 
+/* ════════════════════════════════════════════════════════════════
+   SANCTUARY DESIGN LANGUAGE — cinematic navy + antique gold, Tajawal display
+   ════════════════════════════════════════════════════════════════ */
+/* GOLD_TEXT, NAVY_BAND, ArchOutline, GoldDivider, DesktopSectionHeader are
+   imported from ./LandingPage.shared (see import block above). */
+
 /* ════════════════════════════════
-   DESKTOP CARDS
+   CLERGY — icon-style arched portraits
    ════════════════════════════════ */
 function DesktopPriestCard({ priest, isRTL, index }) {
-  const [e, setE] = useState(false);
-  const hasImg = Boolean(priest.image) && !e;
+  const [err, setErr] = useState(false);
+  const hasImg = Boolean(priest.image) && !err;
   return (
     <Reveal delay={index * 0.12}>
-      <div className="group relative">
-        <div className="absolute -inset-1 rounded-[2rem] bg-gradient-to-br from-primary/15 via-transparent to-secondary/15 opacity-0 blur-sm group-hover:opacity-100 transition-opacity duration-700" />
-        <div className="relative overflow-hidden rounded-[1.75rem] bg-surface border border-primary/8 group-hover:border-primary/20 group-hover:shadow-2xl group-hover:shadow-primary/8 transition-all duration-700">
-          <div className="relative h-64 sm:h-72 overflow-hidden bg-gradient-to-b from-primary/8 via-primary/4 to-surface">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center_top,var(--color-primary)_0%,transparent_70%)] opacity-10 group-hover:opacity-20 transition-opacity duration-700" />
-            <div className="absolute top-4 end-4 text-primary/5 group-hover:text-primary/10 group-hover:rotate-12 transition-all duration-700"><Cross className="h-12 w-12" /></div>
-            <div className="absolute inset-0 flex items-end justify-center">
-              {hasImg
-                ? <img src={priest.image} alt={priest.alt} loading="lazy" className="h-full max-h-[260px] w-auto max-w-[85%] object-contain object-bottom group-hover:scale-105 transition-all duration-700" onError={() => setE(true)} />
-                : <div className="flex items-center justify-center pb-8"><div className="relative"><div className="absolute inset-0 rounded-full bg-primary/10 blur-2xl animate-pulse" /><div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-primary/15 to-primary/5 border-2 border-primary/10"><UserCircle2 className="h-16 w-16 text-primary/30" /></div></div></div>
-              }
+      <div className="group relative flex flex-col items-center text-center">
+        {/* Arched portrait frame */}
+        <div className="relative w-full max-w-[280px]">
+          <div className="pointer-events-none absolute -inset-3 rounded-t-[8rem] rounded-b-[1.75rem] bg-gradient-to-b from-secondary/25 via-secondary/5 to-transparent opacity-0 blur-md transition-opacity duration-700 group-hover:opacity-100" />
+          <div
+            className="relative overflow-hidden rounded-t-[7rem] rounded-b-[1.75rem] border border-secondary/30 bg-gradient-to-b from-primary/12 via-surface to-surface shadow-lg shadow-primary/10 transition-all duration-700 group-hover:shadow-2xl group-hover:shadow-primary/15"
+          >
+            <div className="relative aspect-[3/4] w-full">
+              {hasImg ? (
+                <img
+                  src={priest.image}
+                  alt={priest.alt}
+                  loading="lazy"
+                  onError={() => setErr(true)}
+                  className="absolute inset-0 h-full w-full pt-4 object-cover object-top transition-transform duration-700 group-hover:scale-[1.04]"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-full bg-secondary/10 blur-2xl" />
+                    <div className="relative flex h-28 w-28 items-center justify-center rounded-full border border-secondary/25 bg-gradient-to-br from-primary/12 to-primary/4 text-primary/40">
+                      <UserCircle2 className="h-16 w-16" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* soft bottom fade for legibility */}
+              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/35 to-transparent" />
             </div>
-            <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-surface to-transparent" />
+            {/* inner hairline frame */}
+            <div className="pointer-events-none absolute inset-2 rounded-t-[6.4rem] rounded-b-[1.4rem] border border-secondary/25" />
           </div>
-          <div className={`relative px-6 pb-6 -mt-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-            <div className="mb-3"><span className="inline-flex items-center gap-1.5 rounded-full bg-primary/8 border border-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary"><Star className="h-2.5 w-2.5 fill-current" />{priest.role}</span></div>
-            <h3 className="text-lg sm:text-xl font-extrabold text-heading leading-tight">{priest.name}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted line-clamp-3">{priest.bio}</p>
+          {/* apex cross medallion */}
+          <div className="absolute -top-4 left-1/2 -translate-x-1/2 flex h-9 w-9 items-center justify-center rounded-full border border-secondary/40 bg-secondary text-white shadow-md">
+            <Cross className="h-4 w-4" />
           </div>
         </div>
-      </div>
-    </Reveal>
-  );
-}
-function DesktopVerseCard({ verse, isRTL, index }) {
-  return (
-    <Reveal delay={index * 0.12}>
-      <div className={`group relative h-full ${isRTL ? 'text-right' : 'text-left'}`}>
-        <div className="h-full rounded-[1.75rem] border border-primary/8 bg-gradient-to-br from-page via-surface to-page p-6 sm:p-8 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 flex flex-col">
-          <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/8 text-primary group-hover:bg-primary group-hover:text-white group-hover:shadow-lg group-hover:shadow-primary/25 transition-all duration-500"><Quote className="h-5 w-5" /></div>
-          <p className="flex-1 text-base sm:text-lg font-medium leading-relaxed text-heading/90">"{verse.text}"</p>
-          <div className="mt-6 pt-4 border-t border-primary/8">
-            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}><BookOpen className="h-3.5 w-3.5 text-primary/60" /><span className="text-sm font-bold text-primary">{verse.reference}</span></div>
-          </div>
+
+        <div className="mt-6">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-secondary/20 bg-secondary/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-secondary">
+            <Star className="h-2.5 w-2.5 fill-current" />
+            {priest.role}
+          </span>
+          <h3 className="font-display mt-3 text-xl font-bold leading-tight text-heading">{priest.name}</h3>
+          {priest.bio ? (
+            <p className="mx-auto mt-2 max-w-[260px] text-sm leading-relaxed text-muted line-clamp-3">{priest.bio}</p>
+          ) : null}
         </div>
       </div>
     </Reveal>
@@ -70,72 +90,46 @@ function DesktopVerseCard({ verse, isRTL, index }) {
 }
 
 /* ══════════════════════════════════════════════════════
-   DESKTOP SERVICES SECTION
+   SERVICES — weekly service board
    ══════════════════════════════════════════════════════ */
-function DesktopServiceCard({ entry, language, t, isRTL, accent, accentText, index }) {
+function DesktopServiceCard({ entry, language, t, isRTL, accent, index }) {
   const start = formatServiceTime(entry.startTime, language);
   const end = formatServiceTime(entry.endTime, language);
   const sep = t('landing.services.timeSeparator');
-
-  const title = entry.dayOfWeek
-    ? translateDayLabel(entry.dayOfWeek, t)
-    : entry.displayName;
+  const title = entry.dayOfWeek ? translateDayLabel(entry.dayOfWeek, t) : entry.displayName;
 
   return (
     <Reveal delay={index * 0.06}>
       <article
-        className={`
-          group relative h-full rounded-2xl border border-border bg-surface p-5
-          transition-all duration-300
-          hover:border-primary/25 hover:shadow-md
-          ${isRTL ? 'text-right' : 'text-left'}
-        `}
+        className={`group relative h-full overflow-hidden rounded-2xl border border-border bg-surface p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-secondary/30 hover:shadow-lg hover:shadow-primary/5 ${isRTL ? 'text-right' : 'text-left'
+          }`}
       >
         <div className={`flex h-full gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          {/* Accent marker */}
-          <div
-            className={`
-              mt-1 h-10 w-1 flex-shrink-0 rounded-full bg-gradient-to-b ${accent}
-            `}
-          />
-
+          <div className={`mt-1 h-full w-1 flex-shrink-0 rounded-full bg-gradient-to-b ${accent}`} />
           <div className="min-w-0 flex-1">
-            {/* Header */}
-            <div
-              className={`flex items-start justify-between gap-4`}
-            >
+            <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <h3 className="text-base font-bold leading-tight text-heading">
-                  {title}
-                </h3>
-
+                <h3 className="font-display text-lg font-bold leading-tight text-heading">{title}</h3>
                 {entry.dayOfWeek && entry.name ? (
-                  <p className="mt-1 text-sm leading-5 text-muted">
-                    {entry.name}
-                  </p>
+                  <p className="mt-1 text-sm leading-5 text-muted">{entry.name}</p>
                 ) : null}
               </div>
-
               <div
-                className={`
-                  flex shrink-0 items-center gap-1.5 rounded-full border border-border
-                  bg-background px-3 py-1 text-xs font-semibold ${accentText}
-                `}
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-secondary/20 bg-secondary/[0.08] px-3 py-1 text-sm font-bold text-secondary"
                 dir="ltr"
               >
-                <span className='text-lg'>
+                <Clock3 className="h-3.5 w-3.5" />
+                <span>
                   {start}
                   {end ? ` ${sep} ${end}` : ''}
                 </span>
               </div>
             </div>
-
-            {/* Priests */}
-            {Array.isArray(entry.priests) && entry.priests.length > 0 && (
+            {Array.isArray(entry.priests) && entry.priests.length > 0 ? (
               <div className="mt-4 border-t border-border/70 pt-4">
                 <ServicePriestList priests={entry.priests} isRTL={isRTL} t={t} />
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </article>
@@ -149,18 +143,21 @@ function DesktopUpcomingExceptionCard({ entry, language, t, isRTL, index }) {
   const sep = t('landing.services.timeSeparator');
   return (
     <Reveal delay={index * 0.06}>
-      <div className={`group relative h-full overflow-hidden rounded-[1.5rem] border border-amber-500/20 bg-gradient-to-br from-amber-500/8 via-amber-500/3 to-transparent p-6 hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-        <div className={`absolute top-4 ${isRTL ? 'left-4' : 'right-4'} text-amber-500/15`}>
+      <div
+        className={`group relative h-full overflow-hidden rounded-2xl border border-secondary/30 bg-gradient-to-br from-secondary/[0.1] via-secondary/[0.04] to-transparent p-6 transition-all duration-500 hover:shadow-xl hover:shadow-secondary/10 ${isRTL ? 'text-right' : 'text-left'
+          }`}
+      >
+        <div className={`absolute top-4 ${isRTL ? 'left-4' : 'right-4'} text-secondary/15`}>
           <CalendarClock className="h-16 w-16" />
         </div>
         <div className={`relative flex items-start gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg">
-            <Star className="h-5 w-5 text-white fill-white" />
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-secondary to-[#8a5f16] shadow-lg">
+            <Star className="h-5 w-5 fill-white text-white" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-base font-extrabold text-heading leading-tight">{entry.displayName}</p>
-            <p className="mt-1 text-xs text-muted leading-relaxed">{formatExceptionDate(entry.date, language)}</p>
-            <p className="mt-2 text-sm font-bold text-amber-600 tracking-wide" dir="ltr">
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-lg font-bold leading-tight text-heading">{entry.displayName}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted">{formatExceptionDate(entry.date, language)}</p>
+            <p className="mt-2 text-sm font-bold tracking-wide text-secondary" dir="ltr">
               {start}
               {end ? ` ${sep} ${end}` : ''}
             </p>
@@ -172,109 +169,94 @@ function DesktopUpcomingExceptionCard({ entry, language, t, isRTL, index }) {
   );
 }
 
+function DesktopServiceGroup({ title, icon: Icon, children }) {
+  return (
+    <div className="mt-12">
+      <Reveal>
+        <div className="mb-6 flex items-center justify-center gap-3">
+          <span className="h-px w-8 bg-gradient-to-r from-transparent to-secondary/40" />
+          <div className="flex items-center gap-2 text-secondary">
+            {Icon ? <Icon className="h-4 w-4" /> : null}
+            <h3 className="font-display text-lg font-bold tracking-wide text-heading">{title}</h3>
+          </div>
+          <span className="h-px w-8 bg-gradient-to-l from-transparent to-secondary/40" />
+        </div>
+      </Reveal>
+      {children}
+    </div>
+  );
+}
+
 function DesktopServicesSection({ t, isRTL, language, schedule, isLoading }) {
   const liturgies = schedule?.recurringDivineLiturgies || [];
   const vespers = schedule?.recurringVespers || [];
   const upcoming = schedule?.exceptionalDivineLiturgies || [];
 
+  const emptyBox = (msg) => (
+    <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center">
+      <p className="text-sm text-muted">{msg}</p>
+    </div>
+  );
+
   return (
-    <section id="services" className="relative py-20 sm:py-28 lg:py-32">
+    <section id="services" className="relative overflow-hidden py-24 lg:py-32 bg-surface-alt">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-surface/40 via-transparent to-surface/40" />
-        <div className="absolute top-1/3 -end-32 h-[400px] w-[400px] rounded-full bg-primary/[0.04] blur-[140px]" />
-        <div className="absolute bottom-1/4 -start-32 h-[360px] w-[360px] rounded-full bg-indigo-500/[0.05] blur-[140px]" />
+        <div className="absolute top-1/3 -end-32 h-[380px] w-[380px] rounded-full bg-primary/[0.05] blur-[140px]" />
+        <div className="absolute bottom-1/4 -start-32 h-[340px] w-[340px] rounded-full bg-secondary/[0.05] blur-[140px]" />
       </div>
       <div className="page-container relative">
-        <SectionHeader
+        <DesktopSectionHeader
           label={t('landing.services.label')}
           title={t('landing.services.title')}
           subtitle={t('landing.services.subtitle')}
-          centered
         />
 
-        {/* Divine Liturgies */}
-        <div className="mt-12 sm:mt-16">
-          <Reveal>
-            <div className={`flex items-center gap-3 mb-5 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
-              <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider text-heading">
-                {t('landing.services.liturgies')}
-              </h3>
-            </div>
-          </Reveal>
-          {isLoading ? (
-            <div className="rounded-[1.5rem] border border-border bg-surface p-8 text-center">
-              <p className="text-sm text-muted">{t('landing.services.loading')}</p>
-            </div>
-          ) : liturgies.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-dashed border-border bg-surface p-8 text-center">
-              <p className="text-sm text-muted">{t('landing.services.empty')}</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {liturgies.map((entry, i) => (
-                <DesktopServiceCard
-                  key={entry.id}
-                  entry={entry}
-                  language={language}
-                  t={t}
-                  isRTL={isRTL}
-                  accent="from-primary to-primary-dark"
-                  accentText="text-primary"
-                  index={i}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Vespers */}
-        <div className="mt-10 sm:mt-12">
-          <Reveal>
-            <div className={`flex items-center gap-3 mb-5 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
-              <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider text-heading">
-                {t('landing.services.vespers')}
-              </h3>
-            </div>
-          </Reveal>
-          {isLoading ? (
-            <div className="rounded-[1.5rem] border border-border bg-surface p-8 text-center">
-              <p className="text-sm text-muted">{t('landing.services.loading')}</p>
-            </div>
-          ) : vespers.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-dashed border-border bg-surface p-8 text-center">
-              <p className="text-sm text-muted">{t('landing.services.emptyVespers')}</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {vespers.map((entry, i) => (
-                <DesktopServiceCard
-                  key={entry.id}
-                  entry={entry}
-                  language={language}
-                  t={t}
-                  isRTL={isRTL}
-                  accent="from-indigo-500 to-purple-600"
-                  accentText="text-indigo-600"
-                  index={i}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Upcoming exceptional services */}
-        {upcoming.length > 0 ? (
-          <div className="mt-10 sm:mt-12">
-            <Reveal>
-              <div className={`flex items-center gap-3 mb-5 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-md">
-                  <CalendarClock className="h-4 w-4 text-white" />
+        <DesktopServiceGroup title={t('landing.services.liturgies')} icon={Church}>
+          {isLoading
+            ? emptyBox(t('landing.services.loading'))
+            : liturgies.length === 0
+              ? emptyBox(t('landing.services.empty'))
+              : (
+                <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {liturgies.map((entry, i) => (
+                    <DesktopServiceCard
+                      key={entry.id}
+                      entry={entry}
+                      language={language}
+                      t={t}
+                      isRTL={isRTL}
+                      accent="from-secondary to-[#8a5f16]"
+                      index={i}
+                    />
+                  ))}
                 </div>
-                <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider text-heading">
-                  {t('landing.services.upcoming')}
-                </h3>
-              </div>
-            </Reveal>
+              )}
+        </DesktopServiceGroup>
+
+        <DesktopServiceGroup title={t('landing.services.vespers')} icon={Clock3}>
+          {isLoading
+            ? emptyBox(t('landing.services.loading'))
+            : vespers.length === 0
+              ? emptyBox(t('landing.services.emptyVespers'))
+              : (
+                <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {vespers.map((entry, i) => (
+                    <DesktopServiceCard
+                      key={entry.id}
+                      entry={entry}
+                      language={language}
+                      t={t}
+                      isRTL={isRTL}
+                      accent="from-primary to-primary-light"
+                      index={i}
+                    />
+                  ))}
+                </div>
+              )}
+        </DesktopServiceGroup>
+
+        {upcoming.length > 0 ? (
+          <DesktopServiceGroup title={t('landing.services.upcoming')} icon={CalendarClock}>
             <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {upcoming.map((entry, i) => (
                 <DesktopUpcomingExceptionCard
@@ -287,24 +269,27 @@ function DesktopServicesSection({ t, isRTL, language, schedule, isLoading }) {
                 />
               ))}
             </div>
-          </div>
+          </DesktopServiceGroup>
         ) : null}
       </div>
     </section>
   );
 }
 
+/* ══════════════════════════════════════════════════════
+   ARCHIVE (teaser)
+   ══════════════════════════════════════════════════════ */
 function DesktopArchiveCard({ collection, isRTL, index, tf }) {
   const cover = collection?.photos?.[0] || null;
   const photoCount = collection?.photos?.length || 0;
-
   return (
     <Reveal delay={index * 0.12}>
       <Link
         to="/archive"
-        className={`group relative block h-full overflow-hidden rounded-[1.75rem] border border-primary/8 bg-surface hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/8 transition-all duration-500 ${isRTL ? 'text-right' : 'text-left'}`}
+        className={`group relative block h-full overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-500 hover:-translate-y-0.5 hover:border-secondary/30 hover:shadow-2xl hover:shadow-primary/10 ${isRTL ? 'text-right' : 'text-left'
+          }`}
       >
-        <div className="relative h-56 overflow-hidden bg-gradient-to-br from-primary/10 via-surface to-page">
+        <div className="relative h-60 overflow-hidden bg-gradient-to-br from-primary/12 via-surface to-surface-alt">
           {cover ? (
             <>
               <img
@@ -313,18 +298,22 @@ function DesktopArchiveCard({ collection, isRTL, index, tf }) {
                 loading="lazy"
                 className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
             </>
           ) : (
-            <div className="flex h-full items-center justify-center text-primary/40">
+            <div className="flex h-full items-center justify-center text-secondary/40">
               <Library className="h-12 w-12" />
             </div>
           )}
           <div className="absolute inset-x-0 bottom-0 p-5">
-            <p className={`text-lg font-extrabold leading-tight ${cover ? 'text-white' : 'text-heading'}`}>
+            <p className={`font-display text-lg font-bold leading-tight ${cover ? 'text-white' : 'text-heading'}`}>
               {collection.title}
             </p>
-            <p className={`mt-1 text-xs font-semibold uppercase tracking-wider ${cover ? 'text-white/80' : 'text-muted'}`}>
+            <p
+              className={`mt-1 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider ${cover ? 'text-secondary/90' : 'text-muted'
+                }`}
+            >
+              <Library className="h-3.5 w-3.5" />
               {tf('landing.archive.photos', `${photoCount} photos`, { count: photoCount })}
             </p>
           </div>
@@ -338,44 +327,31 @@ function DesktopArchiveSection({ isRTL, collections, isLoading, tf }) {
   const teaser = (Array.isArray(collections) ? collections : [])
     .filter((collection) => Array.isArray(collection?.photos) && collection.photos.length)
     .slice(0, 3);
-
-  // Degrade gracefully: hide the whole section when there is nothing to show.
   if (!isLoading && !teaser.length) return null;
 
   return (
-    <section id="archive" className="relative py-20 sm:py-28 lg:py-32 bg-surface">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--color-primary)_0%,transparent_70%)] opacity-[0.03]" />
-      </div>
+    <section id="archive" className="relative py-24 lg:py-32">
       <div className="page-container relative">
-        <SectionHeader
+        <DesktopSectionHeader
           label={tf('landing.archive.label', 'Our Archive')}
           title={tf('landing.archive.title', 'Moments and memories')}
           subtitle={tf('landing.archive.subtitle', 'A glimpse of our published collections.')}
-          centered
         />
-
         {isLoading ? (
-          <div className="mt-12 rounded-[1.5rem] border border-border bg-surface p-8 text-center">
+          <div className="mt-14 rounded-2xl border border-border bg-surface p-8 text-center">
             <p className="text-sm text-muted">{tf('landing.archive.loading', 'Loading archive...')}</p>
           </div>
         ) : (
           <>
-            <div className="mt-12 sm:mt-16 grid grid-cols-1 gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {teaser.map((collection, i) => (
-                <DesktopArchiveCard
-                  key={collection.id}
-                  collection={collection}
-                  isRTL={isRTL}
-                  index={i}
-                  tf={tf}
-                />
+                <DesktopArchiveCard key={collection.id} collection={collection} isRTL={isRTL} index={i} tf={tf} />
               ))}
             </div>
             <Reveal>
               <div className="mt-10 flex justify-center">
                 <Link to="/archive">
-                  <Button size="lg" className="!rounded-xl !font-bold">
+                  <Button size="lg" icon={Library} className="!rounded-full !px-8 !font-bold">
                     {tf('landing.archive.viewAll', 'View the full archive')}
                   </Button>
                 </Link>
@@ -388,26 +364,27 @@ function DesktopArchiveSection({ isRTL, collections, isLoading, tf }) {
   );
 }
 
+/* ══════════════════════════════════════════════════════
+   MEETINGS (teaser)
+   ══════════════════════════════════════════════════════ */
 function DesktopMeetingCard({ meeting, isRTL, index, t }) {
   const day = translateDayLabel(meeting.day, t);
-
   return (
     <Reveal delay={index * 0.1}>
       <Link
         to={`/meetings/${meeting._id}`}
-        className={`group relative block h-full overflow-hidden rounded-[1.75rem] border border-primary/8 bg-surface p-6 transition-all duration-500 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/8 ${
-          isRTL ? 'text-right' : 'text-left'
-        }`}
+        className={`group relative block h-full overflow-hidden rounded-2xl border border-border bg-surface p-6 transition-all duration-500 hover:-translate-y-0.5 hover:border-secondary/30 hover:shadow-2xl hover:shadow-primary/10 ${isRTL ? 'text-right' : 'text-left'
+          }`}
       >
-        <div className="absolute top-0 end-0 h-24 w-24 rounded-bl-[3rem] bg-gradient-to-bl from-primary/6 to-transparent" />
+        <div className="absolute top-0 end-0 h-24 w-24 rounded-bl-[3rem] bg-gradient-to-bl from-secondary/[0.08] to-transparent" />
         <div className={`relative flex items-start gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors duration-300 group-hover:bg-primary group-hover:text-white">
             <Users className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-lg font-extrabold leading-tight text-heading">{meeting.name}</h3>
+            <h3 className="font-display truncate text-lg font-bold leading-tight text-heading">{meeting.name}</h3>
             {meeting.sector?.name ? (
-              <p className="mt-1 truncate text-xs font-semibold uppercase tracking-wider text-primary">
+              <p className="mt-1 truncate text-xs font-semibold uppercase tracking-wider text-secondary">
                 {meeting.sector.name}
               </p>
             ) : null}
@@ -415,14 +392,14 @@ function DesktopMeetingCard({ meeting, isRTL, index, t }) {
         </div>
         <div className={`relative mt-5 flex flex-wrap gap-2 ${isRTL ? 'justify-end' : ''}`}>
           {day ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-muted">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-page px-3 py-1 text-xs font-semibold text-muted">
               <CalendarClock className="h-3.5 w-3.5" />
               {day}
             </span>
           ) : null}
           {meeting.time ? (
             <span
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-muted"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-page px-3 py-1 text-xs font-semibold text-muted"
               dir="ltr"
             >
               <Clock3 className="h-3.5 w-3.5" />
@@ -437,28 +414,23 @@ function DesktopMeetingCard({ meeting, isRTL, index, t }) {
 
 function DesktopMeetingsSection({ isRTL, meetings, isLoading, tf, t }) {
   const teaser = (Array.isArray(meetings) ? meetings : []).slice(0, 6);
-
-  // Degrade gracefully: hide the whole section when there is nothing to show.
   if (!isLoading && !teaser.length) return null;
 
   return (
-    <section id="meetings" className="relative py-20 sm:py-28 lg:py-32">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-surface/40 via-transparent to-surface/40" />
+    <section id="meetings" className="relative py-24 lg:py-32 bg-surface-alt">
       <div className="page-container relative">
-        <SectionHeader
+        <DesktopSectionHeader
           label={tf('landing.meetings.label', 'Meetings & Sectors')}
           title={tf('landing.meetings.title', 'Join one of our meetings')}
           subtitle={tf('landing.meetings.subtitle', 'A glimpse of the meetings held across our sectors.')}
-          centered
         />
-
         {isLoading ? (
-          <div className="mt-12 rounded-[1.5rem] border border-border bg-surface p-8 text-center">
+          <div className="mt-14 rounded-2xl border border-border bg-surface p-8 text-center">
             <p className="text-sm text-muted">{tf('landing.meetings.loading', 'Loading meetings...')}</p>
           </div>
         ) : (
           <>
-            <div className="mt-12 sm:mt-16 grid grid-cols-1 gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {teaser.map((meeting, i) => (
                 <DesktopMeetingCard key={meeting._id} meeting={meeting} isRTL={isRTL} index={i} t={t} />
               ))}
@@ -466,7 +438,7 @@ function DesktopMeetingsSection({ isRTL, meetings, isLoading, tf, t }) {
             <Reveal>
               <div className="mt-10 flex justify-center">
                 <Link to="/meetings">
-                  <Button size="lg" className="!rounded-xl !font-bold">
+                  <Button size="lg" icon={Users} className="!rounded-full !px-8 !font-bold">
                     {tf('landing.meetings.viewAll', 'View all meetings')}
                   </Button>
                 </Link>
@@ -569,16 +541,16 @@ export default function LandingPage() {
     ];
   const stats = (contentStats || []).length
     ? [
-      { icon: Users, value: contentStats.find((entry) => entry.id === 'families')?.resolvedValue || '0', label: t('landing.stats.items.families.label'), accent: 'from-blue-400 to-blue-500' },
-      { icon: Heart, value: contentStats.find((entry) => entry.id === 'members')?.resolvedValue || '0', label: t('landing.stats.items.members.label'), accent: 'from-rose-400 to-rose-500' },
-      { icon: Church, value: contentStats.find((entry) => entry.id === 'services')?.resolvedValue || '0', label: t('landing.stats.items.services.label'), accent: 'from-amber-400 to-amber-500' },
-      { icon: HandHeart, value: contentStats.find((entry) => entry.id === 'servants')?.resolvedValue || '0', label: t('landing.stats.items.servants.label'), accent: 'from-emerald-400 to-emerald-500' },
+      { icon: Users, value: contentStats.find((entry) => entry.id === 'families')?.resolvedValue || '0', label: t('landing.stats.items.families.label') },
+      { icon: Heart, value: contentStats.find((entry) => entry.id === 'members')?.resolvedValue || '0', label: t('landing.stats.items.members.label') },
+      { icon: Church, value: contentStats.find((entry) => entry.id === 'services')?.resolvedValue || '0', label: t('landing.stats.items.services.label') },
+      { icon: HandHeart, value: contentStats.find((entry) => entry.id === 'servants')?.resolvedValue || '0', label: t('landing.stats.items.servants.label') },
     ]
     : [
-      { icon: Users, value: t('landing.stats.items.families.value'), label: t('landing.stats.items.families.label'), accent: 'from-blue-400 to-blue-500' },
-      { icon: Heart, value: t('landing.stats.items.members.value'), label: t('landing.stats.items.members.label'), accent: 'from-rose-400 to-rose-500' },
-      { icon: Church, value: t('landing.stats.items.services.value'), label: t('landing.stats.items.services.label'), accent: 'from-amber-400 to-amber-500' },
-      { icon: HandHeart, value: t('landing.stats.items.servants.value'), label: t('landing.stats.items.servants.label'), accent: 'from-emerald-400 to-emerald-500' },
+      { icon: Users, value: t('landing.stats.items.families.value'), label: t('landing.stats.items.families.label') },
+      { icon: Heart, value: t('landing.stats.items.members.value'), label: t('landing.stats.items.members.label') },
+      { icon: Church, value: t('landing.stats.items.services.value'), label: t('landing.stats.items.services.label') },
+      { icon: HandHeart, value: t('landing.stats.items.servants.value'), label: t('landing.stats.items.servants.label') },
     ];
   const verses = [
     { text: t('landing.verses.items.one.text'), reference: t('landing.verses.items.one.reference') },
@@ -586,9 +558,9 @@ export default function LandingPage() {
     { text: t('landing.verses.items.three.text'), reference: t('landing.verses.items.three.reference') },
   ];
   const lifeCards = [
-    { icon: ShieldCheck, title: t('landing.life.items.one.title'), description: t('landing.life.items.one.description'), gradient: 'from-blue-500 to-indigo-600', lightGrad: 'from-blue-500/10 to-indigo-500/5' },
-    { icon: BookOpen, title: t('landing.life.items.two.title'), description: t('landing.life.items.two.description'), gradient: 'from-amber-500 to-orange-600', lightGrad: 'from-amber-500/10 to-orange-500/5' },
-    { icon: Sparkles, title: t('landing.life.items.three.title'), description: t('landing.life.items.three.description'), gradient: 'from-rose-500 to-pink-600', lightGrad: 'from-rose-500/10 to-pink-500/5' },
+    { icon: ShieldCheck, title: t('landing.life.items.one.title'), description: t('landing.life.items.one.description') },
+    { icon: BookOpen, title: t('landing.life.items.two.title'), description: t('landing.life.items.two.description') },
+    { icon: Sparkles, title: t('landing.life.items.three.title'), description: t('landing.life.items.three.description') },
   ];
 
   const managedHeroImageSrc = heroImageUrl || getOptional('landing.hero.churchImage') || '/images/church.webp';
@@ -607,12 +579,33 @@ export default function LandingPage() {
   const managedLocationDirections = getOpt('landing.location.directions', 'Get Directions');
   const managedLifeCta = getOpt('landing.life.cta', 'Learn More');
   const managedContacts = [
-    { icon: MapPin, label: t('landing.visit.addressLabel'), value: managedChurchAddressLine, ltr: false, color: 'bg-blue-500/10 text-blue-600' },
-    { icon: Phone, label: t('landing.visit.phoneLabel'), value: managedPhoneValue, ltr: true, color: 'bg-emerald-500/10 text-emerald-600' },
-    { icon: Mail, label: t('landing.visit.emailLabel'), value: managedEmailValue, ltr: false, color: 'bg-amber-500/10 text-amber-600' },
-    { icon: Clock3, label: t('landing.visit.hoursLabel'), value: t('landing.visit.hoursValue'), ltr: false, color: 'bg-rose-500/10 text-rose-600' },
+    { icon: MapPin, label: t('landing.visit.addressLabel'), value: managedChurchAddressLine, ltr: false },
+    { icon: Phone, label: t('landing.visit.phoneLabel'), value: managedPhoneValue, ltr: true },
+    { icon: Mail, label: t('landing.visit.emailLabel'), value: managedEmailValue, ltr: false },
+    { icon: Clock3, label: t('landing.visit.hoursLabel'), value: t('landing.visit.hoursValue'), ltr: false },
   ];
 
+  /* ── Featured "next liturgy" strip data ── */
+  const featuredService = (() => {
+    const upcoming = divineLiturgiesSchedule?.exceptionalDivineLiturgies || [];
+    const sep = t('landing.services.timeSeparator');
+    const timeOf = (e) =>
+      [formatServiceTime(e.startTime, language), e.endTime ? formatServiceTime(e.endTime, language) : null]
+        .filter(Boolean)
+        .join(` ${sep} `);
+    if (upcoming.length) {
+      const e = upcoming[0];
+      return { title: e.displayName, dateText: formatExceptionDate(e.date, language), timeText: timeOf(e) };
+    }
+    const rec = divineLiturgiesSchedule?.recurringDivineLiturgies || [];
+    if (rec.length) {
+      const e = rec[0];
+      const title = e.dayOfWeek ? translateDayLabel(e.dayOfWeek, t) : e.displayName;
+      return { title, dateText: '', timeText: timeOf(e) };
+    }
+    return null;
+  })();
+  const nextLiturgyLabel = isRTL ? 'القداس القادم' : 'Next Liturgy';
 
   /* ══ MOBILE ══ */
   if (isMobile) {
@@ -646,113 +639,227 @@ export default function LandingPage() {
     );
   }
 
-  /* ══ DESKTOP (unchanged) ══ */
+  /* ══ DESKTOP — "Sanctuary" cinematic navy & gold ══ */
   return (
     <div className="bg-page overflow-x-hidden">
 
-      {/* HERO */}
-      <section id="home" className="relative min-h-screen flex flex-col overflow-hidden">
+      {/* ═══════════ HERO ═══════════ */}
+      <section
+        id="home"
+        className="relative flex min-h-screen flex-col overflow-hidden text-white"
+        style={{ backgroundColor: '#0b1a2d' }}
+      >
+        {/* Cinematic church image */}
         <div className="absolute inset-0">
-          <img src={managedHeroImageSrc} alt={t('publicLayout.brandPrimary')} className="h-full w-full object-cover object-center" loading="eager" onError={(e) => { e.target.style.display = 'none'; }} />
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-page to-secondary/10" />
+          <img
+            src={managedHeroImageSrc}
+            alt={t('publicLayout.brandPrimary')}
+            loading="eager"
+            className="h-full w-full object-cover object-center"
+            style={{ opacity: 0.5, transform: `translateY(${parallaxOffset * 0.18}px) scale(1.06)` }}
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
         </div>
+
+        {/* Scrims + vignette */}
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-page from-[10%] via-page/95 via-[45%] to-transparent to-[85%]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent from-[60%] to-black/40" />
-          <div className="absolute inset-0 bg-gradient-to-r from-page/40 via-transparent to-page/40" />
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(180deg, rgba(9,20,33,0.74) 0%, rgba(9,20,33,0.5) 38%, rgba(9,20,33,0.78) 72%, #0b1a2d 100%)' }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{ background: 'radial-gradient(ellipse at 50% 32%, transparent 0%, rgba(6,14,25,0.35) 62%, rgba(6,14,25,0.85) 100%)' }}
+          />
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/50 to-transparent" />
+          <div
+            className="absolute inset-0 opacity-[0.05]"
+            style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }}
+          />
         </div>
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-12 -start-20 h-[300px] w-[300px] rounded-full bg-primary/10 blur-[120px]" style={{ transform: `translateY(${parallaxOffset * 0.4}px)` }} />
-          <div className="absolute top-1/4 -end-16 h-[250px] w-[250px] rounded-full bg-secondary/8 blur-[100px]" style={{ transform: `translateY(${parallaxOffset * 0.25}px)` }} />
-          <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: `radial-gradient(var(--color-primary) 1px, transparent 1px)`, backgroundSize: '28px 28px' }} />
-          <div className="absolute top-0 start-[22%] w-px h-[45%] bg-gradient-to-b from-primary/10 via-primary/4 to-transparent hidden lg:block" />
-          <div className="absolute top-0 end-[22%] w-px h-[35%] bg-gradient-to-b from-primary/8 via-primary/3 to-transparent hidden lg:block" />
-          <div className="absolute top-24 end-[10%] text-primary/[0.04] hidden lg:block" style={{ transform: `translateY(${parallaxOffset * 0.5}px) rotate(8deg)` }}><Cross className="h-32 w-32" /></div>
+
+        {/* Decorative gold arch */}
+        <div className="pointer-events-none absolute inset-x-0 top-10 flex justify-center">
+          <ArchOutline className="mt-20 w-[560px] max-w-[78%] text-secondary/25" />
+          <div
+            className="absolute left-1/2 top-[92px] -translate-x-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-secondary/40 bg-[#0b1a2d] text-secondary"
+          >
+            <Cross className="h-4 w-4" />
+          </div>
         </div>
-        <div className="relative flex-1 flex flex-col items-center justify-center page-container w-full pt-28 sm:pt-32 lg:pt-36 pb-52 sm:pb-60 md:pb-64 lg:pb-72">
+
+        {/* Content */}
+        <div className="relative flex flex-1 flex-col items-center justify-center page-container w-full pt-44 pb-20">
           <Reveal delay={0.05}>
-            <Badge variant="secondary" className="mb-5 sm:mb-6 !rounded-full !px-5 !py-2 !text-[10px] sm:!text-xs !font-bold !border !border-primary/10 !bg-surface/80 !backdrop-blur-sm">
+            <span className="inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-white/[0.06] px-5 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-[0.28em] text-secondary backdrop-blur-sm">
+              <Cross className="h-3 w-3" />
               {t('landing.hero.badge')}
-            </Badge>
+            </span>
           </Reveal>
-          <Reveal delay={0.15}>
-            <h1 className="text-center mb-12 text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] xl:text-6xl font-extrabold leading-[1.12] tracking-tight text-heading max-w-4xl">
+          <Reveal delay={0.16}>
+            <h1 className="font-display mt-8 max-w-4xl text-center text-4xl font-bold leading-[1.18] tracking-tight text-white sm:text-5xl lg:text-6xl xl:text-[4.25rem]">
               {t('landing.hero.title')}{' '}
-              <span className="relative inline-block text-primary">
+              <span className="mt-3 block" style={GOLD_TEXT}>
                 {t('landing.hero.highlight')}
-                <svg className="absolute -bottom-2 sm:-bottom-10 start-0 w-full" viewBox="0 0 200 8" fill="none">
-                  <path d="M1 5.5C47 2 153 2 199 5.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-primary/30" />
-                </svg>
               </span>
             </h1>
           </Reveal>
-          <Reveal delay={0.28}>
-            <p className="mx-auto -mt-5 max-w-2xl px-4 text-center text-sm sm:text-base lg:text-lg leading-relaxed text-muted">
+          <Reveal delay={0.3}>
+            <p className="mx-auto mt-7 max-w-2xl text-center text-base leading-relaxed text-white/70 lg:text-lg">
               {t('landing.hero.description')}
             </p>
           </Reveal>
-          <Reveal delay={0.4}>
-            <div className="mt-7 sm:mt-8 flex flex-col gap-3 sm:flex-row sm:items-center justify-center w-full px-4 sm:px-0">
-              <a href="#about" className="w-full sm:w-auto"><Button size="lg" icon={ArrowIcon} iconPosition="end" className="!rounded-full !px-7 sm:!px-8 !shadow-lg !shadow-primary/20 !w-full sm:!w-auto !font-bold">{t('landing.hero.primaryCta')}</Button></a>
-              <a href="#visit" className="w-full sm:w-auto"><Button variant="outline" size="lg" className="!rounded-full !px-7 sm:!px-8 !w-full sm:!w-auto !font-bold !bg-surface/60 !backdrop-blur-sm">{t('landing.hero.secondaryCta')}</Button></a>
+          <Reveal delay={0.42}>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+              <a href="#about">
+                <Button
+                  size="lg"
+                  icon={ArrowIcon}
+                  iconPosition="end"
+                  className="!rounded-full !border !border-secondary !bg-secondary !px-8 !font-bold !text-[#1c1305] !shadow-lg !shadow-black/30 hover:!bg-[#c69a41] hover:!border-[#c69a41]"
+                >
+                  {t('landing.hero.primaryCta')}
+                </Button>
+              </a>
+              <a href="#visit">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="!rounded-full !border-white/25 !bg-white/[0.06] !px-8 !font-bold !text-white backdrop-blur-sm hover:!bg-white/15 hover:!border-white/40"
+                >
+                  {t('landing.hero.secondaryCta')}
+                </Button>
+              </a>
             </div>
           </Reveal>
         </div>
-      </section>
 
-      {/* ABOUT */}
-      <section id="about" className="relative py-20 sm:py-28 lg:py-32">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-surface/50 via-transparent to-surface/50" />
-        <div className="page-container relative">
-          <SectionHeader label={t('landing.about.label')} title={t('landing.about.title')} subtitle={t('landing.about.subtitle')} centered />
-          <div className="mt-12 sm:mt-16">
-            <Reveal>
-              <div className={`relative overflow-hidden rounded-[1.75rem] border border-primary/8 bg-surface p-6 sm:p-8 lg:p-10 ${textAlignClass}`}>
-                <div className="absolute top-0 end-0 w-32 h-32 bg-gradient-to-bl from-primary/5 to-transparent rounded-bl-[4rem]" />
-                <div className="absolute bottom-0 start-0 w-24 h-24 bg-gradient-to-tr from-secondary/5 to-transparent rounded-tr-[3rem]" />
-                <p className="relative text-base sm:text-lg leading-loose text-muted text-center">{t('landing.about.description')}</p>
+        {/* Next liturgy strip */}
+        {featuredService ? (
+          <div className="relative z-10 w-full page-container pt-0 pb-12">
+            <Reveal delay={0.55}>
+              <div className="mx-auto flex max-w-3xl flex-col items-center justify-between gap-4 rounded-2xl border border-white/12 bg-white/[0.06] px-6 py-4 backdrop-blur-md sm:flex-row">
+                <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-secondary">
+                    <CalendarClock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-secondary">{nextLiturgyLabel}</p>
+                    <p className="mt-0.5 font-display text-base font-bold text-white">
+                      {featuredService.title}
+                      {featuredService.dateText ? <span className="text-white/60"> · {featuredService.dateText}</span> : null}
+                    </p>
+                  </div>
+                </div>
+                {featuredService.timeText ? (
+                  <div dir="ltr" className="text-lg font-bold text-white/90">{featuredService.timeText}</div>
+                ) : null}
               </div>
             </Reveal>
-            <div className="mt-5 sm:mt-6 grid gap-5 sm:gap-6 sm:grid-cols-2">
-              <Reveal delay={0.1}>
-                <div className={`group relative h-full overflow-hidden rounded-[1.75rem] border border-primary/10 bg-gradient-to-br from-primary/6 via-primary/3 to-transparent p-6 sm:p-8 hover:border-primary/20 hover:shadow-lg transition-all duration-500 ${textAlignClass}`}>
-                  <div className="flex items-center gap-2.5 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/12 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300"><Navigation className="h-5 w-5" /></div>
-                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">{t('landing.about.missionLabel')}</p>
+          </div>
+        ) : (
+          <div className="relative z-10 flex w-full justify-center pb-10">
+            <ChevronDown className="h-6 w-6 animate-bounce text-white/40" />
+          </div>
+        )}
+      </section>
+
+      {/* ═══════════ ABOUT (asymmetric) ═══════════ */}
+      <section id="about" className="relative py-24 lg:py-32">
+        <div className="page-container relative">
+          <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1fr)] lg:gap-16">
+            {/* Arched emblem / photo */}
+            <Reveal direction="right">
+              <div className="relative mx-auto w-full max-w-sm">
+                <div className="pointer-events-none absolute -inset-4 rounded-t-[11rem] rounded-b-3xl bg-gradient-to-b from-secondary/20 via-transparent to-transparent blur-md" />
+                <div
+                  className="relative overflow-hidden rounded-t-[10rem] rounded-b-3xl border border-secondary/30 shadow-2xl shadow-primary/15"
+                  style={{ aspectRatio: '3 / 4' }}
+                >
+                  <img src={managedHeroImageSrc} alt={managedChurchPlaceName} className="h-full w-full object-cover" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-primary/45 via-transparent to-transparent" />
+                  <div className="pointer-events-none absolute inset-2 rounded-t-[9.3rem] rounded-b-[1.4rem] border border-secondary/30" />
+                  <div className={`absolute inset-x-0 bottom-0 p-6 ${textAlignClass}`}>
+                    <p className="font-display text-lg font-bold text-white">{managedChurchPlaceName}</p>
+                    {managedChurchAddressLine ? (
+                      <p className="mt-1 text-xs text-white/80">{managedChurchAddressLine}</p>
+                    ) : null}
                   </div>
-                  <p className="text-sm sm:text-base leading-relaxed text-heading/80">{t('landing.about.missionText')}</p>
                 </div>
+                <div className="absolute -top-5 left-1/2 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border border-secondary/40 bg-secondary text-white shadow-lg">
+                  <Cross className="h-5 w-5" />
+                </div>
+              </div>
+            </Reveal>
+
+            {/* Text */}
+            <div className={textAlignClass}>
+              <Reveal>
+                <span className="inline-flex items-center gap-2 rounded-full border border-secondary/25 bg-secondary/[0.08] px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.28em] text-secondary">
+                  <Cross className="h-3 w-3" />
+                  {t('landing.about.label')}
+                </span>
+                <h2 className="font-display mt-5 text-3xl font-bold leading-[1.22] text-heading lg:text-[2.6rem]">
+                  {t('landing.about.title')}
+                </h2>
+                <p className="mt-5 text-base leading-loose text-muted lg:text-lg">{t('landing.about.description')}</p>
               </Reveal>
-              <Reveal delay={0.2}>
-                <div className={`group relative h-full overflow-hidden rounded-[1.75rem] border border-secondary/10 bg-gradient-to-br from-secondary/8 via-secondary/3 to-transparent p-6 sm:p-8 hover:border-secondary/20 hover:shadow-lg transition-all duration-500 ${textAlignClass}`}>
-                  <div className="flex items-center gap-2.5 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/15 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300"><Globe className="h-5 w-5" /></div>
-                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">{t('landing.about.visionLabel')}</p>
+
+              <div className="mt-8 space-y-5">
+                <Reveal delay={0.1}>
+                  <div className={`flex gap-4 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                    <div className="mt-1 h-auto w-1 flex-shrink-0 rounded-full bg-gradient-to-b from-secondary to-secondary/20" />
+                    <div>
+                      <div className={`flex items-center gap-2.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          <Navigation className="h-[18px] w-[18px]" />
+                        </div>
+                        <p className="font-display text-lg font-bold text-heading">{t('landing.about.missionLabel')}</p>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-muted">{t('landing.about.missionText')}</p>
+                    </div>
                   </div>
-                  <p className="text-sm sm:text-base leading-relaxed text-heading/80">{t('landing.about.visionText')}</p>
-                </div>
-              </Reveal>
+                </Reveal>
+                <Reveal delay={0.18}>
+                  <div className={`flex gap-4 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                    <div className="mt-1 h-auto w-1 flex-shrink-0 rounded-full bg-gradient-to-b from-secondary to-secondary/20" />
+                    <div>
+                      <div className={`flex items-center gap-2.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/15 text-secondary">
+                          <Globe className="h-[18px] w-[18px]" />
+                        </div>
+                        <p className="font-display text-lg font-bold text-heading">{t('landing.about.visionLabel')}</p>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-muted">{t('landing.about.visionText')}</p>
+                    </div>
+                  </div>
+                </Reveal>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* PRIESTS */}
-      <section id="priests" className="relative overflow-hidden py-20 sm:py-28 lg:py-32 bg-surface">
+      {/* ═══════════ CLERGY ═══════════ */}
+      <section id="priests" className="relative overflow-hidden py-24 lg:py-32 bg-surface">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/3 via-transparent to-primary/2" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/[0.02] rounded-full blur-[150px]" />
+          <div className="absolute left-1/2 top-1/2 h-[720px] w-[720px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-secondary/[0.03] blur-[150px]" />
         </div>
         <div className="page-container relative">
-          <SectionHeader label={t('landing.priests.label')} title={t('landing.priests.title')} subtitle={t('landing.priests.subtitle')} centered />
-          <div className="mt-12 sm:mt-16 grid grid-cols-1 gap-6 sm:gap-7 sm:grid-cols-2 lg:grid-cols-3">
-            {priests.map((p, i) => <DesktopPriestCard key={p.name} priest={p} isRTL={isRTL} index={i} />)}
+          <DesktopSectionHeader
+            label={t('landing.priests.label')}
+            title={t('landing.priests.title')}
+            subtitle={t('landing.priests.subtitle')}
+          />
+          <div className="mt-16 grid grid-cols-1 gap-y-14 gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
+            {priests.map((p, i) => (
+              <DesktopPriestCard key={p.name || i} priest={p} isRTL={isRTL} index={i} />
+            ))}
           </div>
         </div>
       </section>
 
-      {/* SERVICES (Divine Liturgies & Vespers) */}
+      {/* ═══════════ SERVICES ═══════════ */}
       <DesktopServicesSection
         t={t}
         isRTL={isRTL}
@@ -761,7 +868,7 @@ export default function LandingPage() {
         isLoading={divineLiturgiesQuery.isLoading}
       />
 
-      {/* ARCHIVE (teaser) */}
+      {/* ═══════════ ARCHIVE ═══════════ */}
       <DesktopArchiveSection
         isRTL={isRTL}
         collections={archiveCollections}
@@ -769,7 +876,7 @@ export default function LandingPage() {
         tf={tf}
       />
 
-      {/* MEETINGS & SECTORS (teaser) */}
+      {/* ═══════════ MEETINGS ═══════════ */}
       <DesktopMeetingsSection
         isRTL={isRTL}
         meetings={publicMeetings}
@@ -778,26 +885,31 @@ export default function LandingPage() {
         t={t}
       />
 
-      {/* STATS */}
-      <section id="stats" className="py-20 sm:py-28 lg:py-32">
+      {/* ═══════════ STATS (dark gold band) ═══════════ */}
+      <section id="stats" className="py-24 lg:py-32">
         <div className="page-container">
-          <div ref={statsRef} className="relative overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] bg-gradient-to-br from-primary via-primary-dark to-primary">
+          <div ref={statsRef} className="relative overflow-hidden rounded-[2.5rem]" style={{ background: NAVY_BAND }}>
             <div className="pointer-events-none absolute inset-0">
-              <div className="absolute -top-24 -end-24 h-96 w-96 rounded-full bg-white/5 blur-[100px]" />
-              <div className="absolute -bottom-24 -start-24 h-80 w-80 rounded-full bg-white/5 blur-[80px]" />
-              <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02]"><Cross className="h-[400px] w-[400px]" /></div>
+              <div className="absolute -top-24 -end-24 h-96 w-96 rounded-full bg-secondary/10 blur-[110px]" />
+              <div className="absolute -bottom-24 -start-24 h-80 w-80 rounded-full bg-primary-light/10 blur-[90px]" />
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/40 to-transparent" />
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white/[0.02]">
+                <Cross className="h-[420px] w-[420px]" />
+              </div>
             </div>
-            <div className="relative px-6 py-12 sm:px-10 sm:py-16 lg:px-16 lg:py-20">
-              <SectionHeader label={t('landing.stats.label')} title={t('landing.stats.title')} centered light />
-              <div className="mt-10 sm:mt-14 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
+            <div className="relative px-6 py-16 sm:px-10 lg:px-16 lg:py-20">
+              <DesktopSectionHeader label={t('landing.stats.label')} title={t('landing.stats.title')} tone="dark" />
+              <div className="mt-14 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
                 {stats.map((s, i) => (
                   <Reveal key={s.label} delay={i * 0.1}>
-                    <div className="group relative overflow-hidden rounded-2xl sm:rounded-[1.25rem] border border-white/[0.08] bg-white/[0.04] p-4 sm:p-6 text-center backdrop-blur-sm hover:border-white/20 hover:bg-white/[0.08] transition-all duration-500">
-                      <div className="relative">
-                        <div className={`mx-auto mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br ${s.accent} shadow-lg`}><s.icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" /></div>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-extrabold tracking-tight text-white"><AnimatedCounter value={s.value} inView={statsInView} /></p>
-                        <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-white/50">{s.label}</p>
+                    <div className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 text-center backdrop-blur-sm transition-all duration-500 hover:border-secondary/30 hover:bg-white/[0.07] sm:p-6">
+                      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-secondary/30 bg-gradient-to-br from-secondary/25 to-secondary/5 text-secondary">
+                        <s.icon className="h-5 w-5" />
                       </div>
+                      <p className="font-display text-3xl font-bold tracking-tight text-white lg:text-5xl" style={GOLD_TEXT}>
+                        <AnimatedCounter value={s.value} inView={statsInView} />
+                      </p>
+                      <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-white/55 sm:text-xs">{s.label}</p>
                     </div>
                   </Reveal>
                 ))}
@@ -807,32 +919,73 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* VERSES */}
-      <section id="verses" className="relative py-20 sm:py-28 lg:py-32 bg-surface">
-        <div className="pointer-events-none absolute inset-0"><div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--color-primary)_0%,transparent_70%)] opacity-[0.03]" /></div>
+      {/* ═══════════ VERSES (stillness) ═══════════ */}
+      {/* <section id="verses" className="relative py-24 lg:py-32 bg-surface-alt">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--color-secondary)_0%,transparent_70%)] opacity-[0.035]" />
+        </div>
         <div className="page-container relative">
-          <SectionHeader label={t('landing.verses.label')} title={t('landing.verses.title')} subtitle={t('landing.verses.subtitle')} centered />
-          <div className="mt-12 sm:mt-16 grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-3">
-            {verses.map((v, i) => <DesktopVerseCard key={v.reference} verse={v} isRTL={isRTL} index={i} />)}
+          <DesktopSectionHeader
+            label={t('landing.verses.label')}
+            title={t('landing.verses.title')}
+            subtitle={t('landing.verses.subtitle')}
+          />
+          <div className="mx-auto mt-14 max-w-4xl">
+            <Reveal>
+              <figure className="relative overflow-hidden rounded-[2rem] border border-secondary/25 bg-surface px-8 py-14 text-center shadow-xl shadow-primary/5">
+                <Quote className="pointer-events-none absolute -top-2 left-1/2 h-24 w-24 -translate-x-1/2 text-secondary/10" />
+                <div className="relative">
+                  <blockquote className="font-display mx-auto max-w-2xl text-2xl font-bold leading-relaxed text-heading lg:text-[1.9rem]">
+                    {verses[0].text}
+                  </blockquote>
+                  <GoldDivider className="mt-7" />
+                  <figcaption className="mt-5 inline-flex items-center gap-2 font-bold text-secondary">
+                    <BookOpen className="h-4 w-4" />
+                    {verses[0].reference}
+                  </figcaption>
+                </div>
+              </figure>
+            </Reveal>
+            <div className="mt-6 grid gap-5 sm:grid-cols-2">
+              {verses.slice(1).map((v, i) => (
+                <Reveal key={v.reference} delay={0.1 + i * 0.1}>
+                  <figure className={`h-full rounded-2xl border border-border bg-surface p-6 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <Quote className="h-5 w-5 text-secondary/50" />
+                    <blockquote className="mt-3 text-base font-medium leading-relaxed text-heading/90">{v.text}</blockquote>
+                    <figcaption className={`mt-4 flex items-center gap-2 text-sm font-bold text-secondary ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                      <BookOpen className="h-3.5 w-3.5" />
+                      {v.reference}
+                    </figcaption>
+                  </figure>
+                </Reveal>
+              ))}
+            </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
-      {/* LIFE */}
-      <section id="life" className="py-20 sm:py-28 lg:py-32">
+      {/* ═══════════ LIFE ═══════════ */}
+      {/* <section id="life" className="py-24 lg:py-32">
         <div className="page-container">
-          <SectionHeader label={t('landing.life.label')} title={t('landing.life.title')} subtitle={t('landing.life.subtitle')} centered />
-          <div className="mt-12 sm:mt-16 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-3">
+          <DesktopSectionHeader
+            label={t('landing.life.label')}
+            title={t('landing.life.title')}
+            subtitle={t('landing.life.subtitle')}
+          />
+          <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-3">
             {lifeCards.map((item, i) => (
               <Reveal key={item.title} delay={i * 0.1}>
-                <div className={`group relative h-full overflow-hidden rounded-[1.75rem] border border-primary/8 bg-page hover:border-primary/15 hover:shadow-2xl hover:shadow-primary/8 transition-all duration-500 ${textAlignClass}`}>
-                  <div className={`absolute inset-0 bg-gradient-to-br ${item.lightGrad} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                  <div className="relative p-6 sm:p-8">
-                    <div className={`absolute top-5 ${isRTL ? 'left-5' : 'right-5'} text-[56px] sm:text-[64px] font-black text-primary/[0.04] leading-none group-hover:text-primary/[0.08] transition-all duration-500`}>{String(i + 1).padStart(2, '0')}</div>
-                    <div className={`mb-5 sm:mb-6 inline-flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br ${item.gradient} text-white shadow-lg group-hover:scale-110 group-hover:shadow-xl transition-all duration-500`}><item.icon className="h-5 w-5 sm:h-6 sm:w-6" /></div>
-                    <h3 className="text-lg sm:text-xl font-extrabold text-heading leading-tight">{item.title}</h3>
+                <div className={`group relative h-full overflow-hidden rounded-2xl border border-border bg-surface p-8 transition-all duration-500 hover:-translate-y-1 hover:border-secondary/30 hover:shadow-2xl hover:shadow-primary/10 ${textAlignClass}`}>
+                  <div className={`absolute top-6 ${isRTL ? 'left-7' : 'right-7'} font-display text-6xl font-black leading-none text-secondary/[0.08] transition-colors duration-500 group-hover:text-secondary/15`}>
+                    {String(i + 1).padStart(2, '0')}
+                  </div>
+                  <div className="relative">
+                    <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-secondary/25 bg-gradient-to-br from-primary/10 to-secondary/10 text-primary transition-transform duration-500 group-hover:scale-110">
+                      <item.icon className="h-6 w-6" />
+                    </div>
+                    <h3 className="font-display text-xl font-bold leading-tight text-heading">{item.title}</h3>
                     <p className="mt-3 text-sm leading-relaxed text-muted">{item.description}</p>
-                    <div className={`mt-5 sm:mt-6 flex items-center gap-1.5 text-primary/40 group-hover:text-primary group-hover:gap-2.5 transition-all duration-300 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <div className={`mt-6 flex items-center gap-1.5 text-secondary/50 transition-all duration-300 group-hover:gap-2.5 group-hover:text-secondary ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <span className="text-xs font-bold uppercase tracking-wider">{managedLifeCta}</span>
                       <ArrowIcon className="h-3.5 w-3.5" />
                     </div>
@@ -842,21 +995,29 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
-      {/* VISIT */}
-      <section id="visit" className="relative bg-surface py-20 sm:py-28 lg:py-32">
+      {/* ═══════════ VISIT ═══════════ */}
+      <section id="visit" className="relative py-24 lg:py-32 bg-surface-alt">
         <div className="page-container">
-          <SectionHeader label={t('landing.visit.label')} title={t('landing.visit.title')} subtitle={t('landing.visit.subtitle')} centered />
-          <StaggerChildren className="mt-12 sm:mt-16 grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2" stagger={0.08}>
+          <DesktopSectionHeader
+            label={t('landing.visit.label')}
+            title={t('landing.visit.title')}
+            subtitle={t('landing.visit.subtitle')}
+          />
+          <StaggerChildren className="mx-auto mt-14 grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2" stagger={0.08}>
             {managedContacts.map((item) => (
-              <div key={item.label} className={`group relative overflow-hidden rounded-2xl border border-primary/6 bg-page p-5 sm:p-6 hover:border-primary/15 hover:shadow-lg hover:shadow-primary/5 transition-all duration-400 ${textAlignClass}`}>
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
+              <div
+                key={item.label}
+                className={`group relative overflow-hidden rounded-2xl border border-border bg-surface p-6 transition-all duration-400 hover:border-secondary/30 hover:shadow-lg hover:shadow-primary/5 ${textAlignClass}`}
+              >
                 <div className={`relative flex items-start gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <div className={`flex h-11 w-11 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-xl sm:rounded-2xl ${item.color} group-hover:scale-105 transition-transform duration-300`}><item.icon className="h-5 w-5" /></div>
+                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-secondary/20 bg-secondary/[0.08] text-secondary transition-transform duration-300 group-hover:scale-105">
+                    <item.icon className="h-5 w-5" />
+                  </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-bold text-heading">{item.label}</p>
-                    <p className={`mt-1 text-xs sm:text-sm leading-relaxed text-muted ${item.ltr ? 'direction-ltr' : ''}`}>{item.value}</p>
+                    <p className="text-sm font-bold text-heading">{item.label}</p>
+                    <p className={`mt-1 text-sm leading-relaxed text-muted ${item.ltr ? 'direction-ltr' : ''}`}>{item.value}</p>
                   </div>
                 </div>
               </div>
@@ -865,30 +1026,39 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* LOCATION */}
-      <section id="location" className="py-20 sm:py-28 lg:py-32">
+      {/* ═══════════ LOCATION ═══════════ */}
+      <section id="location" className="py-24 lg:py-32">
         <div className="page-container">
-          <SectionHeader label={managedLocationLabel} title={managedLocationTitle} subtitle={managedLocationSubtitle} centered />
-          <Reveal className="mt-12 sm:mt-16">
-            <div className="relative overflow-hidden rounded-[1.75rem] sm:rounded-[2rem] border border-primary/10 bg-surface shadow-xl shadow-primary/5">
-              <div className="relative h-[280px] sm:h-[380px] lg:h-[450px] w-full">
-                <iframe title={managedLocationTitle} src={managedLocationMapEmbedUrl} className="h-full w-full border-0" loading="lazy" allowFullScreen referrerPolicy="no-referrer-when-downgrade" />
+          <DesktopSectionHeader label={managedLocationLabel} title={managedLocationTitle} subtitle={managedLocationSubtitle} />
+          <Reveal className="mt-14">
+            <div className="relative overflow-hidden rounded-[2rem] border border-secondary/20 bg-surface shadow-xl shadow-primary/5">
+              <div className="relative h-[320px] w-full sm:h-[420px] lg:h-[460px]">
+                <iframe
+                  title={managedLocationTitle}
+                  src={managedLocationMapEmbedUrl}
+                  className="h-full w-full border-0"
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
                 <div className="pointer-events-none absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-surface to-transparent" />
               </div>
-              <div className="relative border-t border-border bg-surface px-5 py-4 sm:px-8 sm:py-5">
+              <div className="relative border-t border-border bg-surface px-6 py-5 sm:px-8">
                 <div className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
                   <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><MapPin className="h-5 w-5" /></div>
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+                      <MapPin className="h-5 w-5" />
+                    </div>
                     <div className={textAlignClass}>
-                      <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary">{t('landing.visit.addressLabel')}</p>
-                      <p className="mt-0.5 text-sm sm:text-base font-semibold text-heading">{managedChurchPlaceName}</p>
-                      {managedLocationMetaLine ? (
-                        <p className="mt-0.5 text-xs sm:text-sm text-muted">{managedLocationMetaLine}</p>
-                      ) : null}
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-secondary">{t('landing.visit.addressLabel')}</p>
+                      <p className="mt-0.5 font-display text-base font-bold text-heading">{managedChurchPlaceName}</p>
+                      {managedLocationMetaLine ? <p className="mt-0.5 text-sm text-muted">{managedLocationMetaLine}</p> : null}
                     </div>
                   </div>
                   <a href={managedDirectionsUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
-                    <Button variant="outline" size="md" icon={ExternalLink} iconPosition="end" className="!rounded-full !font-bold !w-full sm:!w-auto">{managedLocationDirections}</Button>
+                    <Button variant="outline" size="md" icon={ExternalLink} iconPosition="end" className="!w-full !rounded-full !font-bold sm:!w-auto">
+                      {managedLocationDirections}
+                    </Button>
                   </a>
                 </div>
               </div>
@@ -897,26 +1067,33 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* PORTAL CTA */}
-      <section className="border-t border-border bg-page py-20 sm:py-28 lg:py-32">
+      {/* ═══════════ PORTAL CTA ═══════════ */}
+      <section className="border-t border-border py-24 lg:py-32">
         <div className="page-container">
           <Reveal>
-            <div className="relative overflow-hidden rounded-[1.75rem] sm:rounded-[2rem] bg-gradient-to-br from-primary via-primary-dark to-primary text-center text-white">
+            <div className="relative overflow-hidden rounded-[2.5rem] text-center text-white" style={{ background: NAVY_BAND }}>
               <div className="pointer-events-none absolute inset-0">
-                <div className="absolute -top-16 -end-16 h-64 w-64 rounded-full bg-white/5 blur-[60px]" />
-                <div className="absolute -bottom-16 -start-16 h-64 w-64 rounded-full bg-white/5 blur-[60px]" />
-                <div className="absolute top-8 start-8 text-white/[0.04]"><Cross className="h-20 w-20" /></div>
-                <div className="absolute bottom-8 end-8 text-white/[0.04]"><Cross className="h-14 w-14 rotate-12" /></div>
+                <div className="absolute -top-16 -end-16 h-64 w-64 rounded-full bg-secondary/10 blur-[70px]" />
+                <div className="absolute -bottom-16 -start-16 h-64 w-64 rounded-full bg-primary-light/10 blur-[70px]" />
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/40 to-transparent" />
+                <div className="absolute top-8 start-8 text-white/[0.05]"><Cross className="h-20 w-20" /></div>
+                <div className="absolute bottom-8 end-8 text-white/[0.05]"><Cross className="h-14 w-14 rotate-12" /></div>
               </div>
-              <div className="relative px-6 py-12 sm:px-10 sm:py-16">
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/10 px-4 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-white/80">
-                  <Sparkles className="h-3 w-3" />{t('landing.portal.label')}
+              <div className="relative px-6 py-16 sm:px-10">
+                <div className="inline-flex items-center gap-2 rounded-full border border-secondary/25 bg-white/[0.06] px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.28em] text-secondary">
+                  <Sparkles className="h-3 w-3" />
+                  {t('landing.portal.label')}
                 </div>
-                <h3 className="mt-5 sm:mt-6 text-2xl sm:text-3xl lg:text-4xl font-extrabold">{t('landing.portal.title')}</h3>
-                <p className="mx-auto mt-4 max-w-2xl text-sm lg:text-lg text-white/70">{t('landing.portal.description')}</p>
-                <div className="mt-7 sm:mt-8">
+                <h3 className="font-display mt-6 text-3xl font-bold text-white lg:text-4xl">{t('landing.portal.title')}</h3>
+                <p className="mx-auto mt-4 max-w-2xl text-sm text-white/70 lg:text-lg">{t('landing.portal.description')}</p>
+                <div className="mt-8">
                   <Link to="/auth/login">
-                    <Button variant="outline" size="lg" icon={ArrowIcon} iconPosition="end" className="!rounded-full !border-white/25 !bg-white/10 !px-7 sm:!px-8 !text-white !shadow-lg !font-bold hover:!bg-white/20 hover:!border-white/40">
+                    <Button
+                      size="lg"
+                      icon={ArrowIcon}
+                      iconPosition="end"
+                      className="!rounded-full !border !border-secondary !bg-secondary !px-8 !font-bold !text-[#1c1305] !shadow-lg !shadow-black/30 hover:!bg-[#c69a41] hover:!border-[#c69a41]"
+                    >
                       {t('landing.portal.loginCta')}
                     </Button>
                   </Link>
@@ -927,7 +1104,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <style>{`@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}`}</style>
       <GuestEntryOverlay
         isOpen={!isAuthenticated && guestEntryOpen}
         isRTL={isRTL}

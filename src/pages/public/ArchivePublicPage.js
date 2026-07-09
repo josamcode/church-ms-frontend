@@ -11,9 +11,9 @@ import {
 } from 'lucide-react';
 
 import { archiveApi } from '../../api/endpoints';
-import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import { useI18n } from '../../i18n/i18n';
+import { SanctuaryPageHeader } from './LandingPage.shared';
 
 const DEFAULT_PUBLIC_ARCHIVE = {
   collections: [],
@@ -149,10 +149,16 @@ function ArchiveLightbox({ collection, photoIndex, onClose, onPrev, onNext, onSe
 function CollectionCoverCard({ collection, onOpen, tf }) {
   const coverPhoto = collection.photos?.[0] || null;
   const photoCount = collection.photos?.length || 0;
+  const countPill = (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-secondary/25 bg-black/30 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-secondary backdrop-blur-sm">
+      <Images className="h-3 w-3" />
+      {tf('archive.public.photosCount', `${photoCount} photos`, { count: photoCount })}
+    </span>
+  );
 
   return (
     <button type="button" onClick={() => onOpen(collection)} className="group w-full text-start">
-      <div className="h-full overflow-hidden rounded-[28px] border border-border bg-surface shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg">
+      <div className="h-full overflow-hidden rounded-2xl border border-border bg-surface shadow-card transition-all duration-500 hover:-translate-y-0.5 hover:border-secondary/30 hover:shadow-2xl hover:shadow-primary/10">
         <div className="relative h-60 overflow-hidden bg-surface-alt">
           {coverPhoto ? (
             <>
@@ -160,44 +166,36 @@ function CollectionCoverCard({ collection, onOpen, tf }) {
                 src={coverPhoto.url}
                 alt={coverPhoto.caption || collection.title}
                 loading="lazy"
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
             </>
           ) : (
-            <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/10 via-surface to-surface-alt text-primary">
+            <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/12 via-surface to-surface-alt text-secondary/50">
               <FolderOpen className="h-12 w-12" />
             </div>
           )}
 
-          <div className="absolute inset-x-0 top-0 flex justify-end p-4">
-            <Badge variant="default">
-              {tf('archive.public.photosCount', `${photoCount} photos`, { count: photoCount })}
-            </Badge>
-          </div>
+          <div className="absolute inset-x-0 top-0 flex justify-end p-4">{countPill}</div>
 
           <div className="absolute inset-x-0 bottom-0 p-5">
-            <p className={`text-lg font-semibold ${coverPhoto ? 'text-white' : 'text-heading'}`}>
+            <p className={`font-display text-lg font-bold leading-tight ${coverPhoto ? 'text-white' : 'text-heading'}`}>
               {collection.title}
             </p>
             {collection.description ? (
-              <p
-                className={`mt-1.5 line-clamp-2 text-sm ${coverPhoto ? 'text-white/85' : 'text-muted'}`}
-              >
+              <p className={`mt-1.5 line-clamp-2 text-sm ${coverPhoto ? 'text-white/85' : 'text-muted'}`}>
                 {collection.description}
               </p>
             ) : null}
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 px-5 py-4">
-          <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+        <div className="flex items-center justify-between gap-3 border-t border-border px-5 py-4">
+          <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-secondary transition-all duration-300 group-hover:gap-3">
             <Images className="h-3.5 w-3.5" />
             {tf('archive.public.openCollection', 'Open collection')}
           </span>
-          <Badge variant="default">
-            {tf('archive.public.photosCount', `${photoCount} photos`, { count: photoCount })}
-          </Badge>
+          <ChevronLeft className="h-4 w-4 text-secondary/50 transition-colors group-hover:text-secondary" />
         </div>
       </div>
     </button>
@@ -264,41 +262,30 @@ export default function ArchivePublicPage() {
 
   return (
     <div className="relative overflow-hidden bg-page">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/10 blur-[90px]" />
-        <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-accent/10 blur-[80px]" />
-      </div>
+      <SanctuaryPageHeader
+        eyebrow={tf('archive.public.eyebrow', 'Church archive')}
+        title={tf('archive.public.title', 'Moments and memories from our church')}
+        subtitle={tf(
+          'archive.public.subtitle',
+          'Browse our published collections. Open any collection to view its photos.'
+        )}
+        icon={Library}
+      />
 
-      <section className="page-container relative py-28">
-        <div className="mx-auto max-w-6xl space-y-10">
-          <div className="max-w-2xl space-y-4">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-primary">
-              <Library className="h-3.5 w-3.5" />
-              {tf('archive.public.eyebrow', 'Church archive')}
-            </span>
-            <h1 className="text-4xl font-black tracking-tight text-heading sm:text-5xl">
-              {tf('archive.public.title', 'Moments and memories from our church')}
-            </h1>
-            <p className="max-w-xl text-base leading-7 text-muted">
-              {tf(
-                'archive.public.subtitle',
-                'Browse our published collections. Open any collection to view its photos.'
-              )}
-            </p>
-          </div>
-
+      <section className="page-container relative py-16 lg:py-24">
+        <div className="mx-auto max-w-6xl">
           {archiveQuery.isLoading ? (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, index) => (
                 <div
                   key={index}
-                  className="h-80 animate-pulse rounded-[28px] border border-border bg-surface-alt/50"
+                  className="h-80 animate-pulse rounded-2xl border border-border bg-surface-alt/50"
                 />
               ))}
             </div>
           ) : archiveQuery.isError ? (
-            <div className="flex flex-col items-center gap-4 rounded-[28px] border border-border bg-surface px-6 py-16 text-center shadow-card">
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-surface px-6 py-16 text-center shadow-card">
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/10 text-secondary">
                 <Library className="h-7 w-7" />
               </span>
               <div>
@@ -319,8 +306,8 @@ export default function ArchivePublicPage() {
               </Button>
             </div>
           ) : !collections.length ? (
-            <div className="flex flex-col items-center gap-4 rounded-[28px] border border-dashed border-border bg-surface px-6 py-16 text-center shadow-card">
-              <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-card">
+              <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary/10 text-secondary">
                 <FolderOpen className="h-8 w-8" />
               </span>
               <div>
