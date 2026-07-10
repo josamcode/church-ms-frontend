@@ -27,7 +27,7 @@ import PageHeader from '../../../components/ui/PageHeader';
 import { SkeletonCard } from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import { useI18n } from '../../../i18n/i18n';
-import { availabilityLabel } from './bookingTypeForm.utils';
+import { availabilityLabel, isBookableMode } from './bookingTypeForm.utils';
 
 // Compact labelled config stat inside a type card.
 function ConfigStat({ icon: Icon, label, value }) {
@@ -199,33 +199,44 @@ export default function BookingTypesPage() {
                 <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted">{type.description}</p>
               ) : null}
 
-              <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                <ConfigStat
-                  icon={Clock}
-                  label={tf('bookings.dashboard.duration', 'Duration')}
-                  value={`${type.durationMinutes} min`}
-                />
-                <ConfigStat
-                  icon={Timer}
-                  label={tf('bookings.dashboard.interval', 'Interval')}
-                  value={`${type.slotIntervalMinutes} min`}
-                />
-                <ConfigStat
-                  icon={Users}
-                  label={tf('bookings.dashboard.capacity', 'Capacity')}
-                  value={type.capacity}
-                />
-                <ConfigStat
-                  icon={ListChecks}
-                  label={tf('bookings.dashboard.additionalFields', 'Additional fields')}
-                  value={(type.dynamicFields || []).length}
-                />
-              </div>
+              {isBookableMode(type.availabilityMode) ? (
+                <>
+                  <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                    <ConfigStat
+                      icon={Clock}
+                      label={tf('bookings.dashboard.duration', 'Duration')}
+                      value={`${type.durationMinutes} ${tf('bookings.dashboard.unitMinutes', 'min')}`}
+                    />
+                    <ConfigStat
+                      icon={Timer}
+                      label={tf('bookings.dashboard.interval', 'Interval')}
+                      value={`${type.slotIntervalMinutes} ${tf('bookings.dashboard.unitMinutes', 'min')}`}
+                    />
+                    <ConfigStat
+                      icon={Users}
+                      label={tf('bookings.dashboard.capacity', 'Capacity')}
+                      value={type.capacity}
+                    />
+                    <ConfigStat
+                      icon={ListChecks}
+                      label={tf('bookings.dashboard.additionalFields', 'Additional fields')}
+                      value={(type.dynamicFields || []).length}
+                    />
+                  </div>
 
-              <div className="mt-4 flex items-center gap-1.5 text-xs text-muted">
-                <CalendarClock className="h-3.5 w-3.5 flex-shrink-0" />
-                <span>{`${type.bookingHorizonDays} ${tf('bookings.dashboard.horizonDays', 'days ahead')}`}</span>
-              </div>
+                  <div className="mt-4 flex items-center gap-1.5 text-xs text-muted">
+                    <CalendarClock className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>{`${type.bookingHorizonDays} ${tf('bookings.dashboard.horizonDays', 'days ahead')}`}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="mt-4 flex items-center gap-1.5 text-xs text-muted">
+                  <ListChecks className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>
+                    {`${(type.dynamicFields || []).length} ${tf('bookings.dashboard.additionalFields', 'Additional fields')}`}
+                  </span>
+                </div>
+              )}
 
               <div className="mt-5 flex items-center justify-end border-t border-border/60 pt-4">
                 <Button
