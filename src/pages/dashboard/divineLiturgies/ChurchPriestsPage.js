@@ -265,46 +265,36 @@ export default function ChurchPriestsPage() {
         subtitle={canManagePriests ? t('divineLiturgies.hints.priestsManage') : undefined}
       />
 
-      {/* ══ KPI STRIP ═════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 gap-3 sm:max-w-md">
-        <StatCard
-          icon={Users}
-          label={t('divineLiturgies.sections.priests')}
-          value={churchPriests.length}
-          tone="gold"
-          isRTL={isRTL}
-        />
-      </div>
-
       <section className="space-y-6">
         {canManagePriests && (
           <Card padding="lg" className="space-y-4">
             <CardHeader
               icon={Users}
-              title={t('divineLiturgies.fields.priests')}
+              title={`${t('divineLiturgies.fields.priests')} (${churchPriests.length})`}
             />
-            <MultiSelectChips
-              label={t('divineLiturgies.fields.priests')}
-              options={userOptions}
-              values={selectedPriestIds}
-              onChange={(values) => {
-                setPriestsDirty(true);
-                setSelectedPriestIds(values);
-              }}
-              onSearchChange={handlePriestSearchChange}
-              loading={priestOptionsQuery.isFetching && !priestOptionsQuery.isFetchingNextPage}
-              hasMore={Boolean(priestOptionsQuery.hasNextPage)}
-              onLoadMore={handleLoadMorePriestOptions}
-              isLoadingMore={priestOptionsQuery.isFetchingNextPage}
-              placeholder={t('common.search.placeholder')}
-              containerClassName="!mb-0"
-            />
-            <div className="flex gap-2">
+            <div className='flex gap-2' >
+              <MultiSelectChips
+                // label={t('divineLiturgies.fields.priests')}
+                options={userOptions}
+                values={selectedPriestIds}
+                onChange={(values) => {
+                  setPriestsDirty(true);
+                  setSelectedPriestIds(values);
+                }}
+                onSearchChange={handlePriestSearchChange}
+                loading={priestOptionsQuery.isFetching && !priestOptionsQuery.isFetchingNextPage}
+                hasMore={Boolean(priestOptionsQuery.hasNextPage)}
+                onLoadMore={handleLoadMorePriestOptions}
+                isLoadingMore={priestOptionsQuery.isFetchingNextPage}
+                placeholder={t('common.search.placeholder')}
+                containerClassName="!mb-0 w-full"
+              />
               <Button
                 type="button"
                 icon={Save}
                 loading={priestsMutation.isPending}
                 onClick={() => priestsMutation.mutate(selectedPriestIds)}
+                className='min-w-44'
               >
                 {t('divineLiturgies.actions.savePriests')}
               </Button>
