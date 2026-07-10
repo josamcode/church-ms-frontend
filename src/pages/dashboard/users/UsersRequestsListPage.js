@@ -97,9 +97,8 @@ function RequestCard({
       {/* Urgency rail — highlights pending items at a glance (RTL-safe: logical inline-start). */}
       <span
         aria-hidden
-        className={`pointer-events-none absolute inset-y-0 start-0 w-1 ${
-          isPending ? 'bg-warning/70' : 'bg-transparent'
-        }`}
+        className={`pointer-events-none absolute inset-y-0 start-0 w-1 ${isPending ? 'bg-warning/70' : 'bg-transparent'
+          }`}
       />
 
       <div className="flex items-start gap-3 p-4">
@@ -307,31 +306,31 @@ export default function UsersRequestsListPage() {
           },
           ...(hasPermission('USERS_UPDATE')
             ? [
-                {
-                  label: t('common.actions.edit'),
-                  icon: Pencil,
-                  onClick: () => navigate(`/dashboard/users/${row._id}/edit`),
-                },
-              ]
+              {
+                label: t('common.actions.edit'),
+                icon: Pencil,
+                onClick: () => navigate(`/dashboard/users/${row._id}/edit`),
+              },
+            ]
             : []),
           ...(hasPermission('USERS_UPDATE') && row.accountStatus !== 'approved'
             ? [
-                {
-                  label: 'اعتماد',
-                  icon: CheckCircle2,
-                  onClick: () => actionMutation.mutate({ id: row._id, accountStatus: 'approved' }),
-                },
-              ]
+              {
+                label: 'اعتماد',
+                icon: CheckCircle2,
+                onClick: () => actionMutation.mutate({ id: row._id, accountStatus: 'approved' }),
+              },
+            ]
             : []),
           ...(hasPermission('USERS_UPDATE') && row.accountStatus !== 'rejected'
             ? [
-                {
-                  label: 'رفض',
-                  icon: XCircle,
-                  danger: true,
-                  onClick: () => actionMutation.mutate({ id: row._id, accountStatus: 'rejected' }),
-                },
-              ]
+              {
+                label: 'رفض',
+                icon: XCircle,
+                danger: true,
+                onClick: () => actionMutation.mutate({ id: row._id, accountStatus: 'rejected' }),
+              },
+            ]
             : []),
         ]}
       />
@@ -354,36 +353,11 @@ export default function UsersRequestsListPage() {
       />
 
       {/* ── Hero: this IS an actionable inbox ───────────────────────────── */}
-      <Card padding={false} className="overflow-hidden">
-        <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-          <div className="flex items-start gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Inbox className="h-6 w-6" />
-            </span>
-            <div className="min-w-0">
-              <PageHeader
-                contentOnly
-                title="طلبات المستخدمين"
-                titleClassName="!text-2xl sm:!text-3xl"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="text-end">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
-                قيد المراجعة
-              </p>
-              <p className="text-3xl font-bold leading-none tracking-tight text-warning">
-                {pendingCount}
-              </p>
-            </div>
-            <Link to="/dashboard/users" className="hidden sm:block">
-              <Button variant="outline">العودة إلى المستخدمين</Button>
-            </Link>
-          </div>
-        </div>
-      </Card>
+      <PageHeader
+        contentOnly
+        title="طلبات المستخدمين"
+        subtitle="إدارة الطلبات الجديدة للانضمام الى النظام"
+      />
 
       {/* ── Compact stat strip (kept, condensed on mobile) ──────────────── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

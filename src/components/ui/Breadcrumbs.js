@@ -1,10 +1,14 @@
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useI18n } from '../../i18n/i18n';
+import { BREADCRUMBS_ENABLED } from '../../config/ui';
 
 export default function Breadcrumbs({ items = [] }) {
   const { isRTL } = useI18n();
   const SeparatorIcon = isRTL ? ChevronLeft : ChevronRight;
+
+  // Global switch (see src/config/ui.js) — hides breadcrumbs across every page.
+  if (!BREADCRUMBS_ENABLED || items.length === 0) return null;
 
   return (
     <nav aria-label="breadcrumb" className="mb-4">

@@ -18,13 +18,13 @@ function HeaderContent({
 
   return (
     <div className={contentClassName}>
-      {eyebrow ? (
+      {/* {eyebrow ? (
         <p className={joinClasses('text-[11px] font-semibold uppercase tracking-widest text-muted', eyebrowClassName)}>
           {eyebrow}
         </p>
-      ) : null}
+      ) : null} */}
       {title ? (
-        <TitleTag className={joinClasses('mt-1.5 text-3xl font-bold tracking-tight text-heading', titleClassName)}>
+        <TitleTag className={joinClasses('mt-1.5 text-xl font-bold tracking-tight text-heading', titleClassName)}>
           {title}
         </TitleTag>
       ) : null}
