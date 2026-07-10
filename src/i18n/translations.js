@@ -103,6 +103,7 @@
       scrollTop: 'Scroll to top',
       archive: 'Archive',
       meetings: 'Meetings',
+      bookings: 'Book Appointment',
     },
     landing: {
       hero: {
@@ -322,6 +323,18 @@
         subtitle: 'A glimpse of the meetings held across our sectors.',
         loading: 'Loading meetings...',
         viewAll: 'View all meetings',
+      },
+      bookings: {
+        label: 'Appointments',
+        title: 'Book an appointment with the church',
+        subtitle: 'Choose one of the available services, then pick the date and time that suit you.',
+        cta: 'Book an appointment',
+        browseAll: 'Book now',
+        loading: 'Loading services...',
+        empty: 'No appointment services are available right now.',
+        servicesCount: 'services available',
+        fieldsLabel: 'fields',
+        openService: 'Book this service',
       },
     },
     dashboardLayout: {
@@ -3209,6 +3222,7 @@
       scrollTop: 'العودة للأعلى',
       archive: 'الأرشيف',
       meetings: 'الاجتماعات',
+      bookings: 'احجز موعد',
     },
     landing: {
       hero: {
@@ -3426,6 +3440,18 @@
         subtitle: 'لمحة من الاجتماعات في قطاعاتنا.',
         loading: 'جارٍ تحميل الاجتماعات...',
         viewAll: 'عرض كل الاجتماعات',
+      },
+      bookings: {
+        label: 'الحجوزات',
+        title: 'احجز موعدًا مع الكنيسة',
+        subtitle: 'اختر إحدى الخدمات المتاحة، ثم حدّد التاريخ والوقت المناسبين لك.',
+        cta: 'احجز موعدًا',
+        browseAll: 'احجز الآن',
+        loading: 'جارٍ تحميل الخدمات...',
+        empty: 'لا توجد خدمات حجز متاحة حاليًا.',
+        servicesCount: 'خدمة متاحة',
+        fieldsLabel: 'حقول',
+        openService: 'احجز هذه الخدمة',
       },
     },
     dashboardLayout: {

@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { CalendarClock, CheckCircle2, ImagePlus, Loader2, NotebookPen, Phone, UserRound } from 'lucide-react';
+import {
+  CalendarClock,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  ImagePlus,
+  ListChecks,
+  Loader2,
+  NotebookPen,
+  Phone,
+  Sparkles,
+  UserRound,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 
@@ -8,11 +20,11 @@ import { bookingsApi } from '../../api/endpoints';
 import { mapFieldErrors, normalizeApiError } from '../../api/errors';
 import { useAuth } from '../../auth/auth.hooks';
 import Button from '../../components/ui/Button';
-import Card, { CardHeader } from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import TextArea from '../../components/ui/TextArea';
 import { getLanguageLocale, useI18n } from '../../i18n/i18n';
+import { SanctuaryPageHeader } from './LandingPage.shared';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -398,6 +410,34 @@ function DynamicFieldInput({
   );
 }
 
+/* Sanctuary-styled panel — white surface, gold top hairline, generous radius. */
+function Panel({ children, className = '', accent = true, padded = true }) {
+  return (
+    <div
+      className={`overflow-hidden rounded-[28px] border border-secondary/15 bg-surface shadow-[0_24px_70px_rgba(2,6,23,0.08)] ${className}`}
+    >
+      {accent ? (
+        <div className="h-1.5 bg-gradient-to-r from-secondary/50 via-secondary to-secondary/50" />
+      ) : null}
+      <div className={padded ? 'p-6 sm:p-7' : ''}>{children}</div>
+    </div>
+  );
+}
+
+function PanelHeader({ icon: Icon, title, subtitle }) {
+  return (
+    <div className="mb-5 flex items-start gap-3">
+      <span className="mt-0.5 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-secondary/25 bg-secondary/10 text-secondary">
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0">
+        <h2 className="font-display text-lg font-bold leading-tight text-heading sm:text-xl">{title}</h2>
+        {subtitle ? <p className="mt-0.5 text-sm text-muted">{subtitle}</p> : null}
+      </div>
+    </div>
+  );
+}
+
 export default function BookingPublicPage() {
   const { t, language } = useI18n();
   const { user, isAuthenticated } = useAuth();
@@ -732,82 +772,81 @@ export default function BookingPublicPage() {
   const isTypeUnavailable = Boolean(selectedType) && !canBookSelectedType;
   const isTimeDisabled = !selectedType || isTypeUnavailable || !timeScopedMode || !form.scheduledDate;
 
+  const typeMetaChips = selectedType
+    ? [
+      timeScopedMode || selectedType.availabilityMode === 'DATE_TIME_RANGE' || selectedType.availabilityMode === 'SPECIFIC_DAYS_TIME'
+        ? { icon: Clock3, label: `${selectedType.durationMinutes} ${tf('landing.bookings.minutes', 'min')}` }
+        : null,
+      { icon: CheckCircle2, label: `${tf('bookings.dashboard.capacity', 'Capacity')}: ${selectedType.capacity}` },
+      selectedType.dynamicFields?.length
+        ? { icon: ListChecks, label: `${selectedType.dynamicFields.length} ${tf('landing.bookings.fieldsLabel', 'fields')}` }
+        : null,
+    ].filter(Boolean)
+    : [];
+
   return (
-    <div className="relative overflow-hidden bg-page">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/10 blur-[90px]" />
-        <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-accent/10 blur-[80px]" />
-      </div>
+    <div className="bg-page">
+      <SanctuaryPageHeader
+        eyebrow={tf('bookings.public.eyebrow', 'Book an appointment')}
+        title={tf('bookings.public.title', 'Choose the service, date, and time that fit you best.')}
+        subtitle={tf(
+          'bookings.public.subtitle',
+          'Pick a booking type, review its instructions, choose an available date and time, then submit your details and any required information.'
+        )}
+        icon={CalendarClock}
+      />
 
-      <section className="page-container relative py-28">
-        <div className="mx-auto max-w-5xl space-y-8">
-          <div className="max-w-2xl space-y-4">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-primary">
-              <CalendarClock className="h-3.5 w-3.5" />
-              {tf('bookings.public.eyebrow', 'Book an appointment')}
-            </span>
-            <h1 className="text-4xl font-black tracking-tight text-heading sm:text-5xl">
-              {tf('bookings.public.title', 'Choose the service, date, and time that fit you best.')}
-            </h1>
-            <p className="max-w-xl text-base leading-7 text-muted">
-              {tf(
-                'bookings.public.subtitle',
-                'Pick a booking type, review its instructions, choose an available date and time, then submit your details and any required information.'
-              )}
-            </p>
-          </div>
+      <section className="page-container relative z-10 -mt-8 pb-24 sm:-mt-12">
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 lg:grid-cols-[1.12fr_0.88fr]">
+          {/* ── REQUEST FORM ── */}
+          <Panel>
+            <PanelHeader
+              icon={NotebookPen}
+              title={tf('bookings.public.formTitle', 'Appointment request')}
+              subtitle={tf('bookings.public.formSubtitle', 'Only available slots are shown below.')}
+            />
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-            <Card className="rounded-[28px] border-border bg-surface/90 shadow-lg backdrop-blur">
-              <CardHeader
-                icon={NotebookPen}
-                title={tf('bookings.public.formTitle', 'Appointment request')}
-                subtitle={tf('bookings.public.formSubtitle', 'Only available slots are shown below.')}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Select
+                label={tf('bookings.public.type', 'Booking type')}
+                value={form.bookingTypeId}
+                onChange={(event) => updateField('bookingTypeId', event.target.value)}
+                error={formErrors.bookingTypeId}
+                options={bookingTypes.map((type) => ({
+                  value: type.id,
+                  label: type.name,
+                }))}
+                placeholder={tf('bookings.public.typePlaceholder', 'Choose a booking type')}
               />
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <Select
-                  label={tf('bookings.public.type', 'Booking type')}
-                  value={form.bookingTypeId}
-                  onChange={(event) => updateField('bookingTypeId', event.target.value)}
-                  error={formErrors.bookingTypeId}
-                  options={bookingTypes.map((type) => ({
-                    value: type.id,
-                    label: type.name,
-                  }))}
-                  placeholder={tf('bookings.public.typePlaceholder', 'Choose a booking type')}
-                />
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <Input
-                    label={tf('bookings.public.requesterName', 'Full name')}
-                    value={form.requesterName}
-                    onChange={(event) => updateField('requesterName', event.target.value)}
-                    error={formErrors.requesterName}
-                    icon={UserRound}
-                    required
-                    containerClassName="!mb-0"
-                  />
-                  <Input
-                    label={tf('bookings.public.requesterPhone', 'Phone')}
-                    value={form.requesterPhone}
-                    onChange={(event) => updateField('requesterPhone', event.target.value)}
-                    error={formErrors.requesterPhone}
-                    icon={Phone}
-                    required
-                    containerClassName="!mb-0"
-                  />
-                </div>
-
-                {/* <Input
-                  label={tf('bookings.public.requesterEmail', 'Email')}
-                  type="email"
-                  value={form.requesterEmail}
-                  onChange={(event) => updateField('requesterEmail', event.target.value)}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Input
+                  label={tf('bookings.public.requesterName', 'Full name')}
+                  value={form.requesterName}
+                  onChange={(event) => updateField('requesterName', event.target.value)}
+                  error={formErrors.requesterName}
+                  icon={UserRound}
+                  required
                   containerClassName="!mb-0"
-                /> */}
+                />
+                <Input
+                  label={tf('bookings.public.requesterPhone', 'Phone')}
+                  value={form.requesterPhone}
+                  onChange={(event) => updateField('requesterPhone', event.target.value)}
+                  error={formErrors.requesterPhone}
+                  icon={Phone}
+                  required
+                  containerClassName="!mb-0"
+                />
+              </div>
 
-                <div className={`grid grid-cols-1 gap-4 border-t border-border/60 pt-4 ${timeScopedMode ? 'md:grid-cols-2' : ''}`}>
+              <div className="rounded-2xl border border-secondary/20 bg-secondary/[0.04] p-4">
+                <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-secondary">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  {tf('bookings.public.date', 'Date')}
+                  {timeScopedMode ? ` · ${tf('bookings.public.time', 'Time')}` : ''}
+                </p>
+                <div className={`grid grid-cols-1 gap-4 ${timeScopedMode ? 'md:grid-cols-2' : ''}`}>
                   {usesDateSelect ? (
                     <Select
                       label={tf('bookings.public.date', 'Date')}
@@ -844,151 +883,172 @@ export default function BookingPublicPage() {
                     />
                   ) : null}
                 </div>
+              </div>
 
-                <TextArea
-                  label={tf('bookings.public.notes', 'Notes')}
-                  value={form.notes}
-                  onChange={(event) => updateField('notes', event.target.value)}
-                  placeholder={tf('bookings.public.notesPlaceholder', 'Add any details that would help the administrator prepare.')}
-                  className="min-h-[120px]"
-                  containerClassName="!mb-0"
-                />
+              <TextArea
+                label={tf('bookings.public.notes', 'Notes')}
+                value={form.notes}
+                onChange={(event) => updateField('notes', event.target.value)}
+                placeholder={tf('bookings.public.notesPlaceholder', 'Add any details that would help the administrator prepare.')}
+                className="min-h-[110px]"
+                containerClassName="!mb-0"
+              />
 
-                {selectedType?.dynamicFields?.length ? (
-                  <div className="space-y-2 rounded-[24px] border border-border bg-surface-alt/35 p-4">
-                    <div className="mb-2">
-                      <p className="text-sm font-semibold text-heading">{tf('bookings.public.additionalFields', 'Additional information')}</p>
-                      <p className="text-xs text-muted">
-                        {tf('bookings.public.additionalFieldsHint', 'These fields depend on the booking type you selected.')}
-                      </p>
-                    </div>
-
-                    {selectedType.dynamicFields.map((field) => (
-                      <div key={field.key}>
-                        <DynamicFieldInput
-                          field={field}
-                          value={form.dynamicFields[field.key]}
-                          onChange={updateDynamicField}
-                          uploadImage={handleImageUpload}
-                          uploading={Boolean(uploadingFields[field.key])}
-                          tf={tf}
-                        />
-                        {formErrors[`dynamicFields.${field.key}`] ? (
-                          <p className="-mt-2 mb-3 text-xs text-danger">{formErrors[`dynamicFields.${field.key}`]}</p>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-
-                <Button
-                  type="submit"
-                  size="lg"
-                  loading={createBookingMutation.isPending}
-                  disabled={!selectedType || isTypeUnavailable}
-                  className="w-full rounded-2xl !py-4 text-sm font-bold"
-                  icon={NotebookPen}
-                >
-                  {tf('bookings.public.submit', 'Submit booking')}
-                </Button>
-              </form>
-            </Card>
-
-            <div className="space-y-6">
-              <Card className="rounded-[28px] border-border bg-surface/90 shadow-card backdrop-blur">
-                <CardHeader
-                  icon={CalendarClock}
-                  title={selectedType?.name || tf('bookings.public.typePreview', 'Booking details')}
-                  subtitle={
-                    selectedType
-                      ? availabilityModeLabel(selectedType.availabilityMode, tf)
-                      : tf('bookings.public.pickType', 'Choose a booking type to see instructions and fields.')
-                  }
-                />
-
-                {typesQuery.isLoading || (timeScopedMode && slotsQuery.isLoading) ? (
-                  <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface-alt/40 p-4 text-sm text-muted">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {tf('bookings.public.loading', 'Loading availability...')}
-                  </div>
-                ) : null}
-
-                {selectedType?.instructions ? (
-                  <div className="rounded-2xl border border-border bg-surface-alt/35 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                      {tf('bookings.public.instructions', 'Instructions')}
+              {selectedType?.dynamicFields?.length ? (
+                <div className="space-y-2 rounded-2xl border border-border bg-surface-alt/40 p-4">
+                  <div className="mb-2">
+                    <p className="text-sm font-semibold text-heading">{tf('bookings.public.additionalFields', 'Additional information')}</p>
+                    <p className="text-xs text-muted">
+                      {tf('bookings.public.additionalFieldsHint', 'These fields depend on the booking type you selected.')}
                     </p>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{selectedType.instructions}</p>
                   </div>
-                ) : null}
 
-                <div className="mt-4 space-y-3">
-                  {timeScopedMode && dateGroups.length > 0 ? (
-                    dateGroups.slice(0, 4).map((group) => (
-                      <div key={group.date} className="rounded-2xl border border-border bg-surface-alt/30 p-4">
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                          <span className="text-sm font-semibold text-heading">{formatDateOptionLabel(group.date, locale)}</span>
-                          <span className="text-xs text-muted">{group.slots.length} {tf('bookings.public.times', 'times')}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {group.slots.slice(0, 6).map((slot) => (
-                            <span key={`${group.date}-${slot.time}`} className="rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                              {slot.time}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))
-                  ) : selectedType ? (
-                    <div className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted">
-                      {selectedType.availabilityMode === 'NONE'
-                        ? tf('bookings.public.noAvailability', 'There are no available slots for this booking type right now.')
-                        : selectedType.availabilityMode === 'ALWAYS'
-                          ? tf('bookings.public.alwaysHint', 'The requester can choose any date and time.')
-                          : selectedType.availabilityMode === 'DATE_RANGE'
-                            ? tf('bookings.public.dateRangeHint', 'Choose any date inside the configured date range and any time you want.')
-                            : selectedType.availabilityMode === 'DATE_TIME_RANGE'
-                              ? tf('bookings.public.dateTimeRangeHint', 'Choose any date inside the configured range and any time inside the allowed time range.')
-                              : selectedType.availabilityMode === 'SPECIFIC_DAYS'
-                                ? tf('bookings.public.specificDaysHint', 'Choose a date that matches one of the allowed weekdays, then choose any time you want.')
-                                : selectedType.availabilityMode === 'SPECIFIC_DAYS_TIME'
-                                  ? tf('bookings.public.specificDaysTimeHint', 'Choose a date that matches one of the allowed weekdays and a time inside the allowed time range.')
-                                  : selectedType.availabilityMode === 'SPECIFIC_DATES'
-                                    ? tf('bookings.public.specificDatesHint', 'Choose one of the configured dates, then choose any time you want.')
-                                    : tf('bookings.public.noAvailability', 'There are no available slots for this booking type right now.')}
-                    </div>
-                  ) : null}
-                </div>
-              </Card>
-
-              {lastCreatedBooking ? (
-                <Card className="rounded-[28px] border-success/20 bg-success-light/50">
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-2xl bg-success/15 p-3 text-success">
-                      <CheckCircle2 className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-heading">{tf('bookings.public.successTitle', 'Booking submitted')}</p>
-                      <p className="mt-1 text-sm text-muted">
-                        {lastCreatedBooking.bookingType?.name} • {lastCreatedBooking.scheduledDate}
-                        {lastCreatedBooking.scheduledTime ? ` • ${lastCreatedBooking.scheduledTime}` : ''}
-                      </p>
-                      <p className="mt-2 text-xs text-muted">
-                        {tf('bookings.public.successBody', 'An administrator can now review and manage your booking from the dashboard.')}
-                      </p>
-                      {isAuthenticated ? (
-                        <Link
-                          to="/dashboard/bookings/mine"
-                          className="mt-3 inline-flex text-xs font-semibold text-primary hover:underline"
-                        >
-                          {tf('bookings.public.viewMyBookings', 'View my bookings')}
-                        </Link>
+                  {selectedType.dynamicFields.map((field) => (
+                    <div key={field.key}>
+                      <DynamicFieldInput
+                        field={field}
+                        value={form.dynamicFields[field.key]}
+                        onChange={updateDynamicField}
+                        uploadImage={handleImageUpload}
+                        uploading={Boolean(uploadingFields[field.key])}
+                        tf={tf}
+                      />
+                      {formErrors[`dynamicFields.${field.key}`] ? (
+                        <p className="-mt-2 mb-3 text-xs text-danger">{formErrors[`dynamicFields.${field.key}`]}</p>
                       ) : null}
                     </div>
-                  </div>
-                </Card>
+                  ))}
+                </div>
               ) : null}
-            </div>
+
+              <Button
+                type="submit"
+                size="lg"
+                loading={createBookingMutation.isPending}
+                disabled={!selectedType || isTypeUnavailable}
+                icon={NotebookPen}
+                className="w-full !rounded-2xl !border !border-secondary !bg-secondary !py-4 text-sm !font-bold !text-[#1c1305] !shadow-lg !shadow-secondary/25 hover:!bg-[#c69a41] hover:!border-[#c69a41]"
+              >
+                {tf('bookings.public.submit', 'Submit booking')}
+              </Button>
+            </form>
+          </Panel>
+
+          {/* ── SUMMARY / AVAILABILITY ── */}
+          <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+            <Panel>
+              <PanelHeader
+                icon={CalendarClock}
+                title={selectedType?.name || tf('bookings.public.typePreview', 'Booking details')}
+                subtitle={
+                  selectedType
+                    ? availabilityModeLabel(selectedType.availabilityMode, tf)
+                    : tf('bookings.public.pickType', 'Choose a booking type to see instructions and fields.')
+                }
+              />
+
+              {typeMetaChips.length ? (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {typeMetaChips.map((chip, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-page px-3 py-1 text-xs font-semibold text-muted"
+                    >
+                      <chip.icon className="h-3.5 w-3.5 text-secondary" />
+                      {chip.label}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
+              {typesQuery.isLoading || (timeScopedMode && slotsQuery.isLoading) ? (
+                <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface-alt/40 p-4 text-sm text-muted">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {tf('bookings.public.loading', 'Loading availability...')}
+                </div>
+              ) : null}
+
+              {selectedType?.description ? (
+                <p className="mb-4 text-sm leading-6 text-muted">{selectedType.description}</p>
+              ) : null}
+
+              {selectedType?.instructions ? (
+                <div className="rounded-2xl border border-secondary/20 bg-secondary/[0.05] p-4">
+                  <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.18em] text-secondary">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {tf('bookings.public.instructions', 'Instructions')}
+                  </p>
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{selectedType.instructions}</p>
+                </div>
+              ) : null}
+
+              <div className="mt-4 space-y-3">
+                {timeScopedMode && dateGroups.length > 0 ? (
+                  dateGroups.slice(0, 4).map((group) => (
+                    <div key={group.date} className="rounded-2xl border border-border bg-surface-alt/30 p-4">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold text-heading">{formatDateOptionLabel(group.date, locale)}</span>
+                        <span className="text-xs text-muted">{group.slots.length} {tf('bookings.public.times', 'times')}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {group.slots.slice(0, 6).map((slot) => (
+                          <span key={`${group.date}-${slot.time}`} className="rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary" dir="ltr">
+                            {slot.time}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                ) : selectedType ? (
+                  <div className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted">
+                    {selectedType.availabilityMode === 'NONE'
+                      ? tf('bookings.public.noAvailability', 'There are no available slots for this booking type right now.')
+                      : selectedType.availabilityMode === 'ALWAYS'
+                        ? tf('bookings.public.alwaysHint', 'The requester can choose any date and time.')
+                        : selectedType.availabilityMode === 'DATE_RANGE'
+                          ? tf('bookings.public.dateRangeHint', 'Choose any date inside the configured date range and any time you want.')
+                          : selectedType.availabilityMode === 'DATE_TIME_RANGE'
+                            ? tf('bookings.public.dateTimeRangeHint', 'Choose any date inside the configured range and any time inside the allowed time range.')
+                            : selectedType.availabilityMode === 'SPECIFIC_DAYS'
+                              ? tf('bookings.public.specificDaysHint', 'Choose a date that matches one of the allowed weekdays, then choose any time you want.')
+                              : selectedType.availabilityMode === 'SPECIFIC_DAYS_TIME'
+                                ? tf('bookings.public.specificDaysTimeHint', 'Choose a date that matches one of the allowed weekdays and a time inside the allowed time range.')
+                                : selectedType.availabilityMode === 'SPECIFIC_DATES'
+                                  ? tf('bookings.public.specificDatesHint', 'Choose one of the configured dates, then choose any time you want.')
+                                  : tf('bookings.public.noAvailability', 'There are no available slots for this booking type right now.')}
+                  </div>
+                ) : null}
+              </div>
+            </Panel>
+
+            {lastCreatedBooking ? (
+              <div className="overflow-hidden rounded-[28px] border border-success/25 bg-success-light/50">
+                <div className="h-1.5 bg-success/60" />
+                <div className="flex items-start gap-3 p-6">
+                  <div className="rounded-2xl bg-success/15 p-3 text-success">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-heading">{tf('bookings.public.successTitle', 'Booking submitted')}</p>
+                    <p className="mt-1 text-sm text-muted">
+                      {lastCreatedBooking.bookingType?.name} • {lastCreatedBooking.scheduledDate}
+                      {lastCreatedBooking.scheduledTime ? ` • ${lastCreatedBooking.scheduledTime}` : ''}
+                    </p>
+                    <p className="mt-2 text-xs text-muted">
+                      {tf('bookings.public.successBody', 'An administrator can now review and manage your booking from the dashboard.')}
+                    </p>
+                    {isAuthenticated ? (
+                      <Link
+                        to="/dashboard/bookings/mine"
+                        className="mt-3 inline-flex text-xs font-semibold text-primary hover:underline"
+                      >
+                        {tf('bookings.public.viewMyBookings', 'View my bookings')}
+                      </Link>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>

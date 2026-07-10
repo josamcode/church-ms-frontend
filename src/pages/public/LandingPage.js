@@ -7,7 +7,8 @@ import {
   Cross, Star, Globe, Navigation, ExternalLink, CalendarClock, Library,
   ChevronDown,
 } from 'lucide-react';
-import { settingsApi, divineLiturgiesApi, archiveApi, meetingsApi } from '../../api/endpoints';
+import { settingsApi, divineLiturgiesApi, archiveApi, meetingsApi, bookingsApi } from '../../api/endpoints';
+import { availabilityLabel } from '../dashboard/bookings/bookingTypeForm.utils';
 import { useAuth } from '../../auth/auth.hooks';
 import Button from '../../components/ui/Button';
 import { useI18n } from '../../i18n/i18n';
@@ -712,6 +713,118 @@ function DesktopMeetingCard({ meeting, isRTL, index, t }) {
   );
 }
 
+function DesktopBookingCard({ type, isRTL, index, tf }) {
+  const chips = [];
+  if (['DATE_TIME_RANGE', 'SPECIFIC_DAYS_TIME', 'SPECIFIC_DATES_TIME'].includes(type.availabilityMode)) {
+    chips.push({ icon: Clock3, label: `${type.durationMinutes} ${tf('landing.bookings.minutes', 'min')}` });
+  }
+  if (Array.isArray(type.dynamicFields) && type.dynamicFields.length) {
+    chips.push({ icon: Library, label: `${type.dynamicFields.length} ${tf('landing.bookings.fieldsLabel', 'fields')}` });
+  }
+
+  return (
+    <Reveal delay={index * 0.1}>
+      <Link
+        to="/bookings/new"
+        className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface p-6 transition-all duration-500 hover:-translate-y-0.5 hover:border-secondary/30 hover:shadow-2xl hover:shadow-primary/10 ${isRTL ? 'text-right' : 'text-left'
+          }`}
+      >
+        <div className="absolute top-0 end-0 h-24 w-24 rounded-bl-[3rem] bg-gradient-to-bl from-secondary/[0.08] to-transparent" />
+        <div className={`relative flex items-start gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-secondary/10 text-secondary transition-colors duration-300 group-hover:bg-secondary group-hover:text-white">
+            <CalendarClock className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-display truncate text-lg font-bold leading-tight text-heading">{type.name}</h3>
+            <p className="mt-1 truncate text-xs font-semibold uppercase tracking-wider text-secondary">
+              {availabilityLabel(type.availabilityMode, tf)}
+            </p>
+          </div>
+        </div>
+
+        {type.description ? (
+          <p className="relative mt-4 line-clamp-2 text-sm leading-6 text-muted">{type.description}</p>
+        ) : null}
+
+        {chips.length ? (
+          <div className={`relative mt-4 flex flex-wrap gap-2 ${isRTL ? 'justify-end' : ''}`}>
+            {chips.map((chip, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-page px-3 py-1 text-xs font-semibold text-muted"
+              >
+                <chip.icon className="h-3.5 w-3.5 text-secondary" />
+                {chip.label}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="relative mt-6 flex-1" />
+        <div
+          className={`relative flex items-center gap-2 border-t border-border/60 pt-4 text-sm font-bold text-secondary/70 transition-all duration-300 group-hover:text-secondary ${isRTL ? 'flex-row-reverse' : ''
+            }`}
+        >
+          <span className="text-xs font-bold uppercase tracking-wider">{tf('landing.bookings.openService', 'Book this service')}</span>
+          <span className={`transition-transform duration-300 group-hover:translate-x-1 ${isRTL ? 'rotate-180' : ''}`}>→</span>
+        </div>
+      </Link>
+    </Reveal>
+  );
+}
+
+function DesktopBookingsSection({ isRTL, tf }) {
+  const bookingTypesQuery = useQuery({
+    queryKey: ['bookings', 'public', 'types'],
+    queryFn: async () => (await bookingsApi.public.listTypes()).data,
+    staleTime: 60000,
+  });
+  const types = (Array.isArray(bookingTypesQuery.data?.data) ? bookingTypesQuery.data.data : []).filter(
+    (type) => type.isActive !== false && type.availabilityMode !== 'NONE'
+  );
+  const teaser = types.slice(0, 6);
+
+  if (!bookingTypesQuery.isLoading && !teaser.length) return null;
+
+  return (
+    <section id="book" className="relative py-24 lg:py-32">
+      <div className="page-container relative">
+        <DesktopSectionHeader
+          label={tf('landing.bookings.label', 'Appointments')}
+          title={tf('landing.bookings.title', 'Book an appointment with the church')}
+          subtitle={tf('landing.bookings.subtitle', 'Choose one of the available services, then pick the date and time that suit you.')}
+        />
+        {bookingTypesQuery.isLoading ? (
+          <div className="mt-14 rounded-2xl border border-border bg-surface p-8 text-center">
+            <p className="text-sm text-muted">{tf('landing.bookings.loading', 'Loading services...')}</p>
+          </div>
+        ) : (
+          <>
+            <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {teaser.map((type, i) => (
+                <DesktopBookingCard key={type.id} type={type} isRTL={isRTL} index={i} tf={tf} />
+              ))}
+            </div>
+            <Reveal>
+              <div className="mt-10 flex justify-center">
+                <Link to="/bookings/new">
+                  <Button
+                    size="lg"
+                    icon={CalendarClock}
+                    className="!rounded-full !border !border-secondary !bg-secondary !px-8 !font-bold !text-[#1c1305] !shadow-lg !shadow-secondary/25 hover:!bg-[#c69a41] hover:!border-[#c69a41]"
+                  >
+                    {tf('landing.bookings.cta', 'Book an appointment')}
+                  </Button>
+                </Link>
+              </div>
+            </Reveal>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function DesktopMeetingsSection({ isRTL, meetings, isLoading, tf, t }) {
   const teaser = (Array.isArray(meetings) ? meetings : []).slice(0, 6);
   if (!isLoading && !teaser.length) return null;
@@ -1250,6 +1363,9 @@ export default function LandingPage() {
         tf={tf}
         t={t}
       />
+
+      {/* ═══════════ BOOK AN APPOINTMENT ═══════════ */}
+      <DesktopBookingsSection isRTL={isRTL} tf={tf} />
 
       {/* ═══════════ STATS (dark gold band) ═══════════ */}
       <section id="stats" className="py-24 lg:py-32">

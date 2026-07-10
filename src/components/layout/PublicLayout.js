@@ -61,6 +61,7 @@ export default function PublicLayout() {
       // { label: text('publicLayout.verses'), href: '/verses' },
       { label: getOptionalText('publicLayout.archive', 'Archive'), href: '/archive' },
       { label: getOptionalText('publicLayout.meetings', 'Meetings'), href: '/meetings' },
+      { label: getOptionalText('publicLayout.bookings', 'Book Appointment'), href: '/bookings' },
       { label: text('publicLayout.visit'), href: '/visit' },
     ],
     [text, getOptionalText]
@@ -81,7 +82,9 @@ export default function PublicLayout() {
   const hasDarkHeaderBand =
     isLandingTop ||
     location.pathname === '/archive' ||
-    location.pathname === '/meetings';
+    location.pathname === '/meetings' ||
+    location.pathname === '/bookings' ||
+    location.pathname === '/bookings/new';
   const overHero = hasDarkHeaderBand && !scrolled;
   const ctaClass = overHero
     ? '!rounded-xl !text-xs !font-bold !px-4 !bg-secondary !text-[#1c1305] hover:!bg-[#c69a41]'

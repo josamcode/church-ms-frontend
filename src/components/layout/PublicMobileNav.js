@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home, CalendarDays, MapPin, Share2, MoreHorizontal, X, ChevronRight,
-  Info, Images, Users, LogIn, Languages, LayoutDashboard, Sun, Moon,
+  Info, Images, Users, LogIn, Languages, LayoutDashboard, Sun, Moon, CalendarClock,
 } from 'lucide-react';
 import { useI18n } from '../../i18n/i18n';
 import { useAuth } from '../../auth/auth.hooks';
@@ -38,6 +38,13 @@ function MoreSheet({ open, onClose, isRTL, t, toggleLanguage, isAuthenticated, d
       desc: t('landing.meetings.label'),
       to: '/meetings',
       accent: 'bg-emerald-500/10 text-emerald-600',
+    },
+    {
+      icon: CalendarClock,
+      label: t('publicLayout.bookings'),
+      desc: t('landing.bookings.label'),
+      to: '/bookings/new',
+      accent: 'bg-rose-500/10 text-rose-600',
     },
     isAuthenticated
       ? {

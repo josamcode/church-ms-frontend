@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   BookOpen, Clock3, Mail, MapPin, Phone, Quote, ShieldCheck, Sparkles, UserCircle2,
   Cross, Star, Globe, Navigation, ExternalLink, ChevronRight, ChevronLeft,
@@ -7,8 +8,10 @@ import {
   CalendarClock, Images, Users,
 } from 'lucide-react';
 import {
-  SOCIAL_META, useInView, AnimatedCounter, GuestEntryOverlay,
+  SOCIAL_META, useInView, AnimatedCounter, GuestEntryOverlay, NAVY_BAND,
 } from './LandingPage.shared';
+import { bookingsApi } from '../../api/endpoints';
+import { availabilityLabel } from '../dashboard/bookings/bookingTypeForm.utils';
 
 /* ══════════════════════════════════════════════════════
    MOBILE PRIEST CAROUSEL — stacked 3D, auto 3s
@@ -109,6 +112,67 @@ function MobileSectionLabel({ label, isRTL }) {
 /* ══════════════════════════════════════════════════════
    MOBILE HOME SCREEN
    ══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   MOBILE BOOKING BLOCK — navy + gold "book an appointment" card
+   with a live list of the available services. Self-fetching so the
+   home screen stays a thin composition layer.
+   ══════════════════════════════════════════════════════ */
+function MobileBookingBlock({ t, isRTL }) {
+  const bookingTypesQuery = useQuery({
+    queryKey: ['bookings', 'public', 'types'],
+    queryFn: async () => (await bookingsApi.public.listTypes()).data,
+    staleTime: 60000,
+  });
+  const types = (Array.isArray(bookingTypesQuery.data?.data) ? bookingTypesQuery.data.data : []).filter(
+    (type) => type.isActive !== false && type.availabilityMode !== 'NONE'
+  );
+
+  if (!bookingTypesQuery.isLoading && !types.length) return null;
+
+  return (
+    <div className="mt-3">
+      <div
+        className={`overflow-hidden rounded-2xl border border-secondary/25 ${isRTL ? 'text-right' : 'text-left'}`}
+        style={{ background: NAVY_BAND }}
+      >
+        <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-secondary/70 to-transparent" />
+        <div className="p-5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-secondary">
+            {t('landing.bookings.label')}
+          </p>
+          <h3 className="mt-2 text-lg font-black leading-snug text-white">
+            {t('landing.bookings.title')}
+          </h3>
+          <p className="mt-1.5 text-xs leading-relaxed text-white/60">{t('landing.bookings.subtitle')}</p>
+
+          {types.length ? (
+            <div className="mt-4 divide-y divide-white/10 border-y border-white/10">
+              {types.slice(0, 3).map((type) => (
+                <div
+                  key={type.id}
+                  className={`flex items-center justify-between gap-3 py-2.5 ${isRTL ? 'flex-row-reverse text-right' : ''}`}
+                >
+                  <p className="truncate text-[13px] font-semibold text-white/90">{type.name}</p>
+                  <p className="shrink-0 text-[11px] text-white/45">{availabilityLabel(type.availabilityMode, t)}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <Link
+            to="/bookings/new"
+            className={`mt-4 flex items-center justify-between gap-2 rounded-xl bg-secondary px-4 py-3 text-sm font-black text-[#1c1305] transition-transform active:scale-[0.98] ${isRTL ? 'flex-row-reverse' : ''}`}
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            <span>{t('landing.bookings.browseAll')}</span>
+            <span className={isRTL ? 'rotate-180' : ''}>→</span>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MobileHomeScreen({
   t,
   isRTL,
@@ -684,6 +748,8 @@ function MobileVisitScreen({ t, isRTL, contacts, churchPlaceName, churchPlusCode
             </a>
           </div>
         </div>
+        {/* ── Book an appointment ── */}
+        <MobileBookingBlock t={t} isRTL={isRTL} />
         {/* Contact rows */}
         {contacts.map((item, i) => (
           <div key={i} className={`bg-surface border border-border rounded-2xl p-4 flex items-center gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
