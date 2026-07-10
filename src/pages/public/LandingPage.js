@@ -5,7 +5,7 @@ import {
   ArrowLeft, ArrowRight, BookOpen, Church, Clock3, Heart, HandHeart,
   Mail, MapPin, Phone, Quote, ShieldCheck, Sparkles, Users, UserCircle2,
   Cross, Star, Globe, Navigation, ExternalLink, CalendarClock, Library,
-  ChevronDown,
+  ChevronDown, CalendarDays,
 } from 'lucide-react';
 import { settingsApi, divineLiturgiesApi, archiveApi, meetingsApi } from '../../api/endpoints';
 import { useAuth } from '../../auth/auth.hooks';
@@ -738,22 +738,100 @@ export default function LandingPage() {
         {featuredService ? (
           <div className="relative z-10 w-full page-container pt-0 pb-12">
             <Reveal delay={0.55}>
-              <div className="mx-auto flex max-w-3xl flex-col items-center justify-between gap-4 rounded-2xl border border-white/12 bg-white/[0.06] px-6 py-4 backdrop-blur-md sm:flex-row">
-                <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-secondary">
-                    <CalendarClock className="h-5 w-5" />
+              <div
+                className="
+        group relative mx-auto max-w-4xl overflow-hidden
+        rounded-[28px] border border-white/12
+        bg-[#172333]/85
+        shadow-[0_24px_70px_rgba(0,0,0,0.3)]
+        backdrop-blur-xl
+        transition-all duration-500
+        hover:-translate-y-1
+        hover:border-secondary/30
+        hover:shadow-[0_30px_90px_rgba(0,0,0,0.4)]
+      "
+              >
+                {/* Background glow */}
+                <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-secondary/10 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-24 -left-20 h-56 w-56 rounded-full bg-secondary/8 blur-3xl" />
+
+                {/* Top gold line */}
+                <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-secondary/80 to-transparent" />
+
+                <div className="relative grid gap-6 px-6 py-6 md:grid-cols-[220px_1fr] md:px-8 md:py-7">
+                  {/* Left: time and day */}
+                  <div className="flex items-stretch gap-3 md:border-r md:border-white/10 md:pr-6">
+                    {featuredService.timeText ? (
+                      <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-secondary/20 bg-secondary/[0.08] px-4 py-4 text-center">
+                        <CalendarClock className="mb-2 h-5 w-5 text-secondary" />
+
+                        <span className="mb-1 text-[10px] font-bold tracking-[0.18em] text-white/45">
+                          الموعد
+                        </span>
+
+                        <div
+                          dir="ltr"
+                          className="font-display text-2xl font-bold text-white"
+                        >
+                          {featuredService.timeText}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {featuredService.dateText ? (
+                      <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-secondary/20 bg-secondary/[0.08] px-4 py-4 text-center">
+                        <CalendarDays className="mb-2 h-5 w-5 text-secondary" />
+
+                        <span className="mb-1 text-[10px] font-bold tracking-[0.18em] text-white/45">
+                          اليوم
+                        </span>
+
+                        <div className="font-display text-lg font-bold text-white">
+                          {featuredService.dateText}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-secondary">{nextLiturgyLabel}</p>
-                    <p className="mt-0.5 font-display text-base font-bold text-white">
-                      {featuredService.title}
-                      {featuredService.dateText ? <span className="text-white/60"> · {featuredService.dateText}</span> : null}
+
+                  {/* Right: invitation and service details */}
+                  <div className="flex min-w-0 flex-col justify-center text-right">
+                    <div className="mb-3 flex justify-end">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-secondary/20 bg-secondary/10 px-4 py-2">
+                        <Cross className="h-4 w-4 text-secondary" />
+
+                        <span className="text-xs font-bold text-secondary">
+                          دعوة للقائك مع الرب
+                        </span>
+                      </div>
+                    </div>
+
+                    <blockquote className="font-display text-xl font-bold leading-relaxed text-white md:text-2xl">
+                      «فَرِحْتُ بِالْقَائِلِينَ لِي:
+                      <span className="text-secondary"> إِلَى بَيْتِ الرَّبِّ نَذْهَبُ</span>»
+                    </blockquote>
+
+                    <p className="mt-2 text-xs text-white/45">
+                      مزمور ١٢٢: ١
                     </p>
+
+                    <div className="my-4 h-px bg-gradient-to-l from-secondary/50 via-white/10 to-transparent" />
+
+                    <div>
+                      <p className="text-xs font-bold text-secondary">
+                        {nextLiturgyLabel}
+                      </p>
+
+                      <h3 className="mt-1 font-display text-lg font-bold text-white md:text-xl">
+                        {featuredService.title}
+                      </h3>
+                    </div>
                   </div>
                 </div>
-                {featuredService.timeText ? (
-                  <div dir="ltr" className="text-lg font-bold text-white/90">{featuredService.timeText}</div>
-                ) : null}
+
+                {/* Bottom accent */}
+                <div className="h-1 w-full bg-white/[0.03]">
+                  <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-secondary to-transparent" />
+                </div>
               </div>
             </Reveal>
           </div>
