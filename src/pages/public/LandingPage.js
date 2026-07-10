@@ -1,11 +1,11 @@
-import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, ArrowRight, BookOpen, Church, Clock3, Heart, HandHeart,
   Mail, MapPin, Phone, Quote, ShieldCheck, Sparkles, Users, UserCircle2,
   Cross, Star, Globe, Navigation, ExternalLink, CalendarClock, Library,
-  ChevronDown, CalendarDays,
+  ChevronDown,
 } from 'lucide-react';
 import { settingsApi, divineLiturgiesApi, archiveApi, meetingsApi } from '../../api/endpoints';
 import { useAuth } from '../../auth/auth.hooks';
@@ -22,11 +22,173 @@ import {
   GOLD_TEXT, NAVY_BAND, ArchOutline, GoldDivider, DesktopSectionHeader,
 } from './LandingPage.shared';
 
+/* ────────────────────────────────────────────────────────────────
+   SECTION ROUTING — the landing is one scrolling page, but each section
+   is addressable as a clean URL (/about, /priests, …) instead of a #hash.
+   These paths must have matching <section id="…"> anchors + router entries.
+   ──────────────────────────────────────────────────────────────── */
+const LANDING_SECTION_PATHS = ['about', 'priests', 'services', 'visit', 'location'];
+const LANDING_HEADER_OFFSET = 80; // fixed header height to offset scroll targets
+
+function sectionIdFromPath(pathname) {
+  const seg = String(pathname || '').replace(/^\/+|\/+$/g, '').split('/')[0];
+  return LANDING_SECTION_PATHS.includes(seg) ? seg : null;
+}
+
 /* ════════════════════════════════════════════════════════════════
    SANCTUARY DESIGN LANGUAGE — cinematic navy + antique gold, Tajawal display
    ════════════════════════════════════════════════════════════════ */
 /* GOLD_TEXT, NAVY_BAND, ArchOutline, GoldDivider, DesktopSectionHeader are
    imported from ./LandingPage.shared (see import block above). */
+
+/* ════════════════════════════════
+   HERO — clergy deck (echoes the mobile stacked carousel) + next-liturgy card
+   ════════════════════════════════ */
+function HeroPriestPortrait({ priest, isCenter }) {
+  const [err, setErr] = useState(false);
+  const hasImg = Boolean(priest.image) && !err;
+  return (
+    <div className="relative w-full">
+      <div
+        className={`pointer-events-none absolute -inset-2 rounded-t-[5.5rem] rounded-b-[1.5rem] bg-gradient-to-b from-secondary/30 via-secondary/5 to-transparent blur-lg transition-opacity duration-500 ${isCenter ? 'opacity-100' : 'opacity-0'
+          }`}
+      />
+      <div className="relative overflow-hidden rounded-t-[5rem] rounded-b-[1.4rem] border border-secondary/30 bg-gradient-to-b from-[#15273c] to-[#0c1a2b] shadow-2xl shadow-black/50">
+        <div className="relative aspect-[3/4] w-full">
+          {hasImg ? (
+            <img
+              src={priest.image}
+              alt={priest.alt}
+              loading="lazy"
+              onError={() => setErr(true)}
+              className="absolute inset-0 h-full w-full object-cover object-top pt-4"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-secondary/30">
+              <UserCircle2 className="h-20 w-20" />
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[#07121f] via-[#07121f]/65 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-4 text-center">
+            <span className="inline-flex items-center gap-1 rounded-full border border-secondary/30 bg-black/30 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-secondary backdrop-blur-sm">
+              <Star className="h-2 w-2 fill-current" />
+              {priest.role}
+            </span>
+            <p className="font-display mt-1.5 text-sm font-bold leading-tight text-white">{priest.name}</p>
+          </div>
+        </div>
+        <div className="pointer-events-none absolute inset-1.5 rounded-t-[4.5rem] rounded-b-[1.1rem] border border-secondary/20" />
+      </div>
+      <div className="absolute -top-3 left-1/2 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full border border-secondary/40 bg-secondary text-white shadow-lg">
+        <Cross className="h-3.5 w-3.5" />
+      </div>
+    </div>
+  );
+}
+
+function HeroClergyDeck({ priests, eyebrow }) {
+  const list = Array.isArray(priests) ? priests.filter((p) => p && p.name) : [];
+  const total = list.length;
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (total <= 1 || paused) return undefined;
+    const id = setInterval(() => setActive((p) => (p + 1) % total), 4500);
+    return () => clearInterval(id);
+  }, [total, paused]);
+
+  if (!total) return null;
+
+  return (
+    <div className="relative mx-auto w-full max-w-[440px]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center">
+        <ArchOutline className="mt-1 w-[360px] max-w-[86%] text-secondary/15" />
+      </div>
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[340px] w-[340px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-secondary/10 blur-[90px]" />
+
+      {eyebrow ? (
+        <div className="relative mb-6 flex justify-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-secondary/25 bg-white/[0.05] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-secondary backdrop-blur-sm">
+            {/* <Cross className="h-3 w-3" /> */}
+            {eyebrow}
+          </span>
+        </div>
+      ) : null}
+
+      <div
+        className="relative flex h-[380px] items-center justify-center"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        {list.map((priest, i) => {
+          const diff = (i - active + total) % total;
+          const isCenter = diff === 0;
+          const isRight = diff === 1 && total > 1;
+          const isLeft = diff === total - 1 && total > 2;
+          if (!isCenter && !isRight && !isLeft) return null;
+
+          let style;
+          if (isCenter) {
+            style = { zIndex: 20, opacity: 1, transform: 'translateX(0) rotate(0deg) scale(1)', filter: 'none' };
+          } else if (isLeft) {
+            style = { zIndex: 10, opacity: 0.5, transform: 'translateX(-44%) rotate(-7deg) scale(0.82)', transformOrigin: 'bottom right', filter: 'brightness(0.6)' };
+          } else {
+            style = { zIndex: 10, opacity: 0.5, transform: 'translateX(44%) rotate(7deg) scale(0.82)', transformOrigin: 'bottom left', filter: 'brightness(0.6)' };
+          }
+
+          return (
+            <div
+              key={priest.name || i}
+              onClick={() => !isCenter && setActive(i)}
+              className={`absolute w-[280px] ${isCenter ? '' : 'cursor-pointer'}`}
+              style={{ transition: 'all 0.6s cubic-bezier(0.34,1.1,0.64,1)', ...style }}
+            >
+              <HeroPriestPortrait priest={priest} isCenter={isCenter} />
+            </div>
+          );
+        })}
+      </div>
+
+      {total > 1 ? (
+        <div className="relative mt-6 flex items-center justify-center gap-2">
+          {list.map((_, i) => (
+            <button key={i} type="button" onClick={() => setActive(i)} aria-label={`clergy ${i + 1}`}>
+              <span className={`block rounded-full transition-all duration-300 ${i === active ? 'h-2 w-6 bg-secondary' : 'h-2 w-2 bg-white/25 hover:bg-white/50'}`} />
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function HeroNextLiturgy({ service, label }) {
+  if (!service) return null;
+  return (
+    <div className="group inline-flex max-w-full items-stretch gap-3 rounded-2xl border border-white/12 bg-[#0e1d2f]/70 p-2.5 text-start shadow-[0_20px_50px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all duration-500 hover:-translate-y-0.5 hover:border-secondary/30">
+      {service.timeText ? (
+        <div className="flex min-w-[104px] flex-col items-center justify-center rounded-xl border border-secondary/25 bg-gradient-to-b from-secondary/[0.14] to-secondary/[0.04] px-4 py-3 text-center">
+          <CalendarClock className="mb-1 h-4 w-4 text-secondary" />
+          <span dir="ltr" className="font-display text-lg font-bold leading-tight text-white">
+            {service.timeText}
+          </span>
+        </div>
+      ) : null}
+      <div className="flex min-w-0 max-w-[240px] flex-col justify-center px-1 pe-2">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-secondary/70" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-secondary" />
+          </span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary">{label}</span>
+        </div>
+        <h3 className="font-display mt-1 truncate text-base font-bold leading-tight text-white">{service.title}</h3>
+        {service.dateText ? <p className="mt-0.5 truncate text-xs text-white/55">{service.dateText}</p> : null}
+      </div>
+    </div>
+  );
+}
 
 /* ════════════════════════════════
    CLERGY — icon-style arched portraits
@@ -187,10 +349,131 @@ function DesktopServiceGroup({ title, icon: Icon, children }) {
   );
 }
 
+/* Next-occurrence helpers — used to pick the single upcoming Divine Liturgy that
+   headlines the featured card. Recurring entries carry a capitalized weekday
+   (JS getDay() order); exceptional entries carry a concrete `date` (YYYY-MM-DD). */
+const DL_DAY_INDEX = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+
+function parseHourMinute(value) {
+  const match = /^(\d{1,2}):(\d{2})/.exec(String(value || ''));
+  return match ? [parseInt(match[1], 10), parseInt(match[2], 10)] : [0, 0];
+}
+
+function nextLiturgyMs(entry, now) {
+  const [hh, mm] = parseHourMinute(entry.startTime);
+  if (entry.date) {
+    const [y, m, d] = String(entry.date).split('-').map((n) => parseInt(n, 10));
+    if (!y || !m || !d) return Infinity;
+    return new Date(y, m - 1, d, hh, mm, 0, 0).getTime();
+  }
+  const dow = DL_DAY_INDEX[entry.dayOfWeek];
+  if (dow == null) return Infinity;
+  const dt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0, 0);
+  let diff = (dow - dt.getDay() + 7) % 7;
+  if (diff === 0 && dt.getTime() <= now.getTime()) diff = 7; // already passed today → next week
+  dt.setDate(dt.getDate() + diff);
+  return dt.getTime();
+}
+
+/* Featured "upcoming Divine Liturgy" — the tall hero card of the liturgies grid,
+   carrying the next service's details plus a verse inviting people to attend. */
+function DesktopFeaturedLiturgyCard({ entry, dateParts, language, t, isRTL }) {
+  const isException = Boolean(entry.date);
+  const title = isException ? entry.displayName : translateDayLabel(entry.dayOfWeek, t);
+  const start = formatServiceTime(entry.startTime, language);
+  const end = formatServiceTime(entry.endTime, language);
+  const sep = t('landing.services.timeSeparator');
+  const eyebrow = isRTL ? 'القداس القادم' : 'Next Divine Liturgy';
+  const fullDate = dateParts ? [dateParts.day, dateParts.month, dateParts.year].filter(Boolean).join(' ') : '';
+  const priests = Array.isArray(entry.priests) ? entry.priests : [];
+  const verse = isRTL
+    ? { text: '«فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ»', ref: 'مزمور ١٢٢: ١' }
+    : { text: '“I was glad when they said unto me, Let us go into the house of the Lord.”', ref: 'Psalm 122:1' };
+
+  return (
+    <Reveal>
+      <article
+        className={`relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-secondary/30 p-7 text-white shadow-2xl shadow-primary/20 ${isRTL ? 'text-right' : 'text-left'}`}
+        style={{ background: NAVY_BAND }}
+      >
+        <div className="relative flex h-full flex-col">
+          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-secondary/70" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-secondary" />
+            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-secondary">{eyebrow}</span>
+          </div>
+
+          <h3 className="font-display mt-4 text-3xl font-bold leading-tight text-white lg:text-4xl">{title}</h3>
+          {!isException && entry.name ? <p className="mt-1.5 text-sm text-white/60">{entry.name}</p> : null}
+
+          {/* Date + time — understated detail rows */}
+          <div className={`mt-6 space-y-2.5 ${isRTL ? 'text-right' : 'text-left'}`}>
+            {fullDate ? (
+              <div className="flex items-center gap-2.5">
+                <CalendarClock className="h-4 w-4 shrink-0 text-secondary/90" />
+                <span className="text-[15px] font-semibold text-white/90">{fullDate}</span>
+              </div>
+            ) : null}
+            <div className="flex items-center gap-2.5">
+              <Clock3 className="h-4 w-4 shrink-0 text-secondary/90" />
+              <span dir="ltr" className="text-[15px] font-semibold text-white/90">
+                {start}
+                {end ? ` ${sep} ${end}` : ''}
+              </span>
+            </div>
+          </div>
+
+          <GoldDivider light className="mt-7 mb-6" />
+
+          <figure>
+            <Quote className={`h-6 w-6 text-secondary/40 ${isRTL ? 'ms-auto' : ''}`} />
+            <blockquote className="font-display mt-2 text-lg font-bold leading-relaxed text-white/95">
+              {verse.text}
+            </blockquote>
+            <figcaption className={`mt-3 flex items-center gap-2 text-xs font-bold text-secondary ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <BookOpen className="h-3.5 w-3.5" />
+              {verse.ref}
+            </figcaption>
+          </figure>
+        </div>
+      </article>
+    </Reveal>
+  );
+}
+
 function DesktopServicesSection({ t, isRTL, language, schedule, isLoading }) {
   const liturgies = schedule?.recurringDivineLiturgies || [];
   const vespers = schedule?.recurringVespers || [];
   const upcoming = schedule?.exceptionalDivineLiturgies || [];
+
+  /* Pick the single soonest liturgy (recurring or exceptional) to headline the
+     featured card, and drop it from the remaining grids to avoid duplication. */
+  const featuredInfo = (() => {
+    if (isLoading) return null;
+    const now = new Date();
+    const ranked = [...upcoming, ...liturgies]
+      .map((e) => ({ e, ms: nextLiturgyMs(e, now) }))
+      .filter((c) => Number.isFinite(c.ms) && c.ms >= now.getTime() - 6 * 3600 * 1000)
+      .sort((a, b) => a.ms - b.ms);
+    if (!ranked.length) return null;
+    const { e, ms } = ranked[0];
+    const d = new Date(ms);
+    const locale = language === 'ar' ? 'ar-EG' : 'en-US';
+    let dateParts = { day: '', month: '', year: '', weekday: '' };
+    try {
+      const parts = new Intl.DateTimeFormat(locale, {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+      }).formatToParts(d);
+      const get = (tp) => (parts.find((x) => x.type === tp) || {}).value || '';
+      dateParts = { day: get('day'), month: get('month'), year: get('year'), weekday: get('weekday') };
+    } catch (_e) { /* Intl unavailable — leave blanks */ }
+    return { entry: e, dateParts };
+  })();
+  const featuredId = featuredInfo?.entry?.id;
+  const restLiturgies = featuredId ? liturgies.filter((e) => e.id !== featuredId) : liturgies;
+  const restUpcoming = featuredId ? upcoming.filter((e) => e.id !== featuredId) : upcoming;
 
   const emptyBox = (msg) => (
     <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center">
@@ -214,21 +497,38 @@ function DesktopServicesSection({ t, isRTL, language, schedule, isLoading }) {
         <DesktopServiceGroup title={t('landing.services.liturgies')} icon={Church}>
           {isLoading
             ? emptyBox(t('landing.services.loading'))
-            : liturgies.length === 0
+            : liturgies.length === 0 && upcoming.length === 0
               ? emptyBox(t('landing.services.empty'))
               : (
-                <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {liturgies.map((entry, i) => (
-                    <DesktopServiceCard
-                      key={entry.id}
-                      entry={entry}
-                      language={language}
-                      t={t}
-                      isRTL={isRTL}
-                      accent="from-secondary to-[#8a5f16]"
-                      index={i}
-                    />
-                  ))}
+                <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-3 lg:items-start">
+                  {featuredInfo ? (
+                    <div className="lg:col-span-1">
+                      <DesktopFeaturedLiturgyCard
+                        entry={featuredInfo.entry}
+                        dateParts={featuredInfo.dateParts}
+                        language={language}
+                        t={t}
+                        isRTL={isRTL}
+                      />
+                    </div>
+                  ) : null}
+                  {restLiturgies.length ? (
+                    <div
+                      className={`grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 ${featuredInfo ? 'lg:col-span-2' : 'lg:col-span-3'}`}
+                    >
+                      {restLiturgies.map((entry, i) => (
+                        <DesktopServiceCard
+                          key={entry.id}
+                          entry={entry}
+                          language={language}
+                          t={t}
+                          isRTL={isRTL}
+                          accent="from-secondary to-[#8a5f16]"
+                          index={i}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               )}
         </DesktopServiceGroup>
@@ -255,10 +555,10 @@ function DesktopServicesSection({ t, isRTL, language, schedule, isLoading }) {
               )}
         </DesktopServiceGroup>
 
-        {upcoming.length > 0 ? (
+        {restUpcoming.length > 0 ? (
           <DesktopServiceGroup title={t('landing.services.upcoming')} icon={CalendarClock}>
             <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {upcoming.map((entry, i) => (
+              {restUpcoming.map((entry, i) => (
                 <DesktopUpcomingExceptionCard
                   key={entry.id}
                   entry={entry}
@@ -471,6 +771,10 @@ export default function LandingPage() {
   const [statsRef, statsInView] = useInView(0.2);
   const parallaxOffset = useParallax(0.15);
   const isMobile = useIsMobile();
+  const routerLocation = useLocation();
+  const navigate = useNavigate();
+  const spyNavRef = useRef(false);
+  const didInitialScrollRef = useRef(false);
   const [guestEntryOpen, setGuestEntryOpen] = useState(!isAuthenticated);
   const publicSiteQuery = useQuery({
     queryKey: ['settings', 'public-site'],
@@ -514,6 +818,78 @@ export default function LandingPage() {
       document.body.style.overflow = previousOverflow;
     };
   }, [guestEntryOpen]);
+
+  /* ── Clean-URL section scrolling ──
+     Scroll to the section named by the pathname (e.g. /about). URL changes that
+     come from the scroll-spy below are flagged via `spyNavRef` and skipped here,
+     so passive scrolling never triggers a scroll-back. */
+  useEffect(() => {
+    if (isMobile) return undefined;
+    if (spyNavRef.current) {
+      spyNavRef.current = false; // URL was updated by scrolling, not a navigation intent
+      return undefined;
+    }
+    const section = sectionIdFromPath(routerLocation.pathname);
+
+    const doScroll = () => {
+      if (!section) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      const el = document.getElementById(section);
+      if (!el) return;
+      window.scrollTo({
+        top: el.getBoundingClientRect().top + window.scrollY - LANDING_HEADER_OFFSET,
+        behavior: 'smooth',
+      });
+    };
+
+    if (!didInitialScrollRef.current) {
+      didInitialScrollRef.current = true;
+      if (section) {
+        const id = setTimeout(doScroll, 350); // let first paint settle on deep links
+        return () => clearTimeout(id);
+      }
+      return undefined; // landing at '/' → already at the top
+    }
+    doScroll();
+    return undefined;
+  }, [routerLocation.pathname, isMobile]);
+
+  /* ── Scroll-spy → reflect the visible section in the URL.
+     Debounced: it only runs ~140ms AFTER scrolling settles, so nothing renders
+     mid-scroll (the scroll handler itself just resets a timer). The URL is
+     updated via replace and flagged so the effect above ignores it. */
+  useEffect(() => {
+    if (isMobile) return undefined;
+    const ids = ['home', ...LANDING_SECTION_PATHS];
+    const probe = LANDING_HEADER_OFFSET + 12;
+    let timer = null;
+
+    const settle = () => {
+      let current = 'home';
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top - probe <= 0) current = id;
+      }
+      const targetPath = current === 'home' ? '/' : `/${current}`;
+      if (window.location.pathname !== targetPath) {
+        spyNavRef.current = true;
+        navigate(targetPath, { replace: true });
+      }
+    };
+
+    const onScroll = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(settle, 140);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (timer) clearTimeout(timer);
+    };
+  }, [isMobile, navigate]);
 
   const getOptional = (k) => getOptionalText(k, '');
   const getOpt = (k, fb) => getOptionalText(k, fb);
@@ -605,7 +981,7 @@ export default function LandingPage() {
     }
     return null;
   })();
-  const nextLiturgyLabel = isRTL ? 'القداس القادم' : 'Next Liturgy';
+  const nextLiturgyLabel = isRTL ? 'فَرِحْتُ بِالْقَائِلِينَ لِي: «إِلَى بَيْتِ الرَّبِّ نَذْهَبُ».' : 'I was glad when they said to me, “Let’s go to Yahweh’s house!”';
 
   /* ══ MOBILE ══ */
   if (isMobile) {
@@ -646,7 +1022,7 @@ export default function LandingPage() {
       {/* ═══════════ HERO ═══════════ */}
       <section
         id="home"
-        className="relative flex min-h-screen flex-col overflow-hidden text-white"
+        className="relative flex min-h-screen pt-20 flex-col overflow-hidden text-white"
         style={{ backgroundColor: '#0b1a2d' }}
       >
         {/* Cinematic church image */}
@@ -656,7 +1032,7 @@ export default function LandingPage() {
             alt={t('publicLayout.brandPrimary')}
             loading="eager"
             className="h-full w-full object-cover object-center"
-            style={{ opacity: 0.5, transform: `translateY(${parallaxOffset * 0.18}px) scale(1.06)` }}
+            style={{ opacity: 0.4, transform: `translateY(${parallaxOffset * 0.16}px) scale(1.08)` }}
             onError={(e) => { e.target.style.display = 'none'; }}
           />
         </div>
@@ -665,11 +1041,11 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute inset-0">
           <div
             className="absolute inset-0"
-            style={{ background: 'linear-gradient(180deg, rgba(9,20,33,0.74) 0%, rgba(9,20,33,0.5) 38%, rgba(9,20,33,0.78) 72%, #0b1a2d 100%)' }}
+            style={{ background: 'linear-gradient(180deg, rgba(9,20,33,0.82) 0%, rgba(9,20,33,0.6) 42%, rgba(9,20,33,0.8) 74%, #0b1a2d 100%)' }}
           />
           <div
             className="absolute inset-0"
-            style={{ background: 'radial-gradient(ellipse at 50% 32%, transparent 0%, rgba(6,14,25,0.35) 62%, rgba(6,14,25,0.85) 100%)' }}
+            style={{ background: 'radial-gradient(ellipse at 50% 30%, transparent 0%, rgba(6,14,25,0.35) 60%, rgba(6,14,25,0.85) 100%)' }}
           />
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/50 to-transparent" />
           <div
@@ -678,168 +1054,80 @@ export default function LandingPage() {
           />
         </div>
 
-        {/* Decorative gold arch */}
-        <div className="pointer-events-none absolute inset-x-0 top-10 flex justify-center">
-          <ArchOutline className="mt-20 w-[560px] max-w-[78%] text-secondary/25" />
-          <div
-            className="absolute left-1/2 top-[92px] -translate-x-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-secondary/40 bg-[#0b1a2d] text-secondary"
-          >
-            <Cross className="h-4 w-4" />
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="relative flex flex-1 flex-col items-center justify-center page-container w-full pt-44 pb-20">
-          <Reveal delay={0.05}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-white/[0.06] px-5 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-[0.28em] text-secondary backdrop-blur-sm">
-              <Cross className="h-3 w-3" />
-              {t('landing.hero.badge')}
-            </span>
-          </Reveal>
-          <Reveal delay={0.16}>
-            <h1 className="font-display mt-8 max-w-4xl text-center text-4xl font-bold leading-[1.18] tracking-tight text-white sm:text-5xl lg:text-6xl xl:text-[4.25rem]">
-              {t('landing.hero.title')}{' '}
-              <span className="mt-3 block" style={GOLD_TEXT}>
-                {t('landing.hero.highlight')}
-              </span>
-            </h1>
-          </Reveal>
-          <Reveal delay={0.3}>
-            <p className="mx-auto mt-7 max-w-2xl text-center text-base leading-relaxed text-white/70 lg:text-lg">
-              {t('landing.hero.description')}
-            </p>
-          </Reveal>
-          <Reveal delay={0.42}>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
-              <a href="#about">
-                <Button
-                  size="lg"
-                  icon={ArrowIcon}
-                  iconPosition="end"
-                  className="!rounded-full !border !border-secondary !bg-secondary !px-8 !font-bold !text-[#1c1305] !shadow-lg !shadow-black/30 hover:!bg-[#c69a41] hover:!border-[#c69a41]"
-                >
-                  {t('landing.hero.primaryCta')}
-                </Button>
-              </a>
-              <a href="#visit">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="!rounded-full !border-white/25 !bg-white/[0.06] !px-8 !font-bold !text-white backdrop-blur-sm hover:!bg-white/15 hover:!border-white/40"
-                >
-                  {t('landing.hero.secondaryCta')}
-                </Button>
-              </a>
+        {/* Content — asymmetric split: message + clergy deck */}
+        <div className="relative flex flex-1 flex-col justify-center page-container w-full pt-0 pb-20">
+          <div className="grid items-center gap-12 lg:grid-cols-[1.04fr_0.96fr] lg:gap-16">
+            {/* Message */}
+            <div className="text-center lg:text-start">
+              <Reveal delay={0.16}>
+                <h1 className="font-display text-4xl font-bold leading-[1.16] tracking-tight text-white sm:text-5xl lg:text-[3.15rem] xl:text-[3.6rem]">
+                  {t('landing.hero.title')}{' '}
+                  <span className="mt-2 block" style={GOLD_TEXT}>
+                    {t('landing.hero.highlight')}
+                  </span>
+                </h1>
+              </Reveal>
+              <Reveal delay={0.3}>
+                <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-white/70 lg:mx-0 lg:text-lg">
+                  {t('landing.hero.description')}
+                </p>
+              </Reveal>
+              <Reveal delay={0.42}>
+                <div className="mt-9 flex flex-wrap justify-center gap-3 lg:justify-start">
+                  <Link to="/about">
+                    <Button
+                      size="lg"
+                      icon={ArrowIcon}
+                      iconPosition="end"
+                      className="!rounded-full !border !border-secondary !bg-secondary !px-8 !font-bold !text-[#1c1305] !shadow-lg !shadow-black/30 hover:!bg-[#c69a41] hover:!border-[#c69a41]"
+                    >
+                      {t('landing.hero.primaryCta')}
+                    </Button>
+                  </Link>
+                  <Link to="/visit">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="!rounded-full !border-white/25 !bg-white/[0.06] !px-8 !font-bold !text-white backdrop-blur-sm hover:!bg-white/15 hover:!border-white/40"
+                    >
+                      {t('landing.hero.secondaryCta')}
+                    </Button>
+                  </Link>
+                </div>
+              </Reveal>
+              {/* {featuredService ? (
+                <Reveal delay={0.54}>
+                  <div className="mt-9 flex justify-center lg:justify-start">
+                    <HeroNextLiturgy service={featuredService} label={nextLiturgyLabel} />
+                  </div>
+                </Reveal>
+              ) : null} */}
             </div>
-          </Reveal>
-        </div>
 
-        {/* Next liturgy strip */}
-        {featuredService ? (
-          <div className="relative z-10 w-full page-container pt-0 pb-12">
-            <Reveal delay={0.55}>
-              <div
-                className="
-        group relative mx-auto max-w-4xl overflow-hidden
-        rounded-[28px] border border-white/12
-        bg-[#172333]/85
-        shadow-[0_24px_70px_rgba(0,0,0,0.3)]
-        backdrop-blur-xl
-        transition-all duration-500
-        hover:-translate-y-1
-        hover:border-secondary/30
-        hover:shadow-[0_30px_90px_rgba(0,0,0,0.4)]
-      "
-              >
-                {/* Background glow */}
-                <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-secondary/10 blur-3xl" />
-                <div className="pointer-events-none absolute -bottom-24 -left-20 h-56 w-56 rounded-full bg-secondary/8 blur-3xl" />
-
-                {/* Top gold line */}
-                <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-secondary/80 to-transparent" />
-
-                <div className="relative grid gap-6 px-6 py-6 md:grid-cols-[220px_1fr] md:px-8 md:py-7">
-                  {/* Left: time and day */}
-                  <div className="flex items-stretch gap-3 md:border-r md:border-white/10 md:pr-6">
-                    {featuredService.timeText ? (
-                      <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-secondary/20 bg-secondary/[0.08] px-4 py-4 text-center">
-                        <CalendarClock className="mb-2 h-5 w-5 text-secondary" />
-
-                        <span className="mb-1 text-[10px] font-bold tracking-[0.18em] text-white/45">
-                          الموعد
-                        </span>
-
-                        <div
-                          dir="ltr"
-                          className="font-display text-2xl font-bold text-white"
-                        >
-                          {featuredService.timeText}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {featuredService.dateText ? (
-                      <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-secondary/20 bg-secondary/[0.08] px-4 py-4 text-center">
-                        <CalendarDays className="mb-2 h-5 w-5 text-secondary" />
-
-                        <span className="mb-1 text-[10px] font-bold tracking-[0.18em] text-white/45">
-                          اليوم
-                        </span>
-
-                        <div className="font-display text-lg font-bold text-white">
-                          {featuredService.dateText}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {/* Right: invitation and service details */}
-                  <div className="flex min-w-0 flex-col justify-center text-right">
-                    <div className="mb-3 flex justify-end">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-secondary/20 bg-secondary/10 px-4 py-2">
-                        <Cross className="h-4 w-4 text-secondary" />
-
-                        <span className="text-xs font-bold text-secondary">
-                          دعوة للقائك مع الرب
-                        </span>
-                      </div>
-                    </div>
-
-                    <blockquote className="font-display text-xl font-bold leading-relaxed text-white md:text-2xl">
-                      «فَرِحْتُ بِالْقَائِلِينَ لِي:
-                      <span className="text-secondary"> إِلَى بَيْتِ الرَّبِّ نَذْهَبُ</span>»
-                    </blockquote>
-
-                    <p className="mt-2 text-xs text-white/45">
-                      مزمور ١٢٢: ١
-                    </p>
-
-                    <div className="my-4 h-px bg-gradient-to-l from-secondary/50 via-white/10 to-transparent" />
-
-                    <div>
-                      <p className="text-xs font-bold text-secondary">
-                        {nextLiturgyLabel}
-                      </p>
-
-                      <h3 className="mt-1 font-display text-lg font-bold text-white md:text-xl">
-                        {featuredService.title}
-                      </h3>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom accent */}
-                <div className="h-1 w-full bg-white/[0.03]">
-                  <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-secondary to-transparent" />
-                </div>
-              </div>
+            {/* Clergy deck */}
+            <Reveal delay={0.2} direction="left">
+              <HeroClergyDeck priests={priests} eyebrow={t('landing.priests.label')} />
             </Reveal>
           </div>
-        ) : (
-          <div className="relative z-10 flex w-full justify-center pb-10">
-            <ChevronDown className="h-6 w-6 animate-bounce text-white/40" />
-          </div>
-        )}
+        </div>
+
+        {/* Scroll cue */}
+        {/* <div className="relative z-10 flex w-full justify-center pb-8">
+          <ChevronDown className="h-6 w-6 animate-bounce text-white/35" />
+        </div> */}
+
+        {/* Wavy bottom edge — melts the navy hero into the section below */}
+        <svg
+          className="pointer-events-none absolute inset-x-0 bottom-[-1px] z-[3] h-[60px] w-full sm:h-[90px] lg:h-[80px]"
+          viewBox="0 0 1440 120"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M0,60 C220,116 430,116 660,78 C900,38 1160,6 1440,58 L1440,120 L0,120 Z"
+            style={{ fill: 'rgb(var(--color-bg-rgb))' }}
+          />
+        </svg>
       </section>
 
       {/* ═══════════ ABOUT (asymmetric) ═══════════ */}
@@ -885,10 +1173,10 @@ export default function LandingPage() {
 
               <div className="mt-8 space-y-5">
                 <Reveal delay={0.1}>
-                  <div className={`flex gap-4 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                  <div className={`flex gap-4 ${isRTL ? '' : 'flex-row-reverse text-right'}`}>
                     <div className="mt-1 h-auto w-1 flex-shrink-0 rounded-full bg-gradient-to-b from-secondary to-secondary/20" />
                     <div>
-                      <div className={`flex items-center gap-2.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <div className={`flex items-center gap-2.5 ${isRTL ? '' : 'flex-row-reverse'}`}>
                         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
                           <Navigation className="h-[18px] w-[18px]" />
                         </div>
@@ -899,10 +1187,10 @@ export default function LandingPage() {
                   </div>
                 </Reveal>
                 <Reveal delay={0.18}>
-                  <div className={`flex gap-4 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                  <div className={`flex gap-4 ${isRTL ? '' : 'flex-row-reverse text-right'}`}>
                     <div className="mt-1 h-auto w-1 flex-shrink-0 rounded-full bg-gradient-to-b from-secondary to-secondary/20" />
                     <div>
-                      <div className={`flex items-center gap-2.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <div className={`flex items-center gap-2.5 ${isRTL ? '' : 'flex-row-reverse'}`}>
                         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/15 text-secondary">
                           <Globe className="h-[18px] w-[18px]" />
                         </div>

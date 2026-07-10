@@ -1,10 +1,10 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import {
   BookOpen, Clock3, Mail, MapPin, Phone, Quote, ShieldCheck, Sparkles, UserCircle2,
   Cross, Star, Globe, Navigation, ExternalLink, ChevronRight, ChevronLeft,
-  Home, Share2, X, LogIn, Languages, MoreHorizontal, CalendarDays, Sun, Sunrise,
-  CalendarClock, Info, Images, Users,
+  Share2, Sun, Sunrise,
+  CalendarClock, Images, Users,
 } from 'lucide-react';
 import {
   SOCIAL_META, useInView, AnimatedCounter, GuestEntryOverlay,
@@ -98,129 +98,6 @@ function PriestMiniCard({ priest, isRTL, isCenter }) {
 }
 
 /* ══════════════════════════════════════════════════════
-   MOBILE MORE MENU (sheet from bottom, triggered by tab)
-   ══════════════════════════════════════════════════════ */
-function MobileMoreSheet({ open, onClose, isRTL, toggleLanguage, t, onAbout }) {
-  const items = [
-    {
-      icon: Info,
-      label: isRTL ? 'عن الكنيسة' : 'About the Church',
-      desc: isRTL ? 'قصتنا ورسالتنا ورؤيتنا' : 'Our story, mission, and vision',
-      action: () => onAbout?.(),
-      accent: 'bg-amber-500/10 text-amber-600',
-    },
-    {
-      icon: Images,
-      label: t('publicLayout.archive'),
-      desc: t('landing.archive.label'),
-      to: '/archive',
-      accent: 'bg-indigo-500/10 text-indigo-600',
-    },
-    {
-      icon: Users,
-      label: t('publicLayout.meetings'),
-      desc: t('landing.meetings.label'),
-      to: '/meetings',
-      accent: 'bg-emerald-500/10 text-emerald-600',
-    },
-    {
-      icon: LogIn,
-      label: isRTL ? 'تسجيل الدخول' : 'Login',
-      desc: isRTL ? 'الوصول إلى بوابة الكنيسة' : 'Access the church portal',
-      to: '/auth/login',
-      accent: 'bg-primary/10 text-primary',
-    },
-    {
-      icon: Languages,
-      label: isRTL ? 'English' : 'عربي',
-      desc: isRTL ? 'Switch to English' : 'التبديل إلى العربية',
-      action: toggleLanguage,
-      accent: 'bg-secondary/10 text-primary',
-    },
-  ];
-  const translatedItems = [
-    {
-      ...items[0],
-      label: t('landing.mobile.moreSheet.aboutLabel'),
-      desc: t('landing.mobile.moreSheet.aboutDescription'),
-    },
-    {
-      ...items[1],
-    },
-    {
-      ...items[2],
-    },
-    {
-      ...items[3],
-      label: t('landing.mobile.moreSheet.loginLabel'),
-      desc: t('landing.mobile.moreSheet.loginDescription'),
-    },
-    {
-      ...items[4],
-      label: t('landing.mobile.moreSheet.languageLabel'),
-      desc: t('landing.mobile.moreSheet.languageDescription'),
-    },
-  ];
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
-        style={{ opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none' }}
-        onClick={onClose}
-      />
-      {/* Sheet */}
-      <div
-        className="fixed bottom-0 inset-x-0 z-50 bg-surface rounded-t-3xl border-t border-border shadow-2xl"
-        style={{
-          transform: open ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 0.35s cubic-bezier(0.32,0.72,0,1)',
-        }}
-      >
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-border" />
-        </div>
-        {/* Title */}
-        <div className={`px-5 pt-2 pb-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <h3 className="text-base font-black text-heading">{t('landing.mobile.moreSheet.title')}</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-page flex items-center justify-center" style={{ WebkitTapHighlightColor: 'transparent' }}>
-            <X className="h-4 w-4 text-muted" />
-          </button>
-        </div>
-        {/* Items */}
-        <div className="px-4 pb-4 space-y-2.5 flex flex-col" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-          {translatedItems.map((item, i) => (
-            item.to ? (
-              <Link key={i} to={item.to} onClick={onClose}>
-                <div className={`flex items-center gap-4 p-4 rounded-2xl bg-page border border-border active:scale-[0.98] transition-transform ${isRTL ? 'flex-row-reverse text-right' : ''}`} style={{ WebkitTapHighlightColor: 'transparent' }}>
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${item.accent}`}><item.icon className="h-5 w-5" /></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-extrabold text-heading">{item.label}</p>
-                    <p className="text-xs text-muted mt-0.5">{item.desc}</p>
-                  </div>
-                  <ChevronRight className={`h-4 w-4 text-muted flex-shrink-0 ${isRTL ? 'rotate-180' : ''}`} />
-                </div>
-              </Link>
-            ) : (
-              <button key={i} onClick={() => { item.action?.(); onClose(); }} className={`w-full flex items-center gap-4 p-4 rounded-2xl bg-page border border-border active:scale-[0.98] transition-transform ${isRTL ? 'flex-row-reverse text-right' : ''}`} style={{ WebkitTapHighlightColor: 'transparent' }}>
-                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${item.accent}`}><item.icon className="h-5 w-5" /></div>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className={`text-sm font-extrabold text-heading ${isRTL ? 'text-right' : 'text-left'}`}>{item.label}</p>
-                  <p className={`text-xs text-muted mt-0.5 ${isRTL ? 'text-right' : 'text-left'}`}>{item.desc}</p>
-                </div>
-                <ChevronRight className={`h-4 w-4 text-muted flex-shrink-0 ${isRTL ? 'rotate-180' : ''}`} />
-              </button>
-            )
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
-
-/* ══════════════════════════════════════════════════════
    MOBILE SECTION LABEL — RTL/LTR aware
    ══════════════════════════════════════════════════════ */
 function MobileSectionLabel({ label, isRTL }) {
@@ -258,7 +135,7 @@ function MobileHomeScreen({
   ];
 
   return (
-    <div className="pb-28">
+    <div className="pb-6">
       {/* ── Church hero banner ── */}
       <div className="relative mx-3 mt-3 rounded-[1.5rem] overflow-hidden" style={{ height: 220 }}>
         <img
@@ -445,7 +322,7 @@ function MobileHomeScreen({
 function MobileAboutScreen({ t, isRTL }) {
   const ta = isRTL ? 'text-right' : 'text-left';
   return (
-    <div className="pb-28">
+    <div className="pb-6">
       <div className={`px-5 pt-0 pb-3 ${ta}`}>
         <p className="text-[10px] font-black uppercase tracking-widest text-primary">{t('landing.about.label')}</p>
         <h1 className="text-2xl font-black text-heading tracking-tight mt-0.5">{t('landing.about.title')}</h1>
@@ -677,7 +554,7 @@ function MobileServicesScreen({ t, isRTL, language, schedule, isLoading }) {
   const upcoming = schedule?.exceptionalDivineLiturgies || [];
 
   return (
-    <div className="pb-28">
+    <div className="pb-6">
       <div className={`px-5 pt-0 pb-3 ${ta}`}>
         <p className="text-[10px] font-black uppercase tracking-widest text-primary">{t('landing.services.label')}</p>
         <h1 className="text-2xl font-black text-heading tracking-tight mt-0.5">{t('landing.services.title')}</h1>
@@ -783,7 +660,7 @@ function MobileVisitScreen({ t, isRTL, contacts, churchPlaceName, churchPlusCode
   const ta = isRTL ? 'text-right' : 'text-left';
   const managedLocationMetaLine = [churchPlusCode, churchAddressLine].filter(Boolean).join(' | ');
   return (
-    <div className="pb-28">
+    <div className="pb-6">
       <div className={`px-5 pt-0 pb-3 ${ta}`}>
         <p className="text-[10px] font-black uppercase tracking-widest text-primary">{t('landing.visit.label')}</p>
         <h1 className="text-2xl font-black text-heading tracking-tight mt-0.5">{t('landing.visit.title')}</h1>
@@ -870,7 +747,7 @@ function MobileSocialScreen({ t, isRTL, socialLinks = [] }) {
   };
 
   return (
-    <div className="pb-28">
+    <div className="pb-6">
       <div className={`px-5 pt-0 pb-3 ${ta}`}>
         <p className="text-[10px] font-black uppercase tracking-widest text-primary">{t('landing.social.label')}</p>
         <h1 className="text-2xl font-black text-heading tracking-tight mt-0.5">{t('landing.social.title')}</h1>
@@ -953,37 +830,6 @@ function MobileSocialScreen({ t, isRTL, socialLinks = [] }) {
   );
 }
 
-/* ══════════════════════════════════════════════════════
-   MOBILE BOTTOM TAB BAR (5 tabs + More)
-   ══════════════════════════════════════════════════════ */
-function MobileTabBar({ active, onTab, tabs, onMore }) {
-  return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 md:hidden">
-      <div className="absolute inset-0 bg-surface/92 backdrop-blur-xl border-t border-border" />
-      <div
-        className="relative flex items-center justify-around px-1"
-        style={{ paddingBottom: 'max(0.6rem, env(safe-area-inset-bottom))', paddingTop: '0.45rem' }}
-      >
-        {tabs.map((tab) => {
-          const isActive = active === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => tab.id === 'more' ? onMore() : onTab(tab.id)}
-              className="flex flex-col items-center gap-0.5 flex-1 py-1"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
-              <div className={`relative w-8 h-8 rounded-[10px] flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-primary text-white scale-110 shadow-lg shadow-primary/30' : 'text-muted'}`}>
-                <tab.icon className="h-4 w-4" />
-              </div>
-              <span className={`text-[9px] font-bold tracking-wide transition-colors duration-200 ${isActive ? 'text-primary' : 'text-muted'}`}>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </nav>
-  );
-}
 export default function LandingMobilePage({
   t,
   isRTL,
@@ -1010,21 +856,20 @@ export default function LandingMobilePage({
   phoneValue,
   emailValue,
 }) {
-  const [activeTab, setActiveTab] = useState('home');
-  const [moreOpen, setMoreOpen] = useState(false);
+  // Which screen is shown is driven by the URL, so the single bottom tab bar in
+  // PublicLayout (route-based) controls this page just like any other page.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const ROUTE_TO_TAB = { '/': 'home', '/services': 'services', '/visit': 'visit', '/social': 'social', '/about': 'about' };
+  const TAB_TO_ROUTE = { home: '/', services: '/services', visit: '/visit', social: '/social', about: '/about' };
+  const activeTab = ROUTE_TO_TAB[location.pathname] || 'home';
+  const setActiveTab = (tab) => navigate(TAB_TO_ROUTE[tab] || '/');
 
   const mobileQuickActions = [
     { icon: MapPin, label: t('landing.mobile.quickActions.location'), color: 'text-blue-600', bg: 'bg-blue-500/10', onClick: () => setActiveTab('visit') },
     { icon: Phone, label: t('landing.mobile.quickActions.call'), color: 'text-emerald-600', bg: 'bg-emerald-500/10', href: phoneValue ? `tel:${phoneValue}` : '#', external: false },
     { icon: Mail, label: t('landing.mobile.quickActions.email'), color: 'text-amber-600', bg: 'bg-amber-500/10', href: emailValue ? `mailto:${emailValue}` : '#', external: false },
     { icon: Clock3, label: t('landing.mobile.quickActions.hours'), color: 'text-rose-600', bg: 'bg-rose-500/10', onClick: () => setActiveTab('visit') },
-  ];
-  const managedMobileTabs = [
-    { id: 'home', label: t('landing.mobile.tabs.home'), icon: Home },
-    { id: 'services', label: t('landing.mobile.tabs.services'), icon: CalendarDays },
-    { id: 'visit', label: t('landing.mobile.tabs.visit'), icon: MapPin },
-    { id: 'social', label: t('landing.mobile.tabs.social'), icon: Share2 },
-    { id: 'more', label: t('landing.mobile.tabs.more'), icon: MoreHorizontal },
   ];
 
   return (
@@ -1067,15 +912,6 @@ export default function LandingMobilePage({
         )}
         {activeTab === 'social' && <MobileSocialScreen t={t} isRTL={isRTL} socialLinks={socialLinks} />}
       </div>
-      <MobileMoreSheet
-        open={moreOpen}
-        onClose={() => setMoreOpen(false)}
-        isRTL={isRTL}
-        toggleLanguage={toggleLanguage}
-        t={t}
-        onAbout={() => setActiveTab('about')}
-      />
-      <MobileTabBar active={activeTab} onTab={setActiveTab} tabs={managedMobileTabs} onMore={() => setMoreOpen(true)} />
       <GuestEntryOverlay
         isOpen={!isAuthenticated && guestEntryOpen}
         isRTL={isRTL}

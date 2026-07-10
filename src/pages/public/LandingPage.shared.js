@@ -365,8 +365,8 @@ export function GuestEntryPanel({
             />
           ) : (
             <OptionCard
-              as="a"
-              href="#about"
+              as={Link}
+              to="/about"
               title={copy.browseTitle}
               body={copy.browseBody}
               hint={copy.browseHint}
@@ -520,28 +520,25 @@ export function DesktopSectionHeader({ label, title, subtitle, tone = 'light' })
       <div className="mx-auto max-w-3xl text-center">
         <div className="flex justify-center">
           <span
-            className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.28em] ${
-              dark
+            className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.28em] ${dark
                 ? 'border-white/15 bg-white/[0.06] text-secondary'
                 : 'border-secondary/25 bg-secondary/[0.08] text-secondary'
-            }`}
+              }`}
           >
             <Cross className="h-3 w-3" />
             {label}
           </span>
         </div>
         <h2
-          className={`font-display mt-6 text-3xl sm:text-4xl lg:text-[2.9rem] font-bold leading-[1.22] ${
-            dark ? 'text-white' : 'text-heading'
-          }`}
+          className={`font-display mt-6 text-3xl sm:text-4xl lg:text-[2.9rem] font-bold leading-[1.22] ${dark ? 'text-white' : 'text-heading'
+            }`}
         >
           {title}
         </h2>
         {subtitle ? (
           <p
-            className={`mx-auto mt-4 max-w-2xl text-sm sm:text-base lg:text-lg leading-relaxed ${
-              dark ? 'text-white/60' : 'text-muted'
-            }`}
+            className={`mx-auto mt-4 max-w-2xl text-sm sm:text-base lg:text-lg leading-relaxed ${dark ? 'text-white/60' : 'text-muted'
+              }`}
           >
             {subtitle}
           </p>
@@ -555,7 +552,7 @@ export function DesktopSectionHeader({ label, title, subtitle, tone = 'light' })
 // Cinematic navy hero band for interior public pages (archive, meetings).
 export function SanctuaryPageHeader({ eyebrow, title, subtitle, icon: Icon = Cross }) {
   return (
-    <section className="relative overflow-hidden text-white" style={{ background: NAVY_BAND }}>
+    <section className="relative pt-8 overflow-hidden text-white" style={{ background: NAVY_BAND }}>
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/50 to-transparent" />
         <div
@@ -566,7 +563,7 @@ export function SanctuaryPageHeader({ eyebrow, title, subtitle, icon: Icon = Cro
         <div className="absolute -bottom-24 -start-24 h-80 w-80 rounded-full bg-primary-light/10 blur-[90px]" />
       </div>
       <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center">
-        <ArchOutline className="mt-10 w-[460px] max-w-[72%] text-secondary/25" />
+        <ArchOutline className="mt-24 w-[460px] max-w-[72%] text-secondary/25" />
       </div>
       <div className="page-container relative pb-16 pt-36 text-center">
         <Reveal>
@@ -578,7 +575,7 @@ export function SanctuaryPageHeader({ eyebrow, title, subtitle, icon: Icon = Cro
             {title}
           </h1>
           {subtitle ? (
-            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/65 lg:text-base">{subtitle}</p>
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/65">{subtitle}</p>
           ) : null}
           <GoldDivider light className="mt-7" />
         </Reveal>

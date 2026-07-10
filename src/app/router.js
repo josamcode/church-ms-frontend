@@ -104,12 +104,28 @@ const SystemAnalyticsPage = lazy(() =>
 const UnderDevelopmentPage = lazy(() => import('../pages/shared/UnderDevelopmentPage'));
 const NotFoundPage = lazy(() => import('../pages/shared/NotFoundPage'));
 
+/* The landing page is a single scrolling page whose sections are addressable as
+   clean URLs (e.g. /about → #about). Every section route renders the SAME element
+   reference so React keeps the page mounted (no remount/scroll reset) when moving
+   between them. LandingPage reads the pathname and scrolls to the matching section. */
+const landingRouteElement = (
+  <Lazy>
+    <LandingPage />
+  </Lazy>
+);
+
 const router = createBrowserRouter([
   /* ══════════ Public ══════════ */
   {
     element: <PublicLayout />,
     children: [
-      { index: true, element: <Lazy><LandingPage /></Lazy> },
+      { index: true, element: landingRouteElement },
+      { path: 'about', element: landingRouteElement },
+      { path: 'priests', element: landingRouteElement },
+      { path: 'services', element: landingRouteElement },
+      { path: 'visit', element: landingRouteElement },
+      { path: 'social', element: landingRouteElement },
+      { path: 'location', element: landingRouteElement },
       { path: 'bookings', element: <Lazy><BookingPublicPage /></Lazy> },
       { path: 'bookings/new', element: <Lazy><BookingPublicPage /></Lazy> },
       { path: 'archive', element: <Lazy><ArchivePublicPage /></Lazy> },

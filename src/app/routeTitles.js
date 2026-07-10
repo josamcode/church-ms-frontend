@@ -383,6 +383,36 @@ const TITLE_ROUTES = [
     fallbackAr: 'إنشاء حساب',
   },
   {
+    pattern: '/about',
+    key: 'publicLayout.about',
+    fallback: 'About',
+    fallbackAr: 'عن الكنيسة',
+  },
+  {
+    pattern: '/priests',
+    key: 'publicLayout.priests',
+    fallback: 'Our Priests',
+    fallbackAr: 'الآباء الكهنة',
+  },
+  {
+    pattern: '/services',
+    key: 'landing.services.title',
+    fallback: 'Services',
+    fallbackAr: 'الخدمات',
+  },
+  {
+    pattern: '/visit',
+    key: 'publicLayout.visit',
+    fallback: 'Visit Us',
+    fallbackAr: 'زورونا',
+  },
+  {
+    pattern: '/location',
+    key: 'landing.location.title',
+    fallback: 'Our Location',
+    fallbackAr: 'موقعنا',
+  },
+  {
     pattern: '/',
     key: 'routeTitles.landing',
     fallback: 'St. Michael Church',

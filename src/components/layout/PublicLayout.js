@@ -1,14 +1,10 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
   ArrowUp,
-  CalendarDays,
   ChevronRight,
   Church,
   Facebook,
-  Home,
-  Images,
   Instagram,
-  LayoutDashboard,
   LogIn,
   Menu,
   Twitter,
@@ -18,8 +14,10 @@ import {
 import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../../auth/auth.hooks';
 import AppRouteEffects from '../../app/AppRouteEffects';
+import PublicMobileNav from './PublicMobileNav';
 import Button from '../ui/Button';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
+import ThemeToggle from '../ui/ThemeToggle';
 import { useI18n } from '../../i18n/i18n';
 import { useLandingPublicContent } from '../../hooks/useLandingContent';
 
@@ -58,29 +56,14 @@ export default function PublicLayout() {
   const navLinks = useMemo(
     () => [
       { label: text('publicLayout.home'), href: '/' },
-      { label: text('publicLayout.about'), href: '#about' },
-      { label: text('publicLayout.priests'), href: '#priests' },
-      // { label: text('publicLayout.verses'), href: '#verses' },
+      { label: text('publicLayout.about'), href: '/about' },
+      { label: text('publicLayout.priests'), href: '/priests' },
+      // { label: text('publicLayout.verses'), href: '/verses' },
       { label: getOptionalText('publicLayout.archive', 'Archive'), href: '/archive' },
       { label: getOptionalText('publicLayout.meetings', 'Meetings'), href: '/meetings' },
-      { label: text('publicLayout.visit'), href: '#visit' },
+      { label: text('publicLayout.visit'), href: '/visit' },
     ],
     [text, getOptionalText]
-  );
-
-  // App-like bottom tab bar for mobile — shown on non-landing public pages
-  // (the landing renders its own mobile navigation).
-  const showMobileTabBar = location.pathname !== '/';
-  const mobileTabs = useMemo(
-    () => [
-      { label: text('publicLayout.home'), href: '/', icon: Home },
-      { label: getOptionalText('publicLayout.meetings', 'Meetings'), href: '/meetings', icon: CalendarDays },
-      { label: getOptionalText('publicLayout.archive', 'Archive'), href: '/archive', icon: Images },
-      isAuthenticated
-        ? { label: text('publicLayout.dashboard'), href: '/dashboard', icon: LayoutDashboard }
-        : { label: text('publicLayout.login'), href: '/auth/login', icon: LogIn },
-    ],
-    [text, getOptionalText, isAuthenticated]
   );
 
   const enabledSocialLinks = useMemo(
@@ -94,7 +77,7 @@ export default function PublicLayout() {
   // The landing hero and the archive/meetings page-header bands are dark, so the
   // transparent header must render light until the user scrolls. Other public
   // pages keep dark text.
-  const isLandingTop = location.pathname === '/' && !location.hash;
+  const isLandingTop = location.pathname === '/';
   const hasDarkHeaderBand =
     isLandingTop ||
     location.pathname === '/archive' ||
@@ -105,9 +88,8 @@ export default function PublicLayout() {
     : '!rounded-xl !text-xs !font-bold !px-4';
 
   const isLinkActive = (href) => {
-    if (href === '/') return location.pathname === '/' && !location.hash;
-    if (href.startsWith('/')) return location.pathname === href;
-    return location.pathname === '/' && location.hash === href;
+    if (href === '/') return location.pathname === '/';
+    return location.pathname === href;
   };
 
   return (
@@ -147,9 +129,9 @@ export default function PublicLayout() {
 
           <nav className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.href}
-                href={link.href}
+                to={link.href}
                 className={`relative px-3.5 py-2 text-[13px] font-semibold rounded-lg transition-all duration-300 ${isLinkActive(link.href)
                   ? overHero
                     ? 'text-white bg-white/15'
@@ -163,11 +145,17 @@ export default function PublicLayout() {
                 {isLinkActive(link.href) ? (
                   <span className={`absolute bottom-0 inset-x-3 h-0.5 rounded-full ${overHero ? 'bg-secondary' : 'bg-primary'}`} />
                 ) : null}
-              </a>
+              </Link>
             ))}
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle
+              className={`hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-xl border transition-colors ${overHero
+                ? 'border-white/25 text-white/85 hover:bg-white/10 hover:text-white'
+                : 'border-border text-muted hover:text-primary hover:bg-primary/5'
+                }`}
+            />
             <LanguageSwitcher className="hidden sm:inline-flex" />
             {isAuthenticated ? (
               <Link to="/dashboard">
@@ -223,9 +211,9 @@ export default function PublicLayout() {
                 <LanguageSwitcher />
               </div>
               {navLinks.map((link) => (
-                <a
+                <Link
                   key={link.href}
-                  href={link.href}
+                  to={link.href}
                   onClick={() => setMobileOpen(false)}
                   className={`flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-semibold transition-all ${isLinkActive(link.href)
                     ? 'bg-primary/8 text-primary'
@@ -234,7 +222,7 @@ export default function PublicLayout() {
                 >
                   {link.label}
                   <ChevronRight className={`w-4 h-4 opacity-40 ${isRTL ? 'rotate-180' : ''}`} />
-                </a>
+                </Link>
               ))}
             </nav>
 
@@ -257,44 +245,11 @@ export default function PublicLayout() {
         </div>
       ) : null}
 
-      <main className={`flex-1 ${showMobileTabBar ? 'pb-20 lg:pb-0' : ''}`}>
+      <main className="flex-1 pb-24 md:pb-0">
         <Outlet />
       </main>
 
-      {showMobileTabBar ? (
-        <nav
-          className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 backdrop-blur-md lg:hidden"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-          aria-label={text('publicLayout.menu')}
-        >
-          <div
-            className="mx-auto grid max-w-lg"
-            style={{ gridTemplateColumns: `repeat(${mobileTabs.length}, minmax(0, 1fr))` }}
-          >
-            {mobileTabs.map((tab) => {
-              const active =
-                tab.href === '/'
-                  ? location.pathname === '/'
-                  : location.pathname === tab.href || location.pathname.startsWith(`${tab.href}/`);
-              return (
-                <Link
-                  key={tab.href}
-                  to={tab.href}
-                  aria-current={active ? 'page' : undefined}
-                  className={`relative flex flex-col items-center gap-1 px-1 py-2 text-[10px] font-semibold transition-colors ${active ? 'text-primary' : 'text-muted hover:text-heading'
-                    }`}
-                >
-                  {active ? (
-                    <span className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" aria-hidden />
-                  ) : null}
-                  <tab.icon className="h-[21px] w-[21px]" strokeWidth={active ? 2.4 : 1.9} />
-                  <span className="max-w-full truncate">{tab.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-      ) : null}
+      <PublicMobileNav />
 
       <footer className="relative bg-gradient-to-b from-surface to-page border-t border-border hidden md:flex">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
@@ -323,14 +278,14 @@ export default function PublicLayout() {
               </h4>
               <div className="space-y-2.5">
                 {navLinks.map((link) => (
-                  <a
+                  <Link
                     key={link.href}
-                    href={link.href}
+                    to={link.href}
                     className={`block text-sm text-muted hover:text-primary transition-colors ${isRTL ? 'text-right' : ''
                       }`}
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>
