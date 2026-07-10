@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { translations } from './translations';
+import { startDigitLocalization, stopDigitLocalization } from './digitLocalizer';
 
 export const LANGUAGE_STORAGE_KEY = 'app_language';
 export const DEFAULT_LANGUAGE = 'ar';
@@ -66,6 +67,15 @@ export function I18nProvider({ children }) {
       window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
     }
   }, [language]);
+
+  // Unify number formatting across the whole app: convert the digits shown in
+  // the DOM to match the active language (Arabic ٠١٢٣ vs English 0123). Runs
+  // before paint (useLayoutEffect) so there is no flash of the wrong numerals.
+  useLayoutEffect(() => {
+    startDigitLocalization(language);
+  }, [language]);
+
+  useEffect(() => () => stopDigitLocalization(), []);
 
   const setLanguage = useCallback((nextLanguage) => {
     setLanguageState(normalizeLanguage(nextLanguage));
