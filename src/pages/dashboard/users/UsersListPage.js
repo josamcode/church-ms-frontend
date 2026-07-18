@@ -129,8 +129,8 @@ function UserMemberCard({ user, actions, onOpen, emptyValue, t }) {
           <p className="truncate text-sm font-bold leading-5 text-heading transition-colors group-hover:text-primary">
             {user.fullName || emptyValue}
           </p>
-          <Badge variant={user.isLocked ? 'danger' : 'success'} size="sm" dot>
-            {user.isLocked ? t('common.status.locked') : t('common.status.active')}
+          <Badge variant={user.isLocked ? 'danger' : 'success'} className='bg-transparent border-none' size="sm" dot>
+            {/* {user.isLocked ? t('common.status.locked') : t('common.status.active')} */}
           </Badge>
         </div>
         <p className="mt-0.5 truncate text-xs font-medium leading-4 text-muted">
