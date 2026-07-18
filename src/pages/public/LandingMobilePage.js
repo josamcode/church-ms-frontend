@@ -105,7 +105,7 @@ function PriestMiniCard({ priest, isRTL, isCenter }) {
    ══════════════════════════════════════════════════════ */
 function MobileSectionLabel({ label, isRTL }) {
   return (
-    <h2 className={`text-sm font-black text-heading ${isRTL ? 'text-right' : 'text-left'}`}>{label}</h2>
+    <h2 className={`w-full text-sm font-black text-heading ${isRTL ? 'text-right' : 'text-left'}`}>{label}</h2>
   );
 }
 
