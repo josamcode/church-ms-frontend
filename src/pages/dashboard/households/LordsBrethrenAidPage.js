@@ -24,6 +24,7 @@ import PageHeader from '../../../components/ui/PageHeader';
 import Section from '../../../components/ui/Section';
 import Select from '../../../components/ui/Select';
 import Table from '../../../components/ui/Table';
+import DataCard from '../../../components/ui/DataCard';
 import CreatableComboboxInput from '../../../components/ui/CreatableComboboxInput';
 import CreatableTagComboboxInput from '../../../components/ui/CreatableTagComboboxInput';
 import TextArea from '../../../components/ui/TextArea';
@@ -323,6 +324,44 @@ export default function LordsBrethrenAidPage() {
     }
   };
 
+  /* ── bespoke card: a selection tile — the whole card toggles targeting; the
+        leading tile flips to a check when selected, income + status stay legible ── */
+  const renderAidHouseholdCard = (row) => {
+    const isChecked = selectedHouseholds.has(row.householdName);
+    return (
+      <DataCard
+        accent={isChecked ? 'primary' : undefined}
+        onClick={() => toggleSelection(row.householdName)}
+        className={isChecked ? 'border-primary/40 bg-primary/[0.04]' : ''}
+        leading={
+          <span
+            className={`flex h-12 w-12 items-center justify-center rounded-2xl transition-colors ${
+              isChecked ? 'bg-primary text-white' : 'bg-primary/10 text-primary'
+            }`}
+            aria-hidden="true"
+          >
+            {isChecked ? <CheckCircle2 className="h-6 w-6" /> : <Building2 className="h-6 w-6" />}
+          </span>
+        }
+        title={row.householdName}
+        badge={<HouseholdStatusBadge classification={row.primaryClassification} language={language} />}
+        meta={
+          <>
+            <span className="inline-flex items-center gap-1">
+              <Users className="h-3.5 w-3.5" />
+              {Number(row.memberCount) || 0}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span className="inline-flex items-center gap-1 font-bold text-secondary">
+              <HandCoins className="h-3.5 w-3.5" />
+              {formatCurrencyEGP(row.totalMemberIncome, language)}
+            </span>
+          </>
+        }
+      />
+    );
+  };
+
   return (
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs
@@ -505,6 +544,7 @@ export default function LordsBrethrenAidPage() {
               emptyTitle={copy.searchTitle}
               emptyDescription={copy.searchDesc}
               emptyIcon={Building2}
+              renderCard={renderAidHouseholdCard}
             />
           </div>
         </div>
