@@ -8,6 +8,8 @@
   html {
     font-family: "Inter", sans-serif;
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -208,23 +210,86 @@
   }
 
   @media (max-width: 767px) {
-    /* Clamp oversized typography on phones and other small screens. */
+    /*
+     * Compact mobile type scale.
+     *
+     * Keep this centralized so every dashboard/public page preserves the same
+     * title -> body -> caption hierarchy without page-specific overrides.
+     * Form controls stay slightly larger than body copy for comfortable input.
+     */
+    body {
+      font-size: 0.8125rem;
+      line-height: 1.25rem;
+    }
+
+    .text-xs {
+      font-size: 0.625rem !important;
+      line-height: 0.9375rem !important;
+    }
+
+    .text-sm,
+    .text-\[13px\],
+    .text-\[14px\] {
+      font-size: 0.75rem !important;
+      line-height: 1.125rem !important;
+    }
+
+    .text-base,
+    .text-\[15px\] {
+      font-size: 0.8125rem !important;
+      line-height: 1.25rem !important;
+    }
+
+    .text-lg {
+      font-size: 0.9375rem !important;
+      line-height: 1.375rem !important;
+    }
+
+    .text-xl {
+      font-size: 1.0625rem !important;
+      line-height: 1.5rem !important;
+    }
+
     .text-2xl {
-      font-size: 1.25rem !important;
-      line-height: 1.75rem !important;
+      font-size: 1.1875rem !important;
+      line-height: 1.625rem !important;
     }
 
     .text-3xl {
-      font-size: 1.5rem !important;
-      line-height: 2rem !important;
+      font-size: 1.375rem !important;
+      line-height: 1.875rem !important;
     }
 
     .text-4xl,
     .text-5xl,
     .text-6xl,
+    .text-\[2\.6rem\],
+    .text-\[2\.75rem\],
+    .text-\[2\.9rem\],
+    .text-\[3\.15rem\],
+    .text-\[3\.6rem\],
     .text-\[56px\] {
-      font-size: 1.75rem !important;
-      line-height: 2.25rem !important;
+      font-size: 1.625rem !important;
+      line-height: 2.125rem !important;
+    }
+
+    .text-\[1\.35rem\] {
+      font-size: 1.1875rem !important;
+      line-height: 1.625rem !important;
+    }
+
+    .text-\[1\.9rem\],
+    .text-\[2rem\],
+    .text-\[28px\] {
+      font-size: 1.375rem !important;
+      line-height: 1.875rem !important;
+    }
+
+    input,
+    textarea,
+    select {
+      font-size: 0.9375rem !important;
+      line-height: 1.375rem !important;
     }
   }
 }
