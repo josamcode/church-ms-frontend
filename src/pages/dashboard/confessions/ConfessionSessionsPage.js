@@ -20,10 +20,13 @@ import Pagination from '../../../components/ui/Pagination';
 import Badge from '../../../components/ui/Badge';
 import StatCard from '../../../components/ui/StatCard';
 import PageHeader from '../../../components/ui/PageHeader';
+import ViewToggle from '../../../components/ui/ViewToggle';
+import DataCard, { CardAvatar } from '../../../components/ui/DataCard';
 import { formatDateTime } from '../../../utils/formatters';
 import { localizeSessionTypeName } from '../../../utils/sessionTypeLocalization';
 import { useI18n } from '../../../i18n/i18n';
 import useNavigateToUser from '../../../hooks/useNavigateToUser';
+import useViewMode from '../../../hooks/useViewMode';
 
 /* ── shared section label ──────────────────────────────────────────────────── */
 function SectionLabel({ children }) {
@@ -53,6 +56,7 @@ export default function ConfessionSessionsPage() {
   const [cursorStack, setCursorStack] = useState([null]);
   const [limit] = useState(20);
   const [showMineOnly, setShowMineOnly] = useState(false);
+  const [viewMode, setViewMode] = useViewMode('confessions:sessions:viewMode');
 
   const resetPagination = () => {
     setCursor(null);
@@ -198,6 +202,63 @@ export default function ConfessionSessionsPage() {
     },
   ], [navigateToUser, t]);
 
+  /* ── bespoke card: person-anchored, with the session type, schedule and
+        an emphasized "next session" band when a follow-up is booked ── */
+  const renderSessionCard = (row) => {
+    const attendee = row.attendee || {};
+    const attendeeName = attendee.fullName || t('common.placeholder.empty');
+    return (
+      <DataCard
+        accent="primary"
+        onClick={attendee.id ? () => navigateToUser(attendee.id) : undefined}
+        leading={
+          <CardAvatar
+            name={attendee.fullName}
+            icon={attendee.fullName ? undefined : UserCircle}
+            tone="primary"
+          />
+        }
+        title={attendeeName}
+        badge={
+          <Badge variant="primary" size="sm" dot>
+            {localizeSessionTypeName(row.sessionType?.name, t)}
+          </Badge>
+        }
+        subtitle={attendee.phonePrimary ? <span dir="ltr">{attendee.phonePrimary}</span> : null}
+        meta={
+          <>
+            <span className="inline-flex items-center gap-1">
+              <CalendarCheck className="h-3.5 w-3.5" />
+              {formatDateTime(row.scheduledAt)}
+            </span>
+            {row.createdByUser?.fullName ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="inline-flex items-center gap-1">
+                  <UserCircle className="h-3.5 w-3.5" />
+                  {row.createdByUser.fullName}
+                </span>
+              </>
+            ) : null}
+          </>
+        }
+        footer={
+          row.nextSessionAt ? (
+            <div className="flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                <CalendarClock className="h-3.5 w-3.5" />
+                {t('confessions.sessions.columns.nextSessionAt')}
+              </span>
+              <Badge variant="info" size="sm" dot>
+                {formatDateTime(row.nextSessionAt)}
+              </Badge>
+            </div>
+          ) : null
+        }
+      />
+    );
+  };
+
   return (
     <div className="animate-fade-in space-y-8 pb-10">
 
@@ -309,15 +370,18 @@ export default function ConfessionSessionsPage() {
         </Card>
       ) : null}
 
-      {/* ══ TABLE SECTION ═════════════════════════════════════════════════ */}
+      {/* ══ TABLE / CARDS SECTION ═════════════════════════════════════════ */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <SectionLabel>{sectionTitle}</SectionLabel>
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <SectionLabel>{sectionTitle}</SectionLabel>
+          </div>
           {sessionsMeta?.count != null && (
             <span className="rounded-full bg-surface-alt px-2.5 py-0.5 text-xs font-semibold text-muted">
               {sessionsMeta.count}
             </span>
           )}
+          <ViewToggle value={viewMode} onChange={setViewMode} />
         </div>
 
         <div>
@@ -325,7 +389,9 @@ export default function ConfessionSessionsPage() {
             columns={columns}
             data={sessions}
             loading={sessionsLoading}
-            renderMode="auto"
+            renderMode={viewMode}
+            renderCard={renderSessionCard}
+            cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
             emptyIcon={CalendarPlus}
             emptyTitle={emptyTitle}
             emptyDescription={emptyDescription}
