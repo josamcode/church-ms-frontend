@@ -18,6 +18,7 @@ import Card, { CardHeader } from '../../../components/ui/Card';
 import Select from '../../../components/ui/Select';
 import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
+import DataCard, { CardAvatar } from '../../../components/ui/DataCard';
 import Badge from '../../../components/ui/Badge';
 import EmptyState from '../../../components/ui/EmptyState';
 import Skeleton from '../../../components/ui/Skeleton';
@@ -317,6 +318,52 @@ export default function SystemAnalyticsPage() {
     ],
     [selectedSessionId, t]
   );
+
+  /* ── bespoke mobile card: a session row — visitor identity + surface, active
+        time and page activity as metadata, tap toggles the detail panel above ── */
+  const renderSessionCard = (row) => {
+    const expanded = selectedSessionId === row.sessionId;
+    return (
+      <DataCard
+        accent="info"
+        onClick={() =>
+          setSelectedSessionId((current) => (current === row.sessionId ? '' : row.sessionId))
+        }
+        leading={<CardAvatar icon={Globe2} tone="info" />}
+        title={getSessionDisplayName(row, t)}
+        badge={<Badge variant={surfaceVariant(row.surface)}>{formatSurfaceLabel(row.surface, t)}</Badge>}
+        subtitle={row.user?.role || row.sessionId}
+        meta={
+          <>
+            <span className="inline-flex items-center gap-1">
+              <Clock3 className="h-3.5 w-3.5" />
+              {formatDuration(row.totalActiveSeconds, t)}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span className="inline-flex items-center gap-1">
+              <MousePointerClick className="h-3.5 w-3.5" />
+              {t('systemAnalyticsPage.text.pagesSummary', {
+                views: row.totalPageViews,
+                paths: row.pathsVisitedCount,
+              })}
+            </span>
+          </>
+        }
+        actions={
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted">
+            <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          </span>
+        }
+        footer={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
+            <span className="truncate">{compactPath(row.entryPath)}</span>
+            <span aria-hidden="true">·</span>
+            <span>{formatDateTime(row.startedAt)}</span>
+          </div>
+        }
+      />
+    );
+  };
 
   const highlightCards = [
     insights.busiestDay
@@ -775,6 +822,7 @@ export default function SystemAnalyticsPage() {
             loading={isLoading}
             emptyTitle={t('systemAnalyticsPage.states.emptyTitle')}
             emptyDescription={t('systemAnalyticsPage.states.emptyDescription')}
+            renderCard={renderSessionCard}
           />
         </div>
       </section>
