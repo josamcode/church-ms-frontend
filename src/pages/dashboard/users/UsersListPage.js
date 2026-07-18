@@ -1,9 +1,10 @@
-import { useState, useCallback, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useInfiniteQuery, useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus, Eye, Edit, Lock, Unlock, Trash2,
   Users, UserCheck, LayoutGrid, TableProperties, SlidersHorizontal,
+  ArrowUp, Loader2,
 } from 'lucide-react';
 import { usersApi } from '../../../api/endpoints';
 import { normalizeApiError } from '../../../api/errors';
@@ -16,7 +17,6 @@ import StatCard from '../../../components/ui/StatCard';
 import Table, { RowActions } from '../../../components/ui/Table';
 import SearchInput from '../../../components/ui/SearchInput';
 import Select from '../../../components/ui/Select';
-import Pagination from '../../../components/ui/Pagination';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Modal from '../../../components/ui/Modal';
 import EmptyState from '../../../components/ui/EmptyState';
@@ -208,32 +208,42 @@ export default function UsersListPage() {
   const navigate = useNavigate();
 
   const [filters, setFilters] = useState({ fullName: '', ageGroup: '', gender: '', role: '' });
-  const [cursor, setCursor] = useState(null);
-  const [cursorStack, setCursorStack] = useState([null]);
   const [limit] = useState(100);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [viewMode, setViewMode] = useState(getDefaultUsersViewMode);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const queryParams = {
+  const baseParams = useMemo(() => ({
     limit, sort: 'createdAt', order: 'desc',
     accountStatus: visibleAccountStatus,
-    ...(cursor && { cursor }),
     ...(filters.fullName && { fullName: filters.fullName }),
     ...(filters.ageGroup && { ageGroup: filters.ageGroup }),
     ...(filters.gender && { gender: filters.gender }),
     ...(filters.role && { role: filters.role }),
-  };
+  }), [limit, visibleAccountStatus, filters.fullName, filters.ageGroup, filters.gender, filters.role]);
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['users', queryParams],
-    queryFn: async () => {
-      const { data } = await usersApi.list(queryParams);
+  const {
+    data,
+    isLoading,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['users', 'infinite', baseParams],
+    queryFn: async ({ pageParam }) => {
+      const { data } = await usersApi.list({
+        ...baseParams,
+        ...(pageParam ? { cursor: pageParam } : {}),
+      });
       return data;
     },
+    initialPageParam: null,
+    getNextPageParam: (lastPage) =>
+      (lastPage?.meta?.hasNextPage && lastPage?.meta?.nextCursor) ? lastPage.meta.nextCursor : undefined,
     staleTime: 30000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
   const { data: totalUsersCount = 0, refetch: refetchTotalUsers } = useQuery({
@@ -250,36 +260,67 @@ export default function UsersListPage() {
     staleTime: 120000,
   });
 
-  const users = useMemo(() => data?.data ?? [], [data?.data]);
-  const meta = data?.meta || null;
+  const users = useMemo(() => {
+    const seen = new Set();
+    const merged = [];
+    (data?.pages || []).forEach((page) => {
+      (page?.data || []).forEach((user) => {
+        const id = user._id || user.id;
+        if (id && !seen.has(id)) {
+          seen.add(id);
+          merged.push(user);
+        }
+      });
+    });
+    return merged;
+  }, [data]);
+  const loadedCount = users.length;
 
   const handleFilterChange = useCallback((key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
-    setCursor(null);
-    setCursorStack([null]);
   }, []);
 
   const clearFilters = useCallback(() => {
     setFilters({ fullName: '', ageGroup: '', gender: '', role: '' });
-    setCursor(null);
-    setCursorStack([null]);
   }, []);
 
-  const handleNext = useCallback(() => {
-    if (meta?.nextCursor && meta.nextCursor !== cursor) {
-      setCursorStack((prev) => [...prev, meta.nextCursor]);
-      setCursor(meta.nextCursor);
+  // Scroll-to-top button: visible once the page is scrolled away from the top.
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Infinite scroll. A callback ref (re)attaches the IntersectionObserver whenever the
+  // sentinel mounts/remounts, so it never ends up bound to a stale node. The observer
+  // just tracks visibility; the effect below turns that into next-page fetches and keeps
+  // paging while the sentinel stays in view.
+  const observerRef = useRef(null);
+  const [sentinelVisible, setSentinelVisible] = useState(false);
+  const setLoadMoreRef = useCallback((node) => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
     }
-  }, [cursor, meta?.nextCursor]);
-
-  const handlePrev = useCallback(() => {
-    setCursorStack((prev) => {
-      if (prev.length <= 1) return prev;
-      const next = prev.slice(0, -1);
-      setCursor(next[next.length - 1] || null);
-      return next;
-    });
+    if (!node) {
+      setSentinelVisible(false);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => setSentinelVisible(entries[0]?.isIntersecting ?? false),
+      { rootMargin: '400px' }
+    );
+    observer.observe(node);
+    observerRef.current = observer;
   }, []);
+  useEffect(() => {
+    if (sentinelVisible && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [sentinelVisible, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -517,7 +558,7 @@ export default function UsersListPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-bold text-heading">{t('usersListPage.table.title')}</h2>
           <Badge variant="neutral">
-            {t('usersListPage.table.results', { count: meta?.count ?? users.length })}
+            {t('usersListPage.table.results', { count: loadedCount })}
           </Badge>
         </div>
 
@@ -555,15 +596,19 @@ export default function UsersListPage() {
             />
           )}
 
-          <Card padding="sm" className="mt-3">
-            <Pagination
-              meta={meta}
-              onLoadMore={handleNext}
-              onPrev={handlePrev}
-              cursors={cursorStack}
-              loading={isLoading}
-            />
-          </Card>
+          {hasNextPage ? (
+            <div
+              ref={setLoadMoreRef}
+              className="flex items-center justify-center py-6 text-sm text-muted"
+            >
+              {isFetchingNextPage ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t('usersListPage.table.loadingMore')}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -574,6 +619,23 @@ export default function UsersListPage() {
             <Button icon={Plus} fullWidth size="lg">{t('usersListPage.actions.addUser')}</Button>
           </Link>
         </div>
+      ) : null}
+
+      {/* ══ SCROLL TO TOP ═════════════════════════════════════════════════════ */}
+      {showScrollTop ? (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          aria-label={t('usersListPage.scrollToTop')}
+          title={t('usersListPage.scrollToTop')}
+          className={[
+            'fixed z-30 flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface/95 text-heading shadow-lg backdrop-blur transition-all hover:border-primary/40 hover:text-primary active:scale-95 animate-fade-in',
+            'bottom-24 lg:bottom-6',
+            isRTL ? 'left-4 lg:left-6' : 'right-4 lg:right-6',
+          ].join(' ')}
+        >
+          <ArrowUp className="h-5 w-5" />
+        </button>
       ) : null}
 
       {/* ══ FILTERS MODAL — secondary filters behind a compact control ════════ */}

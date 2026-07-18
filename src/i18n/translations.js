@@ -994,7 +994,9 @@
       table: {
         title: 'User Directory',
         results: '{count} results',
+        loadingMore: 'Loading more users…',
       },
+      scrollToTop: 'Scroll to top',
       columns: {
         name: 'Name',
         phone: 'Phone',
@@ -4114,7 +4116,9 @@
       table: {
         title: 'دليل المستخدمين',
         results: '{count} نتيجة',
+        loadingMore: 'جارٍ تحميل المزيد من المستخدمين…',
       },
+      scrollToTop: 'العودة إلى الأعلى',
       columns: {
         name: 'الاسم',
         phone: 'رقم الهاتف',
