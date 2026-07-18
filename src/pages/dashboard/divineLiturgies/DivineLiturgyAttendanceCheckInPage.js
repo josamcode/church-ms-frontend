@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, CalendarDays, Check, CheckSquare, Clock, Search, UserCheck, UserPlus, Users } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AlertCircle, ArrowUp, CalendarDays, Check, CheckSquare, Clock, Loader2, Search, Square, UserCheck, UserPlus, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
 
@@ -23,6 +23,7 @@ import { getDayLabel } from '../meetings/meetingsForm.utils';
 import { buildDivineLiturgyAttendanceDateOptions } from './divineLiturgyAttendanceDateOptions.utils';
 
 const EMPTY = '---';
+const USERS_PAGE_SIZE = 100;
 
 function sortUsersByName(users = []) {
   return [...users].sort((a, b) => String(a.fullName || '').localeCompare(String(b.fullName || ''), undefined, {
@@ -121,22 +122,82 @@ export default function DivineLiturgyAttendanceCheckInPage() {
   const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const contextQuery = useQuery({
-    queryKey: ['divine-liturgies', 'attendance-context', entryType, id],
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
+    return () => clearTimeout(handle);
+  }, [searchTerm]);
+
+  // Scroll-to-top button: visible once the page is scrolled away from the top.
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Registry of user id -> fullName, accumulated across loaded pages, attendance
+  // records and the "check in everyone" fetch. Checked-in users can fall outside
+  // the currently loaded/searched page, so we keep their names here to render them.
+  const nameRegistryRef = useRef(new Map());
+  const [nameRegistryVersion, setNameRegistryVersion] = useState(0);
+  const registerUsers = useCallback((list) => {
+    if (!Array.isArray(list) || list.length === 0) return;
+    let changed = false;
+    list.forEach((user) => {
+      if (!user?.id) return;
+      const name = user.fullName || '';
+      if (nameRegistryRef.current.get(user.id) !== name) {
+        nameRegistryRef.current.set(user.id, name);
+        changed = true;
+      }
+    });
+    if (changed) setNameRegistryVersion((value) => value + 1);
+  }, []);
+
+  const contextQuery = useInfiniteQuery({
+    queryKey: ['divine-liturgies', 'attendance-context', entryType, id, debouncedSearch],
     enabled: Boolean(entryType && id),
     staleTime: 60000,
-    queryFn: async () => {
-      const { data } = await divineLiturgiesApi.getAttendanceContext(entryType, id);
+    placeholderData: keepPreviousData,
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) => {
+      const { data } = await divineLiturgiesApi.getAttendanceContext(entryType, id, {
+        page: pageParam,
+        limit: USERS_PAGE_SIZE,
+        search: debouncedSearch || undefined,
+      });
       return data?.data || null;
     },
+    getNextPageParam: (lastPage) => (lastPage?.hasMore ? (lastPage.page || 1) + 1 : undefined),
   });
 
-  const service = contextQuery.data?.service || null;
-  const users = useMemo(
-    () => sortUsersByName(Array.isArray(contextQuery.data?.users) ? contextQuery.data.users : []),
-    [contextQuery.data]
-  );
+  const { fetchNextPage, hasNextPage, isFetchingNextPage } = contextQuery;
+  const firstPage = contextQuery.data?.pages?.[0] || null;
+  const service = firstPage?.service || null;
+  const totalUsers = firstPage?.totalUsers || 0;
+
+  const loadedUsers = useMemo(() => {
+    const seen = new Set();
+    const merged = [];
+    (contextQuery.data?.pages || []).forEach((page) => {
+      (page?.users || []).forEach((user) => {
+        if (user?.id && !seen.has(user.id)) {
+          seen.add(user.id);
+          merged.push(user);
+        }
+      });
+    });
+    return merged;
+  }, [contextQuery.data]);
+
+  useEffect(() => {
+    registerUsers(loadedUsers);
+  }, [loadedUsers, registerUsers]);
+
   const dateOptions = useMemo(
     () => buildDivineLiturgyAttendanceDateOptions(service),
     [service]
@@ -169,7 +230,8 @@ export default function DivineLiturgyAttendanceCheckInPage() {
         ? attendanceQuery.data.attendedUserIds
         : []
     );
-  }, [attendanceQuery.data]);
+    registerUsers(attendanceQuery.data.attendedUsers);
+  }, [attendanceQuery.data, registerUsers]);
 
   const saveAttendanceMutation = useMutation({
     mutationFn: () => divineLiturgiesApi.updateAttendance(entryType, id, selectedDate, selectedUserIds),
@@ -177,6 +239,7 @@ export default function DivineLiturgyAttendanceCheckInPage() {
       const payload = data?.data || null;
       if (payload) {
         setSelectedUserIds(Array.isArray(payload.attendedUserIds) ? payload.attendedUserIds : []);
+        registerUsers(payload.attendedUsers);
       }
       toast.success(tf('divineLiturgies.attendance.messages.saved', 'Attendance saved successfully.'));
       queryClient.invalidateQueries({ queryKey: ['divine-liturgies', 'attendance', entryType, id, selectedDate] });
@@ -188,35 +251,46 @@ export default function DivineLiturgyAttendanceCheckInPage() {
     },
   });
 
-  const selectedUserIdSet = useMemo(() => new Set(selectedUserIds), [selectedUserIds]);
-  const normalizedSearchTerm = String(searchTerm || '').trim().toLowerCase();
+  const selectAllMutation = useMutation({
+    mutationFn: () => divineLiturgiesApi.getAttendanceEligibleUsers(entryType, id),
+    onSuccess: ({ data }) => {
+      const eligible = Array.isArray(data?.data?.users) ? data.data.users : [];
+      registerUsers(eligible);
+      setSelectedUserIds(eligible.map((user) => user.id));
+    },
+    onError: (error) => {
+      toast.error(normalizeApiError(error).message);
+    },
+  });
 
+  const selectedUserIdSet = useMemo(() => new Set(selectedUserIds), [selectedUserIds]);
+  const normalizedSearchTerm = debouncedSearch.toLowerCase();
+
+  // Available users come straight from the loaded (server-paginated, server-searched)
+  // pages, minus anyone already checked in.
   const availableUsers = useMemo(
-    () =>
-      users.filter((user) => (
-        !selectedUserIdSet.has(user.id) &&
-        (
-          !normalizedSearchTerm ||
-          String(user.fullName || '').toLowerCase().includes(normalizedSearchTerm)
-        )
-      )),
-    [users, selectedUserIdSet, normalizedSearchTerm]
+    () => loadedUsers.filter((user) => !selectedUserIdSet.has(user.id)),
+    [loadedUsers, selectedUserIdSet]
   );
   const availableUserGroups = useMemo(
     () => groupUsersByInitial(availableUsers),
     [availableUsers]
   );
-  const selectedUsers = useMemo(
-    () =>
-      users.filter((user) => (
-        selectedUserIdSet.has(user.id) &&
-        (
-          !normalizedSearchTerm ||
-          String(user.fullName || '').toLowerCase().includes(normalizedSearchTerm)
-        )
-      )),
-    [users, selectedUserIdSet, normalizedSearchTerm]
-  );
+
+  // Checked-in users are driven by the selected id set + the name registry, so they
+  // render even when outside the currently loaded page. Search filters them locally.
+  const selectedUsers = useMemo(() => {
+    const list = selectedUserIds.map((userId) => ({
+      id: userId,
+      fullName: nameRegistryRef.current.get(userId) || '',
+    }));
+    const filtered = normalizedSearchTerm
+      ? list.filter((user) => user.fullName.toLowerCase().includes(normalizedSearchTerm))
+      : list;
+    return sortUsersByName(filtered);
+    // nameRegistryVersion bumps when the registry gains names, forcing a recompute.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUserIds, normalizedSearchTerm, nameRegistryVersion]);
   const selectedUserGroups = useMemo(
     () => groupUsersByInitial(selectedUsers),
     [selectedUsers]
@@ -230,9 +304,42 @@ export default function DivineLiturgyAttendanceCheckInPage() {
     ));
   };
 
-  const totalUsers = users.length;
   const checkedInCount = selectedUserIds.length;
   const remainingCount = Math.max(totalUsers - checkedInCount, 0);
+
+  // Infinite scroll: fetch the next page when the sentinel enters the viewport.
+  const loadMoreRef = useRef(null);
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !hasNextPage) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '250px' }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, availableUsers.length]);
+
+  // If every loaded user is already checked in, the available list is empty and the
+  // sentinel never renders — keep pulling pages until some available users appear.
+  // Guard with remainingCount so we don't page through everyone when all are checked
+  // in (e.g. right after "check in everyone").
+  useEffect(() => {
+    if (
+      statusFilter !== 'selected' &&
+      availableUsers.length === 0 &&
+      loadedUsers.length > 0 &&
+      remainingCount > 0 &&
+      hasNextPage &&
+      !isFetchingNextPage
+    ) {
+      fetchNextPage();
+    }
+  }, [statusFilter, availableUsers.length, loadedUsers.length, remainingCount, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const serviceScheduleLabel = service?.entryType === 'exception'
     ? formatDate(service?.date)
@@ -318,7 +425,7 @@ export default function DivineLiturgyAttendanceCheckInPage() {
     );
   }
 
-  if (users.length === 0) {
+  if (totalUsers === 0) {
     return (
       <div className="animate-fade-in space-y-8 pb-10">
         <Breadcrumbs items={breadcrumbs} />
@@ -344,7 +451,7 @@ export default function DivineLiturgyAttendanceCheckInPage() {
   const isBusy = attendanceQuery.isLoading;
 
   return (
-    <div className="animate-fade-in space-y-6 pb-28 lg:pb-10">
+    <div className="animate-fade-in space-y-6 pb-28 lg:pb-24">
       <Breadcrumbs items={breadcrumbs} />
 
       {/* ══ HEADER / TOOLBAR ══════════════════════════════════════════════ */}
@@ -393,17 +500,31 @@ export default function DivineLiturgyAttendanceCheckInPage() {
             icon={Search}
             containerClassName="!mb-0"
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            icon={CheckSquare}
-            className="lg:mb-px"
-            onClick={() => setSelectedUserIds(users.map((user) => user.id))}
-            disabled={isBusy || remainingCount === 0}
-          >
-            {tf('divineLiturgies.attendance.filters.all', 'All users')}
-          </Button>
+          <div className="flex items-center gap-2 lg:mb-px">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              icon={CheckSquare}
+              className="flex-1 lg:flex-none"
+              onClick={() => selectAllMutation.mutate()}
+              loading={selectAllMutation.isPending}
+              disabled={isBusy || remainingCount === 0 || selectAllMutation.isPending}
+            >
+              {tf('divineLiturgies.attendance.filters.all', 'All users')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              icon={Square}
+              className="flex-1 lg:flex-none"
+              onClick={() => setSelectedUserIds([])}
+              disabled={isBusy || checkedInCount === 0}
+            >
+              {tf('divineLiturgies.attendance.filters.deselectAll', 'Deselect all')}
+            </Button>
+          </div>
         </div>
 
         {attendanceQuery.error ? (
@@ -472,13 +593,36 @@ export default function DivineLiturgyAttendanceCheckInPage() {
               actions={<Badge variant="neutral">{availableUsers.length}</Badge>}
             >
               {availableUsers.length === 0 ? (
-                <EmptyState
-                  compact
-                  icon={Search}
-                  title={tf('divineLiturgies.attendance.noAvailableUsers', 'No users match the current search or filter.')}
-                />
+                isFetchingNextPage || contextQuery.isFetching ? (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {Array.from({ length: 3 }).map((_, index) => (
+                      <Skeleton key={index} className="h-14 rounded-2xl" />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    compact
+                    icon={Search}
+                    title={tf('divineLiturgies.attendance.noAvailableUsers', 'No users match the current search or filter.')}
+                  />
+                )
               ) : (
-                <UserAttendanceGroups groups={availableUserGroups} onToggle={toggleUser} />
+                <div className="space-y-5">
+                  <UserAttendanceGroups groups={availableUserGroups} onToggle={toggleUser} />
+                  {hasNextPage ? (
+                    <div
+                      ref={loadMoreRef}
+                      className="flex items-center justify-center py-4 text-sm text-muted"
+                    >
+                      {isFetchingNextPage ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          {tf('divineLiturgies.attendance.loadingMore', 'Loading more users…')}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
               )}
             </Section>
           )}
@@ -508,24 +652,39 @@ export default function DivineLiturgyAttendanceCheckInPage() {
         </>
       )}
 
-      {/* ══ STICKY SAVE ═══════════════════════════════════════════════════ */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/95 px-4 py-3 shadow-lg backdrop-blur lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 lg:max-w-none lg:justify-end">
-          <span className="hidden text-sm text-muted sm:inline lg:me-auto">
-            {checkedInCount} / {totalUsers} {tf('divineLiturgies.attendance.selectedCount', 'checked in')}
-          </span>
-          <Button
+      {/* ══ FLOATING CONTROLS (scroll-to-top + save) ═════════════════════ */}
+      <div
+        className={[
+          'fixed bottom-20 z-30 flex flex-col gap-3 lg:bottom-6',
+          isRTL ? 'left-4 items-start lg:left-6' : 'right-4 items-end lg:right-6',
+        ].join(' ')}
+      >
+        {showScrollTop ? (
+          <button
             type="button"
-            icon={CheckSquare}
-            fullWidth
-            className="lg:w-auto"
-            onClick={() => saveAttendanceMutation.mutate()}
-            loading={saveAttendanceMutation.isPending}
-            disabled={!selectedDate}
+            onClick={scrollToTop}
+            aria-label={tf('divineLiturgies.attendance.scrollToTop', 'Scroll to top')}
+            title={tf('divineLiturgies.attendance.scrollToTop', 'Scroll to top')}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface/95 text-heading shadow-lg backdrop-blur transition-all hover:border-primary/40 hover:text-primary active:scale-95 animate-fade-in"
           >
-            {t('common.actions.save')}
-          </Button>
-        </div>
+            <ArrowUp className="h-5 w-5" />
+          </button>
+        ) : null}
+
+        <Button
+          type="button"
+          icon={CheckSquare}
+          size="lg"
+          className="rounded-full shadow-xl shadow-primary/25"
+          onClick={() => saveAttendanceMutation.mutate()}
+          loading={saveAttendanceMutation.isPending}
+          disabled={!selectedDate}
+        >
+          {t('common.actions.save')}
+          <span className="ms-1 hidden rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold leading-none sm:inline">
+            {checkedInCount}/{totalUsers}
+          </span>
+        </Button>
       </div>
     </div>
   );

@@ -98,8 +98,10 @@ export const visitationsApi = {
 export const divineLiturgiesApi = {
   getPublicOverview: () => apiClient.get('/divine-liturgies/public'),
   getOverview: () => apiClient.get('/divine-liturgies'),
-  getAttendanceContext: (entryType, id) =>
-    apiClient.get(`/divine-liturgies/attendance/${entryType}/${id}/context`),
+  getAttendanceContext: (entryType, id, params = {}) =>
+    apiClient.get(`/divine-liturgies/attendance/${entryType}/${id}/context`, { params }),
+  getAttendanceEligibleUsers: (entryType, id) =>
+    apiClient.get(`/divine-liturgies/attendance/${entryType}/${id}/users`),
   getAttendance: (entryType, id, attendanceDate) =>
     apiClient.get(`/divine-liturgies/attendance/${entryType}/${id}`, { params: { attendanceDate } }),
   updateAttendance: (entryType, id, attendanceDate, attendedUserIds) =>
