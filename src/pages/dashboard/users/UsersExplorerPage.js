@@ -42,6 +42,7 @@ import Select from '../../../components/ui/Select';
 import Skeleton from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import Table, { RowActions } from '../../../components/ui/Table';
+import DataCard, { CardAvatar } from '../../../components/ui/DataCard';
 import Tabs from '../../../components/ui/Tabs';
 import TextArea from '../../../components/ui/TextArea';
 import {
@@ -930,6 +931,56 @@ export default function UsersExplorerPage() {
       ),
     },
   ]), [hasPermission, language, navigate, t, tx]);
+
+  /* ── bespoke mobile card: a rich member record — identity + role lead, with
+        demographics/household as metadata and activity counts in the footer ── */
+  const renderUserCard = (row) => (
+    <DataCard
+      accent={row.isLocked ? 'danger' : undefined}
+      onClick={() => navigate(`/dashboard/users/${row.id}`)}
+      leading={<CardAvatar name={row.fullName} src={row.user?.avatar?.url} tone="primary" />}
+      title={row.fullName || '---'}
+      badge={<Badge variant="primary" size="sm">{getRoleLabel(row.role)}</Badge>}
+      subtitle={<span dir="ltr">{row.phonePrimary || row.email || '---'}</span>}
+      meta={
+        <>
+          <span>
+            {formatAgeFromBirthDate(row.birthDate)}
+            {row.ageGroup ? ` · ${row.ageGroup}` : ''} · {getGenderLabel(row.gender)}
+          </span>
+          {(row.familyName || row.houseName) ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>
+                {row.familyName || '---'}
+                {row.houseName ? ` · ${row.houseName}` : ''}
+              </span>
+            </>
+          ) : null}
+        </>
+      }
+      actions={
+        <RowActions
+          actions={[
+            { label: t('common.actions.view'), icon: Eye, onClick: () => navigate(`/dashboard/users/${row.id}`) },
+            ...(hasPermission('USERS_UPDATE')
+              ? [{ label: t('common.actions.edit'), icon: Edit, onClick: () => navigate(`/dashboard/users/${row.id}/edit`) }]
+              : []),
+          ]}
+        />
+      }
+      footer={
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant={row.isLocked ? 'danger' : 'success'} size="sm" dot>
+            {row.isLocked ? t('common.status.locked') : t('common.status.active')}
+          </Badge>
+          <Badge variant="secondary" size="sm">{tx('table.meetingsBadge', { count: row.meetingIdsCount })}</Badge>
+          <Badge variant="secondary" size="sm">{tx('table.attendanceBadge', { count: row.meetingAttendanceCount })}</Badge>
+          <Badge variant="secondary" size="sm">{tx('table.liturgiesBadge', { count: row.divineAttendanceCount })}</Badge>
+        </div>
+      }
+    />
+  );
 
   const filterTabs = [
     {
@@ -1831,6 +1882,7 @@ export default function UsersExplorerPage() {
               sortField={sortState.field}
               sortOrder={sortState.order}
               onSort={handleTableSort}
+              renderCard={renderUserCard}
             />
             <Pager
               page={page}
