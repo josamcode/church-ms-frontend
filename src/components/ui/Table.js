@@ -1,7 +1,7 @@
 import { ArrowUp, ArrowDown, LayoutGrid, MoreVertical, TableProperties } from 'lucide-react';
 import Skeleton, { SkeletonRow } from './Skeleton';
 import EmptyState from './EmptyState';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../i18n/i18n';
 
 const MOBILE_VIEW_STORAGE_KEY = 'dashboard_table_mobile_view';
@@ -89,6 +89,9 @@ export default function Table({
   onSort,
   renderMode = 'auto',
   flush = false,
+  renderCard,
+  renderCardSkeleton,
+  cardGridClassName = 'space-y-3',
 }) {
   const { isRTL, t } = useI18n();
   const isSmallScreen = useIsSmallScreen();
@@ -173,23 +176,34 @@ export default function Table({
           <EmptyState title={emptyTitle} description={emptyDescription} icon={emptyIcon} />
         </div>
       ) : showCardView ? (
-        <div className="space-y-3">
+        <div className={cardGridClassName}>
           {loading
-            ? Array.from({ length: skeletonRows }).map((_, index) => (
-              <MobileTableSkeletonCard key={index} />
-            ))
-            : data.map((row, rowIndex) => (
-              <MobileTableCard
-                key={row._id || row.id || rowIndex}
-                row={row}
-                rowIndex={rowIndex}
-                primaryColumn={primaryColumn}
-                detailColumns={detailColumns}
-                actionColumns={actionColumns}
-                emptyValue={emptyValue}
-                isRTL={isRTL}
-              />
-            ))}
+            ? Array.from({ length: skeletonRows }).map((_, index) =>
+              renderCard ? (
+                <Fragment key={index}>
+                  {renderCardSkeleton ? renderCardSkeleton(index) : <DefaultCardSkeleton />}
+                </Fragment>
+              ) : (
+                <MobileTableSkeletonCard key={index} />
+              )
+            )
+            : data.map((row, rowIndex) => {
+              const key = row._id || row.id || rowIndex;
+              return renderCard ? (
+                <Fragment key={key}>{renderCard(row, rowIndex, { emptyValue, isRTL })}</Fragment>
+              ) : (
+                <MobileTableCard
+                  key={key}
+                  row={row}
+                  rowIndex={rowIndex}
+                  primaryColumn={primaryColumn}
+                  detailColumns={detailColumns}
+                  actionColumns={actionColumns}
+                  emptyValue={emptyValue}
+                  isRTL={isRTL}
+                />
+              );
+            })}
         </div>
       ) : (
         <div className={`overflow-x-auto ${flush ? '' : 'rounded-xl border border-border bg-surface shadow-card'}`}>
@@ -320,6 +334,21 @@ function MobileTableCard({
         </div>
       ) : null}
     </article>
+  );
+}
+
+/** Clean list-row skeleton used by bespoke card views (avatar + two lines + action). */
+function DefaultCardSkeleton() {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3 shadow-card">
+      <Skeleton variant="circle" className="h-12 w-12 shrink-0 !rounded-2xl" />
+      <div className="min-w-0 flex-1 space-y-2">
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-3 w-1/2" />
+        <Skeleton className="h-3 w-1/3" />
+      </div>
+      <Skeleton className="h-8 w-8 shrink-0 rounded-lg" />
+    </div>
   );
 }
 
