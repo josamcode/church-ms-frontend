@@ -374,6 +374,8 @@ export default function SectorsManagementPage() {
               emptyDescription={t('meetings.empty.sectorsDescription')}
               emptyIcon={Layers3}
               renderCard={renderSectorCard}
+              viewStorageKey="meetings:sectorsManagement:viewMode"
+              cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
             />
           )}
         </section>

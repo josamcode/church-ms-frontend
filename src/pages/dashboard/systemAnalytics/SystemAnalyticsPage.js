@@ -823,6 +823,8 @@ export default function SystemAnalyticsPage() {
             emptyTitle={t('systemAnalyticsPage.states.emptyTitle')}
             emptyDescription={t('systemAnalyticsPage.states.emptyDescription')}
             renderCard={renderSessionCard}
+            viewStorageKey="systemAnalytics:sessions:viewMode"
+            cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
           />
         </div>
       </section>

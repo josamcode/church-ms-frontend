@@ -264,6 +264,8 @@ export default function MeetingsPage() {
             emptyTitle={t('meetings.empty.sectorsTitle')}
             emptyDescription={t('meetings.empty.sectorsDescription')}
             renderCard={renderSectorCard}
+            viewStorageKey="meetings:sectors:viewMode"
+            cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
           />
         </section>
       )}
@@ -307,6 +309,8 @@ export default function MeetingsPage() {
             emptyTitle={t('meetings.empty.meetingsTitle')}
             emptyDescription={t('meetings.empty.meetingsDescription')}
             renderCard={renderMeetingCard}
+            viewStorageKey="meetings:meetings:viewMode"
+            cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
           />
         </section>
       ) : (

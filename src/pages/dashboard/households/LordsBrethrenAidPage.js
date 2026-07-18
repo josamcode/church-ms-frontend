@@ -545,6 +545,7 @@ export default function LordsBrethrenAidPage() {
               emptyDescription={copy.searchDesc}
               emptyIcon={Building2}
               renderCard={renderAidHouseholdCard}
+              viewStorageKey="households:aidCandidates:viewMode"
             />
           </div>
         </div>

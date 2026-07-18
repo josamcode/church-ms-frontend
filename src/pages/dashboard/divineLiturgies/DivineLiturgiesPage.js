@@ -822,6 +822,8 @@ export default function DivineLiturgiesPage() {
         <Table
           columns={recurringColumns(true, handleEditDivine, handleDeleteRecurring)}
           renderCard={renderRecurringCard(true, handleEditDivine, handleDeleteRecurring)}
+          viewStorageKey="divineLiturgies:divine:viewMode"
+          cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
           data={recurringDivine}
           loading={overviewQuery.isLoading}
           emptyTitle={t('divineLiturgies.empty.recurringDivine')}
@@ -941,6 +943,8 @@ export default function DivineLiturgiesPage() {
           <Table
             columns={recurringColumns(false, handleEditVespers, handleDeleteRecurring)}
             renderCard={renderRecurringCard(false, handleEditVespers, handleDeleteRecurring)}
+            viewStorageKey="divineLiturgies:vespers:viewMode"
+            cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
             data={recurringVespers}
             loading={overviewQuery.isLoading}
             emptyTitle={t('divineLiturgies.empty.recurringVespers')}
@@ -1074,6 +1078,8 @@ export default function DivineLiturgiesPage() {
           <Table
             columns={exceptionColumns}
             renderCard={renderExceptionCard}
+            viewStorageKey="divineLiturgies:exceptions:viewMode"
+            cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
             data={exceptionalCases}
             loading={overviewQuery.isLoading}
             emptyTitle={t('divineLiturgies.empty.exceptions')}

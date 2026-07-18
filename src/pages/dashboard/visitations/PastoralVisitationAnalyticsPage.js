@@ -457,6 +457,7 @@ export default function PastoralVisitationAnalyticsPage() {
                 emptyTitle={t('visitations.analytics.emptyTitle')}
                 emptyDescription={t('visitations.analytics.emptyDescription')}
                 renderCard={renderTopRecorderCard}
+                viewStorageKey="visitations:topRecorders:viewMode"
               />
             </div>
           </Card>

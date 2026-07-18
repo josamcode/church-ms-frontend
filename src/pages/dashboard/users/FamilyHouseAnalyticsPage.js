@@ -555,6 +555,7 @@ export default function FamilyHouseAnalyticsPage() {
                 emptyDescription={tr('familyHouseAnalytics.states.noRankData')}
                 skeletonRows={6}
                 renderCard={renderFamilyRankCard}
+                viewStorageKey="familyHouse:familyRanks:viewMode"
               />
             </Card>
 
@@ -573,6 +574,7 @@ export default function FamilyHouseAnalyticsPage() {
                 emptyDescription={tr('familyHouseAnalytics.states.noRankData')}
                 skeletonRows={6}
                 renderCard={renderHouseRankCard}
+                viewStorageKey="familyHouse:houseRanks:viewMode"
               />
             </Card>
           </section>

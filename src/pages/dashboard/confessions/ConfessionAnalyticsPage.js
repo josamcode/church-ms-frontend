@@ -421,6 +421,7 @@ export default function ConfessionAnalyticsPage() {
                 emptyTitle={t('confessions.analytics.emptyTitle')}
                 emptyDescription={t('confessions.analytics.emptyDescription')}
                 renderCard={renderTopAttendeeCard}
+                viewStorageKey="confessions:topAttendees:viewMode"
               />
             </div>
           </Card>

@@ -449,6 +449,8 @@ export default function MeetingsManagementPage() {
               emptyDescription={t('meetings.empty.meetingsDescription')}
               emptyIcon={CalendarClock}
               renderCard={renderMeetingCard}
+              viewStorageKey="meetings:meetingsManagement:viewMode"
+              cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
             />
           )}
         </section>

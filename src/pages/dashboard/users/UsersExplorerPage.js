@@ -1883,6 +1883,8 @@ export default function UsersExplorerPage() {
               sortOrder={sortState.order}
               onSort={handleTableSort}
               renderCard={renderUserCard}
+              viewStorageKey="users:explorer:viewMode"
+              cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
             />
             <Pager
               page={page}

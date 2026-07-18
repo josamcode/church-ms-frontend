@@ -3,6 +3,8 @@ import Skeleton, { SkeletonRow } from './Skeleton';
 import EmptyState from './EmptyState';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../i18n/i18n';
+import useViewMode from '../../hooks/useViewMode';
+import ViewToggle from './ViewToggle';
 
 const MOBILE_VIEW_STORAGE_KEY = 'dashboard_table_mobile_view';
 const MOBILE_VIEW_EVENT = 'dashboard-table-mobile-view-change';
@@ -92,10 +94,16 @@ export default function Table({
   renderCard,
   renderCardSkeleton,
   cardGridClassName = 'space-y-3',
+  viewStorageKey,
 }) {
   const { isRTL, t } = useI18n();
   const isSmallScreen = useIsSmallScreen();
   const [mobileView, setMobileView] = useState(getStoredMobileView);
+  // Self-managed table/cards toggle: any table given a `viewStorageKey` (plus a
+  // `renderCard`) gets a persistent switch shown on every screen size, defaulting
+  // to cards on phones. Falls back to the legacy mobile-only toggle otherwise.
+  const [selfView, setSelfView] = useViewMode(viewStorageKey || '__table_view__');
+  const selfManaged = Boolean(viewStorageKey && renderCard);
   const emptyValue = t('common.placeholder.empty');
   const primaryColumn = columns.find((column) => !isActionColumn(column)) || null;
   const detailColumns = columns.filter(
@@ -103,9 +111,10 @@ export default function Table({
   );
   const actionColumns = columns.filter((column) => column !== primaryColumn && isActionColumn(column));
   const controlledRenderMode = renderMode === 'cards' || renderMode === 'table' ? renderMode : 'auto';
+  const effectiveMode = selfManaged ? selfView : controlledRenderMode;
   const showCardView =
-    controlledRenderMode === 'cards' ||
-    (controlledRenderMode === 'auto' && isSmallScreen && mobileView === 'cards');
+    effectiveMode === 'cards' ||
+    (effectiveMode === 'auto' && isSmallScreen && mobileView === 'cards');
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -136,7 +145,13 @@ export default function Table({
 
   return (
     <div className="space-y-3">
-      {controlledRenderMode === 'auto' && isSmallScreen && (
+      {selfManaged && (
+        <div className="flex justify-end">
+          <ViewToggle value={selfView} onChange={setSelfView} />
+        </div>
+      )}
+
+      {!selfManaged && controlledRenderMode === 'auto' && isSmallScreen && (
         <div dir="ltr" className="flex justify-start">
           <div className="inline-flex items-center gap-1 rounded-sm border border-border/70 bg-surface/95 p-1 m-2 mb-0 shadow-card backdrop-blur-sm">
             <button
