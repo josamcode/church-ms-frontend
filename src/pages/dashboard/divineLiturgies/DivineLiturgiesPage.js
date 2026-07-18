@@ -25,6 +25,7 @@ import PageHeader from '../../../components/ui/PageHeader';
 import SideTabs from '../../../components/ui/SideTabs';
 import StatCard from '../../../components/ui/StatCard';
 import Table, { RowActions } from '../../../components/ui/Table';
+import DataCard, { CardAvatar } from '../../../components/ui/DataCard';
 import { useI18n } from '../../../i18n/i18n';
 import { getDayLabel, getDayOptions } from '../meetings/meetingsForm.utils';
 
@@ -343,6 +344,55 @@ export default function DivineLiturgiesPage() {
     return `Exceptional Divine Liturgy (${dateLabel})`;
   };
 
+  /* ── edit/delete handlers shared by table columns and card views ── */
+  const handleEditDivine = (row) => {
+    setDivineEditId(row.id);
+    setDivineForm({
+      serviceType: DIVINE_SERVICE_TYPE,
+      dayOfWeek: row.dayOfWeek,
+      startTime: row.startTime || '',
+      endTime: row.endTime || '',
+      name: row.name || '',
+      priestUserIds: (row.priests || []).map((entry) => entry.id).filter(Boolean),
+    });
+    setShowDivineForm(true);
+  };
+
+  const handleEditVespers = (row) => {
+    setVespersEditId(row.id);
+    setVespersForm({
+      serviceType: VESPERS_SERVICE_TYPE,
+      dayOfWeek: row.dayOfWeek,
+      startTime: row.startTime || '',
+      endTime: row.endTime || '',
+      name: row.name || '',
+      priestUserIds: [],
+    });
+    setShowVespersForm(true);
+  };
+
+  const handleDeleteRecurring = (id) => {
+    if (!window.confirm(t('divineLiturgies.confirmations.deleteRecurring'))) return;
+    deleteRecurringMutation.mutate(id);
+  };
+
+  const handleEditException = (row) => {
+    setExceptionEditId(row.id);
+    setExceptionForm({
+      date: row.date,
+      startTime: row.startTime || '',
+      endTime: row.endTime || '',
+      name: row.name || '',
+      priestUserIds: (row.priests || []).map((entry) => entry.id).filter(Boolean),
+    });
+    setShowExceptionForm(true);
+  };
+
+  const handleDeleteException = (id) => {
+    if (!window.confirm(t('divineLiturgies.confirmations.deleteException'))) return;
+    deleteExceptionMutation.mutate(id);
+  };
+
   const recurringColumns = (includePriests, onEdit, onDelete, attendanceEntryType = 'recurring') => [
     {
       key: 'displayName',
@@ -480,29 +530,9 @@ export default function DivineLiturgiesPage() {
           render: (row) => (
             <RowActions
               actions={[
-                {
-                  label: t('common.actions.edit'),
-                  onClick: () => {
-                    setExceptionEditId(row.id);
-                    setExceptionForm({
-                      date: row.date,
-                      startTime: row.startTime || '',
-                      endTime: row.endTime || '',
-                      name: row.name || '',
-                      priestUserIds: (row.priests || []).map((entry) => entry.id).filter(Boolean),
-                    });
-                    setShowExceptionForm(true);
-                  },
-                },
+                { label: t('common.actions.edit'), onClick: () => handleEditException(row) },
                 { divider: true },
-                {
-                  label: t('common.actions.delete'),
-                  danger: true,
-                  onClick: () => {
-                    if (!window.confirm(t('divineLiturgies.confirmations.deleteException'))) return;
-                    deleteExceptionMutation.mutate(row.id);
-                  },
-                },
+                { label: t('common.actions.delete'), danger: true, onClick: () => handleDeleteException(row.id) },
               ]}
             />
           ),
@@ -510,6 +540,91 @@ export default function DivineLiturgiesPage() {
       ]
       : []),
   ];
+
+  /* ── shared card composition for a scheduled service (recurring or exception).
+        Divine liturgies lead with a church glyph, vespers with a sunrise. ── */
+  const renderServiceCard = ({
+    row,
+    icon,
+    tone,
+    accent,
+    badgeLabel,
+    priests,
+    attendanceHref,
+    onEdit,
+    onDelete,
+    title,
+  }) => (
+    <DataCard
+      accent={accent}
+      leading={<CardAvatar icon={icon} tone={tone} />}
+      title={title}
+      badge={<Badgeify>{badgeLabel}</Badgeify>}
+      subtitle={
+        <span className="inline-flex items-center gap-1">
+          <CalendarClock className="h-3.5 w-3.5" />
+          {formatTime12(row.startTime, language)}
+          {row.endTime ? ` – ${formatTime12(row.endTime, language)}` : ''}
+        </span>
+      }
+      meta={
+        priests?.length ? (
+          <span className="inline-flex items-center gap-1">
+            <UserSquare2 className="h-3.5 w-3.5" />
+            {priestsToLabel(priests)}
+          </span>
+        ) : null
+      }
+      footer={
+        canManageAttendance ? (
+          <Link to={attendanceHref} className="block">
+            <Button type="button" variant="outline" size="sm" fullWidth>
+              {t('divineLiturgies.actions.openAttendanceCheckIn')}
+            </Button>
+          </Link>
+        ) : null
+      }
+      actions={
+        canManage ? (
+          <RowActions
+            actions={[
+              { label: t('common.actions.edit'), onClick: () => onEdit(row) },
+              { divider: true },
+              { label: t('common.actions.delete'), danger: true, onClick: () => onDelete(row.id) },
+            ]}
+          />
+        ) : null
+      }
+    />
+  );
+
+  const renderRecurringCard = (includePriests, onEdit, onDelete, attendanceEntryType = 'recurring') => (row) =>
+    renderServiceCard({
+      row,
+      icon: includePriests ? Church : Sunrise,
+      tone: includePriests ? 'primary' : 'gold',
+      accent: includePriests ? 'primary' : 'gold',
+      badgeLabel: getDayLabel(row.dayOfWeek, t),
+      priests: includePriests ? row.priests : null,
+      attendanceHref: `/dashboard/divine-liturgies/attendance/${attendanceEntryType}/${row.id}`,
+      onEdit,
+      onDelete,
+      title: getRecurringDisplayName(row),
+    });
+
+  const renderExceptionCard = (row) =>
+    renderServiceCard({
+      row,
+      icon: Church,
+      tone: 'info',
+      accent: 'info',
+      badgeLabel: row.date,
+      priests: row.priests,
+      attendanceHref: `/dashboard/divine-liturgies/attendance/exception/${row.id}`,
+      onEdit: handleEditException,
+      onDelete: handleDeleteException,
+      title: getExceptionDisplayName(row),
+    });
 
   const recurringLoading = recurringMutation.isPending || deleteRecurringMutation.isPending;
   const exceptionLoading = exceptionMutation.isPending || deleteExceptionMutation.isPending;
@@ -705,25 +820,8 @@ export default function DivineLiturgiesPage() {
         )}
 
         <Table
-          columns={recurringColumns(
-            true,
-            (row) => {
-              setDivineEditId(row.id);
-              setDivineForm({
-                serviceType: DIVINE_SERVICE_TYPE,
-                dayOfWeek: row.dayOfWeek,
-                startTime: row.startTime || '',
-                endTime: row.endTime || '',
-                name: row.name || '',
-                priestUserIds: (row.priests || []).map((entry) => entry.id).filter(Boolean),
-              });
-              setShowDivineForm(true);
-            },
-            (id) => {
-              if (!window.confirm(t('divineLiturgies.confirmations.deleteRecurring'))) return;
-              deleteRecurringMutation.mutate(id);
-            }
-          )}
+          columns={recurringColumns(true, handleEditDivine, handleDeleteRecurring)}
+          renderCard={renderRecurringCard(true, handleEditDivine, handleDeleteRecurring)}
           data={recurringDivine}
           loading={overviewQuery.isLoading}
           emptyTitle={t('divineLiturgies.empty.recurringDivine')}
@@ -841,25 +939,8 @@ export default function DivineLiturgiesPage() {
 
         {recurringVespers.length > 0 && (
           <Table
-            columns={recurringColumns(
-              false,
-              (row) => {
-                setVespersEditId(row.id);
-                setVespersForm({
-                  serviceType: VESPERS_SERVICE_TYPE,
-                  dayOfWeek: row.dayOfWeek,
-                  startTime: row.startTime || '',
-                  endTime: row.endTime || '',
-                  name: row.name || '',
-                  priestUserIds: [],
-                });
-                setShowVespersForm(true);
-              },
-              (id) => {
-                if (!window.confirm(t('divineLiturgies.confirmations.deleteRecurring'))) return;
-                deleteRecurringMutation.mutate(id);
-              }
-            )}
+            columns={recurringColumns(false, handleEditVespers, handleDeleteRecurring)}
+            renderCard={renderRecurringCard(false, handleEditVespers, handleDeleteRecurring)}
             data={recurringVespers}
             loading={overviewQuery.isLoading}
             emptyTitle={t('divineLiturgies.empty.recurringVespers')}
@@ -992,6 +1073,7 @@ export default function DivineLiturgiesPage() {
         {exceptionalCases.length > 0 && (
           <Table
             columns={exceptionColumns}
+            renderCard={renderExceptionCard}
             data={exceptionalCases}
             loading={overviewQuery.isLoading}
             emptyTitle={t('divineLiturgies.empty.exceptions')}
