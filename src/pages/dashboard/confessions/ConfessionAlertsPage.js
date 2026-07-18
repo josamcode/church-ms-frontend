@@ -25,10 +25,13 @@ import Badge from '../../../components/ui/Badge';
 import EmptyState from '../../../components/ui/EmptyState';
 import PageHeader from '../../../components/ui/PageHeader';
 import Pagination from '../../../components/ui/Pagination';
+import ViewToggle from '../../../components/ui/ViewToggle';
+import DataCard, { CardAvatar } from '../../../components/ui/DataCard';
 import { formatDateTime } from '../../../utils/formatters';
 import toast from 'react-hot-toast';
 import { useI18n } from '../../../i18n/i18n';
 import useNavigateToUser from '../../../hooks/useNavigateToUser';
+import useViewMode from '../../../hooks/useViewMode';
 
 /* ── primitives ──────────────────────────────────────────────────────────── */
 
@@ -55,6 +58,7 @@ export default function ConfessionAlertsPage() {
   const [searchName, setSearchName] = useState('');
   const [alertsPage, setAlertsPage] = useState(1);
   const [thresholdDraft, setThresholdDraft] = useState('');
+  const [viewMode, setViewMode] = useViewMode('confessions:alerts:viewMode');
   const alertsPageSize = 100;
 
   /* ── queries ── */
@@ -231,6 +235,55 @@ export default function ConfessionAlertsPage() {
     },
   ], [navigateToUser, t, thresholdDays, severityForRow]);
 
+  /* ── bespoke card: an urgency tile — severity-colored, identity on top,
+        overdue span emphasized in the footer band for fast triage ── */
+  const renderAlertCard = (row) => {
+    const severity = severityForRow(row);
+    const neverAttended = row.daysSinceLastSession == null;
+    return (
+      <DataCard
+        accent={severity}
+        onClick={row.userId ? () => navigateToUser(row.userId) : undefined}
+        leading={<CardAvatar name={row.fullName} tone={severity} />}
+        title={row.fullName || t('common.placeholder.empty')}
+        subtitle={row.phonePrimary ? <span dir="ltr">{row.phonePrimary}</span> : null}
+        meta={
+          <span className="inline-flex items-center gap-1">
+            <CalendarClock className="h-3.5 w-3.5" />
+            {neverAttended ? (
+              <span className="font-semibold text-danger">{t('confessions.alerts.neverAttended')}</span>
+            ) : (
+              <>
+                {t('confessions.alerts.columns.lastSession')}: {formatDateTime(row.lastSessionAt)}
+              </>
+            )}
+          </span>
+        }
+        footer={
+          <div className="flex items-center justify-between gap-2">
+            <Badge variant={severity} size="sm" dot>
+              {neverAttended
+                ? t('confessions.alerts.noSessionStatus', { days: thresholdDays })
+                : t('confessions.alerts.overdueStatus', { days: row.daysSinceLastSession })}
+            </Badge>
+            {neverAttended ? (
+              <span className="text-xs font-semibold text-danger">
+                {t('confessions.alerts.noSessions')}
+              </span>
+            ) : (
+              <span className="inline-flex items-baseline gap-1">
+                <span className="text-lg font-bold leading-none text-heading">
+                  {row.daysSinceLastSession}
+                </span>
+                <span className="text-xs text-muted">{t('confessions.alerts.daysWord')}</span>
+              </span>
+            )}
+          </div>
+        }
+      />
+    );
+  };
+
   /* ── render ── */
   return (
     <div className="animate-fade-in space-y-8 pb-10">
@@ -331,13 +384,16 @@ export default function ConfessionAlertsPage() {
 
       {/* ══ FOLLOW-UP CENTER ════════════════════════════════════════════ */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <SectionLabel>{t('confessions.alerts.page')}</SectionLabel>
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <SectionLabel>{t('confessions.alerts.page')}</SectionLabel>
+          </div>
           {alertsCount > 0 && (
             <span className="rounded-full bg-danger-light px-2.5 py-0.5 text-xs font-semibold text-danger">
               {alertsCount}
             </span>
           )}
+          {!allCaughtUp && <ViewToggle value={viewMode} onChange={setViewMode} />}
         </div>
 
         {/* filter bar */}
@@ -368,7 +424,9 @@ export default function ConfessionAlertsPage() {
               columns={columns}
               data={sortedAlerts}
               loading={alertsLoading}
-              renderMode="auto"
+              renderMode={viewMode}
+              renderCard={renderAlertCard}
+              cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
               emptyIcon={BellRing}
               emptyTitle={t('confessions.alerts.emptyTitle')}
               emptyDescription={t('confessions.alerts.emptyDescription')}
