@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle,
+  ArrowUpRight,
   Building2,
   Coins,
   Eye,
@@ -27,6 +28,9 @@ import Select from '../../../components/ui/Select';
 import StatCard from '../../../components/ui/StatCard';
 import Switch from '../../../components/ui/Switch';
 import Table from '../../../components/ui/Table';
+import ViewToggle from '../../../components/ui/ViewToggle';
+import DataCard, { CardAvatar } from '../../../components/ui/DataCard';
+import useViewMode from '../../../hooks/useViewMode';
 import {
   formatCurrencyEGP,
   getHouseholdSourceLabel,
@@ -278,11 +282,13 @@ function CategorySummaryCard({ category, copy, maxCount = 0, totalCount = 0, lan
 export default function HouseholdClassificationResultsPage() {
   const { hasPermission } = useAuth();
   const { language, t, isRTL } = useI18n();
+  const navigate = useNavigate();
   const copy = COPY[language === 'ar' ? 'ar' : 'en'];
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [classificationId, setClassificationId] = useState('');
   const [includeUnclassified, setIncludeUnclassified] = useState(false);
+  const [viewMode, setViewMode] = useViewMode('households:classification:viewMode');
 
   const categoriesQuery = useQuery({
     queryKey: ['household-classifications', 'categories'],
@@ -454,6 +460,56 @@ export default function HouseholdClassificationResultsPage() {
     [copy, language]
   );
 
+  /* ── bespoke card: household leads with its primary status; members + income
+        are the headline metrics; matched categories grouped in the footer ── */
+  const renderHouseholdCard = (row) => {
+    const matched = row.matchedCategories || [];
+    return (
+      <DataCard
+        accent="primary"
+        onClick={() =>
+          navigate(`${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery('houseName', row.householdName)}`)
+        }
+        leading={<CardAvatar icon={Building2} tone="primary" />}
+        title={row.householdName}
+        badge={<HouseholdStatusBadge classification={row.primaryClassification} language={language} />}
+        subtitle={row.source ? getHouseholdSourceLabel(row.source, language) : null}
+        meta={
+          <>
+            <span className="inline-flex items-center gap-1">
+              <Users className="h-3.5 w-3.5" />
+              {formatCount(row.memberCount)}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span className="inline-flex items-center gap-1 font-bold text-secondary">
+              <Coins className="h-3.5 w-3.5" />
+              {formatCurrencyEGP(row.totalMemberIncome, language)}
+            </span>
+          </>
+        }
+        actions={
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+            <ArrowUpRight className="h-4 w-4" />
+          </span>
+        }
+        footer={
+          matched.length ? (
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                {copy.columns.matches}
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {matched.slice(0, 3).map((category) => (
+                  <HouseholdStatusBadge key={category.id} classification={category} language={language} />
+                ))}
+              </div>
+            </div>
+          ) : null
+        }
+      />
+    );
+  };
+
   const errorMessage = householdsQuery.error
     ? normalizeApiError(householdsQuery.error).message
     : null;
@@ -621,14 +677,17 @@ export default function HouseholdClassificationResultsPage() {
               </span>
               <h2 className="text-base font-bold leading-tight text-heading">{copy.title}</h2>
             </div>
-            {!householdsQuery.isLoading && households.length ? (
-              <Badge variant="secondary">
-                {copy.tableResults.replace(
-                  '{count}',
-                  formatCount(meta.totalCount || households.length)
-                )}
-              </Badge>
-            ) : null}
+            <div className="flex items-center gap-2">
+              {!householdsQuery.isLoading && households.length ? (
+                <Badge variant="secondary">
+                  {copy.tableResults.replace(
+                    '{count}',
+                    formatCount(meta.totalCount || households.length)
+                  )}
+                </Badge>
+              ) : null}
+              <ViewToggle value={viewMode} onChange={setViewMode} />
+            </div>
           </div>
 
           <Table
@@ -638,7 +697,9 @@ export default function HouseholdClassificationResultsPage() {
             emptyTitle={copy.noDataTitle}
             emptyDescription={copy.noDataDescription}
             emptyIcon={Building2}
-            renderMode="auto"
+            renderMode={viewMode}
+            renderCard={renderHouseholdCard}
+            cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
           />
 
           <div className="flex items-center justify-between gap-3 pt-1">
