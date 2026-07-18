@@ -27,6 +27,9 @@ import PageHeader from '../../../components/ui/PageHeader';
 import Skeleton from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
+import ViewToggle from '../../../components/ui/ViewToggle';
+import DataCard, { CardAvatar } from '../../../components/ui/DataCard';
+import useViewMode from '../../../hooks/useViewMode';
 import FamilyHouseProfileInsights from '../../../components/users/FamilyHouseProfileInsights';
 import HouseholdQuickEditModal from '../../../components/users/HouseholdQuickEditModal';
 import { getGenderLabel } from '../../../utils/formatters';
@@ -165,6 +168,7 @@ export default function FamilyHouseLookupPage() {
   const [submittedLookupName, setSubmittedLookupName] = useState('');
   const [lookupDropdownOpen, setLookupDropdownOpen] = useState(false);
   const [houseEditOpen, setHouseEditOpen] = useState(false);
+  const [viewMode, setViewMode] = useViewMode('familyHouseLookup:viewMode');
   const lookupInputRef = useRef(null);
   const detailsCopy = DETAILS_COPY[language === 'ar' ? 'ar' : 'en'];
 
@@ -474,6 +478,64 @@ export default function FamilyHouseLookupPage() {
     ],
     [t, isRTL]
   );
+
+  /* ── bespoke card: member directory row — avatar + name link, phone/age as
+        support, and the family/house cross-links preserved in the footer ── */
+  const renderMemberCard = (row) => {
+    const userId = row._id || row.id;
+    return (
+      <DataCard
+        leading={
+          <CardAvatar
+            name={row.fullName}
+            src={row.avatar?.url}
+            tone="primary"
+            badge={
+              row.isLocked ? (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-danger text-white ring-2 ring-surface">
+                  <LockKeyhole className="h-2.5 w-2.5" aria-hidden="true" />
+                </span>
+              ) : null
+            }
+          />
+        }
+        title={
+          userId ? (
+            <Link to={`/dashboard/users/${userId}`} className="hover:text-primary">
+              {row.fullName || EMPTY}
+            </Link>
+          ) : (
+            row.fullName || EMPTY
+          )
+        }
+        badge={
+          row.isLocked ? (
+            <Badge variant="danger" size="sm" dot>
+              {t('common.status.locked')}
+            </Badge>
+          ) : null
+        }
+        subtitle={
+          <span>
+            <span dir="ltr">{row.phonePrimary || EMPTY}</span>
+            {row.ageGroup ? <span className="text-muted"> · {row.ageGroup}</span> : null}
+          </span>
+        }
+        footer={
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs">
+            <span className="inline-flex items-center gap-1.5 text-muted">
+              <span className="font-semibold">{t('familyHouseLookup.columns.familyName')}:</span>
+              <LookupNameLink lookupType="familyName" name={row.familyName} emptyValue={EMPTY} />
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-muted">
+              <span className="font-semibold">{t('familyHouseLookup.columns.houseName')}:</span>
+              <LookupNameLink lookupType="houseName" name={row.houseName} emptyValue={EMPTY} />
+            </span>
+          </div>
+        }
+      />
+    );
+  };
 
   const handleClear = () => {
     setLookupName('');
@@ -823,9 +885,12 @@ export default function FamilyHouseLookupPage() {
             icon={UsersIcon}
             title={t('familyHouseLookup.table.title')}
             action={
-              <Badge variant="primary">
-                {t('familyHouseLookup.table.results', { count: members.length })}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="primary">
+                  {t('familyHouseLookup.table.results', { count: members.length })}
+                </Badge>
+                <ViewToggle value={viewMode} onChange={setViewMode} />
+              </div>
             }
             className="!mb-0"
           />
@@ -846,7 +911,9 @@ export default function FamilyHouseLookupPage() {
               columns={columns}
               data={sortedMembers}
               loading={membersLoading || membersFetching}
-              renderMode="auto"
+              renderMode={viewMode}
+              renderCard={renderMemberCard}
+              cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
               emptyTitle={t(
                 normalizedSubmittedName
                   ? 'familyHouseLookup.empty.resultsTitle'
