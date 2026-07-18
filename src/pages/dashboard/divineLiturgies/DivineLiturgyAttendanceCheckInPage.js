@@ -67,11 +67,15 @@ function UserAttendanceCard({ user, selected = false, onToggle }) {
       <div className="flex min-w-0 items-center gap-2.5">
         <span
           className={[
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold',
+            'flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-bold',
             selected ? 'bg-success/15 text-success' : 'bg-primary/10 text-primary',
           ].join(' ')}
         >
-          {getUserInitial(user)}
+          {user.avatar?.url ? (
+            <img src={user.avatar.url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            getUserInitial(user)
+          )}
         </span>
         <p className="truncate text-sm font-semibold text-heading">{user.fullName || EMPTY}</p>
       </div>
@@ -139,23 +143,25 @@ export default function DivineLiturgyAttendanceCheckInPage() {
   }, []);
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Registry of user id -> fullName, accumulated across loaded pages, attendance
-  // records and the "check in everyone" fetch. Checked-in users can fall outside
-  // the currently loaded/searched page, so we keep their names here to render them.
-  const nameRegistryRef = useRef(new Map());
-  const [nameRegistryVersion, setNameRegistryVersion] = useState(0);
+  // Registry of user id -> { fullName, avatarUrl }, accumulated across loaded pages,
+  // attendance records and the "check in everyone" fetch. Checked-in users can fall
+  // outside the currently loaded/searched page, so we keep their display data here.
+  const userRegistryRef = useRef(new Map());
+  const [userRegistryVersion, setUserRegistryVersion] = useState(0);
   const registerUsers = useCallback((list) => {
     if (!Array.isArray(list) || list.length === 0) return;
     let changed = false;
     list.forEach((user) => {
       if (!user?.id) return;
-      const name = user.fullName || '';
-      if (nameRegistryRef.current.get(user.id) !== name) {
-        nameRegistryRef.current.set(user.id, name);
+      const fullName = user.fullName || '';
+      const avatarUrl = user.avatar?.url || '';
+      const existing = userRegistryRef.current.get(user.id);
+      if (!existing || existing.fullName !== fullName || existing.avatarUrl !== avatarUrl) {
+        userRegistryRef.current.set(user.id, { fullName, avatarUrl });
         changed = true;
       }
     });
-    if (changed) setNameRegistryVersion((value) => value + 1);
+    if (changed) setUserRegistryVersion((value) => value + 1);
   }, []);
 
   const contextQuery = useInfiniteQuery({
@@ -280,17 +286,21 @@ export default function DivineLiturgyAttendanceCheckInPage() {
   // Checked-in users are driven by the selected id set + the name registry, so they
   // render even when outside the currently loaded page. Search filters them locally.
   const selectedUsers = useMemo(() => {
-    const list = selectedUserIds.map((userId) => ({
-      id: userId,
-      fullName: nameRegistryRef.current.get(userId) || '',
-    }));
+    const list = selectedUserIds.map((userId) => {
+      const entry = userRegistryRef.current.get(userId);
+      return {
+        id: userId,
+        fullName: entry?.fullName || '',
+        avatar: entry?.avatarUrl ? { url: entry.avatarUrl } : null,
+      };
+    });
     const filtered = normalizedSearchTerm
       ? list.filter((user) => user.fullName.toLowerCase().includes(normalizedSearchTerm))
       : list;
     return sortUsersByName(filtered);
-    // nameRegistryVersion bumps when the registry gains names, forcing a recompute.
+    // userRegistryVersion bumps when the registry gains data, forcing a recompute.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedUserIds, normalizedSearchTerm, nameRegistryVersion]);
+  }, [selectedUserIds, normalizedSearchTerm, userRegistryVersion]);
   const selectedUserGroups = useMemo(
     () => groupUsersByInitial(selectedUsers),
     [selectedUsers]
@@ -307,22 +317,37 @@ export default function DivineLiturgyAttendanceCheckInPage() {
   const checkedInCount = selectedUserIds.length;
   const remainingCount = Math.max(totalUsers - checkedInCount, 0);
 
-  // Infinite scroll: fetch the next page when the sentinel enters the viewport.
-  const loadMoreRef = useRef(null);
-  useEffect(() => {
-    const node = loadMoreRef.current;
-    if (!node || !hasNextPage) return undefined;
+  // Infinite scroll. A callback ref (re)attaches the IntersectionObserver every time
+  // the sentinel mounts — crucial because the available list briefly unmounts while
+  // attendance loads on first render, so the sentinel node is recreated. A plain ref +
+  // effect keyed on list length would keep observing the old, detached node and only
+  // recover after some other state change (e.g. clicking a user), which was the lag.
+  // The observer just tracks visibility; the effect below turns that into fetches, so it
+  // also keeps paging while the sentinel stays in view after a page arrives.
+  const observerRef = useRef(null);
+  const [sentinelVisible, setSentinelVisible] = useState(false);
+  const setLoadMoreRef = useCallback((node) => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+    if (!node) {
+      setSentinelVisible(false);
+      return;
+    }
     const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
+      (entries) => setSentinelVisible(entries[0]?.isIntersecting ?? false),
       { rootMargin: '250px' }
     );
     observer.observe(node);
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage, availableUsers.length]);
+    observerRef.current = observer;
+  }, []);
+
+  useEffect(() => {
+    if (sentinelVisible && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [sentinelVisible, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // If every loaded user is already checked in, the available list is empty and the
   // sentinel never renders — keep pulling pages until some available users appear.
@@ -611,7 +636,7 @@ export default function DivineLiturgyAttendanceCheckInPage() {
                   <UserAttendanceGroups groups={availableUserGroups} onToggle={toggleUser} />
                   {hasNextPage ? (
                     <div
-                      ref={loadMoreRef}
+                      ref={setLoadMoreRef}
                       className="flex items-center justify-center py-4 text-sm text-muted"
                     >
                       {isFetchingNextPage ? (
