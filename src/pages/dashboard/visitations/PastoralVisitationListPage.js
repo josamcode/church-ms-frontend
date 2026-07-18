@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowUpRight,
@@ -10,6 +10,7 @@ import {
   Clock,
   Filter,
   Users,
+  CalendarCheck,
 } from 'lucide-react';
 import { visitationsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
@@ -22,8 +23,11 @@ import StatCard from '../../../components/ui/StatCard';
 import Pagination from '../../../components/ui/Pagination';
 import PageHeader from '../../../components/ui/PageHeader';
 import Table from '../../../components/ui/Table';
+import ViewToggle from '../../../components/ui/ViewToggle';
+import DataCard, { CardAvatar } from '../../../components/ui/DataCard';
 import { useI18n } from '../../../i18n/i18n';
 import useNavigateToUser from '../../../hooks/useNavigateToUser';
+import useViewMode from '../../../hooks/useViewMode';
 import { formatDateTime } from '../../../utils/formatters';
 
 /* ── primitives ──────────────────────────────────────────────────────────── */
@@ -44,9 +48,11 @@ function SectionLabel({ children }) {
 export default function PastoralVisitationListPage() {
   const { t, isRTL } = useI18n();
   const { hasPermission } = useAuth();
+  const navigate = useNavigate();
   const navigateToUser = useNavigateToUser();
   const canCreate = hasPermission('PASTORAL_VISITATIONS_CREATE');
 
+  const [viewMode, setViewMode] = useViewMode('visitations:list:viewMode');
   const [filters, setFilters] = useState({ houseName: '', dateFrom: '', dateTo: '' });
   const [cursor, setCursor] = useState(null);
   const [cursorStack, setCursorStack] = useState([null]);
@@ -209,6 +215,55 @@ export default function PastoralVisitationListPage() {
     },
   ], [navigateToUser, t]);
 
+  /* ── bespoke card: house-anchored visitation record — the visited house
+        leads, the visit moment + duration read at a glance, recorder demoted ── */
+  const renderVisitationCard = (row) => {
+    const houseName = String(row.houseName || '').trim();
+    return (
+      <DataCard
+        accent="primary"
+        onClick={() => navigate(`/dashboard/visitations/${row.id}`)}
+        leading={<CardAvatar icon={Home} tone={houseName ? 'primary' : 'muted'} />}
+        title={houseName || t('common.placeholder.empty')}
+        badge={
+          <Badge variant="info" size="sm" dot>
+            {row.durationMinutes || 10} {t('visitations.shared.minutes')}
+          </Badge>
+        }
+        subtitle={
+          <span className="inline-flex items-center gap-1">
+            <CalendarCheck className="h-3.5 w-3.5" />
+            {formatDateTime(row.visitedAt)}
+          </span>
+        }
+        meta={
+          <>
+            {row.recordedBy?.fullName ? (
+              <span className="inline-flex items-center gap-1">
+                <Users className="h-3.5 w-3.5" />
+                {row.recordedBy.fullName}
+              </span>
+            ) : null}
+            {(row.recordedAt || row.createdAt) ? (
+              <>
+                {row.recordedBy?.fullName ? <span aria-hidden="true">·</span> : null}
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  {formatDateTime(row.recordedAt || row.createdAt)}
+                </span>
+              </>
+            ) : null}
+          </>
+        }
+        actions={
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+            <ArrowUpRight className="h-4 w-4" />
+          </span>
+        }
+      />
+    );
+  };
+
   /* ── render ── */
   return (
     <div className="animate-fade-in space-y-8 pb-10">
@@ -313,15 +368,18 @@ export default function PastoralVisitationListPage() {
         </Card>
       </section>
 
-      {/* ══ TABLE ═══════════════════════════════════════════════════════ */}
+      {/* ══ TABLE / CARDS ═══════════════════════════════════════════════ */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <SectionLabel>{t('visitations.list.page')}</SectionLabel>
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <SectionLabel>{t('visitations.list.page')}</SectionLabel>
+          </div>
           {meta?.count != null && (
             <span className="rounded-full bg-surface-alt px-2.5 py-0.5 text-xs font-semibold text-muted">
               {meta.count}
             </span>
           )}
+          <ViewToggle value={viewMode} onChange={setViewMode} />
         </div>
 
         <div>
@@ -329,7 +387,9 @@ export default function PastoralVisitationListPage() {
             columns={columns}
             data={visitations}
             loading={isLoading}
-            renderMode="auto"
+            renderMode={viewMode}
+            renderCard={renderVisitationCard}
+            cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
             emptyIcon={Home}
             emptyTitle={t('visitations.list.emptyTitle')}
             emptyDescription={t('visitations.list.emptyDescription')}
