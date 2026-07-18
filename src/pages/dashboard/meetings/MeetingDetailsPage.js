@@ -12,11 +12,11 @@ import NotificationTemplateEditor from '../../../components/notifications/Notifi
 import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
-import Card, { CardHeader } from '../../../components/ui/Card';
+import Card from '../../../components/ui/Card';
 import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
-import Section from '../../../components/ui/Section';
+import SettingsLayout from '../../../components/ui/SettingsLayout';
 import Skeleton from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import Tabs from '../../../components/ui/Tabs';
@@ -204,7 +204,6 @@ export default function MeetingDetailsPage() {
   const { t, isRTL } = useI18n();
   const { hasPermission } = useAuth();
   const [reminderForm, setReminderForm] = useState(buildMeetingReminderForm);
-  const [showReminderSettings, setShowReminderSettings] = useState(false);
 
   const tf = useCallback((key, fallback) => {
     const value = t(key);
@@ -274,10 +273,6 @@ export default function MeetingDetailsPage() {
     if (!meeting?.reminderSettings) return;
     setReminderForm(buildMeetingReminderForm(meeting.reminderSettings));
   }, [meeting?.id, meeting?.reminderSettings]);
-
-  useEffect(() => {
-    setShowReminderSettings(false);
-  }, [meeting?.id]);
 
   const updateReminderField = useCallback((field, language, value) => {
     setReminderForm((current) => {
@@ -447,6 +442,338 @@ export default function MeetingDetailsPage() {
   const activities = meeting.activities || [];
   const hasDatedActivities = activities.some((activity) => activity.scheduledAt);
 
+  /* ══ SIDEBAR-NAVIGABLE DETAIL SECTIONS ═══════════════════════════════════════
+     Instead of stacking every section down one long page, each detail area is a
+     section in a left rail (see SettingsLayout) so only one is shown at a time. */
+  const detailSections = [
+    canViewLeadership && {
+      id: 'leadership',
+      label: t('meetings.sections.leadership'),
+      icon: Users,
+      title: t('meetings.sections.leadership'),
+      description: tf(
+        'meetings.meetingDetails.leadershipDescription',
+        'Service secretary and assistant secretaries for this meeting.'
+      ),
+      count: leadershipCards.length,
+      content: leadershipCards.length === 0 ? (
+        <EmptyState compact icon={Users} title={tf('meetings.meetingDetails.noLeadershipTitle', 'No leadership assigned')} description={tf('meetings.meetingDetails.noLeadershipDescription', 'No service secretary or assistant secretaries are assigned to this meeting.')} />
+      ) : (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {leadershipCards.map(({ person, role }, i) => (
+            <PersonChip
+              key={`${role}_${person?.user?.id || person?.id || person?.name || 'p'}_${i}`}
+              person={person}
+              roleLabel={role === 'service' ? t('meetings.fields.serviceSecretary') : t('meetings.fields.assistants')}
+            />
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: 'groups',
+      label: t('meetings.fields.groups'),
+      icon: ListChecks,
+      title: t('meetings.fields.groups'),
+      description: tf(
+        'meetings.meetingDetails.groupsDescription',
+        'Groups and their served members, with documentation and attendance tools.'
+      ),
+      count: (meeting.groupAssignments || []).length,
+      actions: (
+        <div className="flex flex-wrap items-center gap-2">
+          {canManageDocumentation && canOpenMemberFromGroups && (
+            <Link to={`/dashboard/meetings/list/${id}/documentation`}>
+              <Button variant="outline" size="sm" icon={FileText}>
+                {tf('meetings.actions.openDailyDocumentation', 'Daily Documentation')}
+              </Button>
+            </Link>
+          )}
+          {canManageDocumentationSettings && (
+            <Link to={`/dashboard/meetings/list/${id}/settings`}>
+              <Button variant="outline" size="sm" icon={Settings2}>
+                {tf('meetings.actions.openDocumentationSettings', 'Documentation Settings')}
+              </Button>
+            </Link>
+          )}
+          {canManageAttendance && canOpenMemberFromGroups && stats.groupMembersCount > 0 && (
+            <Link to={`/dashboard/meetings/list/${id}/attendance`}>
+              <Button variant="outline" size="sm" icon={ClipboardCheck}>
+                {tf('meetings.actions.openAttendanceCheckIn', 'Attendance Check-in')}
+              </Button>
+            </Link>
+          )}
+        </div>
+      ),
+      content: (meeting.groups || []).length === 0 ? (
+        <EmptyState compact icon={ListChecks} title={tf('meetings.meetingDetails.noGroupsTitle', 'No groups yet')} description={tf('meetings.meetingDetails.noGroupsDescription', 'No groups are defined for this meeting yet.')} />
+      ) : (
+        <div className="space-y-4">
+          {(meeting.groupAssignments || []).map((assignment, i) => {
+            const users = assignment.servedUsers || [];
+            return (
+              <div key={`${assignment.group}_${i}`} className="rounded-2xl border border-border bg-surface">
+                {/* group header */}
+                <div className="flex items-center justify-between border-b border-border/60 px-5 py-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                      <ListChecks className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <p className="font-semibold text-heading">{assignment.group}</p>
+                  </div>
+                  <Badge variant="default" size="sm">
+                    {users.length} {tf('meetings.meetingDetails.members', 'members')}
+                  </Badge>
+                </div>
+
+                {/* user cards grid */}
+                <div className="p-4">
+                  {users.length === 0 ? (
+                    <p className="text-xs text-muted">{t('common.placeholder.empty')}</p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+                      {users.map((user) => (
+                        <UserCard
+                          key={user.id || user._id || user.fullName}
+                          user={user}
+                          onOpenMember={canOpenMemberFromGroups ? openMeetingMember : null}
+                          showPhone={canViewMemberPhoneInGroups}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ),
+    },
+    canViewServants && {
+      id: 'servants',
+      label: t('meetings.sections.servants'),
+      icon: Users,
+      title: t('meetings.sections.servants'),
+      description: tf(
+        'meetings.meetingDetails.servantsDescription',
+        'Servants assigned to this meeting and the groups they manage.'
+      ),
+      count: (meeting.servants || []).length,
+      content: (meeting.servants || []).length === 0 ? (
+        <EmptyState compact icon={Users} title={t('meetings.empty.noServantsYet')} description={tf('meetings.meetingDetails.noServantsDescription', 'No servants are assigned to this meeting.')} />
+      ) : (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {(meeting.servants || []).map((servant) => (
+            <div key={servant.id} className="rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/30">
+              {/* avatar row */}
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                  {String(servant.name || '?').charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-heading">{servant.name || EMPTY}</p>
+                  <p className="truncate text-xs text-muted">
+                    {servant.responsibility || t('common.placeholder.empty')}
+                  </p>
+                </div>
+              </div>
+
+              {/* groups managed */}
+              {(servant.groupsManaged || []).length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {(servant.groupsManaged || []).map((groupName) => (
+                    <Badge key={`${servant.id}_${groupName}`} variant="primary" size="sm">
+                      {groupName}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* footer */}
+              <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-3">
+                <span className="text-xs text-muted">
+                  {t('meetings.fields.servedUsers')}:{' '}
+                  <strong className="text-heading">{(servant.servedUsers || []).length}</strong>
+                </span>
+              </div>
+
+              {servant.notes && (
+                <p className="mt-2 line-clamp-2 text-xs text-muted">{servant.notes}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    canViewCommittees && {
+      id: 'committees',
+      label: t('meetings.sections.committees'),
+      icon: FileText,
+      title: t('meetings.sections.committees'),
+      description: tf(
+        'meetings.meetingDetails.committeesDescription',
+        'Committees defined for this meeting and their members.'
+      ),
+      count: (meeting.committees || []).length,
+      content: (meeting.committees || []).length === 0 ? (
+        <EmptyState compact icon={FileText} title={t('meetings.empty.noCommitteesYet')} description={tf('meetings.meetingDetails.noCommitteesDescription', 'No committees are defined for this meeting.')} />
+      ) : (
+        <div className="space-y-3">
+          {(meeting.committees || []).map((committee) => (
+            <div key={committee.id} className="rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/30">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-heading">{committee.name || EMPTY}</p>
+                  {committee.notes && (
+                    <p className="mt-1 line-clamp-2 text-xs text-muted">{committee.notes}</p>
+                  )}
+                </div>
+                <Badge variant="default" size="sm">
+                  {(committee.members || []).length} {tf('meetings.meetingDetails.members', 'members')}
+                </Badge>
+              </div>
+              {(committee.memberNames || []).length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {(committee.memberNames || []).map((name, idx) => (
+                    <span key={`${committee.id}_${idx}`} className="rounded-full border border-border bg-surface-alt px-2.5 py-0.5 text-xs font-medium text-heading">
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    canViewActivities && {
+      id: 'activities',
+      label: t('meetings.sections.activities'),
+      icon: CalendarClock,
+      title: t('meetings.sections.activities'),
+      description: tf(
+        'meetings.meetingDetails.activitiesDescription',
+        'Planned activities and their schedule for this meeting.'
+      ),
+      count: activities.length,
+      content: activities.length === 0 ? (
+        <EmptyState compact icon={CalendarClock} title={t('meetings.empty.noActivitiesYet')} description={tf('meetings.meetingDetails.noActivitiesDescription', 'No activities are planned for this meeting.')} />
+      ) : hasDatedActivities ? (
+        /* ── ACTIVITIES TIMELINE ── */
+        <ol className="relative space-y-4 ps-6">
+          <span
+            className="pointer-events-none absolute inset-y-1 start-[7px] w-px bg-border/70"
+            aria-hidden
+          />
+          {activities.map((activity, index) => (
+            <li key={activity.id} className="relative">
+              <span
+                className={`absolute -start-6 top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full ring-4 ring-surface ${
+                  index === 0 ? 'bg-primary' : 'bg-border'
+                }`}
+                aria-hidden
+              />
+              <div className="rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/30">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-heading">{activity.name || EMPTY}</p>
+                    <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted">
+                      <Clock className="h-3 w-3" />
+                      {activity.scheduledAt ? formatDateTime(activity.scheduledAt) : t('common.placeholder.empty')}
+                    </p>
+                    {activity.notes && (
+                      <p className="mt-1 line-clamp-2 text-xs text-muted">{activity.notes}</p>
+                    )}
+                  </div>
+                  {activity.type && <Badge variant="secondary">{getActivityTypeLabel(activity.type, t)}</Badge>}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <div className="space-y-3">
+          {activities.map((activity) => (
+            <div key={activity.id} className="rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/30">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-heading">{activity.name || EMPTY}</p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {activity.scheduledAt ? formatDateTime(activity.scheduledAt) : t('common.placeholder.empty')}
+                  </p>
+                  {activity.notes && (
+                    <p className="mt-1 line-clamp-2 text-xs text-muted">{activity.notes}</p>
+                  )}
+                </div>
+                {activity.type && <Badge variant="secondary">{getActivityTypeLabel(activity.type, t)}</Badge>}
+              </div>
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    canManageReminderSettings && {
+      id: 'reminder',
+      label: tf('meetings.meetingDetails.reminderSettings.railLabel', 'Reminder'),
+      icon: CalendarClock,
+      title: tf('meetings.meetingDetails.reminderSettings.section', 'Meeting reminder settings'),
+      description: tf(
+        'meetings.meetingDetails.reminderSettings.subtitle',
+        'Customize the reminder title and message that will be sent before this meeting starts.'
+      ),
+      actions: (
+        <Button
+          type="button"
+          loading={reminderMutation.isPending}
+          onClick={handleSaveReminderSettings}
+        >
+          {t('common.actions.save')}
+        </Button>
+      ),
+      content: (
+        <div className="space-y-6">
+          <div>
+            <p className="text-sm font-semibold text-heading">
+              {t('platformSettingsPage.notifications.reminderTiming.title')}
+            </p>
+            <p className="mt-0.5 text-sm text-muted">
+              {t('platformSettingsPage.notifications.reminderTiming.subtitle')}
+            </p>
+            <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,280px)_1fr]">
+              <Input
+                type="number"
+                min="0"
+                max="10080"
+                step="1"
+                label={t('platformSettingsPage.notifications.reminderTiming.fieldLabel')}
+                hint={t('platformSettingsPage.notifications.reminderTiming.hint')}
+                value={reminderForm?.leadMinutes ?? 0}
+                onChange={(event) => setReminderForm((current) => ({
+                  ...current,
+                  leadMinutes: event.target.value,
+                }))}
+                containerClassName="!mb-0"
+              />
+
+              <div className="rounded-2xl border border-border/60 bg-surface-alt/40 p-4">
+                <p className="text-sm font-semibold text-heading">
+                  {t('platformSettingsPage.notifications.reminderTiming.previewLabel')}
+                </p>
+                <p className="mt-1 text-sm text-muted">
+                  {t('platformSettingsPage.notifications.reminderTiming.previewValue', {
+                    count: Number(reminderForm?.leadMinutes || 0),
+                  })}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Tabs variant="inline" tabs={reminderLanguageTabs} />
+        </div>
+      ),
+    },
+  ].filter(Boolean);
+
   return (
     <div className="animate-fade-in space-y-8 pb-10">
       <Breadcrumbs items={breadcrumbs} />
@@ -498,18 +825,6 @@ export default function MeetingDetailsPage() {
                 <Button variant="ghost" icon={Layers3}>{t('meetings.columns.sector')}</Button>
               </Link>
             )}
-            {canManageReminderSettings && (
-              <Button
-                type="button"
-                variant={showReminderSettings ? 'outline' : 'ghost'}
-                icon={CalendarClock}
-                onClick={() => setShowReminderSettings((current) => !current)}
-              >
-                {showReminderSettings
-                  ? tf('meetings.meetingDetails.reminderSettings.hideAction', 'Hide reminder settings')
-                  : tf('meetings.meetingDetails.reminderSettings.showAction', 'Reminder settings')}
-              </Button>
-            )}
             {canUpdateMeeting && (
               <Link to={`/dashboard/meetings/${meeting.id}/edit`}>
                 <Button variant="outline" icon={Edit}>{t('common.actions.edit')}</Button>
@@ -551,342 +866,8 @@ export default function MeetingDetailsPage() {
         </Card>
       )}
 
-      {canManageReminderSettings && showReminderSettings && (
-        <Section
-          icon={CalendarClock}
-          title={tf('meetings.meetingDetails.reminderSettings.section', 'Meeting reminder settings')}
-          actions={
-            <Button
-              type="button"
-              loading={reminderMutation.isPending}
-              onClick={handleSaveReminderSettings}
-            >
-              {t('common.actions.save')}
-            </Button>
-          }
-        >
-          <div className="space-y-6">
-            <Card className="rounded-3xl border border-border/60 bg-surface shadow-card">
-              <CardHeader
-                title={t('platformSettingsPage.notifications.reminderTiming.title')}
-                subtitle={t('platformSettingsPage.notifications.reminderTiming.subtitle')}
-              />
-
-              <div className="grid gap-4 md:grid-cols-[minmax(0,280px)_1fr]">
-                <Input
-                  type="number"
-                  min="0"
-                  max="10080"
-                  step="1"
-                  label={t('platformSettingsPage.notifications.reminderTiming.fieldLabel')}
-                  hint={t('platformSettingsPage.notifications.reminderTiming.hint')}
-                  value={reminderForm?.leadMinutes ?? 0}
-                  onChange={(event) => setReminderForm((current) => ({
-                    ...current,
-                    leadMinutes: event.target.value,
-                  }))}
-                  containerClassName="!mb-0"
-                />
-
-                <div className="rounded-2xl border border-border/60 bg-surface-alt/40 p-4">
-                  <p className="text-sm font-semibold text-heading">
-                    {t('platformSettingsPage.notifications.reminderTiming.previewLabel')}
-                  </p>
-                  <p className="mt-1 text-sm text-muted">
-                    {t('platformSettingsPage.notifications.reminderTiming.previewValue', {
-                      count: Number(reminderForm?.leadMinutes || 0),
-                    })}
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            <Tabs variant="inline" tabs={reminderLanguageTabs} />
-          </div>
-        </Section>
-      )}
-
-      {/* ══ LEADERSHIP ════════════════════════════════════════════════════ */}
-      {canViewLeadership && (
-        <Section
-          icon={Users}
-          title={t('meetings.sections.leadership')}
-          actions={
-            leadershipCards.length > 0 ? (
-              <Badge variant="primary">{leadershipCards.length}</Badge>
-            ) : null
-          }
-        >
-          {leadershipCards.length === 0 ? (
-            <EmptyState compact icon={Users} title={tf('meetings.meetingDetails.noLeadershipTitle', 'No leadership assigned')} description={tf('meetings.meetingDetails.noLeadershipDescription', 'No service secretary or assistant secretaries are assigned to this meeting.')} />
-          ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {leadershipCards.map(({ person, role }, i) => (
-                <PersonChip
-                  key={`${role}_${person?.user?.id || person?.id || person?.name || 'p'}_${i}`}
-                  person={person}
-                  roleLabel={role === 'service' ? t('meetings.fields.serviceSecretary') : t('meetings.fields.assistants')}
-                />
-              ))}
-            </div>
-          )}
-        </Section>
-      )}
-
-      {/* ══ GROUPS ════════════════════════════════════════════════════════ */}
-      <Section
-        icon={ListChecks}
-        title={t('meetings.fields.groups')}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            {(meeting.groupAssignments || []).length > 0 && (
-              <Badge variant="primary">{(meeting.groupAssignments || []).length}</Badge>
-            )}
-            {canManageDocumentation && canOpenMemberFromGroups && (
-              <Link to={`/dashboard/meetings/list/${id}/documentation`}>
-                <Button variant="outline" size="sm" icon={FileText}>
-                  {tf('meetings.actions.openDailyDocumentation', 'Daily Documentation')}
-                </Button>
-              </Link>
-            )}
-            {canManageDocumentationSettings && (
-              <Link to={`/dashboard/meetings/list/${id}/settings`}>
-                <Button variant="outline" size="sm" icon={Settings2}>
-                  {tf('meetings.actions.openDocumentationSettings', 'Documentation Settings')}
-                </Button>
-              </Link>
-            )}
-            {canManageAttendance && canOpenMemberFromGroups && stats.groupMembersCount > 0 && (
-              <Link to={`/dashboard/meetings/list/${id}/attendance`}>
-                <Button variant="outline" size="sm" icon={ClipboardCheck}>
-                  {tf('meetings.actions.openAttendanceCheckIn', 'Attendance Check-in')}
-                </Button>
-              </Link>
-            )}
-          </div>
-        }
-      >
-        {(meeting.groups || []).length === 0 ? (
-          <EmptyState compact icon={ListChecks} title={tf('meetings.meetingDetails.noGroupsTitle', 'No groups yet')} description={tf('meetings.meetingDetails.noGroupsDescription', 'No groups are defined for this meeting yet.')} />
-        ) : (
-          <div className="space-y-4">
-            {(meeting.groupAssignments || []).map((assignment, i) => {
-              const users = assignment.servedUsers || [];
-              return (
-                <div key={`${assignment.group}_${i}`} className="rounded-2xl border border-border bg-surface">
-                  {/* group header */}
-                  <div className="flex items-center justify-between border-b border-border/60 px-5 py-3.5">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-                        <ListChecks className="h-3.5 w-3.5 text-primary" />
-                      </div>
-                      <p className="font-semibold text-heading">{assignment.group}</p>
-                    </div>
-                    <Badge variant="default" size="sm">
-                      {users.length} {tf('meetings.meetingDetails.members', 'members')}
-                    </Badge>
-                  </div>
-
-                  {/* user cards grid */}
-                  <div className="p-4">
-                    {users.length === 0 ? (
-                      <p className="text-xs text-muted">{t('common.placeholder.empty')}</p>
-                    ) : (
-                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-                        {users.map((user) => (
-                          <UserCard
-                            key={user.id || user._id || user.fullName}
-                            user={user}
-                            onOpenMember={canOpenMemberFromGroups ? openMeetingMember : null}
-                            showPhone={canViewMemberPhoneInGroups}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Section>
-
-      {/* ══ SERVANTS ══════════════════════════════════════════════════════ */}
-      {canViewServants && (
-        <Section
-          icon={Users}
-          title={t('meetings.sections.servants')}
-          actions={
-            (meeting.servants || []).length > 0 ? (
-              <Badge variant="primary">{(meeting.servants || []).length}</Badge>
-            ) : null
-          }
-        >
-          {(meeting.servants || []).length === 0 ? (
-            <EmptyState compact icon={Users} title={t('meetings.empty.noServantsYet')} description={tf('meetings.meetingDetails.noServantsDescription', 'No servants are assigned to this meeting.')} />
-          ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {(meeting.servants || []).map((servant) => (
-                <div key={servant.id} className="rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/30">
-                  {/* avatar row */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                      {String(servant.name || '?').charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-heading">{servant.name || EMPTY}</p>
-                      <p className="truncate text-xs text-muted">
-                        {servant.responsibility || t('common.placeholder.empty')}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* groups managed */}
-                  {(servant.groupsManaged || []).length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {(servant.groupsManaged || []).map((groupName) => (
-                        <Badge key={`${servant.id}_${groupName}`} variant="primary" size="sm">
-                          {groupName}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* footer */}
-                  <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-3">
-                    <span className="text-xs text-muted">
-                      {t('meetings.fields.servedUsers')}:{' '}
-                      <strong className="text-heading">{(servant.servedUsers || []).length}</strong>
-                    </span>
-                  </div>
-
-                  {servant.notes && (
-                    <p className="mt-2 line-clamp-2 text-xs text-muted">{servant.notes}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </Section>
-      )}
-
-      {/* ══ COMMITTEES + ACTIVITIES ════════════════════════════════════════ */}
-      {(canViewCommittees || canViewActivities) && <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-
-        {/* committees */}
-        {canViewCommittees && (
-          <Section
-            icon={FileText}
-            title={t('meetings.sections.committees')}
-            actions={
-              (meeting.committees || []).length > 0 ? (
-                <Badge variant="primary">{(meeting.committees || []).length}</Badge>
-              ) : null
-            }
-          >
-            {(meeting.committees || []).length === 0 ? (
-              <EmptyState compact icon={FileText} title={t('meetings.empty.noCommitteesYet')} description={tf('meetings.meetingDetails.noCommitteesDescription', 'No committees are defined for this meeting.')} />
-            ) : (
-              <div className="space-y-3">
-                {(meeting.committees || []).map((committee) => (
-                  <div key={committee.id} className="rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/30">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-heading">{committee.name || EMPTY}</p>
-                        {committee.notes && (
-                          <p className="mt-1 line-clamp-2 text-xs text-muted">{committee.notes}</p>
-                        )}
-                      </div>
-                      <Badge variant="default" size="sm">
-                        {(committee.members || []).length} {tf('meetings.meetingDetails.members', 'members')}
-                      </Badge>
-                    </div>
-                    {(committee.memberNames || []).length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {(committee.memberNames || []).map((name, idx) => (
-                          <span key={`${committee.id}_${idx}`} className="rounded-full border border-border bg-surface-alt px-2.5 py-0.5 text-xs font-medium text-heading">
-                            {name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </Section>
-        )}
-
-        {/* activities */}
-        {canViewActivities && (
-          <Section
-            icon={CalendarClock}
-            title={t('meetings.sections.activities')}
-            actions={
-              activities.length > 0 ? (
-                <Badge variant="primary">{activities.length}</Badge>
-              ) : null
-            }
-          >
-            {activities.length === 0 ? (
-              <EmptyState compact icon={CalendarClock} title={t('meetings.empty.noActivitiesYet')} description={tf('meetings.meetingDetails.noActivitiesDescription', 'No activities are planned for this meeting.')} />
-            ) : hasDatedActivities ? (
-              /* ── ACTIVITIES TIMELINE ── */
-              <ol className="relative space-y-4 ps-6">
-                <span
-                  className="pointer-events-none absolute inset-y-1 start-[7px] w-px bg-border/70"
-                  aria-hidden
-                />
-                {activities.map((activity, index) => (
-                  <li key={activity.id} className="relative">
-                    <span
-                      className={`absolute -start-6 top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full ring-4 ring-surface ${
-                        index === 0 ? 'bg-primary' : 'bg-border'
-                      }`}
-                      aria-hidden
-                    />
-                    <div className="rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/30">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-semibold text-heading">{activity.name || EMPTY}</p>
-                          <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted">
-                            <Clock className="h-3 w-3" />
-                            {activity.scheduledAt ? formatDateTime(activity.scheduledAt) : t('common.placeholder.empty')}
-                          </p>
-                          {activity.notes && (
-                            <p className="mt-1 line-clamp-2 text-xs text-muted">{activity.notes}</p>
-                          )}
-                        </div>
-                        {activity.type && <Badge variant="secondary">{getActivityTypeLabel(activity.type, t)}</Badge>}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <div className="space-y-3">
-                {activities.map((activity) => (
-                  <div key={activity.id} className="rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/30">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-heading">{activity.name || EMPTY}</p>
-                        <p className="mt-0.5 text-xs text-muted">
-                          {activity.scheduledAt ? formatDateTime(activity.scheduledAt) : t('common.placeholder.empty')}
-                        </p>
-                        {activity.notes && (
-                          <p className="mt-1 line-clamp-2 text-xs text-muted">{activity.notes}</p>
-                        )}
-                      </div>
-                      {activity.type && <Badge variant="secondary">{getActivityTypeLabel(activity.type, t)}</Badge>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Section>
-        )}
-      </div>}
-
+      {/* ══ DETAIL SECTIONS (sidebar rail — one section at a time) ═════════ */}
+      {detailSections.length > 0 && <SettingsLayout sections={detailSections} />}
     </div>
   );
 }

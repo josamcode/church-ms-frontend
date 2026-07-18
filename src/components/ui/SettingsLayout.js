@@ -7,7 +7,11 @@ import { useState } from 'react';
  * The active section's header (icon + title + description) is rendered by the
  * shell, and the page provides FLAT content (rows/fields) — never card-in-card.
  *
- * sections: [{ id, label, icon, title, description, content }]
+ * sections: [{ id, label, icon, title, description, content, actions?, count? }]
+ *   - actions: optional node rendered on the end of the content-panel header
+ *     (e.g. a Save button or a "Attendance check-in" link).
+ *   - count: optional number rendered as a subtle badge on the end of the rail
+ *     item, so users can see which sections hold content before opening them.
  */
 export default function SettingsLayout({ sections = [], defaultIndex = 0 }) {
   const [active, setActive] = useState(defaultIndex);
@@ -48,6 +52,16 @@ export default function SettingsLayout({ sections = [], defaultIndex = 0 }) {
                   </span>
                 )}
                 <span className="whitespace-nowrap">{section.label}</span>
+                {Number.isFinite(section.count) && (
+                  <span
+                    className={[
+                      'ms-auto shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums transition-colors',
+                      isActive ? 'bg-white/20 text-white' : 'bg-surface-alt text-muted group-hover:text-heading',
+                    ].join(' ')}
+                  >
+                    {section.count}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -57,18 +71,23 @@ export default function SettingsLayout({ sections = [], defaultIndex = 0 }) {
       {/* ── Content panel ────────────────────────────────────────────────── */}
       <div className="min-w-0 flex-1">
         <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
-          <div className="flex items-start gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
-            {CurrentIcon && (
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <CurrentIcon className="h-5 w-5" />
-              </span>
-            )}
-            <div className="min-w-0">
-              <h2 className="text-base font-bold leading-tight text-heading">{current.title}</h2>
-              {current.description && (
-                <p className="mt-0.5 text-sm text-muted">{current.description}</p>
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
+            <div className="flex min-w-0 items-start gap-3">
+              {CurrentIcon && (
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <CurrentIcon className="h-5 w-5" />
+                </span>
               )}
+              <div className="min-w-0">
+                <h2 className="text-base font-bold leading-tight text-heading">{current.title}</h2>
+                {current.description && (
+                  <p className="mt-0.5 text-sm text-muted">{current.description}</p>
+                )}
+              </div>
             </div>
+            {current.actions && (
+              <div className="flex flex-shrink-0 flex-wrap items-center gap-2">{current.actions}</div>
+            )}
           </div>
           <div className="px-5 py-5 sm:px-6 sm:py-6">{current.content}</div>
         </div>
