@@ -312,7 +312,7 @@ function MobileHomeScreen({
               transition: `all 0.45s ease ${i * 0.08}s`,
             }}
           >
-            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.accent} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.accent || 'from-primary to-primary-dark'} flex items-center justify-center flex-shrink-0 shadow-sm`}>
               <s.icon className="h-4 w-4 text-white" />
             </div>
             <div className={isRTL ? 'text-right' : 'text-left'}>

@@ -1030,16 +1030,16 @@ export default function LandingPage() {
     ];
   const stats = (contentStats || []).length
     ? [
-      { icon: Users, value: contentStats.find((entry) => entry.id === 'families')?.resolvedValue || '0', label: t('landing.stats.items.families.label') },
-      { icon: Heart, value: contentStats.find((entry) => entry.id === 'members')?.resolvedValue || '0', label: t('landing.stats.items.members.label') },
-      { icon: Church, value: contentStats.find((entry) => entry.id === 'services')?.resolvedValue || '0', label: t('landing.stats.items.services.label') },
-      { icon: HandHeart, value: contentStats.find((entry) => entry.id === 'servants')?.resolvedValue || '0', label: t('landing.stats.items.servants.label') },
+      { icon: Users, value: contentStats.find((entry) => entry.id === 'families')?.resolvedValue || '0', label: t('landing.stats.items.families.label'), accent: 'from-blue-500 to-indigo-600' },
+      { icon: Heart, value: contentStats.find((entry) => entry.id === 'members')?.resolvedValue || '0', label: t('landing.stats.items.members.label'), accent: 'from-rose-500 to-pink-600' },
+      { icon: Church, value: contentStats.find((entry) => entry.id === 'services')?.resolvedValue || '0', label: t('landing.stats.items.services.label'), accent: 'from-amber-500 to-orange-600' },
+      { icon: HandHeart, value: contentStats.find((entry) => entry.id === 'servants')?.resolvedValue || '0', label: t('landing.stats.items.servants.label'), accent: 'from-emerald-500 to-teal-600' },
     ]
     : [
-      { icon: Users, value: t('landing.stats.items.families.value'), label: t('landing.stats.items.families.label') },
-      { icon: Heart, value: t('landing.stats.items.members.value'), label: t('landing.stats.items.members.label') },
-      { icon: Church, value: t('landing.stats.items.services.value'), label: t('landing.stats.items.services.label') },
-      { icon: HandHeart, value: t('landing.stats.items.servants.value'), label: t('landing.stats.items.servants.label') },
+      { icon: Users, value: t('landing.stats.items.families.value'), label: t('landing.stats.items.families.label'), accent: 'from-blue-500 to-indigo-600' },
+      { icon: Heart, value: t('landing.stats.items.members.value'), label: t('landing.stats.items.members.label'), accent: 'from-rose-500 to-pink-600' },
+      { icon: Church, value: t('landing.stats.items.services.value'), label: t('landing.stats.items.services.label'), accent: 'from-amber-500 to-orange-600' },
+      { icon: HandHeart, value: t('landing.stats.items.servants.value'), label: t('landing.stats.items.servants.label'), accent: 'from-emerald-500 to-teal-600' },
     ];
   const verses = [
     { text: t('landing.verses.items.one.text'), reference: t('landing.verses.items.one.reference') },
