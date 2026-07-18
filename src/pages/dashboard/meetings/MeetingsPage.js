@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarPlus, Layers3 } from 'lucide-react';
+import { CalendarPlus, Layers3, UserCog, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { normalizeApiError } from '../../../api/errors';
 import { meetingsApi } from '../../../api/endpoints';
 import { useAuth } from '../../../auth/auth.hooks';
+import Badge from '../../../components/ui/Badge';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import EmptyState from '../../../components/ui/EmptyState';
@@ -13,6 +14,7 @@ import Input from '../../../components/ui/Input';
 import PageHeader from '../../../components/ui/PageHeader';
 import Select from '../../../components/ui/Select';
 import Table, { RowActions } from '../../../components/ui/Table';
+import DataCard, { CardAvatar } from '../../../components/ui/DataCard';
 import { useI18n } from '../../../i18n/i18n';
 import { getDayLabel, getDayOptions } from './meetingsForm.utils';
 
@@ -93,6 +95,39 @@ export default function MeetingsPage() {
   const sectorOptions = sectors.map((sector) => ({ value: sector.id, label: sector.name }));
   const dayOptions = getDayOptions(t);
 
+  /* ── action builders shared by table columns and card views ── */
+  const sectorActions = (row) => [
+    ...(canUpdateSectors
+      ? [{ label: t('common.actions.edit'), onClick: () => navigate(`/dashboard/meetings/sectors/${row.id}/edit`) }]
+      : []),
+    ...(canDeleteSectors
+      ? [{ label: t('common.actions.delete'), danger: true, onClick: () => {
+        if (window.confirm(t('meetings.messages.confirmDeleteSector'))) {
+          deleteSectorMutation.mutate(row.id);
+        }
+      } }]
+      : []),
+  ];
+
+  const meetingActions = (row) => [
+    ...((canUpdateMeetings || canUpdateMeetingsSections)
+      ? [{ label: t('common.actions.edit'), onClick: () => navigate(`/dashboard/meetings/${row.id}/edit`) }]
+      : []),
+    ...(canDeleteMeetings
+      ? [{ label: t('common.actions.delete'), danger: true, onClick: () => {
+        if (window.confirm(t('meetings.messages.confirmDeleteMeeting'))) {
+          deleteMeetingMutation.mutate(row.id);
+        }
+      } }]
+      : []),
+  ];
+
+  const officialsText = (officials = []) =>
+    officials
+      .slice(0, 3)
+      .map((official) => (official.title ? `${official.name} (${official.title})` : official.name))
+      .join('، ');
+
   const sectorColumns = [
     {
       key: 'name',
@@ -102,34 +137,13 @@ export default function MeetingsPage() {
     {
       key: 'officials',
       label: t('meetings.columns.officials'),
-      render: (row) => {
-        const officials = row.officials || [];
-        if (!officials.length) return t('common.placeholder.empty');
-        return officials
-          .slice(0, 3)
-          .map((official) => (official.title ? `${official.name} (${official.title})` : official.name))
-          .join(', ');
-      },
+      render: (row) =>
+        row.officials?.length ? officialsText(row.officials) : t('common.placeholder.empty'),
     },
     {
       key: 'actions',
       label: t('common.table.actions'),
-      render: (row) => (
-        <RowActions
-          actions={[
-            ...(canUpdateSectors
-              ? [{ label: t('common.actions.edit'), onClick: () => navigate(`/dashboard/meetings/sectors/${row.id}/edit`) }]
-              : []),
-            ...(canDeleteSectors
-              ? [{ label: t('common.actions.delete'), danger: true, onClick: () => {
-                if (window.confirm(t('meetings.messages.confirmDeleteSector'))) {
-                  deleteSectorMutation.mutate(row.id);
-                }
-              } }]
-              : []),
-          ]}
-        />
-      ),
+      render: (row) => <RowActions actions={sectorActions(row)} />,
     },
   ];
 
@@ -157,24 +171,53 @@ export default function MeetingsPage() {
     {
       key: 'actions',
       label: t('common.table.actions'),
-      render: (row) => (
-        <RowActions
-          actions={[
-            ...((canUpdateMeetings || canUpdateMeetingsSections)
-              ? [{ label: t('common.actions.edit'), onClick: () => navigate(`/dashboard/meetings/${row.id}/edit`) }]
-              : []),
-            ...(canDeleteMeetings
-              ? [{ label: t('common.actions.delete'), danger: true, onClick: () => {
-                if (window.confirm(t('meetings.messages.confirmDeleteMeeting'))) {
-                  deleteMeetingMutation.mutate(row.id);
-                }
-              } }]
-              : []),
-          ]}
-        />
-      ),
+      render: (row) => <RowActions actions={meetingActions(row)} />,
     },
   ];
+
+  /* ── bespoke mobile cards: a sector directory and a meeting schedule row ── */
+  const renderSectorCard = (row) => (
+    <DataCard
+      accent="info"
+      leading={<CardAvatar icon={Layers3} tone="info" />}
+      title={row.name}
+      subtitle={
+        <span className="inline-flex items-center gap-1">
+          <UserCog className="h-3.5 w-3.5" />
+          {row.officials?.length ? officialsText(row.officials) : t('common.placeholder.empty')}
+        </span>
+      }
+      actions={<RowActions actions={sectorActions(row)} />}
+    />
+  );
+
+  const renderMeetingCard = (row) => (
+    <DataCard
+      accent="primary"
+      leading={<CardAvatar icon={CalendarPlus} tone="primary" />}
+      title={row.name}
+      badge={
+        <Badge variant="info" size="sm" dot>
+          {getDayLabel(row.day, t)} · {row.time}
+        </Badge>
+      }
+      subtitle={
+        row.sector?.name ? (
+          <span className="inline-flex items-center gap-1">
+            <Layers3 className="h-3.5 w-3.5" />
+            {row.sector.name}
+          </span>
+        ) : null
+      }
+      meta={
+        <span className="inline-flex items-center gap-1">
+          <Users className="h-3.5 w-3.5" />
+          {t('meetings.columns.servantsCount')}: {row.servants?.length || 0}
+        </span>
+      }
+      actions={<RowActions actions={meetingActions(row)} />}
+    />
+  );
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -220,6 +263,7 @@ export default function MeetingsPage() {
             loading={sectorsQuery.isLoading}
             emptyTitle={t('meetings.empty.sectorsTitle')}
             emptyDescription={t('meetings.empty.sectorsDescription')}
+            renderCard={renderSectorCard}
           />
         </section>
       )}
@@ -262,6 +306,7 @@ export default function MeetingsPage() {
             loading={meetingsQuery.isLoading}
             emptyTitle={t('meetings.empty.meetingsTitle')}
             emptyDescription={t('meetings.empty.meetingsDescription')}
+            renderCard={renderMeetingCard}
           />
         </section>
       ) : (

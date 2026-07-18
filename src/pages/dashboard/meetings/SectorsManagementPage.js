@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CalendarRange,
+  Clock,
   Layers3,
   Users,
   AlertTriangle,
@@ -23,6 +24,7 @@ import EmptyState from '../../../components/ui/EmptyState';
 import Input from '../../../components/ui/Input';
 import StatCard from '../../../components/ui/StatCard';
 import Table, { RowActions } from '../../../components/ui/Table';
+import DataCard, { CardAvatar } from '../../../components/ui/DataCard';
 import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
@@ -108,6 +110,25 @@ export default function SectorsManagementPage() {
 
   const coveredSectors = Math.max(stats.totalSectors - stats.sectorsWithoutOfficials, 0);
 
+  /* ── row actions shared by the table column and the card view ── */
+  const buildSectorActions = useCallback((row) => [
+    { label: t('common.actions.view'), onClick: () => navigate(`/dashboard/meetings/sectors/${row.id}`) },
+    ...(canUpdateSectors
+      ? [{ label: t('common.actions.edit'), onClick: () => navigate(`/dashboard/meetings/sectors/${row.id}/edit`) }]
+      : []),
+    ...(canDeleteSectors
+      ? [{ divider: true }, {
+        label: t('common.actions.delete'),
+        danger: true,
+        onClick: () => {
+          if (window.confirm(t('meetings.messages.confirmDeleteSector'))) {
+            deleteSectorMutation.mutate(row.id);
+          }
+        },
+      }]
+      : []),
+  ], [canDeleteSectors, canUpdateSectors, deleteSectorMutation, navigate, t]);
+
   /* ── columns ── */
   const sectorColumns = useMemo(() => [
     {
@@ -183,29 +204,59 @@ export default function SectorsManagementPage() {
       key: 'actions',
       label: '',
       cellClassName: 'w-10',
-      render: (row) => (
-        <RowActions
-          actions={[
-            { label: t('common.actions.view'), onClick: () => navigate(`/dashboard/meetings/sectors/${row.id}`) },
-            ...(canUpdateSectors
-              ? [{ label: t('common.actions.edit'), onClick: () => navigate(`/dashboard/meetings/sectors/${row.id}/edit`) }]
-              : []),
-            ...(canDeleteSectors
-              ? [{ divider: true }, {
-                label: t('common.actions.delete'),
-                danger: true,
-                onClick: () => {
-                  if (window.confirm(t('meetings.messages.confirmDeleteSector'))) {
-                    deleteSectorMutation.mutate(row.id);
-                  }
-                },
-              }]
-              : []),
-          ]}
-        />
-      ),
+      render: (row) => <RowActions actions={buildSectorActions(row)} />,
     }] : []),
-  ], [canDeleteSectors, canManageSectorRows, canUpdateSectors, canViewMeetings, deleteSectorMutation, meetingsCountBySector, navigate, t]);
+  ], [buildSectorActions, canManageSectorRows, canViewMeetings, meetingsCountBySector, navigate, t]);
+
+  /* ── bespoke mobile card: sector avatar, official coverage badge, and the
+        officials + meeting-count + last-update metadata ── */
+  const renderSectorCard = (row) => {
+    const officialsCount = (row.officials || []).length;
+    const meetingsCount = meetingsCountBySector[row.id] || 0;
+    return (
+      <DataCard
+        accent="gold"
+        onClick={() => navigate(`/dashboard/meetings/sectors/${row.id}`)}
+        leading={<CardAvatar name={row.name} src={row.avatar?.url} tone="gold" />}
+        title={row.name}
+        badge={
+          <Badge variant={officialsCount === 0 ? 'warning' : 'success'} size="sm" dot={officialsCount === 0}>
+            {t('meetings.columns.officialsCount')}: {officialsCount}
+          </Badge>
+        }
+        subtitle={
+          officialsCount ? (
+            <span className="inline-flex items-center gap-1">
+              <Users className="h-3.5 w-3.5" />
+              {(row.officials || []).slice(0, 3).map((o) => o.name).filter(Boolean).join('، ')}
+            </span>
+          ) : (
+            <span className="text-muted">{t('common.placeholder.empty')}</span>
+          )
+        }
+        meta={
+          <>
+            {canViewMeetings ? (
+              <span className="inline-flex items-center gap-1">
+                <BarChart3 className="h-3.5 w-3.5" />
+                {t('meetings.columns.meetingsCount')}: {meetingsCount}
+              </span>
+            ) : null}
+            {row.updatedAt ? (
+              <>
+                {canViewMeetings ? <span aria-hidden="true">·</span> : null}
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  {formatDateTime(row.updatedAt)}
+                </span>
+              </>
+            ) : null}
+          </>
+        }
+        actions={canManageSectorRows ? <RowActions actions={buildSectorActions(row)} /> : null}
+      />
+    );
+  };
 
   /* ── guard ── */
   if (!canAccessSectorsModule) {
@@ -322,6 +373,7 @@ export default function SectorsManagementPage() {
               emptyTitle={t('meetings.empty.sectorsTitle')}
               emptyDescription={t('meetings.empty.sectorsDescription')}
               emptyIcon={Layers3}
+              renderCard={renderSectorCard}
             />
           )}
         </section>

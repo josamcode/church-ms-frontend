@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -26,6 +26,7 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import StatCard from '../../../components/ui/StatCard';
 import Table, { RowActions } from '../../../components/ui/Table';
+import DataCard, { CardAvatar } from '../../../components/ui/DataCard';
 import PageHeader from '../../../components/ui/PageHeader';
 import { useI18n } from '../../../i18n/i18n';
 import { formatDateTime } from '../../../utils/formatters';
@@ -146,6 +147,27 @@ export default function MeetingsManagementPage() {
 
   const coveredMeetings = Math.max(stats.totalMeetings - stats.meetingsWithoutServants, 0);
 
+  /* ── row actions shared by the table column and the card view ── */
+  const buildMeetingActions = useCallback((row) => [
+    ...(canViewMeetingsList
+      ? [{ label: t('common.actions.view'), onClick: () => navigate(`/dashboard/meetings/list/${row.id}`) }]
+      : []),
+    ...((canUpdateMeetings || canUpdateMeetingsSections)
+      ? [{ label: t('common.actions.edit'), onClick: () => navigate(`/dashboard/meetings/${row.id}/edit`) }]
+      : []),
+    ...(canDeleteMeetings
+      ? [{ divider: true }, {
+        label: t('common.actions.delete'),
+        danger: true,
+        onClick: () => {
+          if (window.confirm(t('meetings.messages.confirmDeleteMeeting'))) {
+            deleteMeetingMutation.mutate(row.id);
+          }
+        },
+      }]
+      : []),
+  ], [canDeleteMeetings, canUpdateMeetings, canUpdateMeetingsSections, canViewMeetingsList, deleteMeetingMutation, navigate, t]);
+
   /* ── columns ── */
   const meetingColumns = useMemo(() => [
     {
@@ -216,31 +238,53 @@ export default function MeetingsManagementPage() {
       key: 'actions',
       label: '',
       cellClassName: 'w-10',
-      render: (row) => (
-        <RowActions
-          actions={[
-            ...(canViewMeetingsList
-              ? [{ label: t('common.actions.view'), onClick: () => navigate(`/dashboard/meetings/list/${row.id}`) }]
-              : []),
-            ...((canUpdateMeetings || canUpdateMeetingsSections)
-              ? [{ label: t('common.actions.edit'), onClick: () => navigate(`/dashboard/meetings/${row.id}/edit`) }]
-              : []),
-            ...(canDeleteMeetings
-              ? [{ divider: true }, {
-                label: t('common.actions.delete'),
-                danger: true,
-                onClick: () => {
-                  if (window.confirm(t('meetings.messages.confirmDeleteMeeting'))) {
-                    deleteMeetingMutation.mutate(row.id);
-                  }
-                },
-              }]
-              : []),
-          ]}
-        />
-      ),
+      render: (row) => <RowActions actions={buildMeetingActions(row)} />,
     }] : []),
-  ], [canDeleteMeetings, canManageMeetingRows, canUpdateMeetings, canUpdateMeetingsSections, canViewMeetingsList, deleteMeetingMutation, navigate, t]);
+  ], [buildMeetingActions, canManageMeetingRows, navigate, t]);
+
+  /* ── bespoke mobile card: meeting identity + schedule, with servant coverage
+        and group/committee counts as scannable metadata ── */
+  const renderMeetingCard = (row) => {
+    const servantsCount = (row.servants || []).length;
+    return (
+      <DataCard
+        accent="primary"
+        onClick={() => navigate(`/dashboard/meetings/list/${row.id}`)}
+        leading={<CardAvatar icon={CalendarClock} tone="primary" />}
+        title={row.name}
+        badge={
+          row.sector?.name ? (
+            <Badge variant="gold" size="sm" dot>{row.sector.name}</Badge>
+          ) : null
+        }
+        subtitle={
+          <span className="inline-flex items-center gap-1">
+            <CalendarClock className="h-3.5 w-3.5" />
+            {getDayLabel(row.day, t)} · {row.time}
+          </span>
+        }
+        meta={
+          <>
+            <span className={`inline-flex items-center gap-1 ${servantsCount === 0 ? 'text-warning' : ''}`}>
+              <Users className="h-3.5 w-3.5" />
+              {t('meetings.columns.servantsCount')}: {servantsCount}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span className="inline-flex items-center gap-1">
+              <Layers3 className="h-3.5 w-3.5" />
+              {t('meetings.columns.groupsCount')}: {(row.groups || []).length}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span className="inline-flex items-center gap-1">
+              <ListChecks className="h-3.5 w-3.5" />
+              {t('meetings.columns.committeesCount')}: {(row.committees || []).length}
+            </span>
+          </>
+        }
+        actions={canManageMeetingRows ? <RowActions actions={buildMeetingActions(row)} /> : null}
+      />
+    );
+  };
 
   /* ── guard ── */
   if (!canAccessMeetingsModule) {
@@ -404,6 +448,7 @@ export default function MeetingsManagementPage() {
               emptyTitle={t('meetings.empty.meetingsTitle')}
               emptyDescription={t('meetings.empty.meetingsDescription')}
               emptyIcon={CalendarClock}
+              renderCard={renderMeetingCard}
             />
           )}
         </section>
