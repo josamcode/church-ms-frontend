@@ -85,6 +85,24 @@ export function CardAvatar({
   );
 }
 
+/**
+ * Numbered leading tile for leaderboard/ranking cards. Highlights the top rank
+ * in gold, the rest in the primary tint, so a sorted list reads as a ladder.
+ */
+export function RankTile({ rank }) {
+  const isTop = rank === 1;
+  return (
+    <span
+      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-bold ${
+        isTop ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'
+      }`}
+      aria-hidden="true"
+    >
+      {rank}
+    </span>
+  );
+}
+
 export default function DataCard({
   onClick,
   leading,

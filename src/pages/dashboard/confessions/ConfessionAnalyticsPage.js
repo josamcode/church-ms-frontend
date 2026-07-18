@@ -10,6 +10,7 @@ import Card, { CardHeader } from '../../../components/ui/Card';
 import Select from '../../../components/ui/Select';
 import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
+import DataCard, { RankTile } from '../../../components/ui/DataCard';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import EmptyState from '../../../components/ui/EmptyState';
@@ -160,6 +161,23 @@ export default function ConfessionAnalyticsPage() {
       ),
     },
   ], [t]);
+
+  /* ── bespoke leaderboard card: rank tile, attendee name, session count and
+        the last-session date — the top attendee reads in gold ── */
+  const renderTopAttendeeCard = (row, rowIndex) => (
+    <DataCard
+      accent={rowIndex === 0 ? 'gold' : 'primary'}
+      leading={<RankTile rank={rowIndex + 1} />}
+      title={row.fullName}
+      badge={<Badge variant="primary">{row.sessionsCount}</Badge>}
+      meta={
+        <span className="inline-flex items-center gap-1">
+          <Clock className="h-3.5 w-3.5" />
+          {row.lastSessionAt ? formatDateTime(row.lastSessionAt) : t('common.placeholder.empty')}
+        </span>
+      }
+    />
+  );
 
   return (
     <div className="animate-fade-in space-y-8 pb-10">
@@ -402,6 +420,7 @@ export default function ConfessionAnalyticsPage() {
                 loading={isLoading}
                 emptyTitle={t('confessions.analytics.emptyTitle')}
                 emptyDescription={t('confessions.analytics.emptyDescription')}
+                renderCard={renderTopAttendeeCard}
               />
             </div>
           </Card>

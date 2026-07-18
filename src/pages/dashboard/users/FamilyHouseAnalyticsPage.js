@@ -28,6 +28,7 @@ import PageHeader from '../../../components/ui/PageHeader';
 import Skeleton from '../../../components/ui/Skeleton';
 import Sparkline from '../../../components/ui/Sparkline';
 import StatCard from '../../../components/ui/StatCard';
+import DataCard, { RankTile } from '../../../components/ui/DataCard';
 import Table from '../../../components/ui/Table';
 import {
   FAMILY_HOUSE_DETAILS_PATH,
@@ -320,6 +321,69 @@ export default function FamilyHouseAnalyticsPage() {
     [tr]
   );
 
+  /* ── bespoke leaderboard cards: rank tile, family/house name, member count
+        headline and the secondary counts as metadata ── */
+  const renderFamilyRankCard = (row, rowIndex) => (
+    <DataCard
+      accent={rowIndex === 0 ? 'gold' : 'primary'}
+      onClick={() => navigate(`${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery('familyName', row.name)}`)}
+      leading={<RankTile rank={rowIndex + 1} />}
+      title={row.name}
+      badge={<Badge variant="primary">{formatNumber(row.count)}</Badge>}
+      meta={
+        <>
+          <span className="inline-flex items-center gap-1">
+            <Home className="h-3.5 w-3.5" />
+            {formatNumber(row.houseCount)}
+          </span>
+          {row.averageAge != null ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{tr('familyHouseAnalytics.table.avgAge')}: {row.averageAge}</span>
+            </>
+          ) : null}
+        </>
+      }
+      actions={
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+          <ArrowUpRight className="h-4 w-4" />
+        </span>
+      }
+    />
+  );
+
+  const renderHouseRankCard = (row, rowIndex) => (
+    <DataCard
+      accent={rowIndex === 0 ? 'gold' : 'primary'}
+      onClick={() => navigate(`${FAMILY_HOUSE_DETAILS_PATH}?${buildLookupQuery('houseName', row.name)}`)}
+      leading={<RankTile rank={rowIndex + 1} />}
+      title={row.name}
+      badge={<Badge variant="primary">{formatNumber(row.count)}</Badge>}
+      meta={
+        <>
+          <span className="inline-flex items-center gap-1">
+            <UsersIcon className="h-3.5 w-3.5" />
+            {formatNumber(row.familyCount)}
+          </span>
+          {row.lockedCount ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="inline-flex items-center gap-1">
+                <LockKeyhole className="h-3.5 w-3.5" />
+                {formatNumber(row.lockedCount)}
+              </span>
+            </>
+          ) : null}
+        </>
+      }
+      actions={
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+          <ArrowUpRight className="h-4 w-4" />
+        </span>
+      }
+    />
+  );
+
   const errorMessage = analyticsQuery.error ? normalizeApiError(analyticsQuery.error).message : null;
 
   return (
@@ -490,6 +554,7 @@ export default function FamilyHouseAnalyticsPage() {
                 emptyTitle={tr('familyHouseLookup.analytics.noFamilies')}
                 emptyDescription={tr('familyHouseAnalytics.states.noRankData')}
                 skeletonRows={6}
+                renderCard={renderFamilyRankCard}
               />
             </Card>
 
@@ -507,6 +572,7 @@ export default function FamilyHouseAnalyticsPage() {
                 emptyTitle={tr('familyHouseLookup.analytics.noHouses')}
                 emptyDescription={tr('familyHouseAnalytics.states.noRankData')}
                 skeletonRows={6}
+                renderCard={renderHouseRankCard}
               />
             </Card>
           </section>

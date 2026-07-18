@@ -9,6 +9,7 @@ import Card, { CardHeader } from '../../../components/ui/Card';
 import Select from '../../../components/ui/Select';
 import StatCard from '../../../components/ui/StatCard';
 import Table from '../../../components/ui/Table';
+import DataCard, { RankTile } from '../../../components/ui/DataCard';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import EmptyState from '../../../components/ui/EmptyState';
@@ -181,6 +182,31 @@ export default function PastoralVisitationAnalyticsPage() {
       ),
     },
   ], [t]);
+
+  /* ── bespoke leaderboard card: rank tile, recorder name, record count and
+        the total-minutes + last-record metadata ── */
+  const renderTopRecorderCard = (row, rowIndex) => (
+    <DataCard
+      accent={rowIndex === 0 ? 'gold' : 'primary'}
+      leading={<RankTile rank={rowIndex + 1} />}
+      title={row.fullName}
+      badge={<Badge variant="primary">{row.count}</Badge>}
+      meta={
+        <>
+          <span className="inline-flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            {row.totalDuration || 0} {t('visitations.shared.minutes')}
+          </span>
+          {row.lastRecordedAt ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{formatDateTime(row.lastRecordedAt)}</span>
+            </>
+          ) : null}
+        </>
+      }
+    />
+  );
 
   /* ── render ── */
   return (
@@ -430,6 +456,7 @@ export default function PastoralVisitationAnalyticsPage() {
                 loading={isLoading}
                 emptyTitle={t('visitations.analytics.emptyTitle')}
                 emptyDescription={t('visitations.analytics.emptyDescription')}
+                renderCard={renderTopRecorderCard}
               />
             </div>
           </Card>
