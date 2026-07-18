@@ -15,6 +15,9 @@ import Table from '../../../components/ui/Table';
 import Button from '../../../components/ui/Button';
 import SearchInput from '../../../components/ui/SearchInput';
 import Select from '../../../components/ui/Select';
+import ViewToggle from '../../../components/ui/ViewToggle';
+import DataCard, { CardAvatar } from '../../../components/ui/DataCard';
+import useViewMode from '../../../hooks/useViewMode';
 
 const COPY = {
   en: {
@@ -78,6 +81,7 @@ export default function DisbursedAidsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
+  const [viewMode, setViewMode] = useViewMode('households:disbursedAids:viewMode');
   const limit = 20;
 
   const { data: optionsData } = useQuery({
@@ -126,6 +130,47 @@ export default function DisbursedAidsPage() {
     });
     navigate(`/dashboard/lords-brethren/aid-history/details?${searchParams.toString()}`);
   };
+
+  const formatAidDate = (value) =>
+    value
+      ? new Date(value).toLocaleDateString(localeCode, {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : '-';
+
+  /* ── bespoke card: a ledger entry — the aid description leads with its
+        category, disbursement date + cadence support it, beneficiaries metric ── */
+  const renderAidCard = (row) => (
+    <DataCard
+      accent="gold"
+      onClick={() => handleRowClick(row)}
+      leading={<CardAvatar icon={HandCoins} tone="gold" />}
+      title={row.description || row.category || copy.columns.description}
+      badge={row.category ? <Badge variant="gold" size="sm" dot>{row.category}</Badge> : null}
+      subtitle={
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1">
+            <CalendarDays className="h-3.5 w-3.5" />
+            {formatAidDate(row.date)}
+          </span>
+          {row.occurrence ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{row.occurrence}</span>
+            </>
+          ) : null}
+        </span>
+      }
+      meta={
+        <span className="inline-flex items-center gap-1">
+          <Users className="h-3.5 w-3.5" />
+          {formatCount(row.beneficiariesCount ?? 0)} {copy.columns.beneficiaries}
+        </span>
+      }
+    />
+  );
 
   return (
     <div className="animate-fade-in space-y-8 pb-10">
@@ -224,11 +269,17 @@ export default function DisbursedAidsPage() {
             </span>
             <h2 className="truncate text-lg font-bold leading-tight text-heading">{copy.title}</h2>
           </div>
-          {!isLoading && items.length ? (
-            <Badge variant="secondary">{formatCount(items.length)}</Badge>
-          ) : null}
+          <div className="flex items-center gap-2">
+            {!isLoading && items.length ? (
+              <Badge variant="secondary">{formatCount(items.length)}</Badge>
+            ) : null}
+            <ViewToggle value={viewMode} onChange={setViewMode} />
+          </div>
         </div>
         <Table
+          renderMode={viewMode}
+          renderCard={renderAidCard}
+          cardGridClassName="grid grid-cols-1 gap-3 xl:grid-cols-2"
           columns={[
             {
               key: 'date',
