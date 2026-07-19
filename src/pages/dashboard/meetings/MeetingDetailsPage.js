@@ -205,11 +205,6 @@ export default function MeetingDetailsPage() {
   const { hasPermission } = useAuth();
   const [reminderForm, setReminderForm] = useState(buildMeetingReminderForm);
 
-  const tf = useCallback((key, fallback) => {
-    const value = t(key);
-    return value === key ? fallback : value;
-  }, [t]);
-
   const canUpdateMeeting =
     hasPermission('MEETINGS_UPDATE') ||
     hasPermission('MEETINGS_SERVANTS_MANAGE') ||
@@ -245,14 +240,14 @@ export default function MeetingDetailsPage() {
       queryClient.setQueryData(['meetings', 'details', id], payload);
       setReminderForm(buildMeetingReminderForm(payload?.reminderSettings));
       toast.success(
-        tf('meetings.meetingDetails.reminderSettings.saved', 'Meeting reminder settings saved successfully.')
+        t('meetings.meetingDetails.reminderSettings.saved')
       );
     },
     onError: (error) => {
       toast.error(
         error?.response?.data?.message
         || error?.message
-        || tf('meetings.meetingDetails.reminderSettings.saveFailed', 'Failed to save meeting reminder settings.')
+        || t('meetings.meetingDetails.reminderSettings.saveFailed')
       );
     },
   });
@@ -308,11 +303,8 @@ export default function MeetingDetailsPage() {
           <NotificationTemplateEditor
             t={t}
             language="ar"
-            sectionTitle={tf('meetings.meetingDetails.reminderSettings.title', 'Meeting Reminder Notification')}
-            sectionSubtitle={tf(
-              'meetings.meetingDetails.reminderSettings.subtitle',
-              'Customize the reminder title and message that will be sent before this meeting starts.'
-            )}
+            sectionTitle={t('meetings.meetingDetails.reminderSettings.title')}
+            sectionSubtitle={t('meetings.meetingDetails.reminderSettings.subtitle')}
             template={reminderForm?.template}
             tokenList={MEETING_REMINDER_TOKENS}
             onFieldChange={updateReminderField}
@@ -325,11 +317,8 @@ export default function MeetingDetailsPage() {
           <NotificationTemplateEditor
             t={t}
             language="en"
-            sectionTitle={tf('meetings.meetingDetails.reminderSettings.title', 'Meeting Reminder Notification')}
-            sectionSubtitle={tf(
-              'meetings.meetingDetails.reminderSettings.subtitle',
-              'Customize the reminder title and message that will be sent before this meeting starts.'
-            )}
+            sectionTitle={t('meetings.meetingDetails.reminderSettings.title')}
+            sectionSubtitle={t('meetings.meetingDetails.reminderSettings.subtitle')}
             template={reminderForm?.template}
             tokenList={MEETING_REMINDER_TOKENS}
             onFieldChange={updateReminderField}
@@ -337,7 +326,7 @@ export default function MeetingDetailsPage() {
         ),
       },
     ],
-    [reminderForm?.template, t, tf, updateReminderField]
+    [reminderForm?.template, t, updateReminderField]
   );
   const leadershipCards = useMemo(() => {
     const assistants = meeting?.assistantSecretaries || [];
@@ -379,7 +368,7 @@ export default function MeetingDetailsPage() {
   const breadcrumbs = [
     { label: t('shared.dashboard'), href: '/dashboard' },
     { label: t('meetings.meetingsPageTitle'), href: '/dashboard/meetings/list' },
-    { label: meeting?.name || tf('meetings.meetingDetails.pageTitle', 'Meeting Details') },
+    { label: meeting?.name || t('meetings.meetingDetails.pageTitle') },
   ];
 
   if (meetingQuery.isLoading) {
@@ -411,8 +400,8 @@ export default function MeetingDetailsPage() {
         <Breadcrumbs items={breadcrumbs} />
         <EmptyState
           icon={CalendarDays}
-          title={tf('meetings.meetingDetails.notFoundTitle', 'Meeting not found')}
-          description={tf('meetings.meetingDetails.notFoundDescription', 'This meeting could not be loaded or may have been removed.')}
+          title={t('meetings.meetingDetails.notFoundTitle')}
+          description={t('meetings.meetingDetails.notFoundDescription')}
         />
       </div>
     );
@@ -432,7 +421,7 @@ export default function MeetingDetailsPage() {
     : [
       { label: t('meetings.columns.groupsCount'), value: stats.groupsCount, icon: ListChecks, tone: 'primary' },
       {
-        label: tf('meetings.memberDetails.groupsTitle', 'Groups'),
+        label: t('meetings.memberDetails.groupsTitle'),
         value: stats.groupMembersCount,
         icon: UserCircle,
         tone: 'gold',
@@ -451,13 +440,10 @@ export default function MeetingDetailsPage() {
       label: t('meetings.sections.leadership'),
       icon: Users,
       title: t('meetings.sections.leadership'),
-      description: tf(
-        'meetings.meetingDetails.leadershipDescription',
-        'Service secretary and assistant secretaries for this meeting.'
-      ),
+      description: t('meetings.meetingDetails.leadershipDescription'),
       count: leadershipCards.length,
       content: leadershipCards.length === 0 ? (
-        <EmptyState compact icon={Users} title={tf('meetings.meetingDetails.noLeadershipTitle', 'No leadership assigned')} description={tf('meetings.meetingDetails.noLeadershipDescription', 'No service secretary or assistant secretaries are assigned to this meeting.')} />
+        <EmptyState compact icon={Users} title={t('meetings.meetingDetails.noLeadershipTitle')} description={t('meetings.meetingDetails.noLeadershipDescription')} />
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {leadershipCards.map(({ person, role }, i) => (
@@ -475,38 +461,35 @@ export default function MeetingDetailsPage() {
       label: t('meetings.fields.groups'),
       icon: ListChecks,
       title: t('meetings.fields.groups'),
-      description: tf(
-        'meetings.meetingDetails.groupsDescription',
-        'Groups and their served members, with documentation and attendance tools.'
-      ),
+      description: t('meetings.meetingDetails.groupsDescription'),
       count: (meeting.groupAssignments || []).length,
       actions: (
         <div className="flex flex-wrap items-center gap-2">
           {canManageDocumentation && canOpenMemberFromGroups && (
             <Link to={`/dashboard/meetings/list/${id}/documentation`}>
               <Button variant="outline" size="sm" icon={FileText}>
-                {tf('meetings.actions.openDailyDocumentation', 'Daily Documentation')}
+                {t('meetings.actions.openDailyDocumentation')}
               </Button>
             </Link>
           )}
           {canManageDocumentationSettings && (
             <Link to={`/dashboard/meetings/list/${id}/settings`}>
               <Button variant="outline" size="sm" icon={Settings2}>
-                {tf('meetings.actions.openDocumentationSettings', 'Documentation Settings')}
+                {t('meetings.actions.openDocumentationSettings')}
               </Button>
             </Link>
           )}
           {canManageAttendance && canOpenMemberFromGroups && stats.groupMembersCount > 0 && (
             <Link to={`/dashboard/meetings/list/${id}/attendance`}>
               <Button variant="outline" size="sm" icon={ClipboardCheck}>
-                {tf('meetings.actions.openAttendanceCheckIn', 'Attendance Check-in')}
+                {t('meetings.actions.openAttendanceCheckIn')}
               </Button>
             </Link>
           )}
         </div>
       ),
       content: (meeting.groups || []).length === 0 ? (
-        <EmptyState compact icon={ListChecks} title={tf('meetings.meetingDetails.noGroupsTitle', 'No groups yet')} description={tf('meetings.meetingDetails.noGroupsDescription', 'No groups are defined for this meeting yet.')} />
+        <EmptyState compact icon={ListChecks} title={t('meetings.meetingDetails.noGroupsTitle')} description={t('meetings.meetingDetails.noGroupsDescription')} />
       ) : (
         <div className="space-y-4">
           {(meeting.groupAssignments || []).map((assignment, i) => {
@@ -522,7 +505,7 @@ export default function MeetingDetailsPage() {
                     <p className="font-semibold text-heading">{assignment.group}</p>
                   </div>
                   <Badge variant="default" size="sm">
-                    {users.length} {tf('meetings.meetingDetails.members', 'members')}
+                    {users.length} {t('meetings.meetingDetails.members')}
                   </Badge>
                 </div>
 
@@ -554,13 +537,10 @@ export default function MeetingDetailsPage() {
       label: t('meetings.sections.servants'),
       icon: Users,
       title: t('meetings.sections.servants'),
-      description: tf(
-        'meetings.meetingDetails.servantsDescription',
-        'Servants assigned to this meeting and the groups they manage.'
-      ),
+      description: t('meetings.meetingDetails.servantsDescription'),
       count: (meeting.servants || []).length,
       content: (meeting.servants || []).length === 0 ? (
-        <EmptyState compact icon={Users} title={t('meetings.empty.noServantsYet')} description={tf('meetings.meetingDetails.noServantsDescription', 'No servants are assigned to this meeting.')} />
+        <EmptyState compact icon={Users} title={t('meetings.empty.noServantsYet')} description={t('meetings.meetingDetails.noServantsDescription')} />
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {(meeting.servants || []).map((servant) => (
@@ -610,13 +590,10 @@ export default function MeetingDetailsPage() {
       label: t('meetings.sections.committees'),
       icon: FileText,
       title: t('meetings.sections.committees'),
-      description: tf(
-        'meetings.meetingDetails.committeesDescription',
-        'Committees defined for this meeting and their members.'
-      ),
+      description: t('meetings.meetingDetails.committeesDescription'),
       count: (meeting.committees || []).length,
       content: (meeting.committees || []).length === 0 ? (
-        <EmptyState compact icon={FileText} title={t('meetings.empty.noCommitteesYet')} description={tf('meetings.meetingDetails.noCommitteesDescription', 'No committees are defined for this meeting.')} />
+        <EmptyState compact icon={FileText} title={t('meetings.empty.noCommitteesYet')} description={t('meetings.meetingDetails.noCommitteesDescription')} />
       ) : (
         <div className="space-y-3">
           {(meeting.committees || []).map((committee) => (
@@ -629,7 +606,7 @@ export default function MeetingDetailsPage() {
                   )}
                 </div>
                 <Badge variant="default" size="sm">
-                  {(committee.members || []).length} {tf('meetings.meetingDetails.members', 'members')}
+                  {(committee.members || []).length} {t('meetings.meetingDetails.members')}
                 </Badge>
               </div>
               {(committee.memberNames || []).length > 0 && (
@@ -651,13 +628,10 @@ export default function MeetingDetailsPage() {
       label: t('meetings.sections.activities'),
       icon: CalendarClock,
       title: t('meetings.sections.activities'),
-      description: tf(
-        'meetings.meetingDetails.activitiesDescription',
-        'Planned activities and their schedule for this meeting.'
-      ),
+      description: t('meetings.meetingDetails.activitiesDescription'),
       count: activities.length,
       content: activities.length === 0 ? (
-        <EmptyState compact icon={CalendarClock} title={t('meetings.empty.noActivitiesYet')} description={tf('meetings.meetingDetails.noActivitiesDescription', 'No activities are planned for this meeting.')} />
+        <EmptyState compact icon={CalendarClock} title={t('meetings.empty.noActivitiesYet')} description={t('meetings.meetingDetails.noActivitiesDescription')} />
       ) : hasDatedActivities ? (
         /* ── ACTIVITIES TIMELINE ── */
         <ol className="relative space-y-4 ps-6">
@@ -714,13 +688,10 @@ export default function MeetingDetailsPage() {
     },
     canManageReminderSettings && {
       id: 'reminder',
-      label: tf('meetings.meetingDetails.reminderSettings.railLabel', 'Reminder'),
+      label: t('meetings.meetingDetails.reminderSettings.railLabel'),
       icon: CalendarClock,
-      title: tf('meetings.meetingDetails.reminderSettings.section', 'Meeting reminder settings'),
-      description: tf(
-        'meetings.meetingDetails.reminderSettings.subtitle',
-        'Customize the reminder title and message that will be sent before this meeting starts.'
-      ),
+      title: t('meetings.meetingDetails.reminderSettings.section'),
+      description: t('meetings.meetingDetails.reminderSettings.subtitle'),
       actions: (
         <Button
           type="button"
@@ -845,7 +816,7 @@ export default function MeetingDetailsPage() {
       <Card padding="none">
         <div className="grid grid-cols-2 gap-x-8 gap-y-5 px-6 py-5 sm:grid-cols-4">
           <Field icon={Clock} label={t('meetings.columns.updatedAt')} value={formatDateTime(meeting.updatedAt)} />
-          <Field icon={CalendarDays} label={tf('meetings.meetingDetails.createdAt', 'Created')} value={formatDateTime(meeting.createdAt)} />
+          <Field icon={CalendarDays} label={t('meetings.meetingDetails.createdAt')} value={formatDateTime(meeting.createdAt)} />
           <Field icon={Layers3} label={t('meetings.columns.sector')} value={meeting.sector?.name} />
           <Field icon={UserCircle} label={t('meetings.fields.serviceSecretary')} value={meeting.serviceSecretary?.name} />
         </div>
