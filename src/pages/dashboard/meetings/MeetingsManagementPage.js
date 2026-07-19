@@ -105,6 +105,7 @@ export default function MeetingsManagementPage() {
       const { data } = await meetingsApi.meetings.list({
         limit: 100,
         order: 'desc',
+        summary: 1,
         ...(filters.sectorId && { sectorId: filters.sectorId }),
         ...(filters.day && { day: filters.day }),
         ...(filters.search.trim() && { search: filters.search.trim() }),
@@ -132,10 +133,10 @@ export default function MeetingsManagementPage() {
   const stats = useMemo(() => {
     const r = { totalMeetings: meetings.length, totalServants: 0, totalCommittees: 0, totalActivities: 0, totalGroups: 0, meetingsWithoutServants: 0 };
     meetings.forEach((m) => {
-      const sc = (m.servants || []).length;
-      const cc = (m.committees || []).length;
-      const ac = (m.activities || []).length;
-      const gc = (m.groups || []).length;
+      const sc = m.servantsCount || 0;
+      const cc = m.committeesCount || 0;
+      const ac = m.activitiesCount || 0;
+      const gc = m.groupsCount || 0;
       r.totalServants += sc;
       r.totalCommittees += cc;
       r.totalActivities += ac;
@@ -212,13 +213,13 @@ export default function MeetingsManagementPage() {
     {
       key: 'groupsCount',
       label: t('meetings.columns.groupsCount'),
-      render: (row) => <span className="text-sm font-semibold text-heading">{(row.groups || []).length}</span>,
+      render: (row) => <span className="text-sm font-semibold text-heading">{row.groupsCount || 0}</span>,
     },
     {
       key: 'servantsCount',
       label: t('meetings.columns.servantsCount'),
       render: (row) => {
-        const count = (row.servants || []).length;
+        const count = row.servantsCount || 0;
         return count === 0
           ? <Badge variant="warning" size="sm" dot>{count}</Badge>
           : <Badge variant="success" size="sm">{count}</Badge>;
@@ -227,7 +228,7 @@ export default function MeetingsManagementPage() {
     {
       key: 'committeesCount',
       label: t('meetings.columns.committeesCount'),
-      render: (row) => <span className="text-sm text-heading">{(row.committees || []).length}</span>,
+      render: (row) => <span className="text-sm text-heading">{row.committeesCount || 0}</span>,
     },
     {
       key: 'updatedAt',
@@ -245,7 +246,7 @@ export default function MeetingsManagementPage() {
   /* ── bespoke mobile card: meeting identity + schedule, with servant coverage
         and group/committee counts as scannable metadata ── */
   const renderMeetingCard = (row) => {
-    const servantsCount = (row.servants || []).length;
+    const servantsCount = row.servantsCount || 0;
     return (
       <DataCard
         accent="primary"
@@ -272,12 +273,12 @@ export default function MeetingsManagementPage() {
             <span aria-hidden="true">·</span>
             <span className="inline-flex items-center gap-1">
               <Layers3 className="h-3.5 w-3.5" />
-              {t('meetings.columns.groupsCount')}: {(row.groups || []).length}
+              {t('meetings.columns.groupsCount')}: {row.groupsCount || 0}
             </span>
             <span aria-hidden="true">·</span>
             <span className="inline-flex items-center gap-1">
               <ListChecks className="h-3.5 w-3.5" />
-              {t('meetings.columns.committeesCount')}: {(row.committees || []).length}
+              {t('meetings.columns.committeesCount')}: {row.committeesCount || 0}
             </span>
           </>
         }

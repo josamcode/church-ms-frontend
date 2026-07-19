@@ -259,7 +259,7 @@ export const meetingsApi = {
         formData.append('avatar', file);
         return apiClient.post('/meetings/upload-avatar', formData);
     },
-    getById: (id) => apiClient.get(`/meetings/${id}`),
+    getById: (id, params) => apiClient.get(`/meetings/${id}`, { params }),
     getMemberById: (meetingId, memberId) => apiClient.get(`/meetings/${meetingId}/members/${memberId}`),
     getAttendance: (meetingId, attendanceDate) =>
       apiClient.get(`/meetings/${meetingId}/attendance`, { params: { attendanceDate } }),

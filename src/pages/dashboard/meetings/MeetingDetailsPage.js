@@ -226,7 +226,7 @@ export default function MeetingDetailsPage() {
     enabled: !!id,
     staleTime: 60000,
     queryFn: async () => {
-      const { data } = await meetingsApi.meetings.getById(id);
+      const { data } = await meetingsApi.meetings.getById(id, { overview: 1 });
       return data?.data || null;
     },
   });
@@ -338,7 +338,7 @@ export default function MeetingDetailsPage() {
 
   const stats = useMemo(() => ({
     assistantsCount: (meeting?.assistantSecretaries || []).length,
-    servedUsersCount: (meeting?.servedUsers || []).length,
+    servedUsersCount: meeting?.servedUsersCount || 0,
     groupsCount: (meeting?.groups || []).length,
     groupMembersCount: (meeting?.groupAssignments || []).reduce(
       (count, assignment) => count + (assignment?.servedUsers || []).length,
@@ -573,7 +573,7 @@ export default function MeetingDetailsPage() {
               <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-3">
                 <span className="text-xs text-muted">
                   {t('meetings.fields.servedUsers')}:{' '}
-                  <strong className="text-heading">{(servant.servedUsers || []).length}</strong>
+                  <strong className="text-heading">{servant.servedUsersCount || 0}</strong>
                 </span>
               </div>
 
@@ -606,7 +606,7 @@ export default function MeetingDetailsPage() {
                   )}
                 </div>
                 <Badge variant="default" size="sm">
-                  {(committee.members || []).length} {t('meetings.meetingDetails.members')}
+                  {committee.membersCount || 0} {t('meetings.meetingDetails.members')}
                 </Badge>
               </div>
               {(committee.memberNames || []).length > 0 && (

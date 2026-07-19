@@ -82,8 +82,11 @@ export default function MeetingsDashboardPage() {
     enabled: isAuthenticated,
     staleTime: 60000,
     queryFn: async () => {
-      const { data } = await meetingsApi.meetings.list({ limit: 100, order: 'desc' });
-      return Array.isArray(data?.data) ? data.data : [];
+      const { data } = await meetingsApi.meetings.list({ limit: 100, order: 'desc', summary: 1 });
+      return {
+        list: Array.isArray(data?.data) ? data.data : [],
+        servedUsersUnique: data?.meta?.servedUsersUnique ?? 0,
+      };
     },
   });
 
@@ -102,9 +105,10 @@ export default function MeetingsDashboardPage() {
     [sectorsQuery.data]
   );
   const meetings = useMemo(
-    () => (Array.isArray(meetingsQuery.data) ? meetingsQuery.data : []),
+    () => (Array.isArray(meetingsQuery.data?.list) ? meetingsQuery.data.list : []),
     [meetingsQuery.data]
   );
+  const servedUsersUnique = meetingsQuery.data?.servedUsersUnique ?? 0;
   const responsibilities = useMemo(
     () => (Array.isArray(responsibilitiesQuery.data) ? responsibilitiesQuery.data : []),
     [responsibilitiesQuery.data]
@@ -124,16 +128,14 @@ export default function MeetingsDashboardPage() {
       meetingsWithoutCommittees: 0,
     };
 
-    const servedUsers = new Set();
-
     sectors.forEach((sector) => {
       if (!(sector.officials || []).length) result.sectorsWithoutOfficials += 1;
     });
 
     meetings.forEach((meeting) => {
-      const servantsCount = (meeting.servants || []).length;
-      const committeesCount = (meeting.committees || []).length;
-      const activitiesCount = (meeting.activities || []).length;
+      const servantsCount = meeting.servantsCount || 0;
+      const committeesCount = meeting.committeesCount || 0;
+      const activitiesCount = meeting.activitiesCount || 0;
 
       result.totalServants += servantsCount;
       result.totalCommittees += committeesCount;
@@ -142,16 +144,11 @@ export default function MeetingsDashboardPage() {
       if (!servantsCount) result.meetingsWithoutServants += 1;
       if (!committeesCount) result.meetingsWithoutCommittees += 1;
       if (!activitiesCount) result.meetingsWithoutActivities += 1;
-
-      (meeting.servedUsers || []).forEach((user) => {
-        const id = user?.id || user?._id;
-        if (id) servedUsers.add(String(id));
-      });
     });
 
-    result.uniqueServedUsers = servedUsers.size;
+    result.uniqueServedUsers = servedUsersUnique;
     return result;
-  }, [meetings, sectors]);
+  }, [meetings, sectors, servedUsersUnique]);
 
   const sectorHealth = useMemo(() => {
     const bySector = new Map();
@@ -181,8 +178,8 @@ export default function MeetingsDashboardPage() {
       };
 
       current.meetingsCount += 1;
-      current.servantsCount += (meeting.servants || []).length;
-      current.activitiesCount += (meeting.activities || []).length;
+      current.servantsCount += meeting.servantsCount || 0;
+      current.activitiesCount += meeting.activitiesCount || 0;
       bySector.set(key, current);
     });
 
@@ -608,7 +605,7 @@ export default function MeetingsDashboardPage() {
             ) : (
               <div className="divide-y divide-border/60">
                 {meetingsSchedule.slice(0, 8).map((meeting) => {
-                  const noServants = (meeting.servants || []).length === 0;
+                  const noServants = (meeting.servantsCount || 0) === 0;
                   return (
                     <div key={meeting.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                       <div className="flex min-w-0 items-center gap-3">

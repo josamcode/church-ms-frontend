@@ -736,7 +736,7 @@ export default function DashboardHome() {
     queryKey: ['dashboard', 'member', 'meetings'],
     enabled: !systemMode && canMeetings,
     staleTime: 60000,
-    queryFn: async () => (await meetingsApi.meetings.list({ limit: 100, order: 'desc' })).data?.data || [],
+    queryFn: async () => (await meetingsApi.meetings.list({ limit: 100, order: 'desc', summary: 1 })).data?.data || [],
   });
 
   const bookingsQuery = useQuery({

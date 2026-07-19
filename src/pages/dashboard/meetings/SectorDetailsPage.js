@@ -54,7 +54,7 @@ export default function SectorDetailsPage() {
     enabled: !!id && canViewMeetings,
     staleTime: 30000,
     queryFn: async () => {
-      const { data } = await meetingsApi.meetings.list({ limit: 100, order: 'desc', sectorId: id });
+      const { data } = await meetingsApi.meetings.list({ limit: 100, order: 'desc', sectorId: id, summary: 1 });
       return Array.isArray(data?.data) ? data.data : [];
     },
   });
@@ -68,9 +68,9 @@ export default function SectorDetailsPage() {
   const stats = useMemo(() => ({
     officialsCount: (sector?.officials || []).length,
     meetingsCount: meetings.length,
-    totalServants: meetings.reduce((s, m) => s + (m.servants || []).length, 0),
-    totalActivities: meetings.reduce((s, m) => s + (m.activities || []).length, 0),
-    totalCommittees: meetings.reduce((s, m) => s + (m.committees || []).length, 0),
+    totalServants: meetings.reduce((s, m) => s + (m.servantsCount || 0), 0),
+    totalActivities: meetings.reduce((s, m) => s + (m.activitiesCount || 0), 0),
+    totalCommittees: meetings.reduce((s, m) => s + (m.committeesCount || 0), 0),
   }), [sector?.officials, meetings]);
 
   const breadcrumbs = [
@@ -324,17 +324,17 @@ export default function SectorDetailsPage() {
                   <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface-alt px-2.5 py-1 text-xs text-muted">
                     <UserCircle className="h-3.5 w-3.5" />
                     {t('meetings.columns.servantsCount')}
-                    <strong className="text-heading">{(meeting.servants || []).length}</strong>
+                    <strong className="text-heading">{meeting.servantsCount || 0}</strong>
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface-alt px-2.5 py-1 text-xs text-muted">
                     <FileText className="h-3.5 w-3.5" />
                     {t('meetings.columns.committeesCount')}
-                    <strong className="text-heading">{(meeting.committees || []).length}</strong>
+                    <strong className="text-heading">{meeting.committeesCount || 0}</strong>
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface-alt px-2.5 py-1 text-xs text-muted">
                     <CalendarClock className="h-3.5 w-3.5" />
                     {t('meetings.columns.activitiesCount')}
-                    <strong className="text-heading">{(meeting.activities || []).length}</strong>
+                    <strong className="text-heading">{meeting.activitiesCount || 0}</strong>
                   </span>
                 </div>
 

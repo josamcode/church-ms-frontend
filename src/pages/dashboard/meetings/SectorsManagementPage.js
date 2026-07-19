@@ -75,7 +75,7 @@ export default function SectorsManagementPage() {
     enabled: canViewSectors && canViewMeetings,
     staleTime: 30000,
     queryFn: async () => {
-      const { data } = await meetingsApi.meetings.list({ limit: 100, order: 'desc' });
+      const { data } = await meetingsApi.meetings.list({ limit: 100, order: 'desc', summary: 1 });
       return Array.isArray(data?.data) ? data.data : [];
     },
   });
