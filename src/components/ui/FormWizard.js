@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import Button from './Button';
 
@@ -11,9 +11,14 @@ import Button from './Button';
  * All step contents stay mounted (inactive ones hidden) so form state, focus,
  * and uploads are never lost when navigating between steps.
  *
+ * Save is always available in the action bar, on every step — a wizard groups
+ * fields for readability, it should not hold the submit hostage. Parents can
+ * grab a ref and call `goToStep(id)` to surface errors that live on a step the
+ * user is not currently looking at.
+ *
  * steps: [{ id, label, description?, icon?, content }]
  */
-export default function FormWizard({
+function FormWizard({
   steps = [],
   onSave,
   onCancel,
@@ -25,13 +30,22 @@ export default function FormWizard({
   isRTL = false,
   defaultIndex = 0,
   footerExtra = null,
-}) {
+}, ref) {
   const [active, setActive] = useState(defaultIndex);
-  if (!steps.length) return null;
 
-  const last = steps.length - 1;
+  const last = Math.max(steps.length - 1, 0);
   const safe = Math.min(Math.max(active, 0), last);
   const go = (i) => setActive(Math.min(Math.max(i, 0), last));
+
+  useImperativeHandle(ref, () => ({
+    goToStep: (id) => {
+      const index = steps.findIndex((step) => step.id === id);
+      if (index >= 0) setActive(index);
+    },
+  }), [steps]);
+
+  if (!steps.length) return null;
+
   const current = steps[safe];
   const ActiveIcon = current.icon;
   const PrevIcon = isRTL ? ChevronRight : ChevronLeft;
@@ -148,16 +162,25 @@ export default function FormWizard({
             </Button>
           ) : null}
           {safe < last ? (
-            <Button type="button" icon={NextIcon} iconPosition="end" onClick={() => go(safe + 1)} className="flex-1 sm:flex-none">
+            <Button
+              type="button"
+              variant="outline"
+              icon={NextIcon}
+              iconPosition="end"
+              onClick={() => go(safe + 1)}
+              className="flex-1 sm:flex-none"
+            >
               {nextLabel}
             </Button>
-          ) : (
-            <Button type="button" onClick={onSave} loading={saving} className="flex-1 sm:flex-none">
-              {saveLabel}
-            </Button>
-          )}
+          ) : null}
+          {/* Save is always reachable — no need to walk to the last step to submit. */}
+          <Button type="button" onClick={onSave} loading={saving} className="flex-1 sm:flex-none">
+            {saveLabel}
+          </Button>
         </div>
       </div>
     </div>
   );
 }
+
+export default forwardRef(FormWizard);

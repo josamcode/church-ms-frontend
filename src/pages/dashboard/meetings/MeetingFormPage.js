@@ -89,6 +89,7 @@ export default function MeetingFormPage() {
   const [errors, setErrors] = useState({});
   const [pendingServedUser, setPendingServedUser] = useState(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const wizardRef = useRef(null);
 
   const sectorsQuery = useQuery({
     queryKey: ['meetings', 'sectors', 'list'],
@@ -164,7 +165,9 @@ export default function MeetingFormPage() {
     },
     onError: (error) => {
       const normalized = normalizeApiError(error);
-      setErrors(mapFieldErrors(normalized.details));
+      const mapped = mapFieldErrors(normalized.details);
+      setErrors(mapped);
+      focusFirstErrorStep(mapped);
       toast.error(normalized.message);
     },
   });
@@ -296,12 +299,26 @@ export default function MeetingFormPage() {
     setForm((prev) => ({ ...prev, avatar: null, avatarRemoved: true }));
   };
 
+  // Save is reachable from every step, so a failed validation may point at a
+  // field the user cannot currently see. Jump to the earliest offending step.
+  // Ordered to match `steps` below.
+  const focusFirstErrorStep = (nextErrors) => {
+    const keys = Object.keys(nextErrors).filter((key) => nextErrors[key]);
+    const owners = [
+      { id: 'basicInfo', owns: (key) => ['sectorId', 'name', 'time'].includes(key) },
+      { id: 'servants', owns: (key) => key.startsWith('servant_') },
+    ];
+    const target = owners.find((owner) => keys.some(owner.owns));
+    if (target) wizardRef.current?.goToStep(target.id);
+  };
+
   const handleSubmit = (event) => {
     event?.preventDefault?.();
 
     const nextErrors = validateForm();
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
+      focusFirstErrorStep(nextErrors);
       toast.error(t('meetings.messages.fixValidationErrors'));
       return;
     }
@@ -1052,6 +1069,7 @@ export default function MeetingFormPage() {
       </Card>
 
       <FormWizard
+        ref={wizardRef}
         steps={steps}
         onSave={handleSave}
         onCancel={handleCancel}

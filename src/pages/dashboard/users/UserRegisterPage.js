@@ -184,7 +184,7 @@ function getCopy(isArabic) {
         toLogin: 'الذهاب إلى صفحة الدخول',
         toHome: 'العودة إلى الرئيسية',
         generatePassword: 'أنشئ كلمة مرور آمنة لي',
-        submitHint: 'زر الإرسال يظل معطلًا حتى تصل إلى الخطوة الأخيرة وتكمل كل الحقول المطلوبة.',
+        submitHint: 'زر الإرسال يظل معطلًا حتى تكمل كل الحقول المطلوبة، ويمكنك الإرسال من أي خطوة.',
         steps: [
           { id: 'identity', label: 'من أنت؟' },
           { id: 'contact', label: 'كيف يمكننا الوصول إليك؟' },
@@ -246,7 +246,7 @@ function getCopy(isArabic) {
         toLogin: 'Go to the sign-in page',
         toHome: 'Return to the home page',
         generatePassword: 'Generate a secure password for me',
-        submitHint: 'The submit button stays disabled until you reach the last step and complete every required field.',
+        submitHint: 'The submit button stays disabled until every required field is complete. You can submit from any step.',
         steps: [
           { id: 'identity', label: 'Who are you?' },
           { id: 'contact', label: 'How can we reach you?' },
@@ -383,7 +383,9 @@ export default function UserRegisterPage() {
     while (index < copy.steps.length - 1 && stepComplete(copy.steps[index].id, form)) index += 1;
     return index;
   }, [copy.steps, form]);
-  const canSubmit = activeStep === copy.steps[copy.steps.length - 1].id && copy.steps.every((step) => stepComplete(step.id, form));
+  // Gated on completeness only — not on which step you happen to be viewing.
+  // Once every required field is filled you can submit from anywhere.
+  const canSubmit = copy.steps.every((step) => stepComplete(step.id, form));
 
   const genderOptions = useMemo(() => getGenderOptions(language), [language]);
   const educationOptions = useMemo(() => getEducationStageOptions(language), [language]);
