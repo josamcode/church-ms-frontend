@@ -24,7 +24,8 @@
     "screenshots:auth": "node scripts/screenshots/auth.js",
     "screenshots": "node scripts/screenshots/capture.js",
     "screenshots:clean": "node scripts/screenshots/clean.js",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "test:ci": "cross-env CI=true react-scripts test --watchAll=false --passWithNoTests"
   },
   "eslintConfig": {
     "extends": [
