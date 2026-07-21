@@ -1,4 +1,4 @@
-﻿export const translations = {
+export const translations = {
   en: {
     common: {
       appName: 'St. Michael Church',
@@ -257,7 +257,6 @@
           portfolio: {
             name: 'Gerges Samuel Gabra',
             handle: 'josam-portfolio.vercel.app',
-            description: 'Full Stack Web Developer',
             alt: 'Gerges Samuel Gabra',
             description: 'Software Engineer | Built this system',
           },

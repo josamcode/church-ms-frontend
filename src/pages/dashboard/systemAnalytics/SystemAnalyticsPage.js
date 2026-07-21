@@ -154,12 +154,23 @@ export default function SystemAnalyticsPage() {
   });
 
   const summary = analytics?.summary || {};
-  const dailyTrend = Array.isArray(analytics?.dailyTrend) ? analytics.dailyTrend : [];
-  const topPages = Array.isArray(analytics?.topPages) ? analytics.topPages : [];
+  // Wrapped in useMemo so each keeps a stable reference while `analytics` is
+  // unchanged. Without this the `? … : []` fallback minted a new array every
+  // render, which propagated into the downstream useMemo dependency lists and
+  // defeated their memoization (the react-hooks/exhaustive-deps warning).
+  const dailyTrend = useMemo(
+    () => (Array.isArray(analytics?.dailyTrend) ? analytics.dailyTrend : []),
+    [analytics]
+  );
+  const topPages = useMemo(
+    () => (Array.isArray(analytics?.topPages) ? analytics.topPages : []),
+    [analytics]
+  );
   const recentSessions = Array.isArray(analytics?.recentSessions) ? analytics.recentSessions : [];
-  const surfaceBreakdown = Array.isArray(analytics?.surfaceBreakdown)
-    ? analytics.surfaceBreakdown
-    : [];
+  const surfaceBreakdown = useMemo(
+    () => (Array.isArray(analytics?.surfaceBreakdown) ? analytics.surfaceBreakdown : []),
+    [analytics]
+  );
   const selectedSession = recentSessions.find(
     (session) => session.sessionId === selectedSessionId
   );
@@ -479,13 +490,13 @@ export default function SystemAnalyticsPage() {
 
       {/* KPI band */}
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <Skeleton key={index} className="h-[132px] rounded-xl" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-3">
           {kpiTiles.map(({ label, value, icon: Icon, tone, spark, trend }) => (
             <StatCard
               key={label}

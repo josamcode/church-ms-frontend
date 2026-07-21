@@ -12,14 +12,12 @@ import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Button from '../../../components/ui/Button';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
-import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import Select from '../../../components/ui/Select';
 import TextArea from '../../../components/ui/TextArea';
 import Badge from '../../../components/ui/Badge';
 import AiGeneratedBadge from '../../../components/ui/AiGeneratedBadge';
 import PageHeader from '../../../components/ui/PageHeader';
 import Skeleton from '../../../components/ui/Skeleton';
-import { PERMISSION_LABELS } from '../../../constants/permissions';
 import { useI18n } from '../../../i18n/i18n';
 import { localizeNotificationTypeName } from '../../../utils/notificationTypeLocalization';
 
@@ -386,14 +384,6 @@ export default function NotificationFormPage() {
     }));
   }, [typesRes, t]);
 
-  const audiencePermissionOptions = useMemo(
-    () =>
-      Object.entries(PERMISSION_LABELS)
-        .map(([value, label]) => ({ value, label }))
-        .sort((left, right) => left.label.localeCompare(right.label)),
-    []
-  );
-
   const findTypeByInput = (inputValue) => {
     const needle = normalizeText(inputValue);
     if (!needle) return null;
@@ -545,26 +535,6 @@ export default function NotificationFormPage() {
 
       toast.success(tf('ai.draft.applied', 'Draft applied. Edit it before saving.'));
     },
-  };
-
-  const updateAudienceType = (value) => {
-    setForm((prev) => ({
-      ...prev,
-      audienceType: value,
-      audiencePermissions:
-        value === 'permissions' && (!Array.isArray(prev.audiencePermissions) || prev.audiencePermissions.length === 0)
-          ? DEFAULT_AUDIENCE_PERMISSIONS
-          : prev.audiencePermissions,
-    }));
-    setFormErrors((prev) => ({ ...prev, audienceType: undefined, audiencePermissions: undefined }));
-  };
-
-  const updateAudiencePermissions = (values) => {
-    setForm((prev) => ({
-      ...prev,
-      audiencePermissions: values,
-    }));
-    setFormErrors((prev) => ({ ...prev, audiencePermissions: undefined }));
   };
 
   const updateTypeInput = (value, selectedTypeId) => {
