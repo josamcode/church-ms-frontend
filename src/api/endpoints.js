@@ -324,3 +324,28 @@ export const systemAnalyticsApi = {
 };
 
 
+/* ══════════ AI ══════════ */
+
+// The shared client times out at 15s, but the backend allows a provider call
+// up to AI_REQUEST_TIMEOUT_MS (30s) plus one retry. Without a longer per-request
+// timeout the browser would abort a request the server is still working on, and
+// the user would see a network error for a draft that actually succeeded.
+const AI_REQUEST_TIMEOUT_MS = 75000;
+
+export const aiApi = {
+  // Feature flags plus the caller's own quota. Used to decide whether to render
+  // AI affordances at all, so a disabled feature shows no button rather than a
+  // button that fails.
+  getStatus: () => apiClient.get('/ai/status'),
+
+  draftNotification: (data) =>
+    apiClient.post('/ai/notifications/draft', data, { timeout: AI_REQUEST_TIMEOUT_MS }),
+
+  narrateAnalytics: (data) =>
+    apiClient.post('/ai/analytics/narrate', data, { timeout: AI_REQUEST_TIMEOUT_MS }),
+
+  // Records whether a draft was used or discarded. This is what makes draft
+  // acceptance measurable, and therefore what makes the rollout's stop
+  // condition ("acceptance below 30%") evaluable at all.
+  submitFeedback: (data) => apiClient.post('/ai/feedback', data),
+};

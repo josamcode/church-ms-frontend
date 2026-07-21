@@ -12,9 +12,19 @@ function normalizeLanguage(language) {
   return SUPPORTED_LANGUAGES.includes(short) ? short : DEFAULT_LANGUAGE;
 }
 
+// Prototype-chain keys are refused so a caller interpolating untrusted text
+// into a translation path (e.g. an AI-generated field) cannot resolve
+// `__proto__`/`constructor`/`prototype` to a non-string object — which would
+// make `t()` return an object and white-screen the page when React tries to
+// render it. `hasOwnProperty` also stops inherited members leaking through.
+const UNSAFE_PATH_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+
 function getByPath(obj, path) {
   if (!obj || !path) return undefined;
-  return path.split('.').reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
+  return path.split('.').reduce((acc, key) => {
+    if (acc == null || UNSAFE_PATH_KEYS.has(key)) return undefined;
+    return Object.prototype.hasOwnProperty.call(acc, key) ? acc[key] : undefined;
+  }, obj);
 }
 
 function interpolate(template, values = {}) {

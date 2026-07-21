@@ -73,6 +73,13 @@ export const PERMISSIONS = [
   'BOOKINGS_VIEW',
   'BOOKINGS_MANAGE',
   'BOOKINGS_TYPES_MANAGE',
+
+  // AI — additive permissions. Each AI endpoint requires the AI permission AND
+  // the matching domain permission, so holding one of these alone grants
+  // nothing. Mirrors backend/src/constants/permissions.js; keep both in sync.
+  'AI_DRAFT_CONTENT',
+  'AI_EXPLAIN_ANALYTICS',
+  'AI_DATA_QUALITY_REVIEW',
 ];
 
 export const ROLE_PERMISSIONS = {
@@ -211,6 +218,9 @@ export const PERMISSION_LABELS = {
   AUTH_MANAGE_SESSIONS: 'Manage sessions',
   AUTH_CHANGE_PASSWORD: 'Change password',
   SYSTEM_ANALYTICS_VIEW: 'View system analytics',
+  AI_DRAFT_CONTENT: 'Draft content with AI',
+  AI_EXPLAIN_ANALYTICS: 'Explain analytics with AI',
+  AI_DATA_QUALITY_REVIEW: 'Review data quality with AI',
   CONFESSIONS_VIEW: 'View confessions',
   CONFESSIONS_CREATE: 'Create confession sessions',
   CONFESSIONS_ASSIGN_USER: 'Assign confession attendees',
@@ -406,6 +416,15 @@ export const PERMISSION_GROUPS = [
       'BOOKINGS_VIEW',
       'BOOKINGS_MANAGE',
       'BOOKINGS_TYPES_MANAGE',
+    ],
+  },
+  {
+    id: 'ai',
+    label: 'AI Assistance',
+    permissions: [
+      'AI_DRAFT_CONTENT',
+      'AI_EXPLAIN_ANALYTICS',
+      'AI_DATA_QUALITY_REVIEW',
     ],
   },
 ];
