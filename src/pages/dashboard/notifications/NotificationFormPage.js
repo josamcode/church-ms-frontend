@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, CheckCircle2, Circle, FileText, Image as ImageIcon, ImagePlus, ListTree, PlusCircle, Save, Trash2, Tag } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Circle, FileText, Image as ImageIcon, ImagePlus, ListTree, PlusCircle, Save, Sparkles, Trash2, Tag, X } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-import { notificationsApi } from '../../../api/endpoints';
+import { aiApi, notificationsApi } from '../../../api/endpoints';
+import { aiErrorMessageKey } from '../../../api/aiErrors';
 import { normalizeApiError } from '../../../api/errors';
 import { useAuth } from '../../../auth/auth.hooks';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
@@ -15,6 +16,7 @@ import MultiSelectChips from '../../../components/ui/MultiSelectChips';
 import Select from '../../../components/ui/Select';
 import TextArea from '../../../components/ui/TextArea';
 import Badge from '../../../components/ui/Badge';
+import AiGeneratedBadge from '../../../components/ui/AiGeneratedBadge';
 import PageHeader from '../../../components/ui/PageHeader';
 import Skeleton from '../../../components/ui/Skeleton';
 import { PERMISSION_LABELS } from '../../../constants/permissions';
@@ -127,15 +129,216 @@ function NotificationTypeCombobox({
   );
 }
 
+/**
+ * "Suggest a draft" panel.
+ *
+ * Kept local to this page, following the `NotificationTypeCombobox` precedent.
+ *
+ * Two deliberate properties:
+ *   - The only data sent is what the admin types into the points box. Nothing
+ *     is read from member records, so an entire class of privacy risk does not
+ *     apply to this feature by construction.
+ *   - The draft is never saved automatically. It fills the form fields, the
+ *     admin edits, and the existing save path runs unchanged.
+ */
+function AiDraftPanel({ t, tf, isRTL, onApply, disabled }) {
+  const [points, setPoints] = useState('');
+  const [tone, setTone] = useState('formal');
+  const [draft, setDraft] = useState(null);
+  const [draftRequestId, setDraftRequestId] = useState(null);
+  const [errorKey, setErrorKey] = useState(null);
+
+  /**
+   * Report whether the draft was used. Fire-and-forget: a failure to record
+   * telemetry must never block the admin's actual work, so the rejection is
+   * swallowed rather than surfaced.
+   */
+  const reportFeedback = (feedback) => {
+    if (!draftRequestId) return;
+    aiApi.submitFeedback({ requestId: draftRequestId, feedback }).catch(() => {});
+  };
+
+  const draftMutation = useMutation({
+    mutationFn: (payload) => aiApi.draftNotification(payload),
+    onSuccess: (response) => {
+      setDraft(response?.data?.data?.draft || null);
+      setDraftRequestId(response?.data?.data?.meta?.requestId || null);
+      setErrorKey(null);
+    },
+    onError: (error) => {
+      setDraft(null);
+      setErrorKey(aiErrorMessageKey(error));
+    },
+  });
+
+  const bulletPoints = points
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const canGenerate = bulletPoints.length > 0 && !draftMutation.isPending && !disabled;
+
+  const handleGenerate = () => {
+    if (!canGenerate) return;
+    onApply.requestDraft({ bulletPoints, tone }, draftMutation);
+  };
+
+  const TONES = ['formal', 'warm', 'urgent', 'celebratory'];
+
+  return (
+    <div className="rounded-2xl border border-secondary/20 bg-secondary/[0.04] p-4 mb-4">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-secondary" aria-hidden="true" />
+            <h3 className="text-sm font-semibold text-heading">
+              {tf('ai.draft.title', 'Draft with AI')}
+            </h3>
+          </div>
+          <p className="text-xs text-muted mt-1 max-w-prose">
+            {tf('ai.draft.hint', 'Writes a bilingual announcement from the points you list below.')}
+          </p>
+        </div>
+      </div>
+
+      <TextArea
+        label={tf('ai.draft.pointsLabel', 'Points to communicate')}
+        value={points}
+        onChange={(event) => setPoints(event.target.value)}
+        placeholder={tf('ai.draft.pointsPlaceholder', 'One point per line')}
+        hint={tf('ai.draft.pointsHint', 'These are the only facts the model receives.')}
+        className="min-h-[80px]"
+      />
+
+      <div className="flex flex-wrap items-center gap-3 mt-3">
+        <Select
+          label={tf('ai.draft.toneLabel', 'Tone')}
+          value={tone}
+          onChange={(event) => setTone(event.target.value)}
+          options={TONES.map((value) => ({
+            value,
+            label: tf(`ai.tones.${value}`, value),
+          }))}
+          containerClassName="!mb-0 min-w-[160px]"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          icon={Sparkles}
+          loading={draftMutation.isPending}
+          disabled={!canGenerate}
+          onClick={handleGenerate}
+          className="self-end"
+        >
+          {draft
+            ? tf('ai.draft.regenerate', 'Suggest another')
+            : tf('ai.draft.action', 'Suggest a draft')}
+        </Button>
+      </div>
+
+      {errorKey ? (
+        <p className="mt-3 text-sm text-danger" role="alert">
+          {tf(errorKey, 'Could not generate a draft. Please write manually.')}
+        </p>
+      ) : null}
+
+      {draft ? (
+        <div className="mt-4 rounded-xl border border-border bg-surface p-4">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <AiGeneratedBadge>{tf('ai.badge', 'AI generated')}</AiGeneratedBadge>
+              <span className="text-xs text-muted">
+                {tf('ai.reviewNotice', 'Review before publishing. AI can be wrong.')}
+              </span>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              icon={X}
+              onClick={() => {
+                reportFeedback('negative');
+                setDraft(null);
+              }}
+              aria-label={tf('ai.draft.dismiss', 'Discard')}
+            />
+          </div>
+
+          <dl className="space-y-2 text-sm">
+            <div>
+              <dt className="text-xs font-medium text-muted">
+                {t('notifications.form.name')}
+              </dt>
+              <dd className="text-base" dir={isRTL ? 'rtl' : 'ltr'}>{draft.ar?.title}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-muted">
+                {t('notifications.form.summary')}
+              </dt>
+              <dd className="text-base" dir={isRTL ? 'rtl' : 'ltr'}>{draft.ar?.summary}</dd>
+            </div>
+          </dl>
+
+          {draft.warnings?.length ? (
+            <div className="mt-3 rounded-lg bg-warning-light/60 p-2.5">
+              <p className="text-xs font-medium text-warning mb-1">
+                {tf('ai.draft.warningsTitle', 'The model flagged')}
+              </p>
+              <ul className="list-disc ps-5 text-xs text-warning space-y-0.5">
+                {draft.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+              </ul>
+            </div>
+          ) : null}
+
+          <Button
+            type="button"
+            variant="tonal"
+            size="sm"
+            icon={CheckCircle2}
+            className="mt-3"
+            onClick={() => {
+              onApply.applyDraft(draft);
+              reportFeedback('positive');
+              setDraft(null);
+            }}
+          >
+            {tf('ai.draft.apply', 'Use this draft')}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function NotificationFormPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
 
   const canManageTypes = hasPermission('NOTIFICATIONS_TYPES_MANAGE');
+
+  // Both permissions are required, mirroring the endpoint's own check. The AI
+  // permission alone grants nothing — it adds a way of working, not access.
+  const canUseAiDraft =
+    hasPermission('AI_DRAFT_CONTENT') && hasPermission('NOTIFICATIONS_CREATE');
+
+  // Ask the server whether the feature is actually live. A kill switch flipped
+  // in the environment should make the button disappear, not fail on click.
+  const aiStatusQuery = useQuery({
+    queryKey: ['ai', 'status'],
+    queryFn: () => aiApi.getStatus().then((response) => response.data?.data),
+    enabled: canUseAiDraft,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  const aiDraftAvailable =
+    canUseAiDraft
+    && aiStatusQuery.data?.enabled === true
+    && aiStatusQuery.data?.features?.notification_draft === true;
 
   const tf = (key, fallback) => {
     const value = t(key);
@@ -286,6 +489,62 @@ export default function NotificationFormPage() {
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  /**
+   * Bridge between the AI panel and this form.
+   *
+   * `requestDraft` needs the selected notification type, which lives in this
+   * component's state; `applyDraft` writes into the normal form fields so the
+   * draft goes through the same validation and save path as typed text. The
+   * draft is never persisted on its own.
+   */
+  const aiDraftBridge = {
+    requestDraft: ({ bulletPoints, tone }, mutation) => {
+      const typeId = typeChoices.find(
+        (choice) => choice.label.trim().toLowerCase() === typeInput.trim().toLowerCase()
+      )?.value;
+
+      if (!typeId) {
+        setFormErrors((prev) => ({
+          ...prev,
+          typeId: t('notifications.validation.typeRequired'),
+        }));
+        return;
+      }
+
+      mutation.mutate({
+        notificationTypeId: typeId,
+        audienceType: form.audienceType,
+        bulletPoints,
+        tone,
+        ...(form.eventDate ? { eventDate: new Date(form.eventDate).toISOString() } : {}),
+      });
+    },
+
+    applyDraft: (draft) => {
+      if (draft?.ar?.title) updateField('name', draft.ar.title);
+      if (draft?.ar?.summary) updateField('summary', draft.ar.summary);
+
+      const details = Array.isArray(draft?.ar?.details) ? draft.ar.details : [];
+      if (details.length > 0) {
+        setForm((prev) => ({
+          ...prev,
+          details: [
+            ...prev.details,
+            ...details.map((content) => ({
+              localId: `ai-${Math.random().toString(36).slice(2, 10)}`,
+              kind: 'text',
+              title: '',
+              content,
+              url: '',
+            })),
+          ],
+        }));
+      }
+
+      toast.success(tf('ai.draft.applied', 'Draft applied. Edit it before saving.'));
+    },
   };
 
   const updateAudienceType = (value) => {
@@ -573,6 +832,16 @@ export default function NotificationFormPage() {
             title={t('notifications.form.sectionBasics')}
             subtitle={t('notifications.form.sectionBasicsSubtitle')}
           />
+
+          {aiDraftAvailable ? (
+            <AiDraftPanel
+              t={t}
+              tf={tf}
+              isRTL={isRTL}
+              onApply={aiDraftBridge}
+              disabled={isSaving}
+            />
+          ) : null}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mb-4">
             <NotificationTypeCombobox
