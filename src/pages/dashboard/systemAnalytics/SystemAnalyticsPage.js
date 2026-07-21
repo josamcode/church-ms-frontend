@@ -12,7 +12,9 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
-import { systemAnalyticsApi } from '../../../api/endpoints';
+import { aiApi, systemAnalyticsApi } from '../../../api/endpoints';
+import { useAuth } from '../../../auth/auth.hooks';
+import AiAnalyticsNarrative from '../../../components/ai/AiAnalyticsNarrative';
 import Breadcrumbs from '../../../components/ui/Breadcrumbs';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import Select from '../../../components/ui/Select';
@@ -112,6 +114,30 @@ export default function SystemAnalyticsPage() {
   const { language, t, isRTL } = useI18n();
   const [days, setDays] = useState('7');
   const [surface, setSurface] = useState('all');
+
+  const { hasPermission } = useAuth();
+
+  // Both permissions, matching the endpoint's own requirement: the AI
+  // permission adds a way of reading the data, never access to it.
+  const canNarrate =
+    hasPermission('AI_EXPLAIN_ANALYTICS') && hasPermission('SYSTEM_ANALYTICS_VIEW');
+
+  const aiStatusQuery = useQuery({
+    queryKey: ['ai', 'status'],
+    queryFn: () => aiApi.getStatus().then((response) => response.data?.data),
+    enabled: canNarrate,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  const aiNarrativeAvailable =
+    canNarrate
+    && aiStatusQuery.data?.enabled === true
+    && aiStatusQuery.data?.features?.analytics_narrative === true;
+
+  // The endpoint takes a coarse period, not a day count; map the page's filter
+  // onto the nearest supported bucket.
+  const aiPeriod = Number(days) <= 7 ? 'week' : Number(days) <= 30 ? 'month' : 'quarter';
   const [selectedSessionId, setSelectedSessionId] = useState('');
 
   const { data: analytics, isLoading } = useQuery({
@@ -500,6 +526,10 @@ export default function SystemAnalyticsPage() {
             );
           })}
         </div>
+      ) : null}
+
+      {aiNarrativeAvailable ? (
+        <AiAnalyticsNarrative period={aiPeriod} scope="site" />
       ) : null}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
